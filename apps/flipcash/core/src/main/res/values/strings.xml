@@ -986,10 +986,10 @@
     <string name="subtitle_removedOnAlsoSilenced">Removed %1$s · also silenced</string>
     <string name="action_unsilence">Unsilence</string>
     <string name="action_unban">Unban</string>
-    <string name="title_noSilencedMembers">No one is silenced</string>
-    <string name="title_noRemovedMembers">No one has been removed</string>
-    <string name="description_noSilencedMembers">Silenced members can read the group but can\'t send messages. Silence someone from their profile</string>
-    <string name="description_noRemovedMembers">Removed members can\'t rejoin the group. Remove someone from their profile</string>
+    <string name="title_noSilencedMembers">No One Silenced</string>
+    <string name="title_noRemovedMembers">No One Removed</string>
+    <string name="description_noSilencedMembers">Stop someone from sending messages in this group by tapping their profile and selecting Silence</string>
+    <string name="description_noRemovedMembers">Remove someone from this group by tapping their profile and selecting Remove from Group</string>
     <string name="error_title_failedToLoadRestricted">Something Went Wrong</string>
     <string name="error_description_failedToLoadRestricted">We were unable to load this list. Please try again</string>
     <string name="error_title_failedToUnsilence">Something Went Wrong</string>
