@@ -1359,6 +1359,12 @@
         <item quantity="one">%1$d Person Wants To Join</item>
         <item quantity="other">%1$d People Want To Join</item>
     </plurals>
+    <!-- A hosted group's Chats row while someone waits to join it (node 12824:117). -->
+    <string name="subtitle_wantsToJoin">%1$s wants to join</string>
+    <plurals name="subtitle_peopleWantToJoin">
+        <item quantity="one">%1$d person wants to join</item>
+        <item quantity="other">%1$d people want to join</item>
+    </plurals>
     <string name="subtitle_namesAnd">and</string>
     <string name="title_requestedJustNow">Requested just now</string>
     <string name="title_requestedYesterday">Requested yesterday</string>

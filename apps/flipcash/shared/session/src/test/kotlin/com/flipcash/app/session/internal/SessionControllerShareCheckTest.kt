@@ -153,6 +153,7 @@ class SessionControllerShareCheckTest {
         blocklistCoordinator = mockk(relaxed = true),
         blobStorageCoordinator = mockk(relaxed = true),
         mediaUrlResolver = mockk(relaxed = true),
+        hostLobbies = mockk(relaxed = true),
         featureFlagController = featureFlagController,
         appSettingsCoordinator = appSettingsCoordinator,
         dispatchers = dispatchers,

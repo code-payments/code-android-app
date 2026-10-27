@@ -1,6 +1,7 @@
 package com.flipcash.app.tipping.internal
 
 import com.flipcash.services.models.UserProfile
+import com.flipcash.shared.chat.hostedPrivateGroups
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType

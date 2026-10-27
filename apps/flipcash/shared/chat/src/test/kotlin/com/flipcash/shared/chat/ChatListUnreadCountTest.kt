@@ -12,6 +12,7 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.PointerType
@@ -19,6 +20,7 @@ import com.flipcash.services.models.chat.RosterSummary
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
+import com.getcode.solana.keys.PublicKey
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -62,15 +64,15 @@ class ChatListUnreadCountTest {
         unreadSeq = messageId,
     )
 
-    /** Read up to message 1 of 2, so each chat below has one unread message. */
-    private val selfUnread = ChatMember(
+    /** Read up to message [readThrough] of 2; 1 leaves each chat below one unread message. */
+    private fun selfReadThrough(readThrough: Long) = ChatMember(
         userId = selfId,
         userProfile = UserProfile.Empty,
         pointers = listOf(
             MessagePointer(
                 type = PointerType.READ,
                 userId = selfId,
-                value = 1,
+                value = readThrough,
                 timestamp = Instant.fromEpochSeconds(1_000),
             )
         ),
@@ -85,10 +87,23 @@ class ChatListUnreadCountTest {
         pointers = emptyList(),
     )
 
-    private suspend fun TestScope.unreadChatListCount(vararg unread: Pair<String, ChatType>): Int {
+    private suspend fun TestScope.unreadChatListCount(vararg unread: Pair<String, ChatType>): Int =
+        feedDelegate(unread.toList()).observeUnreadChatListCount().first()
+
+    /**
+     * Builds the feed over [chats]. [readThrough] is the viewer's read pointer (2 reads everything);
+     * [hostedGroups] are private groups the viewer created.
+     */
+    private suspend fun TestScope.feedDelegate(
+        chats: List<Pair<String, ChatType>>,
+        readThrough: Long = 1,
+        hostedGroups: Set<String> = emptySet(),
+    ): FeedSyncDelegate {
+        val unread = chats.toTypedArray()
         val entities = unread.map { (hex, type) -> entity(hex, type) }
         val members = unread.associate { (hex, type) ->
-            hex to if (type == ChatType.GROUP) listOf(selfUnread) else listOf(selfUnread, addressableOther)
+            val self = selfReadThrough(readThrough)
+            hex to if (type == ChatType.GROUP) listOf(self) else listOf(self, addressableOther)
         }
 
         val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true).also {
@@ -107,6 +122,8 @@ class ChatListUnreadCountTest {
                     lastActivity = Instant.fromEpochMilliseconds(row.lastActivityEpochMs),
                     title = row.title,
                     rosterSummary = RosterSummary(memberCount = row.memberCount, version = row.rosterVersion),
+                    creator = if (row.chatIdHex in hostedGroups) selfId else null,
+                    isPrivate = row.chatIdHex in hostedGroups,
                 )
             }
         }
@@ -129,7 +146,7 @@ class ChatListUnreadCountTest {
         delegate.initialize(backgroundScope)
         delegate.observeFeedFromDb()
         runCurrent()
-        return delegate.observeUnreadChatListCount().first()
+        return delegate
     }
 
     @Test
@@ -151,5 +168,37 @@ class ChatListUnreadCountTest {
         )
 
         assertEquals(2, count)
+    }
+
+    private fun waiting(chatIdHex: String) = mapOf(
+        ChatId(chatIdHex) to listOf(
+            LobbyMember(
+                userProfile = UserProfile.Empty,
+                publicKey = PublicKey("11111111111111111111111111111111"),
+                enteredAt = Instant.fromEpochSeconds(1),
+            )
+        )
+    )
+
+    @Test
+    fun `a read hosted group with someone waiting counts toward the badge`() = runTest {
+        val feed = feedDelegate(listOf(groupHex to ChatType.GROUP), readThrough = 2, hostedGroups = setOf(groupHex))
+
+        assertEquals(0, feed.observeUnreadChatListCount(flowOf(emptyMap())) { selfId }.first())
+        assertEquals(1, feed.observeUnreadChatListCount(flowOf(waiting(groupHex))) { selfId }.first())
+    }
+
+    @Test
+    fun `an unread hosted group with someone waiting counts once`() = runTest {
+        val feed = feedDelegate(listOf(groupHex to ChatType.GROUP), hostedGroups = setOf(groupHex))
+
+        assertEquals(1, feed.observeUnreadChatListCount(flowOf(waiting(groupHex))) { selfId }.first())
+    }
+
+    @Test
+    fun `a lobby on a group the viewer doesn't host doesn't count`() = runTest {
+        val feed = feedDelegate(listOf(groupHex to ChatType.GROUP), readThrough = 2)
+
+        assertEquals(0, feed.observeUnreadChatListCount(flowOf(waiting(groupHex))) { selfId }.first())
     }
 }

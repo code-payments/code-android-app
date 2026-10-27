@@ -4,6 +4,7 @@ import com.getcode.opencode.model.core.ID
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.nameOrHandle
@@ -55,7 +56,25 @@ data class ConversationReference(
      * the deadline and stops drawing at it.
      */
     val viewerState: ViewerState? = null,
+    /**
+     * Who waits to join, newest first, when this is a private group the viewer hosts; empty
+     * otherwise. Requests read as unread on the row: they add to its count and move its time.
+     */
+    val joinRequests: List<LobbyMember> = emptyList(),
 ) {
+    /** The time the row shows and sorts by: the later of [lastActivity] and the newest request. */
+    val rowActivity: Instant?
+        get() {
+            val newestRequest = joinRequests.maxOfOrNull { it.enteredAt } ?: return lastActivity
+            return if (lastActivity == null || newestRequest > lastActivity) newestRequest else lastActivity
+        }
+
+    /**
+     * The row's unread pill: unread messages plus pending requests. A null [unreadCount] stays
+     * null (unread by an unknown count), since adding to an unknown number gives an unknown one.
+     */
+    val rowUnreadCount: Int? get() = unreadCount?.plus(joinRequests.size)
+
     /**
      * What to call this row: the chat's [title] for a group, otherwise the counterparty's
      * [displayName], or their [handle] when they have no name.
