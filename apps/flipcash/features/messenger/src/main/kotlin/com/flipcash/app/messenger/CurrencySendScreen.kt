@@ -24,11 +24,15 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -64,6 +68,7 @@ import com.getcode.solana.keys.Mint
  * the amount, a recipient from the viewer's DMs, then the swipe. The currency is fixed to [mint].
  * After the checkmark the screen pops back to Currency Info.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CurrencySendScreen(mint: Mint) {
     val viewModel = hiltViewModel<CurrencySendViewModel>()
@@ -71,7 +76,24 @@ fun CurrencySendScreen(mint: Mint) {
     val navigator = LocalCodeNavigator.current
 
     LaunchedEffect(viewModel, mint) { viewModel.start(mint) }
-    LaunchedEffect(viewModel) { viewModel.done.collect { navigator.pop() } }
+    // Raised once the checkmark has held: from then on the sheet may close, and only by our hand.
+    var hiding by remember { mutableStateOf(false) }
+    val locked by rememberUpdatedState(!state.sendProgress.isIdle && !hiding)
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { !locked },
+    )
+    LaunchedEffect(viewModel, sheetState) {
+        viewModel.done.collect {
+            finishSend(
+                hide = {
+                    hiding = true
+                    sheetState.hide()
+                },
+                navigateBack = { navigator.pop() },
+            )
+        }
+    }
 
     BackHandler(enabled = state.stage == CurrencySendViewModel.Stage.Recipients && state.selected == null) {
         viewModel.onBackToAmount()
@@ -132,8 +154,10 @@ fun CurrencySendScreen(mint: Mint) {
             amountText = amount.formatted(),
             token = state.token,
             sendProgress = state.sendProgress,
+            sheetState = sheetState,
+            locked = locked,
             onConfirm = viewModel::send,
-            onDismiss = viewModel::onConfirmDismissed,
+            onDismiss = { if (!hiding) viewModel.onConfirmDismissed() },
         )
     }
 }
@@ -228,6 +252,15 @@ private fun RecipientRow(chat: ConversationReference, onClick: () -> Unit) {
 }
 
 /**
+ * What follows a successful send, in order: the sheet finishes closing, and only then does the
+ * back stack change. Navigating first would pull the sheet out mid-frame with no hide animation.
+ */
+internal suspend fun finishSend(hide: suspend () -> Unit, navigateBack: () -> Unit) {
+    hide()
+    navigateBack()
+}
+
+/**
  * The confirm sheet over Select Recipient: who is being paid, the amount, the currency with no
  * picker, and the swipe. Closed by a swipe down, a tap on the scrim or back, which returns to the list and sends nothing; locked once the send starts.
  */
@@ -238,14 +271,11 @@ private fun SwipeToSendSheet(
     amountText: String,
     token: com.getcode.opencode.model.financial.Token?,
     sendProgress: com.getcode.view.LoadingSuccessState,
+    sheetState: SheetState,
+    locked: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val locked by rememberUpdatedState(!sendProgress.isIdle)
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { !locked },
-    )
     ModalBottomSheet(
         onDismissRequest = { if (!locked) onDismiss() },
         sheetState = sheetState,
