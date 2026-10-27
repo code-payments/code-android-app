@@ -157,7 +157,7 @@ internal fun SilenceUserSheet(
 ) {
     DurationChoiceSheet(
         title = stringResource(R.string.title_silenceUser, firstName),
-        subtitle = stringResource(R.string.subtitle_silenceUser, groupTitle),
+        subtitle = stringResource(R.string.subtitle_silenceUser, firstName),
         onDismiss = onDismiss,
     ) {
         for (option in SilenceOption.entries) {

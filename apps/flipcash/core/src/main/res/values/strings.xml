@@ -930,8 +930,8 @@
     <string name="subtitle_chatGate_speakerMinimumBalance">Minimum Balance to Send Messages: %1$s of %2$s</string>
     <string name="subtitle_chatGate_speakerMinimumBalance_anyToken">Minimum Balance to Send Messages: %1$s</string>
     <string name="subtitle_chatGate_speakerStaffOnly">Only Flipcash staff can send messages here</string>
-    <string name="subtitle_chatGate_silencedUntil">You\'re silenced until %1$s</string>
-    <string name="subtitle_chatGate_silencedForever">You\'re silenced in this group</string>
+    <string name="subtitle_chatGate_silencedUntil">You can\'t send messages until %1$s</string>
+    <string name="subtitle_chatGate_silencedForever">You can\'t send messages in this group</string>
     <string name="subtitle_chatGate_speakerCreatorOnly">Only the creator can send messages</string>
     <string name="subtitle_chatGate_speakerUnsupported">Update Flipcash to send messages</string>
     <string name="action_buyMoreToken">Buy More %1$s</string>
@@ -960,43 +960,43 @@
          options name the state they produce ("1 Week") rather than the act ("Mute for 1 week"),
          which is also what lets "Never" sit among them. -->
     <string name="title_muteChat">Mute Notifications</string>
-    <!-- Silencing a member (group moderation). "Silence" is the per-member word; "mute" stays the
+    <!-- Silencing a member (group moderation). "Restrict" is the per-member word; "mute" stays the
          notification setting. Durations match the mute sheet except the last row, which says
          "Forever" on both platforms. -->
-    <string name="title_silenceUser">Silence %1$s</string>
-    <string name="subtitle_silenceUser">They can still read and react in %1$s, but can\'t send messages. Only they\'re told</string>
+    <string name="title_silenceUser">Restrict %1$s</string>
+    <string name="subtitle_silenceUser">%1$s can still read the group but can\'t send messages</string>
     <string name="action_silenceFor_forever">Forever</string>
-    <string name="toast_silenced_oneHour">%1$s is silenced for 1 hour</string>
-    <string name="toast_silenced_eightHours">%1$s is silenced for 8 hours</string>
-    <string name="toast_silenced_oneWeek">%1$s is silenced for 1 week</string>
-    <string name="toast_silenced_forever">%1$s is silenced</string>
+    <string name="toast_silenced_oneHour">%1$s can\'t send messages for 1 hour</string>
+    <string name="toast_silenced_eightHours">%1$s can\'t send messages for 8 hours</string>
+    <string name="toast_silenced_oneWeek">%1$s can\'t send messages for 1 week</string>
+    <string name="toast_silenced_forever">%1$s can\'t send messages in this group</string>
     <string name="toast_silenceLifted">You are now able to chat again</string>
     <string name="toast_unsilenced">%1$s can send messages again</string>
     <string name="error_title_failedToSilence">Something Went Wrong</string>
-    <string name="error_description_failedToSilence">We were unable to silence this member. Please try again</string>
-    <string name="action_silenceMember">Silence %1$s</string>
+    <string name="error_description_failedToSilence">We were unable to restrict this member. Please try again</string>
+    <string name="action_silenceMember">Restrict %1$s</string>
     <string name="action_removeMemberNamed">Remove %1$s…</string>
     <string name="action_removeMember">Remove</string>
     <string name="title_moderation">Moderation</string>
-    <string name="title_silencedMembers">Silenced</string>
+    <string name="title_silencedMembers">Restricted</string>
     <string name="title_removedMembers">Removed</string>
-    <string name="subtitle_silencedUntil">Silenced · until %1$s</string>
-    <string name="subtitle_silencedForever">Silenced · forever</string>
+    <string name="subtitle_silencedUntil">Restricted · until %1$s</string>
+    <string name="subtitle_silencedForever">Restricted · forever</string>
     <string name="subtitle_removedOn">Removed %1$s</string>
-    <string name="subtitle_removedOnAlsoSilenced">Removed %1$s · also silenced</string>
-    <string name="action_unsilence">Unsilence</string>
+    <string name="subtitle_removedOnAlsoSilenced">Removed %1$s · also restricted</string>
+    <string name="action_unsilence">Lift</string>
     <string name="action_unban">Unban</string>
-    <string name="title_noSilencedMembers">No One Silenced</string>
+    <string name="title_noSilencedMembers">No One Restricted</string>
     <string name="title_noRemovedMembers">No One Removed</string>
-    <string name="description_noSilencedMembers">Stop someone from sending messages in this group by tapping their profile and selecting Silence</string>
+    <string name="description_noSilencedMembers">Stop someone from sending messages in this group by tapping their profile and selecting Restrict</string>
     <string name="description_noRemovedMembers">Remove someone from this group by tapping their profile and selecting Remove from Group</string>
     <string name="error_title_failedToLoadRestricted">Something Went Wrong</string>
     <string name="error_description_failedToLoadRestricted">We were unable to load this list. Please try again</string>
     <string name="error_title_failedToUnsilence">Something Went Wrong</string>
-    <string name="error_description_failedToUnsilence">We were unable to unsilence this member. Please try again</string>
+    <string name="error_description_failedToUnsilence">We were unable to lift this restriction. Please try again</string>
     <string name="error_title_failedToUnban">Something Went Wrong</string>
     <string name="error_description_failedToUnban">We were unable to unban this member. Please try again</string>
-    <string name="action_silenceMemberShort">Silence</string>
+    <string name="action_silenceMemberShort">Restrict</string>
     <string name="action_removeFromGroup">Remove from Group</string>
     <string name="title_menuSection_inGroup">In %1$s</string>
     <string name="prompt_title_removeMember">Remove %1$s?</string>
