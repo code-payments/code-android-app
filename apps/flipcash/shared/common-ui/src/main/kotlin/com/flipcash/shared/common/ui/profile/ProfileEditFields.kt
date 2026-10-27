@@ -156,8 +156,7 @@ fun CameraBadge(modifier: Modifier = Modifier) {
 /**
  * A tappable card: the field's title over its current value, with the disclosure chevron.
  *
- * A null [value] shows [placeholder] in the secondary colour; [valueIsPrompt] does the same for a
- * value that is itself a call to action. [maxLines] is 1 for a name and 3 for a description.
+ * A null [value] shows [placeholder] in the secondary colour. [maxLines] is 1 for a name and 3 for a description.
  */
 @Composable
 fun FieldCard(
@@ -166,7 +165,6 @@ fun FieldCard(
     placeholder: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    valueIsPrompt: Boolean = false,
     maxLines: Int = 1,
 ) {
     val grid = CodeTheme.dimens.staticGrid
@@ -189,7 +187,7 @@ fun FieldCard(
             Text(
                 text = value ?: placeholder,
                 style = CodeTheme.typography.textMedium,
-                color = if (value == null || valueIsPrompt) {
+                color = if (value == null) {
                     CodeTheme.colors.textSecondary
                 } else {
                     CodeTheme.colors.textMain
