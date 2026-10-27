@@ -44,6 +44,7 @@ import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.messenger.ChatFlowScreen
+import com.flipcash.app.messenger.CurrencySendScreen
 import com.flipcash.app.messenger.E2eeLearnMoreScreen
 import com.flipcash.app.messenger.MuteChatScreen
 import com.flipcash.app.messenger.ProfileScreen
@@ -125,6 +126,7 @@ internal fun appEntryProvider(
 
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
     // Route type is `Give` but the screen is the Cash/Give screen the flows call cash_screen.
+    annotatedEntry<AppRoute.Sheets.CurrencySend>(testTag = "currency_send_screen") { key -> CurrencySendScreen(key.mint) }
     annotatedEntry<AppRoute.Sheets.Give>(testTag = "cash_screen") { key -> CashScreen(key.mint, key.fromTokenInfo, key.amount) }
     annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
