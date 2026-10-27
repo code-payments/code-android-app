@@ -9,14 +9,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.bill.Scannable
-import com.flipcash.app.core.ui.forViewer
-import com.flipcash.app.menu.internal.components.UsernameProgress
 import com.flipcash.app.funding.PurchaseMethodController
-import com.flipcash.app.tokens.core.TotalBalanceProvider
-import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.app.userflags.UsernameGate
-import com.flipcash.app.userflags.usernameGate
-import com.flipcash.features.menu.R
 import com.flipcash.services.user.AuthState
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatMetadata
@@ -26,15 +19,9 @@ import com.flipcash.shared.tipping.TippingCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.common.ui.profile.joinedLabel
-import com.getcode.manager.BottomBarAction
-import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.financial.Fiat
-import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -47,28 +34,16 @@ import kotlinx.coroutines.flow.onEach
 import java.util.Locale
 import javax.inject.Inject
 
-/**
- * The minimum-balance gate as the copy quotes it — `$100 USD` rather than `$100.00`. Shared by the
- * card and the sheet so a round threshold never renders two different ways.
- */
-private fun Fiat.formattedGate(exchange: Exchange): String =
-    forViewer(exchange.preferredRate, exchange.rates())
-        .formatted(rule = Fiat.FormattingRule.Truncated)
-
 @HiltViewModel
 internal class MenuScreenViewModel @Inject constructor(
     userManager: UserManager,
-    userFlags: UserFlagsCoordinator,
     dispatchers: DispatcherProvider,
     purchaseMethodController: PurchaseMethodController,
-    totalBalance: TotalBalanceProvider,
     analytics: FlipcashAnalytics,
     private val tippingCoordinator: TippingCoordinator,
     private val tipCodePreviewCache: TipCodePreviewCache,
     private val featuredGroupsStore: FeaturedGroupsStore,
     tipPayments: TipPaymentDelegate,
-    private val resources: ResourceHelper,
-    private val exchange: Exchange,
 ) :
     BaseViewModel<MenuScreenViewModel.State, MenuScreenViewModel.Event>(
         initialState = State(),
@@ -78,17 +53,14 @@ internal class MenuScreenViewModel @Inject constructor(
     data class State(
         // What the header draws: nothing yet, the claim prompt, or the viewer's own profile.
         val profileState: ProfileState = ProfileState.Unknown,
-        // The nudge toward claiming a `@handle`, or null when there is nothing to nudge about — a
-        // handle already exists, or the account state hasn't resolved yet.
-        val usernameProgress: UsernameProgress? = null,
-        // The gate, formatted (e.g. `$100 USD`). Carried next to [usernameProgress] because both the
-        // card's locked subtitle and the sheet behind its tap quote it.
-        val usernameMinimumBalance: String = "",
         // What another user must send to open a chat with the viewer, formatted. Null until it
         // resolves, which the stats card draws as a dash.
         val minimumToChat: String? = null,
         // The viewer's own featured groups, in profile order. Empty until the first read lands.
         val featuredGroups: List<ChatMetadata> = emptyList(),
+        // The username the featured-groups read last succeeded for. Compared with the live username
+        // by [showFavoritesEmptyState], so a changed handle is unread until its own read lands.
+        val favoritesReadFor: String? = null,
     )
 
     /**
@@ -128,15 +100,10 @@ internal class MenuScreenViewModel @Inject constructor(
         data class OpenScreen(val screen: AppRoute) : Event
 
         data class OnProfileStateChanged(val profileState: ProfileState) : Event
-        data class OnUsernameProgressChanged(
-            val progress: UsernameProgress?,
-            val minimumBalance: String,
-        ) : Event
         data class OnMinimumToChatChanged(val minimumToChat: String?) : Event
         data class OnFeaturedGroupsChanged(val groups: List<ChatMetadata>) : Event
+        data class OnFavoritesRead(val username: String, val groups: List<ChatMetadata>) : Event
 
-        /** The progress card's tap — claim a handle, or explain why it can't be claimed yet. */
-        data object ClaimUsername : Event
         /** The claim prompt's CTA — collect a display name so the account gets a real card. */
         data object ClaimTipCard : Event
 
@@ -210,78 +177,8 @@ internal class MenuScreenViewModel @Inject constructor(
             .filterNotNull()
             .filter { it.isNotEmpty() }
             .distinctUntilChanged()
-            .onEach { featuredGroupsStore.load(it) }
-            .launchIn(viewModelScope)
-
-        // The username nudge. Gated on Ready for the same reason as the tip card: a named account
-        // restores its cached profile before auth completes, so the card would otherwise flash for
-        // someone who already holds a handle.
-        combine(
-            userManager.state
-                .filter { it.authState is AuthState.Ready }
-                .map { it.userProfile?.username to (it.userProfile?.isUsernameAutoAssigned == true) },
-            userFlags.resolvedFlags.map { it.usernameMinBalance.effectiveValue },
-            totalBalance.observeTotalBalance(),
-        ) { (username, isAutoAssigned), minimum, balance ->
-            val progress = when (val gate = usernameGate(username, isAutoAssigned, minimum, balance)) {
-                UsernameGate.Claimed -> null
-                UsernameGate.Unlocked -> UsernameProgress.Unlocked
-                is UsernameGate.Locked -> UsernameProgress.Locked(
-                    fraction = gate.fraction,
-                    remaining = gate.shortfall.formattedGate(exchange),
-                )
-            }
-            Event.OnUsernameProgressChanged(progress, minimum.formattedGate(exchange))
-        }
-            .distinctUntilChanged()
-            .onEach { dispatchEvent(it) }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.ClaimUsername>()
-            .onEach {
-                when (stateFlow.value.usernameProgress) {
-                    UsernameProgress.Unlocked -> dispatchEvent(
-                        Event.OpenScreen(
-                            AppRoute.UpdateUserProfile(
-                                origin = AppRoute.Tabs.Menu,
-                                steps = listOf(UpdateProfileStep.Username),
-                            )
-                        )
-                    )
-
-                    // Below the minimum the tap states the rule instead of walking into a rejection
-                    // on submit. Same strings as the server's refusal, and the same informational
-                    // style the entry screen gives it, so the two can't disagree.
-                    is UsernameProgress.Locked -> BottomBarManager.showInfo(
-                        title = resources.getString(
-                            R.string.error_title_usernameMinimumBalance,
-                            stateFlow.value.usernameMinimumBalance,
-                        ),
-                        message = resources.getString(
-                            R.string.error_description_usernameMinimumBalance,
-                            stateFlow.value.usernameMinimumBalance,
-                        ),
-                        actions = listOf(
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_addMoney),
-                                onClick = {
-                                    dispatchEvent(
-                                        Event.PresentDepositOptions(
-                                            AddMoneySource.USERNAME_SHORTFALL
-                                        )
-                                    )
-                                },
-                            ),
-                            BottomBarAction(
-                                text = resources.getString(R.string.action_dismiss),
-                                style = BottomBarManager.BottomBarButtonStyle.Text,
-                            ),
-                        ),
-                    )
-
-                    null -> Unit
-                }
+            .onEach { username ->
+                if (featuredGroupsStore.load(username)) dispatchEvent(Event.OnFavoritesRead(username, featuredGroupsStore.groups.value))
             }
             .launchIn(viewModelScope)
 
@@ -314,13 +211,6 @@ internal class MenuScreenViewModel @Inject constructor(
                     state.copy(profileState = event.profileState)
                 }
 
-                is Event.OnUsernameProgressChanged -> { state ->
-                    state.copy(
-                        usernameProgress = event.progress,
-                        usernameMinimumBalance = event.minimumBalance,
-                    )
-                }
-
                 is Event.OnMinimumToChatChanged -> { state ->
                     state.copy(minimumToChat = event.minimumToChat)
                 }
@@ -329,9 +219,12 @@ internal class MenuScreenViewModel @Inject constructor(
                     state.copy(featuredGroups = event.groups)
                 }
 
+                is Event.OnFavoritesRead -> { state ->
+                    state.copy(favoritesReadFor = event.username, featuredGroups = event.groups)
+                }
+
                 is Event.PresentDepositOptions,
                 Event.ClaimTipCard,
-                Event.ClaimUsername,
                 Event.ShareProfile,
                 is Event.OpenScreen -> { state -> state }
             }
@@ -357,3 +250,22 @@ internal fun shareProfileRoute(
         directChatId = null,
     )
 }
+
+/**
+ * Whether the own profile's featured-groups section may draw its "None yet" empty state. With no
+ * username there is nothing to read, so it may at once; otherwise only once a read for that
+ * username has succeeded, so an account that has favorites never flashes the empty state while the
+ * read is in flight or after it fails.
+ */
+internal fun showFavoritesEmptyState(username: String?, favoritesReadFor: String?): Boolean =
+    username.isNullOrEmpty() || favoritesReadFor == username
+
+/**
+ * Whether the profile is complete: a profile photo, a cover photo and a non-blank bio. Username,
+ * minimum-to-chat and favorite chats do not count.
+ */
+internal fun isProfileComplete(profile: UserProfile?): Boolean =
+    profile != null &&
+        profile.profilePicture != null &&
+        profile.coverPicture != null &&
+        profile.bio.isNotBlank()

@@ -40,10 +40,10 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
-/** The gate as the copy quotes it, `$100 USD` rather than `$100.00`. */
+/** The gate as the copy quotes it, `$100` rather than `$100.00`. */
 // Priced in USD, shown in the viewer's currency.
 private fun Fiat.formattedGate(exchange: Exchange): String =
-    forViewer(exchange.preferredRate, exchange.rates()).formatted()
+    forViewer(exchange.preferredRate, exchange.rates()).formatted(rule = Fiat.FormattingRule.Truncated)
 
 @HiltViewModel
 internal class EditProfileViewModel @Inject constructor(
@@ -66,7 +66,7 @@ internal class EditProfileViewModel @Inject constructor(
         val userId: ID? = null,
         val displayName: String = "",
         val username: String? = null,
-        /** No handle yet, or one the server assigned: the row offers the claim instead of the handle. */
+        /** No handle yet, or one the server assigned rather than chosen: changing it is balance-gated. */
         val usernameNeedsClaim: Boolean = true,
         val bio: String = "",
         val avatar: MediaItem? = null,
@@ -138,25 +138,24 @@ internal class EditProfileViewModel @Inject constructor(
             }.onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
             .launchIn(viewModelScope)
 
-        // A held handle goes straight to its editor. Claiming goes through the same balance gate
-        // the You tab's progress card uses: the claim step once the balance clears the minimum, the
-        // rule stated otherwise.
+        // Setting a custom handle is gated on the `usernameMinBalance` flag: the username flow once
+        // the balance clears it, the rule stated otherwise. A handle the user already chose goes
+        // straight to its editor.
         eventFlow
             .filterIsInstance<Event.UsernameClicked>()
             .onEach {
                 val state = stateFlow.value
-                val gate = state.usernameGate
-                if (!state.usernameNeedsClaim || gate !is UsernameGate.Locked) {
+                if (!isUsernameBalanceRequired(state.usernameNeedsClaim, state.usernameGate)) {
                     dispatchEvent(Event.OpenStep(UpdateProfileStep.Username))
                     return@onEach
                 }
                 BottomBarManager.showInfo(
                     title = resources.getString(
-                        R.string.error_title_usernameMinimumBalance,
+                        R.string.error_title_usernameBalanceRequired,
                         state.usernameMinimumBalance,
                     ),
                     message = resources.getString(
-                        R.string.error_description_usernameMinimumBalance,
+                        R.string.error_description_usernameBalanceRequired,
                         state.usernameMinimumBalance,
                     ),
                     actions = listOf(
@@ -177,6 +176,13 @@ internal class EditProfileViewModel @Inject constructor(
     }
 
     internal companion object {
+        /**
+         * Whether tapping Username must stop at the balance-required modal: the handle is not one
+         * the user chose, and the balance is short of the minimum.
+         */
+        fun isUsernameBalanceRequired(usernameNeedsClaim: Boolean, gate: UsernameGate): Boolean =
+            usernameNeedsClaim && gate is UsernameGate.Locked
+
         val nameStep = UpdateProfileStep.Name(DisplayNameSource.MyAccount)
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->

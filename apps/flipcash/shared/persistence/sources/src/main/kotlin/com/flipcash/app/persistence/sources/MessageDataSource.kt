@@ -91,9 +91,8 @@ class MessageDataSource @Inject constructor(
      * Resolved through [FlipcashDatabase.observeInstance] for the same reason as [observeRecent]:
      * the per-user DB is created at login, *after* singletons have built their flow graphs. Reading
      * `db` once at subscription time latched any subscriber that started before the DB existed onto
-     * a constant `false` for the rest of the session — which pinned the wallet's onboarding
-     * checklist to "incomplete" (and so kept the new-user tutorial on screen) no matter how much
-     * activity later landed in the feed.
+     * a constant `false` for the rest of the session — which pinned the wallet's Add Money row
+     * on screen no matter how much activity later landed in the feed.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun hasEverReceivedMoney(): Flow<Boolean> =

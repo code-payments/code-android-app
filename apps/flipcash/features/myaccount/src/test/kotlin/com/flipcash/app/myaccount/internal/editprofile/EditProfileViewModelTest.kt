@@ -99,7 +99,7 @@ class EditProfileViewModelTest {
         val events = mutableListOf<EditProfileViewModel.Event>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.eventFlow.collect { events += it } }
         vm.dispatchEvent(EditProfileViewModel.Event.OnProfileChanged(profile(username = username)))
-        vm.dispatchEvent(EditProfileViewModel.Event.OnUsernameGateChanged(gate, "$100 USD"))
+        vm.dispatchEvent(EditProfileViewModel.Event.OnUsernameGateChanged(gate, "$100"))
         advanceUntilIdle()
         events.clear()
         vm.dispatchEvent(EditProfileViewModel.Event.UsernameClicked)
@@ -116,7 +116,7 @@ class EditProfileViewModelTest {
 
             assertTrue(events.none { it is EditProfileViewModel.Event.OpenStep })
             assertEquals(
-                "error_title_usernameMinimumBalance",
+                "error_title_usernameBalanceRequired",
                 BottomBarManager.messages.value.firstOrNull()?.title,
             )
         }
@@ -154,6 +154,28 @@ class EditProfileViewModelTest {
         assertTrue(EditProfileViewModel.Event.PresentDepositOptions(AddMoneySource.USERNAME_SHORTFALL) in events)
         coVerify { purchaseMethodController.presentDepositOptions(popToRoot = true) }
         assertTrue(EditProfileViewModel.Event.OpenScreen(route) in events)
+    }
+
+    @Test
+    fun `the balance gate stops only an unchosen handle that is short of the minimum`() {
+        val gate = EditProfileViewModel.isUsernameBalanceRequired(usernameNeedsClaim = true, gate = locked())
+        assertTrue(gate)
+        // Enough balance, or no minimum configured: straight to the username flow.
+        assertFalse(EditProfileViewModel.isUsernameBalanceRequired(true, UsernameGate.Unlocked))
+        // A handle the user already chose is not re-gated.
+        assertFalse(EditProfileViewModel.isUsernameBalanceRequired(false, locked()))
+        assertFalse(EditProfileViewModel.isUsernameBalanceRequired(false, UsernameGate.Claimed))
+    }
+
+    @Test
+    fun `an auto-assigned handle is shown and still gated`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = viewModel()
+        vm.dispatchEvent(
+            EditProfileViewModel.Event.OnProfileChanged(profile(username = "mike_2", autoAssigned = true)),
+        )
+        advanceUntilIdle()
+        assertEquals("mike_2", vm.stateFlow.value.username)
+        assertTrue(vm.stateFlow.value.usernameNeedsClaim)
     }
 
     private val reduce = EditProfileViewModel.updateStateForEvent

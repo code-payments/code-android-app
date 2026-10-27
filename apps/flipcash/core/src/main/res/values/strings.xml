@@ -565,10 +565,6 @@
     <string name="title_addMoney">Add Money</string>
     <string name="subtitle_addMoney">Add money to your account</string>
 
-    <string name="title_scanTipCard">Scan a Profile Card</string>
-    <string name="subtitle_scanTipCard">Send your first message</string>
-
-
     <!-- Copy matches iOS's "Finish Your Profile" display-name step. -->
 
 
@@ -1536,6 +1532,8 @@
     <string name="error_description_usernameTooShort">Usernames must be a minimum of %1$d characters</string>
     <string name="error_title_usernameMinimumBalance">%1$s Minimum Balance Required</string>
     <string name="error_description_usernameMinimumBalance">In order to stop username squatting getting a username requires a total Flipcash balance of at least %1$s</string>
+    <string name="error_title_usernameBalanceRequired">%1$s Balance Required</string>
+    <string name="error_description_usernameBalanceRequired">Setting a custom username requires a balance of %1$s or more</string>
     <string name="error_title_usernameCheckFailed">Something Went Wrong</string>
     <string name="error_description_usernameCheckFailed">Please try again</string>
 
@@ -1576,6 +1574,7 @@
     <string name="title_setProfilePicture">Set Profile Picture</string>
     <string name="title_cover">Cover</string>
     <string name="action_changeCover">Change cover</string>
+    <string name="action_addCoverPhoto">Add cover photo</string>
     <string name="error_title_coverNotAllowed">Couldn\'t Upload Your Cover</string>
     <string name="error_description_coverNotAllowed">This image isn\'t allowed as a cover. Please try a different image. If you think it was rejected in error please DM @flipcash on X</string>
     <string name="placeholder_profileDisplayName">Your Name</string>
@@ -1656,15 +1655,15 @@
     <string name="error_title_failedToReport">Something Went Wrong</string>
     <string name="error_description_failedToReport">We were unable to send your report. Please try again</string>
 
-    <string name="title_tipOnboarding">Send Your First Tip</string>
 
     <!-- You tab (tip card) -->
     <string name="action_editProfile">Edit Profile</string>
-    <string name="action_claimYourUsernameLink">Claim your username ›</string>
+    <string name="action_completeYourProfile">Complete Your Profile</string>
     <string name="action_changePhoto">Change photo</string>
+    <string name="action_addProfilePhoto">Add profile photo</string>
     <string name="label_editProfileName">Name</string>
     <string name="placeholder_editProfileName">Add a name</string>
-    <string name="action_claimUsername">Claim your username</string>
+    <string name="placeholder_editProfileUsername">Add a username</string>
     <string name="placeholder_minimumToChat">Not set</string>
     <string name="title_shareProfileToChats">Share Profile</string>
     <string name="title_shareMessageToChats">Share Message</string>
@@ -1695,8 +1694,9 @@
     <string name="title_bio">Bio</string>
     <string name="placeholder_bio">Add a bio</string>
 
-    <string name="title_featuredGroups">Favorite Public Groups</string>
-    <string name="placeholder_featuredGroups">Add groups</string>
+    <string name="title_featuredGroups">Favorite Community Chats</string>
+    <string name="text_featuredGroupsNone">None yet</string>
+    <string name="placeholder_featuredGroups">Add chats</string>
     <plurals name="value_featuredGroupCount">
         <item quantity="one">1 group</item>
         <item quantity="other">%1$s groups</item>

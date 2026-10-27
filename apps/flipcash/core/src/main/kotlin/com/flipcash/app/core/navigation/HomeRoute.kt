@@ -3,8 +3,7 @@ package com.flipcash.app.core.navigation
 import com.flipcash.app.core.AppRoute
 
 /**
- * The top-level route the app releases to when onboarding finishes creating a new account, and
- * under a launch deeplink (whose token and cash-link actions open on the wallet).
+ * The base route every resolved launch deeplink opens on.
  *
  * The wallet is a flat tab home (not a sheet), so this route is applied with `replaceAll` /
  * [com.getcode.navigation.core.NavOptions.PopUpTo.ClearAll], exactly like a tab switch from the
