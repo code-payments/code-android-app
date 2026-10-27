@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -390,7 +391,7 @@ private fun CurrencyActionTiles(
                         painter = painterResource(icon),
                         contentDescription = null,
                         tint = CodeTheme.colors.textMain,
-                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                        modifier = Modifier.size(24.dp),
                     )
                 },
                 onClick = {

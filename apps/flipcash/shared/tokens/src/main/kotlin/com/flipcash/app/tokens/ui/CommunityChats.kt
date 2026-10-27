@@ -38,6 +38,9 @@ fun ChatMetadata.communityHoldings(
         token ?: return@let null
         runCatching { Fiat.tokenBalance(summary.quarks, token) }.getOrNull()
             ?.forViewer(preferredRate, rates)
+            // Round to cents first: Truncated only drops a fraction that is exactly zero, so a
+            // sub-cent remainder would show as ".00".
+            ?.rounded()
             ?.formatted(Fiat.FormattingRule.Truncated)
     }
     return CommunityChatHoldings(amount = amount, memberCount = rosterSummary.memberCount)

@@ -45,6 +45,14 @@ class CommunityChatsTest {
     }
 
     @Test
+    fun `holdings drop the fraction when it rounds to zero cents`() {
+        assertEquals(
+            "$10,840",
+            chat(summary(10_840_004_000)).communityHoldings(usdf, usd, emptyMap()).amount,
+        )
+    }
+
+    @Test
     fun `holdings keep cents when there is a fraction`() {
         assertEquals(
             "$1,250.50",
