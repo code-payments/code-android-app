@@ -136,7 +136,7 @@ internal fun RestrictedMembersScreen(kind: RestrictedKind, chatViewModel: ChatVi
 }
 
 @Composable
-private fun RestrictedRow(
+internal fun RestrictedRow(
     kind: RestrictedKind,
     user: RestrictedUser,
     name: String,
