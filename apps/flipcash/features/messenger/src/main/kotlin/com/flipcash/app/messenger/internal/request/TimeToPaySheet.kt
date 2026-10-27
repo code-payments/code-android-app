@@ -63,6 +63,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -315,7 +316,7 @@ private fun PresetChips(selected: Deadline.Preset?, reducedMotion: Boolean, onCh
  */
 @Composable
 private fun DayGrid(sheet: TimeToPay, reducedMotion: Boolean, onChoose: (LocalDate) -> Unit) {
-    val locale = Locale.getDefault()
+    val locale = LocalLocale.current.platformLocale
     val days = remember(sheet.today) { TimeToPay.grid(sheet.today, WeekFields.of(locale).firstDayOfWeek) }
     val monthLabel = remember { DateTimeFormatter.ofPattern("MMM", locale) }
     val fullDate = remember { DateTimeFormatter.ofPattern(bestPattern("EEEEMMMMd"), locale) }
