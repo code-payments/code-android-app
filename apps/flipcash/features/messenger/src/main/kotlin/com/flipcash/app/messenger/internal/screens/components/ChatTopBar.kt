@@ -30,8 +30,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.core.ID
-import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.automirrored.outlined.VolumeOff
 import androidx.compose.material.icons.outlined.PersonRemove
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -415,7 +416,7 @@ private fun MessageSelectionBar(
             add(
                 MessageAction(
                     label = stringResource(R.string.action_silenceMember, firstName),
-                    icon = Icons.Outlined.Block,
+                    icon = Icons.AutoMirrored.Outlined.VolumeOff,
                     testTag = "action_silence_member",
                     onClick = onSilence,
                 )
@@ -574,6 +575,14 @@ private fun MessageOverflow(actions: List<MessageAction>, overflowOnly: List<Mes
             overflowOnly.forEach { action ->
                 DropdownMenuItem(
                     text = { OverflowLabel(action.label, action.isDestructive) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = action.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(CodeTheme.dimens.grid.x5),
+                            tint = if (action.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain,
+                        )
+                    },
                     onClick = {
                         expanded = false
                         action.onClick()
