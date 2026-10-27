@@ -12,6 +12,12 @@ import com.flipcash.services.internal.network.extensions.asProtoSilenceState
 import com.flipcash.services.internal.network.extensions.asProtoRules
 import com.flipcash.services.internal.network.extensions.asQueryOptions
 import com.flipcash.services.internal.network.extensions.asProtoKeyEnvelope
+import com.flipcash.services.internal.network.extensions.asProtoInviteId
+import com.flipcash.services.internal.network.extensions.asProtoInviteKeyEnvelope
+import com.flipcash.services.internal.network.extensions.asProtoInviteParameters
+import com.flipcash.services.internal.network.extensions.asProtoInviteSecretEnvelope
+import com.flipcash.services.internal.network.extensions.asProtoInviteToken
+import com.flipcash.services.internal.network.extensions.asTimestamp
 import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.asUsername
 import com.flipcash.services.internal.network.extensions.asViewMode
@@ -22,12 +28,18 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.DescriptionEdit
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.InviteId
+import com.flipcash.services.models.chat.InviteKeyEnvelope
+import com.flipcash.services.models.chat.InviteParameters
+import com.flipcash.services.models.chat.InviteSecretEnvelope
+import com.flipcash.services.models.chat.InviteToken
 import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewMode
 import com.getcode.utils.toByteString
+import kotlin.time.Instant
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -168,15 +180,22 @@ internal class ChatApi @Inject constructor(
         }
     }
 
+    /**
+     * [owner] is optional when [inviteToken] is set: the token stands in for auth, so a viewer
+     * with an invite link can read the roster before joining. Without a token, [owner] is required.
+     */
     suspend fun getRoster(
-        owner: KeyPair,
+        owner: KeyPair?,
         chatId: ChatId,
         queryOptions: QueryOptions = QueryOptions(),
+        inviteToken: InviteToken? = null,
     ): RpcChatService.GetRosterResponse {
+        require(owner != null || inviteToken != null) { "getRoster needs an owner or an invite token" }
         val request = RpcChatService.GetRosterRequest.newBuilder()
             .setChatId(chatId.asChatId())
             .setQueryOptions(queryOptions.asQueryOptions())
-            .apply { setAuth(authenticate(owner)) }
+            .apply { inviteToken?.let { setInviteToken(it.asProtoInviteToken()) } }
+            .apply { owner?.let { setAuth(authenticate(it)) } }
             .build()
 
         request.validate().orThrow()
@@ -312,9 +331,11 @@ internal class ChatApi @Inject constructor(
     suspend fun joinChat(
         owner: KeyPair,
         chatId: ChatId,
+        invite: InviteParameters? = null,
     ): RpcChatService.JoinChatResponse {
         val request = RpcChatService.JoinChatRequest.newBuilder()
             .setChatId(chatId.asChatId())
+            .apply { invite?.let { setInvite(it.asProtoInviteParameters()) } }
             .apply { setAuth(authenticate(owner)) }
             .build()
 
@@ -586,6 +607,89 @@ internal class ChatApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.getKeyEnvelope(request)
+        }
+    }
+
+    /**
+     * Idempotent on [token]. [maxUses] 0 means unlimited; [expiresAt] null means it never expires.
+     * The envelopes are produced by invite crypto this layer does not do.
+     */
+    suspend fun createInvite(
+        owner: KeyPair,
+        chatId: ChatId,
+        token: InviteToken,
+        keyEnvelope: InviteKeyEnvelope,
+        secretEnvelope: InviteSecretEnvelope,
+        maxUses: Int = 0,
+        expiresAt: Instant? = null,
+    ): RpcChatService.CreateInviteResponse {
+        val request = RpcChatService.CreateInviteRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setInviteToken(token.asProtoInviteToken())
+            .setKeyEnvelope(keyEnvelope.asProtoInviteKeyEnvelope())
+            .setSecretEnvelope(secretEnvelope.asProtoInviteSecretEnvelope())
+            .setMaxUses(maxUses)
+            .apply { expiresAt?.let { setExpiresAt(it.asTimestamp()) } }
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.createInvite(request)
+        }
+    }
+
+    /** [owner] is optional: an anonymous viewer can look an invite up. */
+    suspend fun getInvite(
+        owner: KeyPair?,
+        token: InviteToken,
+    ): RpcChatService.GetInviteResponse {
+        val request = RpcChatService.GetInviteRequest.newBuilder()
+            .setInviteToken(token.asProtoInviteToken())
+            .apply { owner?.let { setAuth(authenticate(it)) } }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getInvite(request)
+        }
+    }
+
+    suspend fun getChatInvites(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+    ): RpcChatService.GetChatInvitesResponse {
+        val request = RpcChatService.GetChatInvitesRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setQueryOptions(queryOptions.asQueryOptions())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getChatInvites(request)
+        }
+    }
+
+    suspend fun revokeInvite(
+        owner: KeyPair,
+        chatId: ChatId,
+        inviteId: InviteId,
+    ): RpcChatService.RevokeInviteResponse {
+        val request = RpcChatService.RevokeInviteRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setInviteId(inviteId.asProtoInviteId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.revokeInvite(request)
         }
     }
 }

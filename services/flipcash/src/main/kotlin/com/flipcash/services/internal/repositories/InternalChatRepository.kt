@@ -4,13 +4,22 @@ import com.flipcash.services.internal.domain.ChatMetadataMapper
 import com.flipcash.services.internal.domain.UserProfileMapper
 import com.flipcash.services.internal.network.extensions.toChatMember
 import com.flipcash.services.internal.network.extensions.toId
+import com.flipcash.services.internal.network.extensions.toInvite
+import com.flipcash.services.internal.network.extensions.toInviteKeyBundle
+import com.flipcash.services.internal.network.extensions.toInviteStatus
 import com.flipcash.services.internal.network.extensions.toKeyEnvelope
+import com.flipcash.services.internal.network.extensions.toPublicKey
 import com.flipcash.services.internal.network.extensions.toLobbyMember
 import com.flipcash.services.internal.network.extensions.toRestrictedUser
 import com.flipcash.services.internal.network.extensions.toPagingToken
 import com.flipcash.services.internal.network.extensions.toRosterSummary
 import com.flipcash.services.internal.network.extensions.toViewerState
 import com.flipcash.services.internal.network.services.ChatService
+import com.flipcash.services.models.CreateInviteError
+import com.flipcash.services.models.GetChatInvitesError
+import com.flipcash.services.models.GetInviteError
+import com.flipcash.services.models.GetKeyEnvelopeError
+import com.flipcash.services.models.RevokeInviteError
 import com.flipcash.services.models.LeaveChatError
 import com.flipcash.services.models.SampleChattersError
 import com.flipcash.services.models.QueryOptions
@@ -22,6 +31,14 @@ import com.flipcash.services.models.chat.SampledChatter
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.Invite
+import com.flipcash.services.models.chat.InviteId
+import com.flipcash.services.models.chat.InviteKeyEnvelope
+import com.flipcash.services.models.chat.InviteParameters
+import com.flipcash.services.models.chat.InvitePreview
+import com.flipcash.services.models.chat.InviteSecretEnvelope
+import com.flipcash.services.models.chat.InviteToken
+import com.flipcash.services.models.chat.InvitesPage
 import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.Lobby
 import com.flipcash.services.models.chat.LobbyPage
@@ -35,6 +52,7 @@ import com.flipcash.services.models.chat.StoredKeyEnvelope
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.ViewMode
 import com.flipcash.services.repository.ChatRepository
+import com.codeinc.flipcash.gen.chat.v1.ChatService as RpcChatService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.ErrorUtils
@@ -123,10 +141,11 @@ internal class InternalChatRepository(
         .map { mapper.map(it) }
 
     override suspend fun getRoster(
-        owner: KeyPair,
+        owner: KeyPair?,
         chatId: ChatId,
         queryOptions: QueryOptions,
-    ): Result<RosterPage> = service.getRoster(owner, chatId, queryOptions)
+        inviteToken: InviteToken?,
+    ): Result<RosterPage> = service.getRoster(owner, chatId, queryOptions, inviteToken)
         .onFailure { ErrorUtils.handleError(it) }
         .map { response ->
             RosterPage(
@@ -164,7 +183,8 @@ internal class InternalChatRepository(
     override suspend fun joinChat(
         owner: KeyPair,
         chatId: ChatId,
-    ): Result<ChatMetadata> = service.joinChat(owner, chatId)
+        invite: InviteParameters?,
+    ): Result<ChatMetadata> = service.joinChat(owner, chatId, invite)
         .onFailure { ErrorUtils.handleError(it) }
         .map { mapper.map(it) }
 
@@ -275,10 +295,67 @@ internal class InternalChatRepository(
     override suspend fun getKeyEnvelope(owner: KeyPair, chatId: ChatId): Result<StoredKeyEnvelope> =
         service.getKeyEnvelope(owner, chatId)
             .onFailure { ErrorUtils.handleError(it) }
+            .mapCatching { response ->
+                // keyEnvelope is a oneof member: reading it while invite_key_bundle is set yields a
+                // default (empty) envelope, so branch on the case before touching it.
+                when (response.envelopeCase) {
+                    RpcChatService.GetKeyEnvelopeResponse.EnvelopeCase.KEY_ENVELOPE -> StoredKeyEnvelope(
+                        envelope = response.keyEnvelope.toKeyEnvelope(),
+                        wrappedBy = if (response.hasWrappedBy()) response.wrappedBy.toId() else null,
+                        wrappedByPublicKey = if (response.hasWrappedByPublicKey()) response.wrappedByPublicKey.toPublicKey() else null,
+                    )
+                    RpcChatService.GetKeyEnvelopeResponse.EnvelopeCase.INVITE_KEY_BUNDLE ->
+                        throw GetKeyEnvelopeError.InviteKeyBundleOnly(response.toInviteKeyBundle())
+                    // An OK with nothing stored, or a case this build does not know: no usable own envelope.
+                    else -> throw GetKeyEnvelopeError.NoEnvelope()
+                }
+            }
+
+    override suspend fun createInvite(
+        owner: KeyPair,
+        chatId: ChatId,
+        token: InviteToken,
+        keyEnvelope: InviteKeyEnvelope,
+        secretEnvelope: InviteSecretEnvelope,
+        maxUses: Int,
+        expiresAt: Instant?,
+    ): Result<Invite> = service.createInvite(owner, chatId, token, keyEnvelope, secretEnvelope, maxUses, expiresAt)
+        .onFailure { if (!it.isExpectedInviteFailure()) ErrorUtils.handleError(it) }
+        .map { it.toInvite() }
+
+    override suspend fun getInvite(owner: KeyPair?, token: InviteToken): Result<InvitePreview> =
+        service.getInvite(owner, token)
+            .onFailure { if (!it.isExpectedInviteFailure()) ErrorUtils.handleError(it) }
             .map { response ->
-                StoredKeyEnvelope(
-                    envelope = response.keyEnvelope.toKeyEnvelope(),
-                    wrappedBy = if (response.hasWrappedBy()) response.wrappedBy.toId() else null,
+                InvitePreview(
+                    chat = mapper.map(response.chat),
+                    status = response.status.toInviteStatus(),
                 )
             }
+
+    override suspend fun getChatInvites(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions,
+    ): Result<InvitesPage> = service.getChatInvites(owner, chatId, queryOptions)
+        .onFailure { if (!it.isExpectedInviteFailure()) ErrorUtils.handleError(it) }
+        .map { response ->
+            InvitesPage(
+                invites = response.invitesList.map { it.toInvite() },
+                pagingToken = if (response.hasPagingToken()) response.pagingToken.toPagingToken() else null,
+                hasMore = response.hasMore,
+            )
+        }
+
+    override suspend fun revokeInvite(owner: KeyPair, chatId: ChatId, inviteId: InviteId): Result<Unit> =
+        service.revokeInvite(owner, chatId, inviteId)
+            .onFailure { if (!it.isExpectedInviteFailure()) ErrorUtils.handleError(it) }
+
+    // Expected outcomes of a stale or bad link; not worth reporting.
+    private fun Throwable.isExpectedInviteFailure(): Boolean =
+        this is CreateInviteError.Denied || this is CreateInviteError.NotFound ||
+            this is CreateInviteError.InvalidExpiresAt || this is CreateInviteError.TooManyInvites ||
+            this is GetInviteError.NotFound || this is GetInviteError.Banned ||
+            this is GetChatInvitesError.Denied || this is GetChatInvitesError.NotFound ||
+            this is RevokeInviteError.Denied || this is RevokeInviteError.NotFound
 }

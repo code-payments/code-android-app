@@ -518,6 +518,7 @@ internal fun ChatModel.ViewerState.toViewerState(): ViewerState {
         permissions = if (hasPermissions()) {
             ViewerState.Permissions(
                 canEdit = permissions.canEdit,
+                canInvite = permissions.canInvite,
                 moderation = if (permissions.hasModeration()) {
                     ViewerState.ModerationPermissions(
                         canSilence = permissions.moderation.canSilence,
@@ -850,6 +851,9 @@ private fun MessagingModel.SystemContent.toSystemEvent(): MessageContent.SystemE
                 admittedBy = joined.admitted
                     .takeIf { joined.methodCase == MessagingModel.SystemContent.UserJoined.MethodCase.ADMITTED && it.hasAdmittedBy() }
                     ?.admittedBy?.toId(),
+                invitedBy = joined.invited
+                    .takeIf { joined.methodCase == MessagingModel.SystemContent.UserJoined.MethodCase.INVITED && it.hasInvitedBy() }
+                    ?.invitedBy?.toId(),
             )
         }
     else -> null

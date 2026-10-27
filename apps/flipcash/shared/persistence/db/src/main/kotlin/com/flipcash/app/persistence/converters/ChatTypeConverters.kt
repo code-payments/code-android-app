@@ -260,7 +260,7 @@ sealed interface MessageContentSerialized {
     data class WidgetPaymentRequest(val paymentRequestId: String) : MessageContentSerialized
 
     // Mirrors MessageContent.System. [joinedUser] is set for a UserJoined event, and
-    // [admittedBy] when someone let them in; both hex-encoded. Rows stored before the event was
+    // [admittedBy] when someone let them in or [invitedBy] when they used someone's invite; each hex-encoded. Rows stored before the event was
     // kept have neither and decode as fallback-only.
     @Serializable
     @SerialName("system")
@@ -268,6 +268,7 @@ sealed interface MessageContentSerialized {
         val fallbackText: String,
         val joinedUser: String? = null,
         val admittedBy: String? = null,
+        val invitedBy: String? = null,
     ) : MessageContentSerialized
 
     // Mirrors MessageContent.Unsupported: a content type the build that stored it didn't know.

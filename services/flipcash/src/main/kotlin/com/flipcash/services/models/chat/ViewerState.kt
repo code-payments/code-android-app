@@ -20,6 +20,9 @@ data class ViewerState(
     data class Permissions(
         // Whether the viewer may call EditChat on this chat.
         val canEdit: Boolean = false,
+        // Whether the viewer may create, list and revoke invite links. True today only for a
+        // private group's creator while a member.
+        val canInvite: Boolean = false,
         // Which moderation actions the viewer may take on other users.
         val moderation: ModerationPermissions = ModerationPermissions(),
     )
