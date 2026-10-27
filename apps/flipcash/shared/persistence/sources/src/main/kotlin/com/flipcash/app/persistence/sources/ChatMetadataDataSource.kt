@@ -112,6 +112,10 @@ class ChatMetadataDataSource @Inject constructor(
             canEdit = viewerState.permissions.canEdit,
             canInvite = viewerState.permissions.canInvite,
             version = viewerState.version,
+            canSilence = viewerState.permissions.moderation.canSilence,
+            canBan = viewerState.permissions.moderation.canBan,
+            silenceUntilEpochMs = mapper.silenceUntilEpochMs(viewerState.restrictions?.silence),
+            silenceForever = mapper.isSilenceForever(viewerState.restrictions?.silence),
         )
     }
 

@@ -555,6 +555,37 @@ class ChatMetadataDaoTest {
     }
 
     @Test
+    fun `a newer viewer state writes the silence and moderation columns, and leaving clears them`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 1))
+
+        dao.updateViewerStateIfNewer(
+            chatIdHex = CHAT_HEX,
+            muteUntilEpochMs = null,
+            muteForever = false,
+            canEdit = false,
+            canInvite = false,
+            version = 2,
+            canSilence = true,
+            canBan = true,
+            silenceUntilEpochMs = 7_000,
+            silenceForever = false,
+        )
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(true, stored.canSilence)
+        assertEquals(true, stored.canBan)
+        assertEquals(7_000L, stored.silenceUntilEpochMs)
+
+        dao.clearViewerState(CHAT_HEX)
+
+        val cleared = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(false, cleared.canSilence)
+        assertEquals(false, cleared.canBan)
+        assertNull(cleared.silenceUntilEpochMs)
+        assertEquals(false, cleared.silenceForever)
+    }
+
+    @Test
     fun `the viewer state version reads back, and is null for a chat that is not there`() = runTest {
         dao.upsert(entity(chatType = "GROUP", muteForever = true, viewerStateVersion = 7))
 

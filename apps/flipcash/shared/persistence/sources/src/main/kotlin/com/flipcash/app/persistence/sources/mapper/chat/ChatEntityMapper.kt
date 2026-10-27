@@ -36,6 +36,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.ReactionSummary
@@ -99,6 +100,10 @@ class ChatEntityMapper @Inject constructor() {
             viewerStateVersion = metadata.viewerState?.version ?: 0,
             canEdit = metadata.viewerState?.permissions?.canEdit ?: false,
             canInvite = metadata.viewerState?.permissions?.canInvite ?: false,
+            canSilence = metadata.viewerState?.permissions?.moderation?.canSilence ?: false,
+            canBan = metadata.viewerState?.permissions?.moderation?.canBan ?: false,
+            silenceUntilEpochMs = silenceUntilEpochMs(metadata.viewerState?.restrictions?.silence),
+            silenceForever = isSilenceForever(metadata.viewerState?.restrictions?.silence),
             creatorHex = metadata.creator?.hexEncodedString(),
             useE2ee = metadata.useE2ee,
             isPrivate = metadata.isPrivate,
@@ -146,6 +151,13 @@ class ChatEntityMapper @Inject constructor() {
     /** The `mute_forever` column a [mute] writes. */
     fun isMuteForever(mute: MuteState?): Boolean = mute is MuteState.Forever
 
+    /** The `silence_until_epoch_ms` column a [silence] writes; null for forever and for none. */
+    fun silenceUntilEpochMs(silence: SilenceState?): Long? =
+        (silence as? SilenceState.Until)?.until?.toEpochMilliseconds()
+
+    /** The `silence_forever` column a [silence] writes. */
+    fun isSilenceForever(silence: SilenceState?): Boolean = silence is SilenceState.Forever
+
     /**
      * The row's viewer state, or null when it holds nothing about the viewer.
      *
@@ -166,11 +178,24 @@ class ChatEntityMapper @Inject constructor() {
             until != null -> MuteState.Until(Instant.fromEpochMilliseconds(until))
             else -> null
         }
-        if (mute == null && viewerStateVersion == 0L && !canEdit && !canInvite) return null
+        val silenceUntil = silenceUntilEpochMs
+        val silence = when {
+            silenceForever -> SilenceState.Forever
+            silenceUntil != null -> SilenceState.Until(Instant.fromEpochMilliseconds(silenceUntil))
+            else -> null
+        }
+        if (mute == null && silence == null && viewerStateVersion == 0L && !canEdit && !canInvite && !canSilence && !canBan) {
+            return null
+        }
         return ViewerState(
             mute = mute,
             version = viewerStateVersion,
-            permissions = ViewerState.Permissions(canEdit = canEdit, canInvite = canInvite),
+            permissions = ViewerState.Permissions(
+                canEdit = canEdit,
+                canInvite = canInvite,
+                moderation = ViewerState.ModerationPermissions(canSilence = canSilence, canBan = canBan),
+            ),
+            restrictions = silence?.let { ViewerState.Restrictions(silence = it) },
         )
     }
 

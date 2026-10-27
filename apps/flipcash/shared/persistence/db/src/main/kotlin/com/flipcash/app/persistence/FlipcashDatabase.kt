@@ -127,8 +127,11 @@ import com.getcode.utils.subByteArray
         AutoMigration(from = 43, to = 44), // chat_metadata.cover_picture_json (nullable)
         AutoMigration(from = 44, to = 45), // chat_metadata.is_private (default 0)
         AutoMigration(from = 45, to = 46, spec = FlipcashDatabase.Migration45To46::class), // chat_metadata.can_invite (default 0)
+        // chat_metadata moderation: can_silence, can_ban (default 0), silence_until_epoch_ms
+        // (nullable), silence_forever (default 0)
+        AutoMigration(from = 46, to = 47),
     ],
-    version = 46,
+    version = 47,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {
