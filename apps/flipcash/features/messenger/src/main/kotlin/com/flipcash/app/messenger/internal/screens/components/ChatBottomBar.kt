@@ -179,6 +179,17 @@ internal fun UserControlBottomBar(
         return
     }
 
+    // A silenced member can still read and react, so the pill stands where the composer would and
+    // says so. It wins over the speaker rules: a deadline is the more specific thing to tell them.
+    state.silence?.takeIf { state.isReadOnlySpeaker }?.let { silence ->
+        SpeakerGateBar(
+            silence = silence,
+            hazeState = hazeState,
+            currencyName = null,
+        )
+        return
+    }
+
     // A member the speaker rules keep from speaking: nothing to type into, so the panel stands
     // where the composer would. Checked after the join gate, which owns every viewer outside.
     state.speakerBlock?.takeIf { state.isReadOnlySpeaker }?.let { block ->

@@ -95,7 +95,10 @@ import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.TypingState
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.ViewerState
+import com.flipcash.services.models.chat.isActiveAt
+import com.flipcash.services.models.chat.silence
 import com.flipcash.services.models.chat.isDmAddressable
 import com.flipcash.services.models.handle
 import com.flipcash.services.models.nameOrHandle
@@ -225,6 +228,7 @@ import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
@@ -376,6 +380,11 @@ internal class ChatViewModel @AssistedInject constructor(
          * needs the deadline this keeps.
          */
         val viewerState: ViewerState? = null,
+        /**
+         * The clock a timed silence is read against. A silence lapses with no event, so [silence]
+         * compares the deadline to this and a timer bumps it at the deadline.
+         */
+        val silenceClock: kotlin.time.Instant = kotlin.time.Clock.System.now(),
         // The kind of DM this conversation is, resolved from the fast local contact lookup ahead of
         // the participant's server profile (which resolves over the network for tip DMs). Starts
         // UNKNOWN and settles to CONTACT_DM / TIP_DM as soon as the chat opens; the send button and
@@ -751,9 +760,13 @@ internal class ChatViewModel @AssistedInject constructor(
         val showsJoinRequestsAnchor: Boolean
             get() = isLobbyHost && joinRequests.isNotEmpty() && selection == null && editing == null
 
-        /** Whether the chat's speaker rules let this viewer speak. See [speakerBlock]. */
+        /** The silence a moderator has on the viewer right now, or null once it has lapsed. */
+        val silence: SilenceState?
+            get() = viewerState.silence?.takeIf { it.isActiveAt(silenceClock) }
+
+        /** Whether the chat's speaker rules and any silence let this viewer speak. See [speakerBlock]. */
         val canSpeak: Boolean
-            get() = speakerBlock == null
+            get() = speakerBlock == null && silence == null
 
         /**
          * Whether a member who may not speak sees the read-only panel in place of the composer.
@@ -763,7 +776,8 @@ internal class ChatViewModel @AssistedInject constructor(
          * Mirrors iOS `ConversationGatePresentation.readOnly`.
          */
         val isReadOnlySpeaker: Boolean
-            get() = subject != null && !isOutsideGroup && !replacesComposer && speakerBlock != null
+            get() = subject != null && !isOutsideGroup && !replacesComposer &&
+                (speakerBlock != null || silence != null)
 
         /**
          * Whether the gate stands where the composer does. Every viewer outside the group, eligible
@@ -971,6 +985,9 @@ internal class ChatViewModel @AssistedInject constructor(
 
         /** This chat's viewer state moved, from the stream or from the viewer's own request. */
         data class OnViewerStateResolved(val viewerState: ViewerState?) : Event
+
+        /** A timed silence reached its deadline; nothing else says so. */
+        data object SilenceLapsed : Event
 
         data class OnEncryptionResolved(val isEncrypted: Boolean) : Event
 
@@ -2084,6 +2101,21 @@ internal class ChatViewModel @AssistedInject constructor(
     }
 
     /**
+     * The removed member learns why only when they try to come back: JoinChat and EnterLobby answer
+     * BANNED, and nothing before that tells them.
+     */
+    private fun showBannedFromGroup(group: ChatSubject.Group?) {
+        BottomBarManager.showError(
+            title = resources.getString(R.string.error_title_cannotJoinGroup),
+            message = if (group != null) {
+                resources.getString(R.string.error_description_removedFromGroup, group.title)
+            } else {
+                resources.getString(R.string.error_description_removedFromGroup_unnamed)
+            },
+        )
+    }
+
+    /**
      * EnterLobby's refusals that the viewer can act on get the leave dialog's sheet: a full lobby
      * and too many pending requests. Already a member says nothing; the synced feed flips the
      * profile to the member layout. Anything else is a plain failure.
@@ -2093,6 +2125,10 @@ internal class ChatViewModel @AssistedInject constructor(
             is EnterLobbyError.LobbyFull -> R.string.prompt_description_lobbyFull
             is EnterLobbyError.TooManyLobbies -> R.string.prompt_description_tooManyLobbies
             is EnterLobbyError.AlreadyMember -> return
+            is EnterLobbyError.Banned -> {
+                showBannedFromGroup(group)
+                return
+            }
             else -> {
                 BottomBarManager.showError(
                     title = resources.getString(R.string.error_title_failedToRequestJoin),
@@ -2374,6 +2410,23 @@ internal class ChatViewModel @AssistedInject constructor(
             .map { it?.metadata?.viewerState }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnViewerStateResolved(it)) }
+            .launchIn(viewModelScope)
+
+        // A timed silence lapses with nothing sent, so the composer comes back on a timer rather
+        // than at the next stream event. The deadline is read off the viewer state, and a new
+        // silence replaces the pending timer.
+        stateFlow.map { it.viewerState.silence as? SilenceState.Until }
+            .distinctUntilChanged()
+            .flatMapLatest { silence ->
+                flow {
+                    if (silence != null) {
+                        val wait = silence.until - kotlin.time.Clock.System.now()
+                        if (wait.isPositive()) delay(wait)
+                        emit(Unit)
+                    }
+                }
+            }
+            .onEach { dispatchEvent(Event.SilenceLapsed) }
             .launchIn(viewModelScope)
 
         // The profile footer's claim. Decided by the policy from the chat's metadata, so the
@@ -3020,6 +3073,11 @@ internal class ChatViewModel @AssistedInject constructor(
                     }
                     .onFailure { cause ->
                         trace("failed to join chat - ${cause.localizedMessage}")
+                        if (cause is JoinChatError.Banned) {
+                            showBannedFromGroup(group)
+                            dispatchEvent(Event.JoinStateUpdated())
+                            return@onFailure
+                        }
                         // A refusal is the only thing that tells the user anything: the gate itself
                         // does not change, because the rules and the balance it reads are what the
                         // server just disagreed with. Saying which refusal it was is the difference
@@ -4233,8 +4291,9 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.OnEncryptionResolved -> { state -> state.copy(isEncrypted = event.isEncrypted) }
 
                 is Event.OnViewerStateResolved -> { state ->
-                    state.copy(viewerState = event.viewerState)
+                    state.copy(viewerState = event.viewerState, silenceClock = kotlin.time.Clock.System.now())
                 }
+                Event.SilenceLapsed -> { state -> state.copy(silenceClock = kotlin.time.Clock.System.now()) }
                 Event.CopyInviteLink,
                 is Event.InviteSheetOpened,
                 Event.InviteLinkShared,

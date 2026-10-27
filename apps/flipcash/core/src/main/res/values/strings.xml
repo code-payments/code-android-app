@@ -930,6 +930,8 @@
     <string name="subtitle_chatGate_speakerMinimumBalance">Minimum Balance to Send Messages: %1$s of %2$s</string>
     <string name="subtitle_chatGate_speakerMinimumBalance_anyToken">Minimum Balance to Send Messages: %1$s</string>
     <string name="subtitle_chatGate_speakerStaffOnly">Only Flipcash staff can send messages here</string>
+    <string name="subtitle_chatGate_silencedUntil">You\'re silenced until %1$s</string>
+    <string name="subtitle_chatGate_silencedForever">You\'re silenced in this group</string>
     <string name="subtitle_chatGate_speakerCreatorOnly">Only the creator can send messages</string>
     <string name="subtitle_chatGate_speakerUnsupported">Update Flipcash to send messages</string>
     <string name="action_buyMoreToken">Buy More %1$s</string>
@@ -984,6 +986,9 @@
     <string name="error_title_failedToJoin">Couldn\'t Join Chat</string>
     <string name="error_description_failedToJoin">Something went wrong. Please try again.</string>
     <string name="error_description_joinChat_rulesNotSatisfied">You don\'t meet this chat\'s requirements yet.</string>
+    <string name="error_title_cannotJoinGroup">You Can\'t Join This Group</string>
+    <string name="error_description_removedFromGroup">The host removed you from %1$s</string>
+    <string name="error_description_removedFromGroup_unnamed">The host removed you from this group</string>
     <string name="error_description_joinChat_denied">This chat isn\'t open to you</string>
     <string name="error_description_joinChat_notFound">This chat no longer exists</string>
     <string name="error_title_groupNotFound">Group Not Found</string>
