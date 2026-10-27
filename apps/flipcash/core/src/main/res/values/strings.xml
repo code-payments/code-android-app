@@ -565,10 +565,6 @@
     <string name="title_addMoney">Add Money</string>
     <string name="subtitle_addMoney">Add money to your account</string>
 
-    <string name="title_scanTipCard">Scan a Profile Card</string>
-    <string name="subtitle_scanTipCard">Send your first message</string>
-
-
     <!-- Copy matches iOS's "Finish Your Profile" display-name step. -->
 
 
@@ -1656,7 +1652,6 @@
     <string name="error_title_failedToReport">Something Went Wrong</string>
     <string name="error_description_failedToReport">We were unable to send your report. Please try again</string>
 
-    <string name="title_tipOnboarding">Send Your First Tip</string>
 
     <!-- You tab (tip card) -->
     <string name="action_editProfile">Edit Profile</string>

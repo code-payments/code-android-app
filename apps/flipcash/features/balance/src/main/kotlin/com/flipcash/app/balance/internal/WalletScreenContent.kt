@@ -49,8 +49,7 @@ import com.flipcash.app.core.ui.TokenCardArrival
 import com.flipcash.app.core.ui.TokenCardExpansion
 import com.flipcash.app.core.ui.TokenCardStack
 import com.flipcash.app.balance.internal.components.BalanceHeader
-import com.flipcash.app.core.ui.onboarding.NewUserTutorial
-import com.flipcash.app.core.ui.onboarding.TutorialItem
+import com.flipcash.app.core.ui.onboarding.AddMoneyRow
 import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.core.ui.TileButtonStyle
@@ -89,15 +88,15 @@ internal fun WalletScreenContent(
     ReportDrawnWhen { !tokenState.isAwaitingTokens }
 
     // The tab waits on the token set and nothing else. Tokens are what the balance and the card deck
-    // are made of, so there is no drawing the tab without them; the activity preview and the tutorial
-    // are separate reads that arrive later and fill in underneath.
+    // are made of, so there is no drawing the tab without them; the activity preview and the Add Money
+    // row are separate reads that arrive later and fill in underneath.
     //
     // Waiting on the activity feed here as well (the earlier gate was `isAwaitingTokens ||
     // isAwaitingActivity`) held a resolved balance behind an unresolved history. The two things that
     // gate bought are both kept below without the wait: the activity section draws only once there
     // are rows to draw, and by then tokens have resolved, so a convert row titles itself
     // "USDF -> Dad Cash" from both mints rather than falling back to the server's bare "Converted";
-    // and the tutorial, the one thing that would be *wrong* rather than late if drawn from a
+    // and the Add Money row, the one thing that would be *wrong* rather than late if drawn from a
     // still-empty cache -- telling an established account it is new -- keeps the activity wait
     // explicitly. BalanceHeader's own spinner stays dead code: the header is only ever drawn once
     // the balance has resolved.
@@ -202,31 +201,20 @@ internal fun WalletScreenContent(
             Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
         }
 
-        // The milestones are a read of a local cache that starts empty on a fresh login, so an
-        // established account would be shown the new-user tutorial until its history arrived. This
-        // is the one section that has to wait the feed out (see State.isAwaitingActivity) -- drawing
-        // it early is wrong, not merely early.
-        balanceState.onboardingItems
-            ?.takeIf { !balanceState.isAwaitingActivity && !balanceState.isNewUserTutorialComplete }
-            ?.let { items ->
-                item {
-                    NewUserTutorial(
-                        modifier = Modifier.fillMaxWidth()
-                            .padding(bottom = CodeTheme.dimens.grid.x5),
-                        title = stringResource(R.string.title_tipOnboarding),
-                        items = items,
-                    ) { item ->
-                        when (item) {
-                            is TutorialItem.AddMoney -> {
-                                dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
-                            }
-                            is TutorialItem.ScanTipCard -> {
-                                dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Tabs.Scanner))
-                            }
-                        }
-                    }
+        // The added-money answer is a read of a local cache that starts empty on a fresh login, so
+        // an established account would be shown this row until its history arrived. It has to wait
+        // the feed out (see State.showAddMoney) -- drawing it early is wrong, not merely early.
+        if (balanceState.showAddMoney) {
+            item {
+                AddMoneyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = CodeTheme.dimens.grid.x5),
+                ) {
+                    dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
                 }
             }
+        }
 
         tokenState.tokens
             ?.let { tokens ->

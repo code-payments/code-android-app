@@ -424,9 +424,11 @@ class ActivityFeedCoordinator @Inject internal constructor(
 
     /**
      * Reactive "has money ever come in" — any completed incoming entry in the feed: an on-ramp buy,
-     * a deposit, or a tip received.
+     * a deposit, or a tip received. `null` while the answer cannot be believed; see
+     * [resolveHasReceivedMoney].
      */
-    fun hasEverReceivedMoney(): Flow<Boolean> = dataSource.hasEverReceivedMoney()
+    fun hasEverReceivedMoney(): Flow<Boolean?> =
+        resolveHasReceivedMoney(syncState, dataSource::hasEverReceivedMoney)
 
     suspend fun checkPendingMessagesForUpdates(): Result<Int> {
         val pendingMessages = dataSource.query(whereClause = "state = '${NotificationState.PENDING.name}'")
@@ -481,3 +483,35 @@ class ActivityFeedCoordinator @Inject internal constructor(
             }
     }
 }
+
+/**
+ * Folds the feed's sync state into "has money ever come in".
+ *
+ * A cold cache reports every account as never having received money until its history has been
+ * fetched, so absence only counts once the feed has left [FeedSyncState.Unknown]. Until then the
+ * answer is `null`, which a caller can tell apart from `false`.
+ *
+ * [received] is re-subscribed on every sync-state change so the first value after a sync is a
+ * fresh read. `combine`-ing the two flows instead would race: the emission carrying `Synced` would
+ * carry the *pre-sync* answer, and the caller would act on `false` a beat before Room's
+ * invalidation published `true`.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+internal fun resolveHasReceivedMoney(
+    syncState: Flow<FeedSyncState>,
+    received: () -> Flow<Boolean>,
+): Flow<Boolean?> =
+    syncState
+        .distinctUntilChanged()
+        .flatMapLatest { state ->
+            received().map { hasReceived ->
+                when {
+                    // A cached incoming entry is proof regardless of sync state.
+                    hasReceived -> true
+                    state == FeedSyncState.Unknown -> null
+                    else -> false
+                }
+            }
+        }
+        // The re-subscribe repeats the current answer whenever sync state moves.
+        .distinctUntilChanged()

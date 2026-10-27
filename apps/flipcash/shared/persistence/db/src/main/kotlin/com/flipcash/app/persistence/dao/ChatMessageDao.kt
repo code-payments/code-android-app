@@ -27,13 +27,6 @@ interface ChatMessageDao {
     fun observeMessagesPaged(chatIdHex: String): PagingSource<Int, ChatMessageEntity>
 
     /**
-     * True once the user has sent a tip — an **outgoing** Cash message (sender = self) with verb
-     * TIPPED. Received tips don't count toward the "scanned a tip card" onboarding milestone.
-     */
-    @Query("SELECT EXISTS(SELECT 1 FROM chat_messages WHERE sender_id_hex = :selfIdHex AND content_json LIKE '%\"action\":\"TIPPED\"%')")
-    fun hasEverTipped(selfIdHex: String): Flow<Boolean>
-
-    /**
      * The newest [limit] messages across every chat that Search can read: not tombstones, not
      * empty, and either plaintext or opened on this device. Matching happens in Kotlin, not here:
      * `content_json` is serialized JSON, and Search folds case and diacritics, which LIKE cannot.

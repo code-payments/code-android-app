@@ -313,7 +313,7 @@ val NavBarButton.label: Int
 /**
  * The glyph for [this] tab at the weight its selection calls for (node 10000:111297). Every tab is
  * drawn as an outline until it is selected, where it fills in, white in both states. The unsuffixed
- * drawable is the outline, so `ic_nav_tipcard` is also the outline the tutorial card reuses.
+ * drawable is the outline.
  *
  * The scanner tab carries the tip card glyph because scanning one is what that tab is for. The You
  * tab draws the user's own photo when there is one (see the avatar branch above) and falls back to
