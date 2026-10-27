@@ -42,6 +42,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Box
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
@@ -220,27 +224,29 @@ private fun SelectRecipientContent(
 
 @Composable
 private fun RecipientRow(chat: ConversationReference, onClick: () -> Unit) {
+    // Design: 24 avatar, 16 gap, 48 row; the divider sits under the name column only.
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(48.dp)
             .clickable(onClick = onClick)
             .padding(horizontal = CodeTheme.dimens.inset),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         ContactAvatar(
             image = chat.image,
             displayName = chat.name.orEmpty(),
             access = chat.avatarAccess,
             modifier = Modifier
-                .requiredSize(CodeTheme.dimens.staticGrid.x6)
+                .requiredSize(24.dp)
                 .clip(CircleShape),
         )
-        Column(modifier = Modifier.weight(1f)) {
-            Column(modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3)) {
+        Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 Text(
                     text = chat.name.orEmpty(),
-                    style = CodeTheme.typography.textMedium,
+                    style = CodeTheme.typography.textMedium.copy(fontSize = 17.sp),
                     color = CodeTheme.colors.textMain,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
