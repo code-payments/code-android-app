@@ -1,6 +1,13 @@
 package com.getcode.ui.components
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -21,6 +28,8 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.window.PopupProperties
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
+
+private const val MenuSwapMillis = 220
 
 /**
  * A [DropdownMenu] with one level of submenu.
@@ -54,28 +63,42 @@ fun SubmenuDropdownMenu(
         properties = PopupProperties(focusable = true, dismissOnBackPress = !inSubmenu),
     ) {
         BackHandler(enabled = inSubmenu) { inSubmenu = false }
-        if (inSubmenu) {
-            DropdownMenuItem(
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                        contentDescription = null,
-                        tint = CodeTheme.colors.textMain,
+        // The popup is as big as its content, so animating the content's size grows and shrinks the
+        // menu between levels while the rows cross-fade; clip stays off so the corners aren't cut mid-resize.
+        AnimatedContent(
+            targetState = inSubmenu,
+            transitionSpec = {
+                (fadeIn(tween(MenuSwapMillis, delayMillis = MenuSwapMillis / 3)) togetherWith
+                    fadeOut(tween(MenuSwapMillis / 2)))
+                    .using(SizeTransform(clip = false) { _, _ -> tween(MenuSwapMillis) })
+            },
+            label = "submenu",
+        ) { showSubmenu ->
+            Column {
+                if (showSubmenu) {
+                    DropdownMenuItem(
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                contentDescription = null,
+                                tint = CodeTheme.colors.textMain,
+                            )
+                        },
+                        text = {
+                            Text(
+                                text = submenuTitle,
+                                style = CodeTheme.typography.textSmall,
+                                color = CodeTheme.colors.textMain,
+                            )
+                        },
+                        onClick = { inSubmenu = false },
                     )
-                },
-                text = {
-                    Text(
-                        text = submenuTitle,
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textMain,
-                    )
-                },
-                onClick = { inSubmenu = false },
-            )
-            HorizontalDivider(color = CodeTheme.colors.divider)
-            submenu()
-        } else {
-            root { inSubmenu = true }
+                    HorizontalDivider(color = CodeTheme.colors.divider)
+                    submenu()
+                } else {
+                    root { inSubmenu = true }
+                }
+            }
         }
     }
 }
