@@ -13,7 +13,6 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.LobbyRequests
 import com.flipcash.shared.chat.HostLobbies
-import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.services.models.chat.LobbyMember
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -24,6 +23,7 @@ import com.flipcash.shared.chat.ChatListEntry
 import com.flipcash.shared.chat.ChatListFilter
 import com.flipcash.shared.chat.ChatListProjection
 import com.flipcash.shared.chat.chatListFeeds
+import com.flipcash.shared.chat.hostedPrivateGroups
 import com.flipcash.shared.chat.currentChatListFeeds
 import com.flipcash.shared.chat.projectChatList
 import com.flipcash.shared.chat.ui.ConversationReference
@@ -58,7 +58,7 @@ internal class ChatsViewModel @Inject constructor(
 ) {
 
     data class State(
-        // The main list (not archived, not hidden), in the feed's order. Loading until the feed
+        // The main list (not archived, not hidden), in the projection's order. Loading until the feed
         // emits, so the empty state doesn't flash on top of a list that's about to arrive.
         val chats: Loadable<List<ConversationReference>> = Loadable.Loading(),
         // The chip selected above the list. Not persisted: a cold start opens on All.
@@ -68,9 +68,6 @@ internal class ChatsViewModel @Inject constructor(
         // Whether a pull from the top has brought the chips on. Held here rather than in the
         // screen so it survives opening a chat and coming back.
         val chipsRevealed: Boolean = false,
-        // Someone waits in a private group the viewer hosts: the dot on the overflow menu and on
-        // its Requests item.
-        val needsDecision: Boolean = false,
     ) {
 
         /** The chips stay once revealed, and always show under a filter other than All. */
@@ -103,8 +100,6 @@ internal class ChatsViewModel @Inject constructor(
         data class FilterSelected(val filter: ChatListFilter) : Event
 
         data object ChipsRevealed : Event
-
-        data class RequestsUpdated(val needsDecision: Boolean) : Event
     }
 
     fun selectFilter(filter: ChatListFilter) = dispatchEvent(Event.FilterSelected(filter))
@@ -133,10 +128,11 @@ internal class ChatsViewModel @Inject constructor(
             // re-fetch every sender already on disk.
             senderProfiles: Map<String, UserProfile>?,
             requests: Map<ID, PaymentRequest>,
+            lobbies: Map<ChatId, List<LobbyMember>>,
         ): Event.ChatsUpdated {
             val fetchRequest: (ID) -> Unit = { id -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id) } }
-            val mainRows = mapConversations(feeds.main, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest)
-            val archivedRows = mapConversations(feeds.archived, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest)
+            val mainRows = mapConversations(feeds.main, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest, lobbies)
+            val archivedRows = mapConversations(feeds.archived, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest, lobbies)
 
             // The projection sees every chat so the chips, the Archived row and the badge number
             // come from the one function the fixture tests. Hidden chats never reach the feeds, so
@@ -149,11 +145,13 @@ internal class ChatsViewModel @Inject constructor(
                 muted = row.viewerState.isMutedAt(),
                 hidden = false,
                 unread = row.unreadCount,
+                pendingRequests = row.joinRequests.size,
+                newestRequestMs = row.joinRequests.maxOfOrNull { it.enteredAt.toEpochMilliseconds() } ?: 0L,
             )
             val projection = projectChatList(
                 mainRows.map { entry(it, isArchived = false) } + archivedRows.map { entry(it, isArchived = true) }
             )
-            return Event.ChatsUpdated(Loadable.Loaded(mainRows), projection)
+            return Event.ChatsUpdated(Loadable.Loaded(mainRows.inOrderOf(projection.main)), projection)
         }
 
         // On a cold launch the feed is usually built before this screen is, so draw it on the first
@@ -165,6 +163,7 @@ internal class ChatsViewModel @Inject constructor(
                     tokens = tokenCoordinator.cachedTokens(),
                     senderProfiles = chatCoordinator.currentSenderProfiles(),
                     requests = paymentRequests.state.value,
+                    lobbies = hostLobbies.state.value,
                 )
             )
         }
@@ -177,8 +176,11 @@ internal class ChatsViewModel @Inject constructor(
             tokenCoordinator.tokens,
             chatCoordinator.observeSenderProfiles(),
             exchange.observePreferredRate(),
-            paymentRequests.state,
-        ) { feeds, tokens, senderProfiles, _, requests -> content(feeds, tokens, senderProfiles, requests) }
+            // Paired so the combine stays at five typed flows.
+            combine(paymentRequests.state, hostLobbies.state, ::Pair),
+        ) { feeds, tokens, senderProfiles, _, (requests, lobbies) ->
+            content(feeds, tokens, senderProfiles, requests, lobbies)
+        }
             // Off the main thread: on a cold launch the first mapping lands while the main thread
             // is drawing the app's first screens, and waiting for it holds the Chats tab blank.
             .flowOn(dispatchers.Default)
@@ -193,12 +195,6 @@ internal class ChatsViewModel @Inject constructor(
         hostedGroups
             .onEach { groups -> groups.keys.forEach { chatId -> viewModelScope.launch { hostLobbies.load(chatId) } } }
             .launchIn(viewModelScope)
-        combine(hostedGroups, hostLobbies.state) { hosted, lobbies ->
-            Event.RequestsUpdated(needsDecision = hostedRequests(hosted.keys, lobbies).isNotEmpty())
-        }
-            .distinctUntilChanged()
-            .onEach { dispatchEvent(it) }
-            .launchIn(viewModelScope)
     }
 
     internal companion object {
@@ -210,21 +206,18 @@ internal class ChatsViewModel @Inject constructor(
                 // A chip can only be tapped once the row is on screen, so choosing one reveals it.
                 is Event.FilterSelected -> { state -> state.copy(filter = event.filter, chipsRevealed = true) }
                 Event.ChipsRevealed -> { state -> state.copy(chipsRevealed = true) }
-                is Event.RequestsUpdated -> { state ->
-                    state.copy(needsDecision = event.needsDecision)
-                }
             }
         }
     }
 }
 
-/** Private groups [selfId] created, by id, with their titles. */
-internal fun hostedPrivateGroups(summaries: List<ChatSummary>, selfId: ID?): Map<ChatId, String> {
-    selfId ?: return emptyMap()
-    return summaries
-        .map { it.metadata }
-        .filter { it.isPrivate && it.creator == selfId }
-        .associate { it.chatId to it.title.orEmpty() }
+/**
+ * [this] rows in the order of [ids] (the projection's order). A row the projection doesn't list
+ * keeps its place after the ones it does; there shouldn't be one.
+ */
+internal fun List<ConversationReference>.inOrderOf(ids: List<String>): List<ConversationReference> {
+    val rank = ids.withIndex().associate { (index, id) -> id to index }
+    return sortedBy { rank[it.chatId.toString()] ?: Int.MAX_VALUE }
 }
 
 /**

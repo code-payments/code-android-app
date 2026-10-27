@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.hostedPrivateGroups
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.HostLobbies
 import com.flipcash.shared.chat.LobbyRequests

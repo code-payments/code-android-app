@@ -15,6 +15,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
+import com.flipcash.shared.chat.HostLobbies
 import com.flipcash.shared.chat.PaymentRequests
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
@@ -33,6 +34,7 @@ internal class ArchivedChatsViewModel @Inject constructor(
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
     paymentRequests: PaymentRequests,
+    hostLobbies: HostLobbies,
 ) : BaseViewModel<ArchivedChatsViewModel.State, ArchivedChatsViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -56,10 +58,13 @@ internal class ArchivedChatsViewModel @Inject constructor(
             tokenCoordinator.tokens,
             chatCoordinator.observeSenderProfiles(),
             paymentRequests.state,
-        ) { summaries, tokens, senderProfiles, requests ->
+            hostLobbies.state,
+        ) { summaries, tokens, senderProfiles, requests, lobbies ->
             mapConversations(
                 summaries, tokens, senderProfiles, userManager.accountId, resources, chatCoordinator, exchange, requests,
-            ) { id -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id) } }
+                requestPaymentRequest = { id -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id) } },
+                lobbies = lobbies,
+            ).sortedByDescending { it.rowActivity }
         }
             .flowOn(dispatchers.Default)
             .onEach { dispatchEvent(Event.ChatsUpdated(Loadable.Loaded(it))) }
