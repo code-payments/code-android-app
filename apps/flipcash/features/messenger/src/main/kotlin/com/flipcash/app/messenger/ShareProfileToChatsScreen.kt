@@ -52,7 +52,6 @@ fun ShareProfileToChatsScreen(route: AppRoute.Messaging.ShareProfileToChats) {
         ),
         state = state,
         // A person's link has no group analytics to fire.
-        onShare = {},
         onCopy = { viewModel.copyProfileLink(link) },
         onToggle = viewModel::toggle,
         onMessageChanged = viewModel::onMessageChanged,
@@ -82,7 +81,6 @@ fun ShareCurrencyToChatsScreen(route: AppRoute.Messaging.ShareCurrencyToChats) {
         inviteUrl = link,
         subject = ShareToChatsSubject.Currency(route.name),
         state = state,
-        onShare = {},
         onCopy = { viewModel.copyProfileLink(link) },
         onToggle = viewModel::toggle,
         onMessageChanged = viewModel::onMessageChanged,

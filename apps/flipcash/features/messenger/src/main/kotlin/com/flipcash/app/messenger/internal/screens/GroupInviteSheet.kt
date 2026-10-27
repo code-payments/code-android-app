@@ -194,7 +194,7 @@ internal fun GroupInviteSheet(
     inviteUrl: String?,
     subject: ShareToChatsSubject,
     state: GroupInviteViewModel.State,
-    onShare: () -> Unit,
+    onShare: () -> Unit = {},
     onCopy: () -> Unit,
     onToggle: (ChatId) -> Unit,
     onMessageChanged: (String) -> Unit,

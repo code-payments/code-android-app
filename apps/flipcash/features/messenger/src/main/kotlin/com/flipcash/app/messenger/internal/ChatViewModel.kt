@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal
 
+import com.getcode.view.PaymentSuccessHoldDuration
 import com.flipcash.shared.chat.ui.settledUsd
 import com.flipcash.shared.chat.ui.partFor
 import com.flipcash.shared.chat.media.ChatPhoto
@@ -3708,7 +3709,7 @@ internal class ChatViewModel @AssistedInject constructor(
 
                     result.onSuccess {
                         dispatchEvent(Event.SendStateUpdated(success = true))
-                        delay(400.milliseconds)
+                        delay(PaymentSuccessHoldDuration)
                         analytics.track(sent(AnalyticsState.SUCCESS, null))
                         dispatchEvent(
                             Dispatchers.Main,
@@ -3927,7 +3928,7 @@ internal class ChatViewModel @AssistedInject constructor(
 
         result.onSuccess {
             dispatchEvent(Event.SendStateUpdated(success = true))
-            delay(400.milliseconds)
+            delay(PaymentSuccessHoldDuration)
             analytics.track(TransferEvents.sentCash(AnalyticsState.SUCCESS, total.analytics, null))
             // The send state stays until the sheet has gone, so Select People doesn't flash back to
             // the keypad on the way out. The next "$" starts a fresh one.
