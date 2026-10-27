@@ -217,9 +217,15 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                 is MessageContent.SystemEvent.UserJoined -> {
                     val joined = MessagingModel.SystemContent.UserJoined.newBuilder()
                         .setUserId(event.userId.asUserId())
-                    event.admittedBy?.let {
-                        joined.setAdmitted(MessagingModel.SystemContent.UserJoined.Admitted.newBuilder().setAdmittedBy(it.asUserId()))
-                    } ?: joined.setDirect(MessagingModel.SystemContent.UserJoined.Direct.getDefaultInstance())
+                    val admittedBy = event.admittedBy
+                    val invitedBy = event.invitedBy
+                    when {
+                        admittedBy != null ->
+                            joined.setAdmitted(MessagingModel.SystemContent.UserJoined.Admitted.newBuilder().setAdmittedBy(admittedBy.asUserId()))
+                        invitedBy != null ->
+                            joined.setInvited(MessagingModel.SystemContent.UserJoined.Invited.newBuilder().setInvitedBy(invitedBy.asUserId()))
+                        else -> joined.setDirect(MessagingModel.SystemContent.UserJoined.Direct.getDefaultInstance())
+                    }
                     systemBuilder.setUserJoined(joined)
                 }
                 null -> Unit

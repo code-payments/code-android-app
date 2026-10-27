@@ -430,6 +430,7 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
             fallbackText = fallbackText,
             joinedUser = event.userId.hexEncodedString(),
             admittedBy = event.admittedBy?.hexEncodedString(),
+            invitedBy = event.invitedBy?.hexEncodedString(),
         )
         null -> MessageContentSerialized.System(fallbackText = fallbackText)
     }
@@ -485,7 +486,7 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
     )
     is MessageContentSerialized.System -> MessageContent.System(
         fallbackText = fallbackText,
-        event = joinedUser?.let { MessageContent.SystemEvent.UserJoined(it.hexToIdExt(), admittedBy?.hexToIdExt()) },
+        event = joinedUser?.let { MessageContent.SystemEvent.UserJoined(it.hexToIdExt(), admittedBy?.hexToIdExt(), invitedBy?.hexToIdExt()) },
     )
     MessageContentSerialized.Unsupported -> MessageContent.Unsupported
     is MessageContentSerialized.Deleted -> MessageContent.Deleted(

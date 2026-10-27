@@ -90,8 +90,12 @@ sealed interface MessageContent {
 
     /** The `messaging.v1.SystemContent.type` variants this client recognises. */
     sealed interface SystemEvent {
-        /** [userId] joined the chat; [admittedBy] let them in, or null when they joined on their own. */
-        data class UserJoined(val userId: ID, val admittedBy: ID?) : SystemEvent
+        /**
+         * [userId] joined the chat; [admittedBy] let them in, or null when they joined on their own.
+         * [invitedBy] is the user whose invite link they used, null for any other kind of join; it
+         * and [admittedBy] are never both set.
+         */
+        data class UserJoined(val userId: ID, val admittedBy: ID?, val invitedBy: ID? = null) : SystemEvent
     }
     data class Deleted(
         val deletedTs: Instant,

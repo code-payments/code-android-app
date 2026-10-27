@@ -1,6 +1,7 @@
 package com.flipcash.services.models.chat
 
 import com.getcode.opencode.model.core.ID
+import com.getcode.solana.keys.PublicKey
 
 /**
  * A private group's chat key, wrapped for one user. Opaque to this layer: the bytes are carried
@@ -38,9 +39,12 @@ class KeyEnvelope(
 
 /**
  * The caller's stored [envelope] and [wrappedBy], the user whose key wrapped it. Null
- * [wrappedBy] when the server did not say.
+ * [wrappedBy] when the server did not say. [wrappedByPublicKey] is the key the server reports
+ * for [wrappedBy], to open the envelope against when the client has learned none elsewhere; a
+ * hint only, null when the server did not send it.
  */
 data class StoredKeyEnvelope(
     val envelope: KeyEnvelope,
     val wrappedBy: ID?,
+    val wrappedByPublicKey: PublicKey? = null,
 )

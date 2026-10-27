@@ -9,6 +9,14 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.Invite
+import com.flipcash.services.models.chat.InviteId
+import com.flipcash.services.models.chat.InviteKeyEnvelope
+import com.flipcash.services.models.chat.InviteParameters
+import com.flipcash.services.models.chat.InvitePreview
+import com.flipcash.services.models.chat.InviteSecretEnvelope
+import com.flipcash.services.models.chat.InviteToken
+import com.flipcash.services.models.chat.InvitesPage
 import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.Lobby
 import com.flipcash.services.models.chat.LobbyPage
@@ -567,9 +575,10 @@ private class FakeChatRepository : ChatRepository {
     ): Result<List<ChatMetadata>> = Result.success(emptyList())
 
     override suspend fun getRoster(
-        owner: Ed25519.KeyPair,
+        owner: Ed25519.KeyPair?,
         chatId: ChatId,
         queryOptions: QueryOptions,
+        inviteToken: InviteToken?,
     ): Result<RosterPage> {
         lastChatId = chatId
         lastQueryOptions = queryOptions
@@ -586,7 +595,7 @@ private class FakeChatRepository : ChatRepository {
         return editChatResult
     }
 
-    override suspend fun joinChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<ChatMetadata> {
+    override suspend fun joinChat(owner: Ed25519.KeyPair, chatId: ChatId, invite: InviteParameters?): Result<ChatMetadata> {
         lastChatId = chatId
         return joinChatResult
     }
@@ -692,6 +701,28 @@ private class FakeChatRepository : ChatRepository {
         lastChatId = chatId
         return getKeyEnvelopeResult
     }
+
+    override suspend fun createInvite(
+        owner: Ed25519.KeyPair,
+        chatId: ChatId,
+        token: InviteToken,
+        keyEnvelope: InviteKeyEnvelope,
+        secretEnvelope: InviteSecretEnvelope,
+        maxUses: Int,
+        expiresAt: Instant?,
+    ): Result<Invite> = Result.failure(RuntimeException("not configured"))
+
+    override suspend fun getInvite(owner: Ed25519.KeyPair?, token: InviteToken): Result<InvitePreview> =
+        Result.failure(RuntimeException("not configured"))
+
+    override suspend fun getChatInvites(
+        owner: Ed25519.KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions,
+    ): Result<InvitesPage> = Result.failure(RuntimeException("not configured"))
+
+    override suspend fun revokeInvite(owner: Ed25519.KeyPair, chatId: ChatId, inviteId: InviteId): Result<Unit> =
+        Result.failure(RuntimeException("not configured"))
 }
 
 // endregion

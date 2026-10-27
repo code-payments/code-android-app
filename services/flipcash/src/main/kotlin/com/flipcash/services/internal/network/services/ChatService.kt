@@ -21,6 +21,10 @@ import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.GetDmChatFeedError
 import com.flipcash.services.models.GetGroupChatFeedError
 import com.flipcash.services.models.GetMentionSuggestionsError
+import com.flipcash.services.models.CreateInviteError
+import com.flipcash.services.models.GetChatInvitesError
+import com.flipcash.services.models.GetInviteError
+import com.flipcash.services.models.RevokeInviteError
 import com.flipcash.services.models.GetRosterError
 import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.LeaveChatError
@@ -34,6 +38,11 @@ import com.flipcash.services.models.UnmuteChatError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.InviteId
+import com.flipcash.services.models.chat.InviteKeyEnvelope
+import com.flipcash.services.models.chat.InviteParameters
+import com.flipcash.services.models.chat.InviteSecretEnvelope
+import com.flipcash.services.models.chat.InviteToken
 import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.SilenceState
@@ -45,6 +54,7 @@ import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.utils.toValidationOrElse
 import javax.inject.Inject
+import kotlin.time.Instant
 
 internal class ChatService @Inject constructor(
     private val api: ChatApi,
@@ -118,12 +128,13 @@ internal class ChatService @Inject constructor(
     }
 
     suspend fun getRoster(
-        owner: KeyPair,
+        owner: KeyPair?,
         chatId: ChatId,
         queryOptions: QueryOptions,
+        inviteToken: InviteToken? = null,
     ): Result<RpcChatService.GetRosterResponse> {
         return runCatching {
-            api.getRoster(owner, chatId, queryOptions)
+            api.getRoster(owner, chatId, queryOptions, inviteToken)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -230,9 +241,10 @@ internal class ChatService @Inject constructor(
     suspend fun joinChat(
         owner: KeyPair,
         chatId: ChatId,
+        invite: InviteParameters? = null,
     ): Result<ChatModel.Metadata> {
         return runCatching {
-            api.joinChat(owner, chatId)
+            api.joinChat(owner, chatId, invite)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -241,6 +253,10 @@ internal class ChatService @Inject constructor(
                     RpcChatService.JoinChatResponse.Result.NOT_FOUND -> Result.failure(JoinChatError.NotFound())
                     RpcChatService.JoinChatResponse.Result.RULES_NOT_SATISFIED -> Result.failure(JoinChatError.RulesNotSatisfied())
                     RpcChatService.JoinChatResponse.Result.BANNED -> Result.failure(JoinChatError.Banned())
+                    RpcChatService.JoinChatResponse.Result.INVITE_NOT_FOUND -> Result.failure(JoinChatError.InviteNotFound())
+                    RpcChatService.JoinChatResponse.Result.INVITE_EXHAUSTED -> Result.failure(JoinChatError.InviteExhausted())
+                    RpcChatService.JoinChatResponse.Result.INVITE_EXPIRED -> Result.failure(JoinChatError.InviteExpired())
+                    RpcChatService.JoinChatResponse.Result.INVITE_REVOKED -> Result.failure(JoinChatError.InviteRevoked())
                     RpcChatService.JoinChatResponse.Result.UNRECOGNIZED -> Result.failure(JoinChatError.Unrecognized())
                     else -> Result.failure(JoinChatError.Other())
                 }
@@ -657,6 +673,104 @@ internal class ChatService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { GetKeyEnvelopeError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun createInvite(
+        owner: KeyPair,
+        chatId: ChatId,
+        token: InviteToken,
+        keyEnvelope: InviteKeyEnvelope,
+        secretEnvelope: InviteSecretEnvelope,
+        maxUses: Int,
+        expiresAt: Instant?,
+    ): Result<ChatModel.Invite> {
+        return runCatching {
+            api.createInvite(owner, chatId, token, keyEnvelope, secretEnvelope, maxUses, expiresAt)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.CreateInviteResponse.Result.OK -> Result.success(response.invite)
+                    RpcChatService.CreateInviteResponse.Result.DENIED -> Result.failure(CreateInviteError.Denied())
+                    RpcChatService.CreateInviteResponse.Result.NOT_FOUND -> Result.failure(CreateInviteError.NotFound())
+                    RpcChatService.CreateInviteResponse.Result.INVALID_EXPIRES_AT -> Result.failure(CreateInviteError.InvalidExpiresAt())
+                    RpcChatService.CreateInviteResponse.Result.TOO_MANY_INVITES -> Result.failure(CreateInviteError.TooManyInvites())
+                    RpcChatService.CreateInviteResponse.Result.INVALID_SIGNATURE -> Result.failure(CreateInviteError.InvalidSignature())
+                    RpcChatService.CreateInviteResponse.Result.UNRECOGNIZED -> Result.failure(CreateInviteError.Unrecognized())
+                    else -> Result.failure(CreateInviteError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { CreateInviteError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun getInvite(
+        owner: KeyPair?,
+        token: InviteToken,
+    ): Result<RpcChatService.GetInviteResponse> {
+        return runCatching {
+            api.getInvite(owner, token)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.GetInviteResponse.Result.OK -> Result.success(response)
+                    RpcChatService.GetInviteResponse.Result.NOT_FOUND -> Result.failure(GetInviteError.NotFound())
+                    RpcChatService.GetInviteResponse.Result.BANNED -> Result.failure(GetInviteError.Banned())
+                    RpcChatService.GetInviteResponse.Result.UNRECOGNIZED -> Result.failure(GetInviteError.Unrecognized())
+                    else -> Result.failure(GetInviteError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { GetInviteError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun getChatInvites(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions,
+    ): Result<RpcChatService.GetChatInvitesResponse> {
+        return runCatching {
+            api.getChatInvites(owner, chatId, queryOptions)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.GetChatInvitesResponse.Result.OK -> Result.success(response)
+                    RpcChatService.GetChatInvitesResponse.Result.DENIED -> Result.failure(GetChatInvitesError.Denied())
+                    RpcChatService.GetChatInvitesResponse.Result.NOT_FOUND -> Result.failure(GetChatInvitesError.NotFound())
+                    RpcChatService.GetChatInvitesResponse.Result.UNRECOGNIZED -> Result.failure(GetChatInvitesError.Unrecognized())
+                    else -> Result.failure(GetChatInvitesError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { GetChatInvitesError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun revokeInvite(
+        owner: KeyPair,
+        chatId: ChatId,
+        inviteId: InviteId,
+    ): Result<Unit> {
+        return runCatching {
+            api.revokeInvite(owner, chatId, inviteId)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.RevokeInviteResponse.Result.OK -> Result.success(Unit)
+                    RpcChatService.RevokeInviteResponse.Result.DENIED -> Result.failure(RevokeInviteError.Denied())
+                    RpcChatService.RevokeInviteResponse.Result.NOT_FOUND -> Result.failure(RevokeInviteError.NotFound())
+                    RpcChatService.RevokeInviteResponse.Result.UNRECOGNIZED -> Result.failure(RevokeInviteError.Unrecognized())
+                    else -> Result.failure(RevokeInviteError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { RevokeInviteError.Other(cause = it) })
             }
         )
     }

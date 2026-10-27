@@ -1,6 +1,7 @@
 package com.flipcash.services.models
 
 import com.flipcash.services.models.chat.BlobRejection
+import com.flipcash.services.models.chat.InviteKeyBundle
 import com.getcode.solana.keys.Checksum
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
@@ -468,6 +469,12 @@ sealed class JoinChatError(
     // The creator or a moderator banned the caller from this chat. Not recoverable by the user,
     // so deliberately not a NotifiableError.
     class Banned : JoinChatError("Banned")
+    // The invite token matches no invite for this chat. Not recoverable by the user (the link is
+    // bad), so deliberately not a NotifiableError; likewise for the three below.
+    class InviteNotFound : JoinChatError("Invite not found")
+    class InviteExhausted : JoinChatError("Invite exhausted")
+    class InviteExpired : JoinChatError("Invite expired")
+    class InviteRevoked : JoinChatError("Invite revoked")
     class Unrecognized : JoinChatError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : JoinChatError(message = cause?.message, cause = cause), NotifiableError
 }
@@ -900,6 +907,10 @@ sealed class GetKeyEnvelopeError(
     class NotFound : GetKeyEnvelopeError("Not found")
     // The caller is a member with no envelope stored.
     class NoEnvelope : GetKeyEnvelopeError("No envelope")
+    // The caller joined with an invite and has not yet stored an envelope of their own; the server
+    // holds only the invite's copy of the chat key. Not a usable own envelope, and never to be read
+    // as one. Carries the bundle so the invite flow can open it once the invite crypto exists.
+    class InviteKeyBundleOnly(val bundle: InviteKeyBundle) : GetKeyEnvelopeError("Only an invite's key copy is stored")
     class Unrecognized : GetKeyEnvelopeError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : GetKeyEnvelopeError(message = cause?.message, cause = cause), NotifiableError
 }
@@ -1081,4 +1092,49 @@ sealed class MarkPaymentRequestPaidError(
     class NotAShare : MarkPaymentRequestPaidError("Not a share")
     class Unrecognized : MarkPaymentRequestPaidError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : MarkPaymentRequestPaidError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class CreateInviteError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : CreateInviteError("Denied")
+    class NotFound : CreateInviteError("Not found")
+    class InvalidExpiresAt : CreateInviteError("Invalid expiry")
+    class TooManyInvites : CreateInviteError("Too many invites")
+    // The key envelope's signature did not verify against the caller's key.
+    class InvalidSignature : CreateInviteError("Invalid signature"), NotifiableError
+    class Unrecognized : CreateInviteError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : CreateInviteError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetInviteError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class NotFound : GetInviteError("Not found")
+    // The caller is banned from the chat the invite leads to.
+    class Banned : GetInviteError("Banned")
+    class Unrecognized : GetInviteError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetInviteError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetChatInvitesError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetChatInvitesError("Denied")
+    class NotFound : GetChatInvitesError("Not found")
+    class Unrecognized : GetChatInvitesError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetChatInvitesError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class RevokeInviteError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : RevokeInviteError("Denied")
+    class NotFound : RevokeInviteError("Not found")
+    class Unrecognized : RevokeInviteError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : RevokeInviteError(message = cause?.message, cause = cause), NotifiableError
 }
