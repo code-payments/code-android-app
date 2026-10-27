@@ -376,9 +376,9 @@ private fun CurrencyActionTiles(
     ) {
         currencyActionTiles(tokenMint, isHeld).forEach { tile ->
             val (label, icon) = when (tile) {
-                CurrencyActionTile.Send -> R.string.action_send to R.drawable.ic_arrow_up_large
-                CurrencyActionTile.Buy -> R.string.action_buy to R.drawable.ic_arrow_down
-                CurrencyActionTile.BuyIn -> R.string.action_buyIn to R.drawable.ic_arrow_down
+                CurrencyActionTile.Send -> R.string.action_send to R.drawable.ic_currency_send
+                CurrencyActionTile.Buy -> R.string.action_buy to R.drawable.ic_currency_buy
+                CurrencyActionTile.BuyIn -> R.string.action_buyIn to R.drawable.ic_currency_buy
                 CurrencyActionTile.Transactions -> R.string.action_transactions to R.drawable.ic_transactions
                 CurrencyActionTile.More -> R.string.action_more to R.drawable.ic_more_horizontal
             }

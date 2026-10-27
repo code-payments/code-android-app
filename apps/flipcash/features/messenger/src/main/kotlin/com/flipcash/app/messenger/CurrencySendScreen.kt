@@ -24,7 +24,6 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -230,7 +229,7 @@ private fun RecipientRow(chat: ConversationReference, onClick: () -> Unit) {
 
 /**
  * The confirm sheet over Select Recipient: who is being paid, the amount, the currency with no
- * picker, and the swipe. Closed by back, never by a drag or a tap outside it, and not mid-send.
+ * picker, and the swipe. Closed by a swipe down, a tap on the scrim or back, which returns to the list and sends nothing; locked once the send starts.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -250,9 +249,7 @@ private fun SwipeToSendSheet(
     ModalBottomSheet(
         onDismissRequest = { if (!locked) onDismiss() },
         sheetState = sheetState,
-        sheetGesturesEnabled = false,
         dragHandle = null,
-        properties = ModalBottomSheetProperties(shouldDismissOnClickOutside = false),
         containerColor = CodeTheme.colors.background,
     ) {
         Column(

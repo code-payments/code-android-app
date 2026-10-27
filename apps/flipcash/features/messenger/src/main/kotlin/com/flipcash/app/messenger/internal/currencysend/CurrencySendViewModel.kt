@@ -206,7 +206,7 @@ internal class CurrencySendViewModel @Inject constructor(
                 val (title, message) = when (error) {
                     is ComputeVerifiedFiatError.AmountBelowMinimum ->
                         R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
-                    else -> R.string.error_title_staleRates to R.string.error_description_staleRates
+                    else -> R.string.error_title_staleRates to R.string.error_description_currencySendStaleRates
                 }
                 BottomBarManager.showAlert(
                     title = resources.getString(title),
