@@ -40,6 +40,7 @@ import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.common.ui.profile.chatterName
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.EmptyState
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -84,17 +85,13 @@ internal fun RestrictedMembersScreen(kind: RestrictedKind, chatViewModel: ChatVi
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = CodeTheme.dimens.inset),
-                    contentAlignment = Alignment.Center,
+                        .padding(innerPadding),
                 ) {
-                    Text(
-                        text = stringResource(
-                            if (kind == RestrictedKind.Silenced) R.string.title_noSilencedMembers else R.string.title_noRemovedMembers
-                        ),
-                        style = CodeTheme.typography.textLarge,
-                        color = CodeTheme.colors.textMain,
-                        textAlign = TextAlign.Center,
+                    val silenced = kind == RestrictedKind.Silenced
+                    EmptyState(
+                        modifier = Modifier.align(Alignment.Center),
+                        title = stringResource(if (silenced) R.string.title_noSilencedMembers else R.string.title_noRemovedMembers),
+                        description = stringResource(if (silenced) R.string.description_noSilencedMembers else R.string.description_noRemovedMembers),
                     )
                 }
             }
@@ -106,10 +103,11 @@ internal fun RestrictedMembersScreen(kind: RestrictedKind, chatViewModel: ChatVi
             ) {
                 items(rows, key = { it.userProfile.userId.orEmpty() }) { user ->
                     val userId = user.userProfile.userId
+                    val name = chatterName(user.userProfile.displayName, user.userProfile.username, unknownName)
                     RestrictedRow(
                         kind = kind,
                         user = user,
-                        name = chatterName(user.userProfile.displayName, user.userProfile.username, unknownName),
+                        name = name,
                         isWorking = userId != null && userId in state.pending,
                         onOpen = {
                             userId ?: return@RestrictedRow
@@ -124,7 +122,7 @@ internal fun RestrictedMembersScreen(kind: RestrictedKind, chatViewModel: ChatVi
                             userId ?: return@RestrictedRow
                             val id = chatId ?: return@RestrictedRow
                             when (kind) {
-                                RestrictedKind.Silenced -> viewModel.unsilence(id, userId)
+                                RestrictedKind.Silenced -> viewModel.unsilence(id, userId, name)
                                 RestrictedKind.Removed -> viewModel.unban(id, userId)
                             }
                         },
