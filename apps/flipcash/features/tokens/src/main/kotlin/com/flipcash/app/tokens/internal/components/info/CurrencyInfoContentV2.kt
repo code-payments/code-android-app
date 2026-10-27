@@ -273,7 +273,29 @@ internal fun CurrencyInfoContentV2(
                     }
                 }
 
-                // 4. Market cap (non-USDF only)
+                // 4. About section (above the market cap chart)
+                val description = token.description
+                val socialLinks = token.socialLinks
+                if (description.isNotBlank() || socialLinks.isNotEmpty()) {
+                    item {
+                        CurrencyAboutSection(
+                            modifier = Modifier
+                                .fillParentMaxWidth()
+                                .padding(top = grid.x5),
+                            description = description,
+                            socialLinks = socialLinks,
+                            isExpanded = state.descriptionExpanded,
+                            inset = inset,
+                            onToggleExpand = {
+                                dispatch(
+                                    TokenInfoViewModel.Event.ExpandDescription(!state.descriptionExpanded)
+                                )
+                            },
+                        )
+                    }
+                }
+
+                // 5. Market cap (non-USDF only)
                 if (!isUsdf) {
                     state.marketCap?.let { mcap ->
                         val historicalData = state.historicalMarketCapData[state.selectedPeriod]
@@ -311,28 +333,6 @@ internal fun CurrencyInfoContentV2(
                                 onClick = openExplainer,
                             )
                         }
-                    }
-                }
-
-                // 5. About section
-                val description = token.description
-                val socialLinks = token.socialLinks
-                if (description.isNotBlank() || socialLinks.isNotEmpty()) {
-                    item {
-                        CurrencyAboutSection(
-                            modifier = Modifier
-                                .fillParentMaxWidth()
-                                .padding(top = grid.x5),
-                            description = description,
-                            socialLinks = socialLinks,
-                            isExpanded = state.descriptionExpanded,
-                            inset = inset,
-                            onToggleExpand = {
-                                dispatch(
-                                    TokenInfoViewModel.Event.ExpandDescription(!state.descriptionExpanded)
-                                )
-                            },
-                        )
                     }
                 }
 
