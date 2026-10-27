@@ -35,8 +35,8 @@ class CurrencyActionsTest {
     }
 
     @Test
-    fun `more lists convert, withdraw and deposit, and dollars has no deposit`() {
+    fun `more lists convert, withdraw and deposit for every currency`() {
         assertEquals(listOf(MoreRow.Convert, MoreRow.Withdraw, MoreRow.Deposit), moreRows(jeffy))
-        assertEquals(listOf(MoreRow.Convert, MoreRow.Withdraw), moreRows(Mint.usdf))
+        assertEquals(listOf(MoreRow.Convert, MoreRow.Withdraw, MoreRow.Deposit), moreRows(Mint.usdf))
     }
 }

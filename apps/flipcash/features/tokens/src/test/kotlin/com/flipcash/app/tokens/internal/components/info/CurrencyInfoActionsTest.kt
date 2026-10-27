@@ -32,13 +32,13 @@ class CurrencyInfoActionsTest {
     }
 
     @Test
-    fun `more rows include deposit except for usdf`() {
+    fun `more rows are convert, withdraw and deposit for every currency`() {
         assertEquals(
             listOf(CurrencyInfoMoreRow.Convert, CurrencyInfoMoreRow.Withdraw, CurrencyInfoMoreRow.Deposit),
             currencyInfoMoreRows(isUsdf = false),
         )
         assertEquals(
-            listOf(CurrencyInfoMoreRow.Convert, CurrencyInfoMoreRow.Withdraw),
+            listOf(CurrencyInfoMoreRow.Convert, CurrencyInfoMoreRow.Withdraw, CurrencyInfoMoreRow.Deposit),
             currencyInfoMoreRows(isUsdf = true),
         )
     }

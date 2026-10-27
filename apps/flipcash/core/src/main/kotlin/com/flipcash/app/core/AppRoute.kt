@@ -302,9 +302,14 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     sealed interface Transfers : AppRoute {
         @Serializable
-        data class Deposit(val showOtherOptions: Boolean = true): Transfers, FlowRouteWithResult<DepositResult> {
+        data class Deposit(
+            val showOtherOptions: Boolean = true,
+            /** When set, opens straight on that currency's deposit address instead of the USDC intro. */
+            val mint: Mint? = null,
+        ): Transfers, FlowRouteWithResult<DepositResult> {
             override val initialStack: List<NavKey>
-                get() =  listOf(DepositStep.UsdcInformational(showOtherOptions))
+                get() = mint?.let { listOf(DepositStep.Destination(it)) }
+                    ?: listOf(DepositStep.UsdcInformational(showOtherOptions))
         }
 
         /**

@@ -21,10 +21,7 @@ internal fun currencyInfoTiles(isHeld: Boolean, isUsdf: Boolean): List<CurrencyI
     )
 }
 
-/** USDF is a reserve currency, so it has no per-mint Deposit. */
+/** Every currency lists Convert, Withdraw and Deposit. */
+@Suppress("UNUSED_PARAMETER")
 internal fun currencyInfoMoreRows(isUsdf: Boolean): List<CurrencyInfoMoreRow> =
-    if (isUsdf) {
-        listOf(CurrencyInfoMoreRow.Convert, CurrencyInfoMoreRow.Withdraw)
-    } else {
-        listOf(CurrencyInfoMoreRow.Convert, CurrencyInfoMoreRow.Withdraw, CurrencyInfoMoreRow.Deposit)
-    }
+    listOf(CurrencyInfoMoreRow.Convert, CurrencyInfoMoreRow.Withdraw, CurrencyInfoMoreRow.Deposit)

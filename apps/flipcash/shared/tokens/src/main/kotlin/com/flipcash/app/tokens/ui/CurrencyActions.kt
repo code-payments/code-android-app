@@ -27,7 +27,7 @@ fun currencyActionTiles(mint: Mint, isHeld: Boolean): List<CurrencyActionTile> =
 /** A row in the More sheet. */
 enum class MoreRow { Convert, Withdraw, Deposit }
 
-/** Dollars has no Deposit row: its deposit is the account's own, not a per-currency one. */
+/** Every currency lists Convert, Withdraw and Deposit; Dollars' Deposit opens the deposit-method choice. */
+@Suppress("UNUSED_PARAMETER")
 fun moreRows(mint: Mint): List<MoreRow> =
-    if (mint == Mint.usdf) listOf(MoreRow.Convert, MoreRow.Withdraw)
-    else listOf(MoreRow.Convert, MoreRow.Withdraw, MoreRow.Deposit)
+    listOf(MoreRow.Convert, MoreRow.Withdraw, MoreRow.Deposit)

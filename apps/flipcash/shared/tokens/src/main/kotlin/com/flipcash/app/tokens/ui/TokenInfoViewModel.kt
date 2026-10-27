@@ -474,8 +474,13 @@ class TokenInfoViewModel @Inject constructor(
                         subtitle = resources.getString(R.string.subtitle_moreDeposit, name),
                         iconRes = R.drawable.ic_menu_deposit,
                         testTag = "more_action_deposit",
-                        // No per-mint deposit exists yet: this opens the account's USDC deposit.
-                        onClick = { dispatchEvent(Event.OpenScreen(AppRoute.Transfers.Deposit())) },
+                        // Dollars opens the deposit-method choice (USDC intro, other currencies);
+                        // any other currency opens its own deposit address.
+                        onClick = {
+                            val route = if (mint == Mint.usdf) AppRoute.Transfers.Deposit()
+                            else AppRoute.Transfers.Deposit(mint = mint)
+                            dispatchEvent(Event.OpenScreen(route))
+                        },
                     )
                 }
             },
