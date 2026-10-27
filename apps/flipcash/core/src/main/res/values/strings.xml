@@ -974,7 +974,7 @@
     <string name="toast_unsilenced">%1$s can send messages again</string>
     <string name="error_title_failedToSilence">Something Went Wrong</string>
     <string name="error_description_failedToSilence">We were unable to silence this member. Please try again</string>
-    <string name="action_silenceMember">Silence %1$s…</string>
+    <string name="action_silenceMember">Silence %1$s</string>
     <string name="action_removeMemberNamed">Remove %1$s…</string>
     <string name="action_removeMember">Remove</string>
     <string name="title_moderation">Moderation</string>
@@ -996,7 +996,7 @@
     <string name="error_description_failedToUnsilence">We were unable to unsilence this member. Please try again</string>
     <string name="error_title_failedToUnban">Something Went Wrong</string>
     <string name="error_description_failedToUnban">We were unable to unban this member. Please try again</string>
-    <string name="action_silenceMemberShort">Silence…</string>
+    <string name="action_silenceMemberShort">Silence</string>
     <string name="action_removeFromGroup">Remove from Group</string>
     <string name="title_menuSection_inGroup">In %1$s</string>
     <string name="prompt_title_removeMember">Remove %1$s?</string>
