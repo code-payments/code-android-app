@@ -112,6 +112,13 @@ class ReactionAlertQueue {
         return current
     }
 
+    /** Drops the waiting pills for [chatId]. The current pill is left to its owner to close. */
+    fun dropPending(chatId: ChatId) {
+        pending.removeAll { dropped ->
+            (dropped.chatId == chatId).also { if (it) actors.remove(key(dropped)) }
+        }
+    }
+
     /** Drops the current pill and everything waiting. */
     fun clear() {
         current = null

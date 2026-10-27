@@ -53,13 +53,11 @@ class ReactionAlertPillScreenshotTest {
         "alert_stacked.png",
     )
 
-    @Test fun inActiveChat() = render(content(Kind.Reaction), "alert_this_chat.png", inActiveChat = true)
-
-    private fun render(content: ReactionAlertContent, fileName: String, inActiveChat: Boolean = false) {
+    private fun render(content: ReactionAlertContent, fileName: String) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             Frame {
-                ReactionAlertPill(content, inActiveChat, animate = false)
+                ReactionAlertPill(content, animate = false)
             }
         }
         repeat(10) { composeRule.mainClock.advanceTimeByFrame() }

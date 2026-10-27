@@ -31,9 +31,6 @@ import com.flipcash.features.messenger.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.rememberUpdatedState
-import com.flipcash.shared.chat.alerts.LocalReactionAlerts
-import com.flipcash.shared.chat.alerts.ReactionAlertAction
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -165,19 +162,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val privateOutsider = (state.subject as? ChatSubject.Group)?.let { it.isPrivate && it.isMember != true } == true
     LaunchedEffect(privateOutsider) {
         if (privateOutsider) flowNavigator.replaceStack(listOf(ChatStep.GroupProfile))
-    }
-
-    // A reaction pill tapped while this chat is open asks to scroll to its message and pulse it.
-    val reactionAlerts = LocalReactionAlerts.current
-    val currentChatId by rememberUpdatedState(state.chatId)
-    LaunchedEffect(reactionAlerts, viewModel) {
-        reactionAlerts?.actions
-            ?.filterIsInstance<ReactionAlertAction.ScrollTo>()
-            ?.collect { action ->
-                if (action.chatId == currentChatId) {
-                    viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(action.messageId))
-                }
-            }
     }
 
     // Here rather than in the action handler because the lookup comes first: the tap only knows a
