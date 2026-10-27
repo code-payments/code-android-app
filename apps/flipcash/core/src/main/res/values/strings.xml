@@ -960,6 +960,14 @@
          options name the state they produce ("1 Week") rather than the act ("Mute for 1 week"),
          which is also what lets "Never" sit among them. -->
     <string name="title_muteChat">Mute Notifications</string>
+    <!-- Silencing a member (group moderation). "Silence" is the per-member word; "mute" stays the
+         notification setting. Durations match the mute sheet except the last row, which says
+         "Forever" on both platforms. -->
+    <string name="title_silenceUser">Silence %1$s</string>
+    <string name="subtitle_silenceUser">They can still read and react in %1$s, but can\'t send messages. Only they\'re told</string>
+    <string name="action_silenceFor_forever">Forever</string>
+    <string name="error_title_failedToSilence">Something Went Wrong</string>
+    <string name="error_description_failedToSilence">We were unable to silence this member. Please try again</string>
     <string name="title_unmuteChat">Unmute Notifications</string>
     <!-- Load-bearing rather than decorative: a muted chat still delivers the push, still stores the
          message and still counts it unread. Only the notification is held back. -->
