@@ -222,15 +222,6 @@ private fun RecipientRow(chat: ConversationReference, onClick: () -> Unit) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                chat.handle?.let {
-                    Text(
-                        text = "@$it",
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
             HorizontalDivider(color = CodeTheme.colors.divider)
         }
@@ -290,7 +281,7 @@ private fun SwipeToSendSheet(
                 )
                 recipient.handle?.let {
                     Text(
-                        text = "@$it",
+                        text = "@${it.removePrefix("@")}",
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
                     )
