@@ -35,7 +35,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
@@ -64,6 +63,7 @@ import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.common.ui.profile.FeaturedGroupsSection
 import com.flipcash.shared.common.ui.profile.ProfileActionButton
 import com.flipcash.shared.common.ui.profile.ProfileHeader
+import com.getcode.theme.rememberDynamicAccent
 import com.flipcash.shared.common.ui.profile.ProfileTopScrollEdge
 import com.flipcash.shared.common.ui.profile.ProfileStatsCard
 import com.flipcash.shared.common.ui.profile.rememberFeaturedGroupItems
@@ -127,9 +127,6 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                                 profile = profileState.profile,
                                 onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.EditProfile)) },
                                 onShare = null,
-                                onClaimUsername = state.usernameProgress?.let {
-                                    { viewModel.dispatchEvent(Event.ClaimUsername) }
-                                },
                                 onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
                             )
                         }
@@ -149,9 +146,6 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                                 profile = profileState.profile,
                                 onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.EditProfile)) },
                                 onShare = { viewModel.dispatchEvent(Event.ShareProfile) },
-                                onClaimUsername = state.usernameProgress?.let {
-                                    { viewModel.dispatchEvent(Event.ClaimUsername) }
-                                },
                                 onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
                             )
                         }
@@ -170,6 +164,10 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                                     .padding(horizontal = CodeTheme.dimens.inset)
                                     .padding(top = CodeTheme.dimens.staticGrid.x4),
                                 groups = rememberFeaturedGroupItems(state.featuredGroups),
+                                showWhenEmpty = showFavoritesEmptyState(
+                                    profileState.profile.username,
+                                    state.favoritesReadFor,
+                                ),
                                 onOpen = { chatId ->
                                     viewModel.dispatchEvent(
                                         Event.OpenScreen(
@@ -197,7 +195,6 @@ private fun OwnProfileHeader(
     profile: UserProfile?,
     onEdit: () -> Unit,
     onShare: (() -> Unit)?,
-    onClaimUsername: (() -> Unit)?,
     onSettings: () -> Unit,
 ) {
     // The header is what scrolls under the gear, so it is the gear's frosting source.
@@ -219,27 +216,24 @@ private fun OwnProfileHeader(
             title = profile?.displayName?.ifEmpty { null },
             subtitle = profile?.username?.takeIf { it.isNotEmpty() }?.let { "@$it" },
             body = profile?.bio?.ifEmpty { null },
-            // As on iOS: a one-line offer under the handle while there is no handle, or only an
-            // auto-assigned one. The tap goes through the balance gate like the old progress card.
-            underSubtitle = {
-                if (onClaimUsername != null) {
-                    Text(
-                        modifier = Modifier
-                            .padding(top = CodeTheme.dimens.staticGrid.x1)
-                            .clickable(onClick = onClaimUsername)
-                            .padding(vertical = CodeTheme.dimens.staticGrid.x1)
-                            .testTag("you-claim-username"),
-                        text = stringResource(R.string.action_claimYourUsernameLink),
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textMain,
+            actions = {
+                if (isProfileComplete(profile)) {
+                    ProfileActionButton(
+                        text = stringResource(R.string.action_editProfile),
+                        onClick = onEdit,
+                    )
+                } else {
+                    val (accent, onAccent) = rememberDynamicAccent(
+                        fallbackAccent = CodeTheme.colors.secondary,
+                        fallbackOnAccent = CodeTheme.colors.onAction,
+                    )
+                    ProfileActionButton(
+                        text = stringResource(R.string.action_completeYourProfile),
+                        onClick = onEdit,
+                        contentColor = onAccent,
+                        containerColor = accent,
                     )
                 }
-            },
-            actions = {
-                ProfileActionButton(
-                    text = stringResource(R.string.action_editProfile),
-                    onClick = onEdit,
-                )
                 // Only a named profile has something to share.
                 if (onShare != null) {
                     ProfileActionButton(

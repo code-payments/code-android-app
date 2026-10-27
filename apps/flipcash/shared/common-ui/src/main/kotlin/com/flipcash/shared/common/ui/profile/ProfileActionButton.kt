@@ -45,11 +45,13 @@ fun ProfileActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     contentColor: Color = CodeTheme.colors.textMain,
+    containerColor: Color = White10,
 ) {
     ActionCapsule(
         onClick = onClick,
         modifier = modifier.heightIn(min = ActionHeight),
         contentPadding = CodeTheme.dimens.staticGrid.x4,
+        containerColor = containerColor,
     ) {
         Text(
             text = text,
@@ -88,6 +90,7 @@ private fun ActionCapsule(
     onClick: () -> Unit,
     modifier: Modifier,
     contentPadding: Dp,
+    containerColor: Color = White10,
     content: @Composable () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -96,7 +99,7 @@ private fun ActionCapsule(
         modifier = modifier
             .alpha(if (pressed) PressedAlpha else 1f)
             .clip(CircleShape)
-            .background(White10)
+            .background(containerColor)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,

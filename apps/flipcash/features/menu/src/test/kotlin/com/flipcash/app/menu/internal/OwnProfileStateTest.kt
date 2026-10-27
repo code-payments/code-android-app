@@ -2,9 +2,12 @@ package com.flipcash.app.menu.internal
 
 import com.flipcash.app.core.AppRoute
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.MediaItem
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class OwnProfileStateTest {
 
@@ -45,5 +48,48 @@ class OwnProfileStateTest {
         assertNull(shareProfileRoute(named, userId = null))
         assertNull(shareProfileRoute(MenuScreenViewModel.ProfileState.Unknown, userId))
         assertNull(shareProfileRoute(MenuScreenViewModel.ProfileState.Unclaimed(placeholder = null), userId))
+    }
+
+    private val photo = MediaItem(renditions = emptyList())
+
+    private fun profile(
+        profilePicture: MediaItem? = null,
+        coverPicture: MediaItem? = null,
+        bio: String = "",
+    ) = UserProfile.Empty.copy(profilePicture = profilePicture, coverPicture = coverPicture, bio = bio)
+
+    @Test
+    fun `a profile missing any of photo, cover or bio is incomplete`() {
+        assertFalse(isProfileComplete(profile()))
+        assertFalse(isProfileComplete(profile(photo, photo, bio = "")))
+        assertFalse(isProfileComplete(profile(photo, photo, bio = "   ")))
+        assertFalse(isProfileComplete(profile(photo, null, bio = "hi")))
+        assertFalse(isProfileComplete(profile(null, photo, bio = "hi")))
+        assertFalse(isProfileComplete(null))
+    }
+
+    @Test
+    fun `photo, cover and bio complete the profile without a username`() {
+        assertTrue(isProfileComplete(profile(photo, photo, bio = "hi").copy(username = "")))
+    }
+
+    @Test
+    fun `the empty state waits for a successful read when a username is set`() {
+        assertFalse(showFavoritesEmptyState("ada", favoritesReadFor = null))
+        assertFalse(showFavoritesEmptyState("ada", favoritesReadFor = "old_handle"))
+        assertTrue(showFavoritesEmptyState("ada", favoritesReadFor = "ada"))
+    }
+
+    @Test
+    fun `the empty state draws at once when there is no username to read`() {
+        assertTrue(showFavoritesEmptyState(null, favoritesReadFor = null))
+        assertTrue(showFavoritesEmptyState("", favoritesReadFor = null))
+    }
+
+    @Test
+    fun `a successful favorites read lands in state`() {
+        val state = reduce(MenuScreenViewModel.Event.OnFavoritesRead("ada", emptyList()))(MenuScreenViewModel.State())
+        assertEquals("ada", state.favoritesReadFor)
+        assertEquals(emptyList(), state.featuredGroups)
     }
 }

@@ -40,9 +40,9 @@ data class FeaturedGroupItem(
 )
 
 /**
- * The groups a person has chosen to feature, under the stats on their profile. Draws nothing for
- * an empty list, heading and divider included, so a profile without featured groups looks the
- * same as before the section existed.
+ * The groups a person has chosen to feature, under the stats on their profile. An empty list
+ * draws nothing, heading and divider included, unless [showWhenEmpty] is set: the section then
+ * stays with a "None yet" body that takes no taps.
  *
  * Rows arrive as [FeaturedGroupItem]s and report the tap by id; what opening a group does is the
  * caller's.
@@ -52,8 +52,9 @@ fun FeaturedGroupsSection(
     groups: List<FeaturedGroupItem>,
     onOpen: (ChatId) -> Unit,
     modifier: Modifier = Modifier,
+    showWhenEmpty: Boolean = false,
 ) {
-    if (groups.isEmpty()) return
+    if (groups.isEmpty() && !showWhenEmpty) return
 
     Column(modifier = modifier.fillMaxWidth()) {
         HorizontalDivider(color = CodeTheme.colors.divider)
@@ -63,6 +64,13 @@ fun FeaturedGroupsSection(
             style = CodeTheme.typography.textLarge,
             color = CodeTheme.colors.textMain,
         )
+        if (groups.isEmpty()) {
+            Text(
+                text = stringResource(R.string.text_featuredGroupsNone),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
         Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x3)) {
             groups.forEach { group ->
                 FeaturedGroupRow(

@@ -1655,7 +1655,7 @@
 
     <!-- You tab (tip card) -->
     <string name="action_editProfile">Edit Profile</string>
-    <string name="action_claimYourUsernameLink">Claim your username ›</string>
+    <string name="action_completeYourProfile">Complete Your Profile</string>
     <string name="action_changePhoto">Change photo</string>
     <string name="label_editProfileName">Name</string>
     <string name="placeholder_editProfileName">Add a name</string>
@@ -1690,7 +1690,8 @@
     <string name="title_bio">Bio</string>
     <string name="placeholder_bio">Add a bio</string>
 
-    <string name="title_featuredGroups">Favorite Public Groups</string>
+    <string name="title_featuredGroups">Favorite Community Chats</string>
+    <string name="text_featuredGroupsNone">None yet</string>
     <string name="placeholder_featuredGroups">Add groups</string>
     <plurals name="value_featuredGroupCount">
         <item quantity="one">1 group</item>
