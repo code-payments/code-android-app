@@ -1321,7 +1321,16 @@ internal class ChatViewModel @AssistedInject constructor(
         val canSpeak: Boolean,
         val canReact: Boolean,
         val previewing: Boolean,
+        val facts: ChatFacts,
+    )
+
+    /** What about the chat itself moves the per-message capabilities: its type and the viewer's moderation grants. */
+    private data class ChatFacts(
         val chatType: ChatType,
+        val canSilence: Boolean,
+        val canBan: Boolean,
+        /** The group's creator, whom no moderation action may name. */
+        val creatorId: ID?,
     )
 
     /**
@@ -1532,10 +1541,20 @@ internal class ChatViewModel @AssistedInject constructor(
                 viewerCanSpeak,
                 viewerCanReact,
                 viewerPreviewing,
-                stateFlow.map { it.chatType }.distinctUntilChanged(),
+                stateFlow.map {
+                    val moderation = it.viewerState?.permissions?.moderation
+                    ChatFacts(
+                        chatType = it.chatType,
+                        // Only a group has members to moderate.
+                        canSilence = it.chatType == ChatType.GROUP && moderation?.canSilence == true,
+                        canBan = it.chatType == ChatType.GROUP && moderation?.canBan == true,
+                        creatorId = (it.subject as? ChatSubject.Group)?.creator,
+                    )
+                }.distinctUntilChanged(),
                 ::ViewerGates,
             ),
-        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak, canReactToMessages, previewing, chatType) ->
+        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak, canReactToMessages, previewing, facts) ->
+            val chatType = facts.chatType
             if (pagingData !== quotedGeneration) {
                 quotedGeneration = pagingData
                 quotedMessages.clear()
@@ -1671,6 +1690,9 @@ internal class ChatViewModel @AssistedInject constructor(
                             policy,
                             canPost = canPost,
                             canSpeak = canSpeak,
+                            canSilence = facts.canSilence,
+                            canBan = facts.canBan,
+                            creatorId = facts.creatorId,
                         ),
                         quote = quote,
                         sender = sender,

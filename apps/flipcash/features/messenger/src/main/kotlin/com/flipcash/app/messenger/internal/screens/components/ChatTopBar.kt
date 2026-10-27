@@ -27,6 +27,11 @@ import androidx.compose.material.icons.filled.Feedback
 import com.flipcash.app.messenger.internal.screens.openMessageShare
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.flipcash.app.messenger.internal.MemberModerationViewModel
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,6 +92,7 @@ internal fun ChatTopBar(
     // from the composition it is created in, and the bar is composed after a long-press that leaves
     // the IME already up — a controller created there would read it as hidden.
     val keyboard = rememberKeyboardController()
+    val moderation = hiltViewModel<MemberModerationViewModel>()
     Box {
         // A message action takes the bar over rather than stacking a second one over it, so the
         // conversation's own actions can't be reached while one is pending. The takeover holds
@@ -110,7 +116,15 @@ internal fun ChatTopBar(
             when (target) {
                 TopBarMode.Conversation -> ConversationTitleBar(navigator, state, chatActionHandler, trailing)
                 TopBarMode.Editing -> EditingBar(dispatch)
-                is TopBarMode.Selecting -> MessageSelectionBar(
+                is TopBarMode.Selecting -> {
+                    val sender = target.selection.sender
+                    val groupTitle = (state.subject as? ChatSubject.Group)?.title
+                    val moderationTarget = if (sender != null && groupTitle != null) {
+                        Triple(sender.userId, sender.displayName.substringBefore(' ').ifEmpty { sender.displayName }, groupTitle)
+                    } else {
+                        null
+                    }
+                    MessageSelectionBar(
                     selection = target.selection,
                     keyboard = keyboard,
                     dispatch = dispatch,
@@ -131,7 +145,27 @@ internal fun ChatTopBar(
                             )
                         }
                     },
-                )
+                    // Both name the sender and the group, so neither is offered until the sender's
+                    // profile has resolved. The host never sees them on the creator or on a DM:
+                    // the capabilities are not granted there.
+                    onSilence = moderationTarget?.let { (userId, firstName, groupTitle) ->
+                        {
+                            state.chatId?.let { chatId ->
+                                dispatch(ChatViewModel.Event.ClearMessageSelection)
+                                navigator.push(AppRoute.Messaging.SilenceUser(chatId, userId, firstName, groupTitle))
+                            }
+                        }
+                    },
+                    onRemove = moderationTarget?.let { (userId, firstName, groupTitle) ->
+                        {
+                            state.chatId?.let { chatId ->
+                                dispatch(ChatViewModel.Event.ClearMessageSelection)
+                                moderation.confirmRemove(chatId, userId, firstName, groupTitle)
+                            }
+                        }
+                    },
+                    )
+                }
             }
         }
     }
@@ -280,6 +314,10 @@ private fun MessageSelectionBar(
     dispatch: (ChatViewModel.Event) -> Unit,
     onShareMessage: () -> Unit,
     onReport: () -> Unit,
+    /** Null when the sender is unknown or the viewer cannot silence them. */
+    onSilence: (() -> Unit)?,
+    /** Null when the sender is unknown or the viewer cannot remove them. */
+    onRemove: (() -> Unit)?,
 ) {
     val capabilities = selection.capabilities
     val body = selection.plainText
@@ -368,6 +406,33 @@ private fun MessageSelectionBar(
         }
     }
 
+    // The host's two, after Report and always under the overflow: they are rare and consequential,
+    // so they never take an icon slot however wide the bar is.
+    val moderationActions = buildList {
+        val firstName = selection.sender?.displayName?.substringBefore(' ').orEmpty()
+        if (onSilence != null && MessageCapability.Silence in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_silenceMember, firstName),
+                    icon = Icons.Outlined.Block,
+                    testTag = "action_silence_member",
+                    onClick = onSilence,
+                )
+            )
+        }
+        if (onRemove != null && MessageCapability.Remove in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_removeMemberNamed, firstName),
+                    icon = Icons.Outlined.PersonRemove,
+                    testTag = "action_remove_member",
+                    isDestructive = true,
+                    onClick = onRemove,
+                )
+            )
+        }
+    }
+
     AppBarWithTitle(
         leftIcon = {
             CircularIconButton(
@@ -394,7 +459,7 @@ private fun MessageSelectionBar(
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        rightContents = { MessageActions(actions) },
+        rightContents = { MessageActions(actions, moderationActions) },
     )
 }
 
@@ -403,6 +468,7 @@ private data class MessageAction(
     val label: String,
     val icon: ImageVector,
     val testTag: String,
+    val isDestructive: Boolean = false,
     val onClick: () -> Unit,
 )
 
@@ -433,8 +499,8 @@ internal fun inlineActionCapacity(barWidth: Dp, buttonSize: Dp, spacing: Dp): In
         .coerceAtLeast(1)
 
 @Composable
-private fun MessageActions(actions: List<MessageAction>) {
-    if (actions.isEmpty()) return
+private fun MessageActions(actions: List<MessageAction>, overflowOnly: List<MessageAction> = emptyList()) {
+    if (actions.isEmpty() && overflowOnly.isEmpty()) return
 
     // Both match what the app bar itself uses, so the budget is measured in the widths that will
     // actually be laid out.
@@ -445,7 +511,12 @@ private fun MessageActions(actions: List<MessageAction>) {
         val capacity = inlineActionCapacity(maxWidth, buttonSize, spacing)
         // The overflow needs a slot of its own, so it only pays for itself when it is holding
         // something — the last action is not displaced by a menu that would contain only it.
-        val inline = if (actions.size <= capacity) actions else actions.take(capacity - 1)
+        // Actions that live only under the overflow take its slot whether or not the others fit.
+        val inline = when {
+            overflowOnly.isNotEmpty() -> actions.take(capacity - 1)
+            actions.size <= capacity -> actions
+            else -> actions.take(capacity - 1)
+        }
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(spacing),
@@ -461,14 +532,14 @@ private fun MessageActions(actions: List<MessageAction>) {
                     )
                 }
             }
-            MessageOverflow(actions.drop(inline.size))
+            MessageOverflow(actions.drop(inline.size), overflowOnly)
         }
     }
 }
 
 @Composable
-private fun MessageOverflow(actions: List<MessageAction>) {
-    if (actions.isEmpty()) return
+private fun MessageOverflow(actions: List<MessageAction>, overflowOnly: List<MessageAction> = emptyList()) {
+    if (actions.isEmpty() && overflowOnly.isEmpty()) return
 
     var expanded by remember { mutableStateOf(false) }
     Box {
@@ -489,7 +560,19 @@ private fun MessageOverflow(actions: List<MessageAction>) {
         ) {
             actions.forEach { action ->
                 DropdownMenuItem(
-                    text = { OverflowLabel(action.label) },
+                    text = { OverflowLabel(action.label, action.isDestructive) },
+                    onClick = {
+                        expanded = false
+                        action.onClick()
+                    },
+                )
+            }
+            if (actions.isNotEmpty() && overflowOnly.isNotEmpty()) {
+                HorizontalDivider(color = CodeTheme.colors.divider)
+            }
+            overflowOnly.forEach { action ->
+                DropdownMenuItem(
+                    text = { OverflowLabel(action.label, action.isDestructive) },
                     onClick = {
                         expanded = false
                         action.onClick()
@@ -501,10 +584,10 @@ private fun MessageOverflow(actions: List<MessageAction>) {
 }
 
 @Composable
-private fun OverflowLabel(text: String) {
+private fun OverflowLabel(text: String, isDestructive: Boolean = false) {
     Text(
         text = text,
         style = CodeTheme.typography.textSmall,
-        color = CodeTheme.colors.textMain,
+        color = if (isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain,
     )
 }
