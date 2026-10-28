@@ -6,15 +6,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -25,8 +22,6 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,7 +35,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,6 +42,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.InviteLinkAction
+import com.flipcash.app.core.chat.NewInviteLinkChoice
 import com.flipcash.app.messenger.internal.screens.openInviteLinkShare
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
@@ -55,6 +50,7 @@ import com.flipcash.shared.chat.HostInvite
 import com.flipcash.shared.chat.InviteExpiry
 import com.flipcash.shared.chat.InviteSettings
 import com.flipcash.shared.chat.InviteUses
+import com.flipcash.shared.chat.ui.media.rememberReducedMotion
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
@@ -65,6 +61,7 @@ import com.getcode.theme.White50
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.ChoiceRow
+import com.getcode.ui.components.SlidingChipRow
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
@@ -84,14 +81,11 @@ internal fun ManageInvitesScreen(chatId: ChatId?) {
 
     LaunchedEffect(chatId) { chatId?.let(viewModel::open) }
 
-    var newLink by remember { mutableStateOf(false) }
-
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 // Back to the profile that opened this.
                 ManageInvitesViewModel.Effect.LostAccess -> flowNavigator.back()
-                ManageInvitesViewModel.Effect.Created -> newLink = false
             }
         }
     }
@@ -111,17 +105,15 @@ internal fun ManageInvitesScreen(chatId: ChatId?) {
                 }
             }
         },
-        onNewLink = { newLink = true },
+        onNewLink = {
+            // The settings sheet is a step of its own and closes on Create Link; this screen makes
+            // the link and shows the creating state.
+            navigator.navigateForResult<NewInviteLinkChoice>(ChatStep.NewInviteLink) { result ->
+                if (result is NavResultOrCanceled.ReturnValue) viewModel.create(result.value.toSettings())
+            }
+        },
         onRetry = viewModel::refresh,
     )
-
-    if (newLink) {
-        NewInviteLinkSheet(
-            creating = state.creating,
-            onCreate = viewModel::create,
-            onDismiss = { newLink = false },
-        )
-    }
 }
 
 /** Frames 2a and 2e, with no navigation or view model, so the previews and tests can draw them. */
@@ -133,6 +125,7 @@ internal fun ManageInvitesContent(
     onNewLink: () -> Unit,
     onRetry: () -> Unit = {},
 ) {
+    val creating = state.creating
     CodeScaffold(
         topBar = {
             AppBarWithTitle(
@@ -158,7 +151,7 @@ internal fun ManageInvitesContent(
             } else if (state.failed) {
                 LoadFailed(modifier = Modifier.align(Alignment.Center), onRetry = onRetry)
             } else if (state.isEmpty) {
-                EmptyInvites(modifier = Modifier.align(Alignment.Center), onNewLink = onNewLink)
+                EmptyInvites(modifier = Modifier.align(Alignment.Center), creating = creating, onNewLink = onNewLink)
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -199,6 +192,8 @@ internal fun ManageInvitesContent(
                         .padding(horizontal = CodeTheme.dimens.inset)
                         .padding(bottom = CodeTheme.dimens.grid.x3),
                     text = stringResource(R.string.action_newInviteLink),
+                    isLoading = creating,
+                    enabled = !creating,
                     buttonState = ButtonState.Filled,
                     onClick = onNewLink,
                 )
@@ -330,7 +325,7 @@ private fun LoadFailed(onRetry: () -> Unit, modifier: Modifier = Modifier) {
 
 /** Frame 2e. */
 @Composable
-private fun EmptyInvites(onNewLink: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyInvites(creating: Boolean, onNewLink: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.padding(horizontal = CodeTheme.dimens.inset),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -352,6 +347,8 @@ private fun EmptyInvites(onNewLink: () -> Unit, modifier: Modifier = Modifier) {
         CodeButton(
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
             text = stringResource(R.string.action_newInviteLink),
+            isLoading = creating,
+            enabled = !creating,
             buttonState = ButtonState.Filled10,
             shape = CircleShape,
             style = CodeTheme.typography.textSmall,
@@ -409,111 +406,68 @@ internal fun InviteLinkActions(
     }
 }
 
-/** Frame 2d: expiry and use-limit presets, and Create Link. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun NewInviteLinkSheet(
-    creating: Boolean,
-    onCreate: (InviteSettings) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = CodeTheme.colors.background,
-    ) {
-        NewInviteLinkContent(creating = creating, onCreate = onCreate)
-    }
-}
-
+/** Frame 2d: expiry and use-limit presets, and Create Link. Returns the pick; the caller creates. */
 @Composable
 internal fun NewInviteLinkContent(
-    creating: Boolean,
     onCreate: (InviteSettings) -> Unit,
+    onDismiss: () -> Unit,
     initial: InviteSettings = InviteSettings.Default,
 ) {
     var expiry by remember { mutableStateOf(initial.expiry) }
     var uses by remember { mutableStateOf(initial.uses) }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = CodeTheme.dimens.inset),
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-    ) {
-        Text(
-            text = stringResource(R.string.title_newInviteLink),
-            style = CodeTheme.typography.textLarge,
-            color = CodeTheme.colors.textMain,
+    val reducedMotion = rememberReducedMotion()
+    Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
+        AppBarWithTitle(
+            title = stringResource(R.string.title_newInviteLink),
+            titleAlignment = Alignment.CenterHorizontally,
+            endContent = { AppBarDefaults.Close(onClick = onDismiss) },
         )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = CodeTheme.dimens.inset),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+        ) {
         Text(
             text = stringResource(R.string.label_inviteExpiresHeader),
             style = CodeTheme.typography.textSmall,
             color = White50,
         )
-        OptionChips(
+        SlidingChipRow(
             options = InviteExpiry.entries,
             selected = expiry,
-            label = { stringResource(it.labelRes()) },
             onSelect = { expiry = it },
+            label = { stringResource(it.labelRes()) },
+            reducedMotion = reducedMotion,
         )
         Text(
             text = stringResource(R.string.label_inviteWhoCanJoin),
             style = CodeTheme.typography.textSmall,
             color = White50,
         )
-        OptionChips(
+        SlidingChipRow(
             options = InviteUses.entries,
             selected = uses,
-            label = { stringResource(it.labelRes()) },
             onSelect = { uses = it },
+            label = { stringResource(it.labelRes()) },
+            reducedMotion = reducedMotion,
         )
         CodeButton(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x3),
             text = stringResource(R.string.action_createInviteLink),
-            isLoading = creating,
-            enabled = !creating,
             buttonState = ButtonState.Filled,
             onClick = { onCreate(InviteSettings(expiry, uses)) },
         )
-    }
-}
-
-@Composable
-private fun <T> OptionChips(
-    options: List<T>,
-    selected: T,
-    label: @Composable (T) -> String,
-    onSelect: (T) -> Unit,
-) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-    ) {
-        for (option in options) {
-            val isSelected = option == selected
-            // The chip is a radio button in a group, and at least 48dp tall to touch.
-            Box(
-                modifier = Modifier
-                    .heightIn(min = 48.dp)
-                    .clip(CircleShape)
-                    .background(if (isSelected) CodeTheme.colors.textMain else White05)
-                    .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(option) })
-                    .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x2),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = label(option),
-                    style = CodeTheme.typography.textSmall,
-                    color = if (isSelected) CodeTheme.colors.background else CodeTheme.colors.textMain,
-                )
-            }
         }
     }
 }
+
+internal fun InviteSettings.toChoice() = NewInviteLinkChoice(expiry = expiry.name, uses = uses.name)
+
+internal fun NewInviteLinkChoice.toSettings() =
+    InviteSettings(expiry = InviteExpiry.valueOf(expiry), uses = InviteUses.valueOf(uses))
 
 private fun InviteExpiry.labelRes(): Int = when (this) {
     InviteExpiry.OneDay -> R.string.label_inviteExpiry_oneDay

@@ -19,7 +19,9 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Invite
 import com.flipcash.services.models.chat.InviteId
 import com.flipcash.shared.chat.HostInvite
+import com.flipcash.shared.chat.InviteExpiry
 import com.flipcash.shared.chat.InviteSettings
+import com.flipcash.shared.chat.InviteUses
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.manager.BottomBarManager
 import com.getcode.ui.components.bars.BottomBarView
@@ -200,7 +202,17 @@ internal fun InviteFrame2cRevoke() = BottomBarFrame { showRevokeInviteLink(it) {
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
 internal fun InviteFrame2dNewLink() =
-    NewInviteLinkContent(creating = false, onCreate = {}, initial = InviteSettings.Default)
+    NewInviteLinkContent(onCreate = {}, onDismiss = {}, initial = InviteSettings.Default)
+
+/** Frame 2d with presets other than the defaults chosen, so the chip highlight shows off its start. */
+@Preview(heightDp = 560)
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+internal fun InviteFrame2dNewLinkChosen() = NewInviteLinkContent(
+    onCreate = {},
+    onDismiss = {},
+    initial = InviteSettings(InviteExpiry.ThirtyDays, InviteUses.Ten),
+)
 
 /** Frame 2e, node 12844:395. */
 @Preview(heightDp = 817)

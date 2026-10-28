@@ -33,6 +33,14 @@ data class GroupInviteResult(val chatId: ChatId) : Parcelable
 @Serializable
 enum class InviteLinkAction : Parcelable { Share, Revoke }
 
+/**
+ * What the host picked on New Invite Link (frame 2d): the preset names, not the presets, because
+ * this module cannot see `shared:chat`. Presets only; never a key or link.
+ */
+@Parcelize
+@Serializable
+data class NewInviteLinkChoice(val expiry: String, val uses: String) : Parcelable
+
 /** A custom paid-reaction amount, in whole US cents. */
 @Parcelize
 @Serializable
@@ -120,6 +128,19 @@ sealed interface ChatStep : FlowStep, Parcelable {
     data class InviteLinkActions(val inviteIdHex: String) :
         ChatStep,
         NavigationRetVal<InviteLinkAction>,
+        Sheet,
+        WrapContentSheet
+
+    /**
+     * Frame 2d: expiry and use-limit presets for a new invite link. Returns the chosen
+     * [NewInviteLinkChoice] and closes; Manage Invites, still beneath it, makes the link and shows
+     * the creating state. The result is presets only, never a key or link.
+     */
+    @Parcelize
+    @Serializable
+    data object NewInviteLink :
+        ChatStep,
+        NavigationRetVal<NewInviteLinkChoice>,
         Sheet,
         WrapContentSheet
 

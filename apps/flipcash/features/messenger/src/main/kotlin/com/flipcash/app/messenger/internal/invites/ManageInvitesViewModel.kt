@@ -46,9 +46,6 @@ internal class ManageInvitesViewModel @Inject constructor(
     sealed interface Effect {
         /** The viewer lost `can_invite`; back to the profile. */
         data object LostAccess : Effect
-
-        /** A link was made; close the New Link sheet. */
-        data object Created : Effect
     }
 
     private val _state = MutableStateFlow(State())
@@ -105,7 +102,7 @@ internal class ManageInvitesViewModel @Inject constructor(
         }
     }
 
-    /** Frame 2d's Create Link. The new link becomes the sheet's current link. */
+    /** Frame 2d's Create Link, with the settings the sheet returned. The new link becomes the current one. */
     fun create(settings: InviteSettings) {
         val chatId = chatId ?: return
         if (_state.value.creating) return
@@ -115,7 +112,6 @@ internal class ManageInvitesViewModel @Inject constructor(
                 is InviteCreation.Created -> {
                     _state.update { it.copy(creating = false) }
                     publish(chatId)
-                    _effects.send(Effect.Created)
                 }
                 InviteCreation.TooMany -> {
                     _state.update { it.copy(creating = false) }

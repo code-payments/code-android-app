@@ -1520,7 +1520,7 @@
     <string name="label_inviteExpiry_sevenDays">7 days</string>
     <string name="label_inviteExpiry_thirtyDays">30 days</string>
     <string name="label_inviteExpiry_never">Never</string>
-    <string name="label_inviteUses_one">1 person</string>
+    <string name="label_inviteUses_one">1</string>
     <string name="label_inviteUses_five">5</string>
     <string name="label_inviteUses_ten">10</string>
     <string name="label_inviteUses_twentyFive">25</string>

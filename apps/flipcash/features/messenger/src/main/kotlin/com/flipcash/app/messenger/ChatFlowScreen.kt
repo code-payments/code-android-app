@@ -39,7 +39,10 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.core.chat.InviteLinkAction
+import com.flipcash.app.core.chat.NewInviteLinkChoice
 import com.flipcash.app.messenger.internal.invites.InviteLinkActions
+import com.flipcash.app.messenger.internal.invites.NewInviteLinkContent
+import com.flipcash.app.messenger.internal.invites.toChoice
 import com.flipcash.app.messenger.internal.invites.InviteLinkActionsViewModel
 import com.flipcash.app.messenger.internal.invites.InviteLinkViewModel
 import com.flipcash.app.messenger.internal.invites.ManageInvitesScreen
@@ -178,6 +181,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.ShareInviteLink> { step ->
         FlowInviteLinkSheet(step.inviteIdHex)
+    }
+    annotatedEntry<ChatStep.NewInviteLink> {
+        FlowNewInviteLinkSheet()
     }
     annotatedEntry<ChatStep.InviteLinkActions> { step ->
         FlowInviteLinkActionsSheet(step.inviteIdHex)
@@ -614,6 +620,20 @@ private fun FlowInviteLinkActionsSheet(inviteIdHex: String) {
         invite = invite,
         onShare = { resultBack.returnValue(InviteLinkAction.Share) },
         onRevoke = { resultBack.returnValue(InviteLinkAction.Revoke) },
+        onDismiss = dismissSheet,
+    )
+}
+
+/**
+ * [ChatStep.NewInviteLink]: frame 2d on the app's sheet scene. It returns the chosen settings and
+ * closes; Manage Invites, still beneath it, makes the link and shows the creating state.
+ */
+@Composable
+private fun FlowNewInviteLinkSheet() {
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val resultBack = resultBackNavigator<NewInviteLinkChoice>(exit = dismissSheet)
+    NewInviteLinkContent(
+        onCreate = { resultBack.returnValue(it.toChoice()) },
         onDismiss = dismissSheet,
     )
 }

@@ -8,7 +8,9 @@ import com.flipcash.services.models.chat.InviteId
 import com.flipcash.shared.chat.HostInvite
 import com.flipcash.shared.chat.HostInvites
 import com.flipcash.shared.chat.InviteCreation
+import com.flipcash.shared.chat.InviteExpiry
 import com.flipcash.shared.chat.InviteSettings
+import com.flipcash.shared.chat.InviteUses
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
@@ -154,7 +156,7 @@ class ManageInvitesViewModelTest {
     }
 
     @Test
-    fun `revoking asks first and a created link closes the new link sheet`() = runTest {
+    fun `revoking asks first, and a created link clears the creating state`() = runTest {
         val active = hostInvite()
         coEvery { hostInvites.load(chatId) } returns Result.success(listOf(active))
         val created = hostInvite()
@@ -166,8 +168,24 @@ class ManageInvitesViewModelTest {
         assertTrue(BottomBarManager.messages.value.single().showCancel)
 
         model.create(InviteSettings.Default)
-        assertTrue(model.effects.first() is ManageInvitesViewModel.Effect.Created)
         assertFalse(model.state.value.creating)
+    }
+
+    @Test
+    fun `create sends the settings the sheet returned and shows creating until it finishes`() = runTest {
+        coEvery { hostInvites.load(chatId) } returns Result.success(emptyList())
+        val gate = kotlinx.coroutines.CompletableDeferred<InviteCreation>()
+        val settings = InviteSettings(InviteExpiry.OneDay, InviteUses.Five)
+        coEvery { hostInvites.create(chatId, settings) } coAnswers { gate.await() }
+        val model = viewModel()
+        model.open(chatId)
+
+        model.create(settings)
+        assertTrue(model.state.value.creating)
+
+        gate.complete(InviteCreation.Created(hostInvite()))
+        assertFalse(model.state.value.creating)
+        coVerify(exactly = 1) { hostInvites.create(chatId, settings) }
     }
 
     @Test
