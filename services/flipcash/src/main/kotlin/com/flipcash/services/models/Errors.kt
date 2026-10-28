@@ -6,6 +6,10 @@ import com.getcode.solana.keys.Checksum
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
 import com.getcode.utils.UnreportedError
+import io.grpc.Status
+import io.grpc.StatusException
+import io.grpc.StatusRuntimeException
+import java.io.IOException
 
 sealed class LoginError(
     override val message: String? = null,
@@ -53,8 +57,21 @@ sealed class AddTokenError(
 ) : CodeServerError(message, cause) {
     class InvalidPushToken : AddTokenError("Invalid push token"), NotifiableError
     class Unrecognized : AddTokenError("Unrecognized"), NotifiableError
-    data class Other(override val cause: Throwable? = null) : AddTokenError(message = cause?.message, cause = cause), NotifiableError
+    data class Other(override val cause: Throwable? = null) : AddTokenError(message = cause?.message, cause = cause), NotifiableError {
+        /** The call never got an answer from the server: no network, or the channel gave up. */
+        val isTransportFailure: Boolean
+            get() = generateSequence(cause) { it.cause }.take(8).any { it.isTransportCause() }
+    }
 }
+
+private fun Throwable.isTransportCause(): Boolean = when (this) {
+    is IOException -> true
+    is StatusException -> status.code in transportCodes
+    is StatusRuntimeException -> status.code in transportCodes
+    else -> false
+}
+
+private val transportCodes = setOf(Status.Code.UNAVAILABLE, Status.Code.DEADLINE_EXCEEDED)
 
 sealed class DeleteTokenError(
     override val message: String? = null,

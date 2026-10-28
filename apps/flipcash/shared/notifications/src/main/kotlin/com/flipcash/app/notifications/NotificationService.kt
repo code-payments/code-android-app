@@ -26,6 +26,8 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.flipcash.app.core.media.MediaUrlResolver
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.auth.push.PushRegistrar
+import com.flipcash.app.auth.push.PushRegistrationSource
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
@@ -37,7 +39,6 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.services.controllers.ProfileController
-import com.flipcash.services.controllers.PushController
 import com.getcode.opencode.model.core.ID
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.handle
@@ -107,7 +108,7 @@ class NotificationService : FirebaseMessagingService(),
     lateinit var userManager: UserManager
 
     @Inject
-    lateinit var pushController: PushController
+    lateinit var pushRegistrar: PushRegistrar
 
     @Inject
     lateinit var mediaUrlResolver: MediaUrlResolver
@@ -154,13 +155,7 @@ class NotificationService : FirebaseMessagingService(),
         authenticateIfNeeded {
             launch {
                 if (userManager.state.value.authState.canAccessAuthenticatedApis) {
-                    pushController.addToken(token)
-                        .onSuccess {
-                            userManager.set(pushToken = token)
-                            trace("push token updated onNewToken", type = TraceType.Silent)
-                        }.onFailure {
-                            trace(message = "Failure updating push token", error = it)
-                        }
+                    pushRegistrar.register(PushRegistrationSource.Refresh, token = token)
                 }
             }
         }

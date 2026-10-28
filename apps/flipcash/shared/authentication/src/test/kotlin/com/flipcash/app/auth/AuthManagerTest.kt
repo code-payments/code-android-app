@@ -10,6 +10,7 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.links.TrustedWebsites
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
+import com.flipcash.app.auth.push.PushRegistrar
 import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
@@ -65,6 +66,7 @@ class AuthManagerTest {
     private val profileController: ProfileController = mockk(relaxed = true)
     private val pushController: PushController = mockk(relaxed = true)
     private val pushTokenProvider: PushTokenProvider = mockk(relaxed = true)
+    private val pushRegistrar: PushRegistrar = mockk(relaxed = true)
     private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
     private val persistence: PersistenceProvider = mockk(relaxed = true)
     private val featureFlagController: FeatureFlagController = mockk(relaxed = true)
@@ -116,6 +118,7 @@ class AuthManagerTest {
             profileController = profileController,
             pushController = pushController,
             pushTokenProvider = pushTokenProvider,
+            pushRegistrar = pushRegistrar,
             tokenCoordinator = tokenCoordinator,
             persistence = persistence,
             featureFlags = featureFlagController,
