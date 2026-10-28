@@ -2049,6 +2049,7 @@
     <string name="subtitle_notificationCheckUnreachable">Check your connection</string>
     <!-- %1$s is a relative time, e.g. "2 hours ago" -->
     <string name="subtitle_notificationCheckLastConfirmed">Last confirmed %1$s</string>
+    <string name="subtitle_notificationCheckLastConfirmedJustNow">Last confirmed just now</string>
     <string name="subtitle_notificationCheckFailed">Registration failed</string>
     <string name="subtitle_notificationCheckInterrupted">The check didn\'t finish</string>
 </resources>

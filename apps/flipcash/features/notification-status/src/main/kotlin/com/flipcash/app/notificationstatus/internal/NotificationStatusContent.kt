@@ -426,10 +426,16 @@ private fun CheckRow.text(state: NotificationStatusViewModel.State): Pair<String
             PushRegistrationOutcome.Transport ->
                 stringResource(R.string.title_notificationCheckUnreachable) to
                     (registration.lastConfirmedAt?.let {
-                        stringResource(
-                            R.string.subtitle_notificationCheckLastConfirmed,
-                            DateUtils.getRelativeTimeSpanString(it.toEpochMilliseconds()).toString(),
-                        )
+                        val confirmedAt = it.toEpochMilliseconds()
+                        // DateUtils says "0 minutes ago" under a minute.
+                        if (System.currentTimeMillis() - confirmedAt < DateUtils.MINUTE_IN_MILLIS) {
+                            stringResource(R.string.subtitle_notificationCheckLastConfirmedJustNow)
+                        } else {
+                            stringResource(
+                                R.string.subtitle_notificationCheckLastConfirmed,
+                                DateUtils.getRelativeTimeSpanString(confirmedAt).toString(),
+                            )
+                        }
                     } ?: stringResource(R.string.subtitle_notificationCheckUnreachable))
             PushRegistrationOutcome.Failed ->
                 stringResource(R.string.title_notificationCheckRegistered) to
