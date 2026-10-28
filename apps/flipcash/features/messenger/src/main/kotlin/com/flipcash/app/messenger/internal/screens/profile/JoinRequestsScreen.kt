@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.chat.ChatParticipant
@@ -34,7 +35,9 @@ import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.messenger.internal.screens.openGroupInvite
+import com.flipcash.app.messenger.internal.screens.openInviteLinkShare
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.shared.chat.RequestAge
@@ -64,6 +67,10 @@ internal fun JoinRequestsScreen(viewModel: ChatViewModel) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
     val navigator = LocalCodeNavigator.current
     val group = state.subject as? ChatSubject.Group
+    val inviteHost = hiltViewModel<InviteHostViewModel>()
+    val canInviteByChat by inviteHost.canInvite.collectAsStateWithLifecycle()
+    val canInvite = state.chatId?.let { canInviteByChat[it] } == true
+    LaunchedEffect(state.chatId) { state.chatId?.let(inviteHost::refresh) }
 
     // LobbyUpdate is best-effort, so the list refetches whenever it comes on screen.
     LaunchedEffect(Unit) { viewModel.dispatchEvent(ChatViewModel.Event.JoinRequestsOpened) }
@@ -91,9 +98,19 @@ internal fun JoinRequestsScreen(viewModel: ChatViewModel) {
                     .fillMaxSize()
                     .padding(innerPadding),
                 groupName = group?.groupTitle.orEmpty(),
+                canInvite = canInvite,
                 onShare = {
                     viewModel.dispatchEvent(ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE))
-                    navigator.openGroupInvite()
+                    if (canInvite) {
+                        inviteHost.presentHostSheet(
+                            groupName = group?.groupTitle.orEmpty(),
+                            onShareInviteLink = { navigator.openInviteLinkShare() },
+                            onShareJoinLink = { navigator.openGroupInvite() },
+                            onManageInvites = { flowNavigator.navigateTo(ChatStep.ManageInvites) },
+                        )
+                    } else {
+                        navigator.openGroupInvite()
+                    }
                 },
             )
         } else {
@@ -219,7 +236,12 @@ private fun JoinRequestRow(
 }
 
 @Composable
-private fun NoJoinRequests(groupName: String, onShare: () -> Unit, modifier: Modifier = Modifier) {
+private fun NoJoinRequests(
+    groupName: String,
+    canInvite: Boolean,
+    onShare: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Box(modifier = modifier.padding(horizontal = CodeTheme.dimens.inset), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -241,7 +263,7 @@ private fun NoJoinRequests(groupName: String, onShare: () -> Unit, modifier: Mod
             )
             CodeButton(
                 modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
-                text = stringResource(R.string.action_shareGroup),
+                text = stringResource(if (canInvite) R.string.action_shareInviteLinkLong else R.string.action_shareGroup),
                 buttonState = ButtonState.Filled10,
                 shape = CircleShape,
                 style = CodeTheme.typography.textSmall,

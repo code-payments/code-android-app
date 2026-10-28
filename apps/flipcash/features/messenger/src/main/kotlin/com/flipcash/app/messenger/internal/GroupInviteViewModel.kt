@@ -8,6 +8,7 @@ import com.flipcash.app.bills.share.TipCodePreviewCache
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.share.TipCodePreview
 import com.flipcash.features.messenger.R
+import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
@@ -49,6 +50,7 @@ internal class GroupInviteViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val clipboardManager: ClipboardManager,
     private val tipCodePreviewCache: TipCodePreviewCache,
+    private val e2eePolicy: E2eePolicy,
 ) : ViewModel() {
 
     data class State(
@@ -63,6 +65,13 @@ internal class GroupInviteViewModel @Inject constructor(
         val selection: List<ChatId> = emptyList(),
         val message: String = "",
         val sending: Boolean = false,
+        /** The recent chats that are private groups or end-to-end encrypted DMs. */
+        val encryptedChats: Set<ChatId> = emptySet(),
+        /**
+         * An invite link's secret may only go into a chat that is encrypted, so the invite variant
+         * of the sheet offers just those (spec surface 1).
+         */
+        val encryptedOnly: Boolean = false,
     ) {
         /** The message bar only comes up once there is someone to send to (node 10330:19549). */
         val showsComposer: Boolean get() = selection.isNotEmpty()
@@ -72,7 +81,9 @@ internal class GroupInviteViewModel @Inject constructor(
          * sending a person their own profile is pointless.
          */
         val invitable: List<ConversationReference>?
-            get() = recentChats?.filterNot { it.chatId == excludedChatId }
+            get() = recentChats?.filterNot {
+                it.chatId == excludedChatId || (encryptedOnly && it.chatId !in encryptedChats)
+            }
     }
 
     private val _state = MutableStateFlow(State())
@@ -94,7 +105,10 @@ internal class GroupInviteViewModel @Inject constructor(
             val summaries = chatCoordinator.chatListFeed().first()
             val selfId = userManager.accountId
             val chats = summaries.map { it.toConversationReference(selfId, emptyMap(), resources, exchange = exchange) }
-            _state.update { it.copy(recentChats = chats) }
+            val encrypted = summaries
+                .filter { it.metadata.isPrivate || e2eePolicy.shouldEncrypt(it.metadata) }
+                .mapTo(mutableSetOf()) { it.metadata.chatId }
+            _state.update { it.copy(recentChats = chats, encryptedChats = encrypted) }
         }
     }
 
@@ -102,6 +116,16 @@ internal class GroupInviteViewModel @Inject constructor(
     fun exclude(chatId: ChatId?) {
         _state.update { state ->
             state.copy(excludedChatId = chatId, selection = state.selection.filterNot { it == chatId })
+        }
+    }
+
+    /** Limits Recent Chats to private groups and encrypted DMs, for an invite link. */
+    fun restrictToEncrypted(encryptedOnly: Boolean) {
+        _state.update { state ->
+            state.copy(
+                encryptedOnly = encryptedOnly,
+                selection = if (encryptedOnly) state.selection.filter { it in state.encryptedChats } else state.selection,
+            )
         }
     }
 

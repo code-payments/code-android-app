@@ -38,6 +38,8 @@ import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
+import com.flipcash.app.messenger.internal.invites.InviteLinkViewModel
+import com.flipcash.app.messenger.internal.invites.ManageInvitesScreen
 import com.flipcash.app.messenger.internal.screens.EmojiPickerViewModel
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
 import com.flipcash.app.messenger.internal.screens.MessengerScreen
@@ -45,6 +47,7 @@ import com.flipcash.app.messenger.internal.screens.ReactionPickerSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsViewModel
 import com.flipcash.app.messenger.internal.screens.ShareToChatsSubject
+import com.flipcash.app.messenger.internal.screens.openGroupInvite
 import com.flipcash.app.messenger.internal.request.ChatRequestsViewModel
 import com.flipcash.app.messenger.internal.request.RequestDetailsScreen
 import com.flipcash.app.messenger.internal.request.RequestMoneyScreen
@@ -169,6 +172,12 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.InviteToGroup> {
         FlowGroupInviteSheet()
+    }
+    annotatedEntry<ChatStep.ShareInviteLink> { step ->
+        FlowInviteLinkSheet(step.inviteIdHex)
+    }
+    annotatedEntry<ChatStep.ManageInvites> {
+        ManageInvitesScreen(flowSharedViewModel<ChatViewModel>().stateFlow.collectAsStateWithLifecycle().value.chatId)
     }
     annotatedEntry<ChatStep.ShareMessage> { step ->
         FlowShareMessageSheet(step.messageId)
@@ -509,6 +518,63 @@ private fun FlowGroupInviteSheet() {
                         )
                     )
                 }
+            }
+        },
+    )
+}
+
+/**
+ * [ChatStep.ShareInviteLink]: the invite sheet's invite variant (frames 1b, 1f). The first Share or
+ * Copy tap makes a link when the host has none; sending goes through the same view model as the
+ * join variant, limited to chats an invite link may be sent into.
+ */
+@Composable
+private fun FlowInviteLinkSheet(inviteIdHex: String?) {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val inviteViewModel = hiltViewModel<GroupInviteViewModel>()
+    val inviteState by inviteViewModel.state.collectAsStateWithLifecycle()
+    val linkViewModel = hiltViewModel<InviteLinkViewModel>()
+    val link by linkViewModel.state.collectAsStateWithLifecycle()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val keyboard = rememberKeyboardController()
+    val navigator = LocalCodeNavigator.current
+    val resultBack = resultBackNavigator<GroupInviteResult>(exit = dismissSheet)
+
+    LaunchedEffect(inviteViewModel, state.chatId) {
+        state.chatId?.let(inviteViewModel::exclude)
+        inviteViewModel.restrictToEncrypted(true)
+    }
+    LaunchedEffect(linkViewModel, state.chatId, inviteIdHex) {
+        state.chatId?.let { linkViewModel.open(it, inviteIdHex) }
+    }
+    LaunchedEffect(inviteViewModel) {
+        inviteViewModel.invited.collect { chatId ->
+            keyboard.hideIfVisible { resultBack.returnValue(GroupInviteResult(chatId)) }
+        }
+    }
+
+    GroupInviteSheet(
+        inviteUrl = null,
+        subject = ShareToChatsSubject.GroupInviteLink(state.subject as? ChatSubject.Group, link.link),
+        state = inviteState,
+        onShare = linkViewModel::onShare,
+        onCopy = linkViewModel::onCopy,
+        onToggle = inviteViewModel::toggle,
+        onMessageChanged = inviteViewModel::onMessageChanged,
+        onInvite = linkViewModel::onSend,
+        onDismiss = dismissSheet,
+        inviteEffects = linkViewModel.effects,
+        onInviteEffect = { effect ->
+            when (effect) {
+                is InviteLinkViewModel.Effect.Send -> inviteViewModel.invite(effect.url)
+                // 1e's offer: the plain join link, in place of this sheet.
+                InviteLinkViewModel.Effect.OpenJoinLink -> {
+                    dismissSheet()
+                    navigator.openGroupInvite()
+                }
+                InviteLinkViewModel.Effect.Close -> dismissSheet()
+                else -> Unit
             }
         },
     )

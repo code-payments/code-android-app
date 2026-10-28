@@ -70,6 +70,7 @@ class GroupInviteViewModelTest {
         resources = resources,
         clipboardManager = mockk(relaxed = true),
         tipCodePreviewCache = mockk(relaxed = true),
+        e2eePolicy = com.flipcash.services.chat.E2eePolicy(),
     )
 
     @Test

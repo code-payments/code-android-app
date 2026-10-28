@@ -88,6 +88,27 @@ sealed interface ChatStep : FlowStep, Parcelable {
         com.getcode.navigation.FullscreenSheet
 
     /**
+     * Frames 1b, 1f: a private group's invite link, in the share-to-chats sheet. [inviteIdHex] null
+     * is the sheet's current link, which the first Share or Copy tap makes when there is none;
+     * otherwise it is one invite from Manage Invites (2b's Share Link).
+     *
+     * Carries the invite's id and never its link: a step is logged and saved, and the link's
+     * fragment is the secret. The sheet rebuilds the link from the host's own invites.
+     */
+    @Parcelize
+    @Serializable
+    data class ShareInviteLink(val inviteIdHex: String? = null) :
+        ChatStep,
+        NavigationRetVal<GroupInviteResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
+
+    /** Frame 2a: the invite links this host has made, Active then Inactive. Pushed, like [EditGroup]. */
+    @Parcelize
+    @Serializable
+    data object ManageInvites : ChatStep
+
+    /**
      * Sharing one message into the viewer's other chats — [InviteToGroup]'s sheet with the
      * message's link as what it hands out. Returns the chat picked first, as that one does.
      *
