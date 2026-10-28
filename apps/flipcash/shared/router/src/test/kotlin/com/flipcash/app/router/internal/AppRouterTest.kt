@@ -21,7 +21,15 @@ import org.robolectric.annotation.Config
 import java.net.URLEncoder
 import java.util.UUID
 import kotlin.test.Test
+import org.robolectric.RuntimeEnvironment
+import com.getcode.chatcipher.InviteLink
+import com.getcode.utils.BreadcrumbSink
+import com.getcode.utils.ErrorReporter
+import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceManager
+import com.getcode.utils.TraceType
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -1165,6 +1173,93 @@ class AppRouterTest {
             DeepLink("https://JUMP.Flipcash.com/#source=" + URLEncoder.encode("https://app.flipcash.com/token/$MINT", "UTF-8"))
         )
         assertIs<DeeplinkType.TokenInfo>(type)
+    }
+
+    // endregion
+
+    // region classify - group invite link
+
+    private val inviteSecret = ByteArray(32) { (it * 7 + 3).toByte() }
+
+    @Test
+    fun `classify reads the secret from a valid invite link`() {
+        val type = router.classify(DeepLink(InviteLink.url(inviteSecret)))
+        assertIs<DeeplinkType.GroupInvite>(type)
+        assertTrue(type.secret.contentEquals(inviteSecret))
+    }
+
+    @Test
+    fun `classify treats an invite link with a malformed fragment as invalid, not a chat`() {
+        for (url in listOf(
+            "https://app.flipcash.com/chat/invite",
+            "https://app.flipcash.com/chat/invite#",
+            "https://app.flipcash.com/chat/invite#s=",
+            "https://app.flipcash.com/chat/invite#s=tooshort",
+            "https://app.flipcash.com/chat/invite#x=" + "A".repeat(43),
+            InviteLink.url(inviteSecret) + "/s=" + "A".repeat(43),
+        )) {
+            assertEquals(DeeplinkType.InvalidGroupInvite, router.classify(DeepLink(url)), url)
+        }
+    }
+
+    @Test
+    fun `classify keeps a plain group link on the chat route`() {
+        assertIs<DeeplinkType.GroupChatInvite>(
+            router.classify(DeepLink("https://app.flipcash.com/chat/$groupUuid"))
+        )
+    }
+
+    @Test
+    fun `dispatch sends a valid invite to the invite route and a broken one to the broken state`() {
+        loggedIn()
+        val ok = router.dispatch(DeepLink(InviteLink.url(inviteSecret)))
+        assertIs<DeeplinkAction.Navigate>(ok)
+        val route = ok.routes.last()
+        assertIs<AppRoute.Messaging.GroupInvite>(route)
+        assertTrue(route.secret.contentEquals(inviteSecret))
+
+        val broken = router.dispatch(DeepLink("https://app.flipcash.com/chat/invite#s=nope"))
+        assertIs<DeeplinkAction.Navigate>(broken)
+        assertNull((broken.routes.last() as AppRoute.Messaging.GroupInvite).secret)
+    }
+
+    @Test
+    fun `invite types never print the secret`() {
+        val link = InviteLink.url(inviteSecret)
+        val encoded = link.substringAfter("#s=")
+        val type = router.classify(DeepLink(link))!!
+        assertFalse(type.toString().contains(encoded))
+        assertFalse(AppRoute.Messaging.GroupInvite(inviteSecret).toString().contains(encoded))
+    }
+
+    @Test
+    fun `a classify failure on an invite-shaped link reports no fragment, secret or cause`() {
+        val link = InviteLink.url(inviteSecret)
+        val encoded = link.substringAfter("#s=")
+        val lines = mutableListOf<String>()
+        val sink = object : BreadcrumbSink {
+            override fun record(message: String, metadata: Map<String, Any>, type: TraceType) {
+                lines += message + metadata.toString()
+            }
+        }
+        val reported = mutableListOf<Throwable>()
+        val reporter = object : ErrorReporter {
+            override fun report(error: Throwable, cause: Throwable, isNotifiable: Boolean) { reported += error }
+        }
+        TraceManager.initialize(RuntimeEnvironment.getApplication())
+        TraceManager.addSink(sink)
+        ErrorUtils.addReporter(reporter)
+        try {
+            traceClassifyFailure(DeepLink(link), IllegalStateException("bad url $link"))
+            // Sanity: a link that is not an invite still reports its cause.
+            traceClassifyFailure(DeepLink("https://app.flipcash.com/c/e=x"), IllegalStateException("boom"))
+        } finally {
+            TraceManager.removeSink(sink)
+            ErrorUtils.removeReporter(reporter)
+        }
+        assertTrue(lines.isNotEmpty())
+        assertTrue(lines.none { it.contains(encoded) || it.contains("#s=") })
+        assertTrue(reported.none { it.message.orEmpty().contains(encoded) })
     }
 
     // endregion

@@ -422,6 +422,20 @@ sealed interface AppRoute : NavKey, Parcelable {
         }
 
         /**
+         * A group invite link opened by the joiner (nodes 12846:59 to 12846:259). [secret] is the
+         * link's key material, so it is redacted from [toString]; null is a link with no valid
+         * secret, which shows the broken-link state rather than a chat.
+         */
+        @Serializable
+        @Parcelize
+        class GroupInvite(val secret: ByteArray?) : Messaging {
+            override fun equals(other: Any?): Boolean =
+                other is GroupInvite && secret.contentEquals(other.secret)
+            override fun hashCode(): Int = secret.contentHashCode()
+            override fun toString(): String = "GroupInvite(redacted)"
+        }
+
+        /**
          * Node 10127:117987 — the two ways to start a chat, reached from the "+" on the Chats list.
          *
          * A top-level route rather than something drawn inside [Tabs.Chats]: that is a tab home, so
