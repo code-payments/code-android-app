@@ -29,23 +29,23 @@ enum class PushRegistrationSource(val key: String) {
 }
 
 /** What one registration attempt found, before it is reduced to a saved [PushRegistrationResult]. */
-enum class PushRegistrationOutcome {
-    Ok,
+enum class PushRegistrationOutcome(val key: String) {
+    Ok("ok"),
 
     /** The token provider returned no token, so `AddToken` was never called. */
-    NoToken,
-    InvalidPushToken,
+    NoToken("noToken"),
+    InvalidPushToken("invalidPushToken"),
 
     /** No answer from the server: offline, unreachable, or the attempt timed out. */
-    Transport,
-    Failed,
+    Transport("transport"),
+    Failed("failed"),
 }
 
 data class PushRegistrationAttempt(
     val outcome: PushRegistrationOutcome,
     /** The record saved before this attempt, if any. */
     val previous: PushRegistration?,
-    /** Last six characters of the token sent, for the support report. */
+    /** Last six characters of the token sent, for the support report. Null when none was sent, and then nothing was saved. */
     val tokenSuffix: String?,
 )
 

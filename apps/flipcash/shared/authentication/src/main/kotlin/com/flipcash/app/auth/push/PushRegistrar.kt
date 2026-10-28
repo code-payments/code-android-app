@@ -73,7 +73,8 @@ class PushRegistrar internal constructor(
             trace("push token registration failed ($source): $outcome")
         }
 
-        outcome.toResult()?.let { result ->
+        // A timeout during the token delete or fetch never reached AddToken, so there is nothing to save.
+        outcome.toResult()?.takeIf { sent != null }?.let { result ->
             val now = clock.now()
             store.save(
                 PushRegistration(

@@ -99,6 +99,19 @@ class PushRegistrarTest {
     }
 
     @Test
+    fun `a timeout before a token is fetched saves nothing`() = runTest {
+        coEvery { tokenProvider.getToken() } coAnswers { awaitCancellation() }
+
+        val attempt = registrar.register(PushRegistrationSource.StatusPage, timeout = 10.seconds)
+
+        assertEquals(PushRegistrationOutcome.Transport, attempt.outcome)
+        assertEquals(10_000, currentTime)
+        assertNull(attempt.tokenSuffix)
+        assertNull(store.saved)
+        coVerify(exactly = 0) { pushController.addToken(any()) }
+    }
+
+    @Test
     fun `login and refresh get the same 10 s limit as the page`() = runTest {
         coEvery { pushController.addToken(any()) } coAnswers { awaitCancellation() }
 
