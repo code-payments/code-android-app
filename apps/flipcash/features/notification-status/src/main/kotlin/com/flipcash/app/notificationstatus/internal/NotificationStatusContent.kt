@@ -1,9 +1,19 @@
 package com.flipcash.app.notificationstatus.internal
 
 import android.text.format.DateUtils
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,11 +22,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -29,9 +39,16 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -41,52 +58,103 @@ import com.flipcash.app.auth.push.PushRegistrationOutcome
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
+import com.getcode.ui.components.BottomScrollEdge
+import com.getcode.ui.components.glass.floatingGlass
 import com.getcode.ui.components.text.SectionHeader
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 @Composable
 internal fun NotificationStatusContent(
     state: NotificationStatusViewModel.State,
+    topPadding: Dp,
+    scrollState: ScrollState,
+    hazeState: HazeState,
     onFix: (Fix) -> Unit,
     onToggleExpanded: () -> Unit,
     onSendTest: () -> Unit,
     onShareReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val status = state.status ?: return
+    val status = state.status
     val inset = CodeTheme.dimens.inset
+    val density = LocalDensity.current
+    // The pinned actions float over the page, so the page leaves room for them.
+    var actionsHeight by remember { mutableStateOf(0.dp) }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
+                .fillMaxSize()
+                .hazeSource(hazeState)
+                .verticalScroll(scrollState)
                 .padding(horizontal = inset),
         ) {
-            Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
+            // Settings' gap below its bar: the first section header's top padding.
+            Spacer(Modifier.height(topPadding + CodeTheme.dimens.grid.x4))
             SummaryCard(status.summary)
 
-            if (status.allPassing && !state.expanded) {
-                Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
-                FoldedRow(count = status.rows.size, onClick = onToggleExpanded)
-            } else {
-                Group(stringResource(R.string.header_notificationStatusPhone), status.phoneRows, state, onFix)
-                Group(stringResource(R.string.header_notificationStatusFlipcash), status.flipcashRows, state, onFix)
+            // All passing folds into one row; it stays as the toggle once expanded.
+            AnimatedVisibility(
+                visible = status.allPassing,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                Column {
+                    Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
+                    FoldedRow(count = status.rows.size, expanded = state.expanded, onClick = onToggleExpanded)
+                }
             }
-            Spacer(Modifier.height(CodeTheme.dimens.grid.x4))
+            AnimatedVisibility(
+                visible = !status.allPassing || state.expanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                Column {
+                    Group(
+                        title = stringResource(R.string.header_notificationStatusPhone),
+                        keys = PhoneRowKeys,
+                        rows = status.phoneRows,
+                        state = state,
+                        onFix = onFix,
+                    )
+                    Group(
+                        title = stringResource(R.string.header_notificationStatusFlipcash),
+                        keys = listOf(RegistrationKey),
+                        rows = status.flipcashRows,
+                        state = state,
+                        onFix = onFix,
+                    )
+                }
+            }
+            Spacer(Modifier.height(actionsHeight + CodeTheme.dimens.grid.x4))
         }
+
+        // Content fades out under the actions while there is more to scroll to.
+        BottomScrollEdge(
+            hazeState = hazeState,
+            scrollState = scrollState,
+            height = actionsHeight,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
 
         Column(
             modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .onSizeChanged { actionsHeight = with(density) { it.height.toDp() } }
                 .navigationBarsPadding()
                 .padding(horizontal = inset)
-                .padding(bottom = CodeTheme.dimens.grid.x4),
+                .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x4),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CodeButton(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // "Send again" is translucent; the glass keeps it legible over the page.
+                    .then(if (state.testSent) Modifier.floatingGlass(hazeState, CircleShape) else Modifier),
                 text = stringResource(
                     if (state.testSent) R.string.action_sendTestNotificationAgain else R.string.action_sendTestNotification,
                 ),
@@ -143,10 +211,12 @@ private fun SummaryCard(summary: Summary) {
             modifier = Modifier.padding(CodeTheme.dimens.grid.x4),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            StatusMark(mark, width = 26.dp, height = 40.dp)
+            Crossfade(targetState = mark, label = "summary mark") { StatusMark(it, width = 26.dp, height = 40.dp) }
             Spacer(Modifier.width(CodeTheme.dimens.grid.x3))
             Column {
-                Text(title, style = CodeTheme.typography.textLarge, color = CodeTheme.colors.textMain)
+                Crossfade(targetState = title, label = "summary title") {
+                    Text(it, style = CodeTheme.typography.textLarge, color = CodeTheme.colors.textMain)
+                }
                 Text(
                     stringResource(R.string.subtitle_notificationStatusCheckedJustNow),
                     style = CodeTheme.typography.textMedium,
@@ -158,7 +228,8 @@ private fun SummaryCard(summary: Summary) {
 }
 
 @Composable
-private fun FoldedRow(count: Int, onClick: () -> Unit) {
+private fun FoldedRow(count: Int, expanded: Boolean, onClick: () -> Unit) {
+    val chevron by animateFloatAsState(if (expanded) 180f else 0f, label = "chevron")
     Card(modifier = Modifier.clickable(onClick = onClick)) {
         Row(
             modifier = Modifier.padding(CodeTheme.dimens.grid.x4),
@@ -173,6 +244,7 @@ private fun FoldedRow(count: Int, onClick: () -> Unit) {
                 color = CodeTheme.colors.textMain,
             )
             Icon(
+                modifier = Modifier.rotate(chevron),
                 imageVector = Icons.Rounded.KeyboardArrowDown,
                 contentDescription = null,
                 tint = CodeTheme.colors.textSecondary,
@@ -181,66 +253,106 @@ private fun FoldedRow(count: Int, onClick: () -> Unit) {
     }
 }
 
+/** Holds the last row shown for a key, so a row leaving the list can animate out. */
+private class LastRow(var row: CheckRow? = null)
+
 @Composable
 private fun Group(
     title: String,
+    keys: List<String>,
     rows: List<CheckRow>,
     state: NotificationStatusViewModel.State,
     onFix: (Fix) -> Unit,
 ) {
-    SectionHeader(
-        title = title.uppercase(),
-        modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x1),
-    )
+    SectionHeader(title = title.uppercase())
     Spacer(Modifier.height(CodeTheme.dimens.grid.x1))
     Card {
         Column(modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2)) {
-            rows.forEach { row -> CheckRowItem(row, state, onFix) }
+            val byKey = rows.associateBy { it.key }
+            // Every possible row in a fixed order: one that comes or goes animates in place, and the
+            // others never move.
+            keys.forEach { key ->
+                val current = byKey[key]
+                val last = remember(key) { LastRow() }
+                if (current != null) last.row = current
+                AnimatedVisibility(
+                    visible = current != null,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                ) {
+                    last.row?.let { CheckRowItem(it, state, onFix) }
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun CheckRowItem(row: CheckRow, state: NotificationStatusViewModel.State, onFix: (Fix) -> Unit) {
-    val (title, detail) = row.text(state)
+    val text = row.text(state)
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            // One height for the checking and settled states, so a result doesn't move the rows
+            // below it.
+            .heightIn(min = CodeTheme.dimens.grid.x15)
+            .animateContentSize()
             .padding(horizontal = CodeTheme.dimens.grid.x4, vertical = CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        StatusMark(row.status)
+        Crossfade(targetState = row.status, label = "row mark") { StatusMark(it) }
         Spacer(Modifier.width(CodeTheme.dimens.grid.x3))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = CodeTheme.typography.textMedium, color = CodeTheme.colors.textMain)
-            Text(detail, style = CodeTheme.typography.textSmall, color = CodeTheme.colors.textSecondary)
+        Crossfade(targetState = text, modifier = Modifier.weight(1f), label = "row text") { (title, detail) ->
+            Column {
+                Text(title, style = CodeTheme.typography.textMedium, color = CodeTheme.colors.textMain)
+                Text(detail, style = CodeTheme.typography.textSmall, color = CodeTheme.colors.textSecondary)
+            }
         }
-        row.fix?.let { fix ->
-            Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
-            CodeButton(
-                text = stringResource(
-                    when (fix) {
-                        Fix.TurnOn -> R.string.action_turnOn
-                        Fix.TryAgain -> R.string.action_tryAgain
-                        else -> R.string.action_fix
-                    },
-                ),
-                buttonState = ButtonState.Filled,
-                shape = CircleShape,
-                style = CodeTheme.typography.textSmall,
-                overrideContentPadding = true,
-                contentPadding = PaddingValues(
-                    horizontal = CodeTheme.dimens.grid.x3,
-                    vertical = CodeTheme.dimens.grid.x2,
-                ),
-                onClick = { onFix(fix) },
-            )
+        AnimatedContent(
+            targetState = row.fix,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "row fix",
+        ) { fix ->
+            if (fix != null) FixButton(fix, onFix)
         }
     }
 }
 
 @Composable
+private fun FixButton(fix: Fix, onFix: (Fix) -> Unit) {
+    CodeButton(
+        modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2),
+        text = stringResource(
+            when (fix) {
+                Fix.TurnOn -> R.string.action_turnOn
+                Fix.TryAgain -> R.string.action_tryAgain
+                else -> R.string.action_fix
+            },
+        ),
+        buttonState = ButtonState.Filled,
+        shape = CircleShape,
+        style = CodeTheme.typography.textSmall,
+        overrideContentPadding = true,
+        contentPadding = PaddingValues(
+            horizontal = CodeTheme.dimens.grid.x3,
+            vertical = CodeTheme.dimens.grid.x2,
+        ),
+        onClick = { onFix(fix) },
+    )
+}
+
+@Composable
 private fun CheckRow.text(state: NotificationStatusViewModel.State): Pair<String, String> = when (this) {
+    is CheckRow.Pending -> stringResource(
+        when (key) {
+            PermissionKey -> R.string.title_notificationCheckAllowed
+            OtherChannelsKey -> R.string.title_notificationCheckOtherCategories
+            BatteryKey -> R.string.title_notificationCheckBattery
+            BackgroundKey -> R.string.title_notificationCheckBackground
+            else -> R.string.title_notificationCheckPlayServices
+        },
+    ) to stringResource(R.string.title_notificationStatusChecking)
+
     is CheckRow.Permission -> if (allowed) {
         stringResource(R.string.title_notificationCheckAllowed) to stringResource(R.string.subtitle_notificationCheckAllowed)
     } else {

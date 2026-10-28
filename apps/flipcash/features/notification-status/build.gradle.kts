@@ -11,6 +11,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:notifications"))
     implementation(project(":libs:logging"))
     implementation(libs.play.services.base)
+    implementation(libs.bundles.haze)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)

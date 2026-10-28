@@ -4,8 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,6 +25,10 @@ import com.flipcash.app.notificationstatus.internal.NotificationStatusViewModel.
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.TopScrollEdge
+import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.theme.ScaffoldBarPlacement
+import dev.chrisbanes.haze.rememberHazeState
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.rememberNotificationPermission
 import com.google.android.gms.common.GoogleApiAvailability
@@ -45,41 +50,56 @@ fun NotificationStatusScreen() {
         viewModel.dispatchEvent(Event.Refresh)
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        AppBarWithTitle(
-            title = stringResource(R.string.title_notificationStatus),
-            onBackIconClicked = { navigator.pop() },
-        )
-        NotificationStatusContent(
-            state = state,
-            onFix = { fix ->
-                when (fix) {
-                    Fix.TurnOn -> {
-                        // Ask while Android still allows it; after that only settings can turn it on.
-                        val askable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                            permission.status in setOf(PermissionResult.NotRequested, PermissionResult.Denied)
-                        if (askable) permission.launch() else context.openAppNotificationSettings()
+    val scrollState = rememberScrollState()
+    val hazeState = rememberHazeState()
+
+    // As Settings: the page scrolls under the app bar and blurs into it (TopScrollEdge).
+    CodeScaffold(
+        barPlacement = ScaffoldBarPlacement.Overlay,
+        topBar = {
+            AppBarWithTitle(
+                title = stringResource(R.string.title_notificationStatus),
+                onBackIconClicked = { navigator.pop() },
+            )
+        },
+    ) { barPadding ->
+        val topPadding = barPadding.calculateTopPadding()
+        Box(modifier = Modifier.fillMaxSize()) {
+            NotificationStatusContent(
+                state = state,
+                topPadding = topPadding,
+                scrollState = scrollState,
+                hazeState = hazeState,
+                onFix = { fix ->
+                    when (fix) {
+                        Fix.TurnOn -> {
+                            // Ask while Android still allows it; after that only settings can turn it on.
+                            val askable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                permission.status in setOf(PermissionResult.NotRequested, PermissionResult.Denied)
+                            if (askable) permission.launch() else context.openAppNotificationSettings()
+                        }
+                        is Fix.ChannelSettings -> context.startActivity(
+                            Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                .putExtra(Settings.EXTRA_CHANNEL_ID, fix.channel.id),
+                        )
+                        Fix.BatterySettings ->
+                            context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                        Fix.AppDetails -> context.startActivity(IntentUtils.appSettings(context))
+                        Fix.ResolvePlayServices -> state.device?.let { device ->
+                            GoogleApiAvailability.getInstance()
+                                .getErrorResolutionPendingIntent(context, device.playServicesCode, 0)
+                                ?.send()
+                        }
+                        Fix.TryAgain -> viewModel.dispatchEvent(Event.TryAgain)
                     }
-                    is Fix.ChannelSettings -> context.startActivity(
-                        Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
-                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                            .putExtra(Settings.EXTRA_CHANNEL_ID, fix.channel.id),
-                    )
-                    Fix.BatterySettings ->
-                        context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-                    Fix.AppDetails -> context.startActivity(IntentUtils.appSettings(context))
-                    Fix.ResolvePlayServices -> state.device?.let { device ->
-                        GoogleApiAvailability.getInstance()
-                            .getErrorResolutionPendingIntent(context, device.playServicesCode, 0)
-                            ?.send()
-                    }
-                    Fix.TryAgain -> viewModel.dispatchEvent(Event.TryAgain)
-                }
-            },
-            onToggleExpanded = { viewModel.dispatchEvent(Event.ToggleExpanded) },
-            onSendTest = { viewModel.dispatchEvent(Event.SendTest) },
-            onShareReport = { viewModel.dispatchEvent(Event.ShareReportRequested) },
-        )
+                },
+                onToggleExpanded = { viewModel.dispatchEvent(Event.ToggleExpanded) },
+                onSendTest = { viewModel.dispatchEvent(Event.SendTest) },
+                onShareReport = { viewModel.dispatchEvent(Event.ShareReportRequested) },
+            )
+            TopScrollEdge(hazeState = hazeState, scrollState = scrollState, height = topPadding)
+        }
     }
 
     LaunchedEffect(viewModel) {

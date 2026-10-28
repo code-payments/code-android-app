@@ -50,7 +50,7 @@ internal class NotificationStatusViewModel @Inject constructor(
         val expanded: Boolean = false,
         val testSent: Boolean = false,
     ) {
-        val status: NotificationStatus? get() = device?.let { evaluateNotificationStatus(it, registration) }
+        val status: NotificationStatus get() = evaluateNotificationStatus(device, registration)
     }
 
     sealed interface Event {

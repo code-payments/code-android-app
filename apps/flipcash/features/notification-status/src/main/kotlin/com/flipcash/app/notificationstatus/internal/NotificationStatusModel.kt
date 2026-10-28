@@ -78,28 +78,42 @@ sealed interface CheckRow {
     val status: CheckStatus
     val fix: Fix?
 
+    /** Stays the same while the row's status changes, so the page can update it in place. */
+    val key: String
+
+    /** A phone check whose settings haven't been read yet. */
+    data class Pending(override val key: String) : CheckRow {
+        override val status = CheckStatus.Checking
+        override val fix: Fix? = null
+    }
+
     data class Permission(val allowed: Boolean) : CheckRow {
+        override val key get() = PermissionKey
         override val status = if (allowed) CheckStatus.Pass else CheckStatus.Fail
         override val fix = if (allowed) null else Fix.TurnOn
     }
 
     data class BlockedChannel(val channel: StatusChannel) : CheckRow {
+        override val key get() = channelKey(channel)
         override val status = channel.whenBlocked
         override val fix = Fix.ChannelSettings(channel)
     }
 
     /** The channels that are on and have no row of their own. */
     data class OtherChannels(val covered: List<StatusChannel>) : CheckRow {
+        override val key get() = OtherChannelsKey
         override val status = CheckStatus.Pass
         override val fix: Fix? = null
     }
 
     data class Battery(val optimized: Boolean) : CheckRow {
+        override val key get() = BatteryKey
         override val status = if (optimized) CheckStatus.Warning else CheckStatus.Pass
         override val fix = if (optimized) Fix.BatterySettings else null
     }
 
     data class Background(val restricted: Boolean, val bucket: String) : CheckRow {
+        override val key get() = BackgroundKey
         override val status = when {
             restricted -> CheckStatus.Fail
             bucket in limitingBuckets -> CheckStatus.Warning
@@ -109,6 +123,7 @@ sealed interface CheckRow {
     }
 
     data class GooglePlay(val state: PlayServices, val resolvable: Boolean) : CheckRow {
+        override val key get() = GooglePlayKey
         override val status = when (state) {
             PlayServices.Available -> CheckStatus.Pass
             PlayServices.NeedsUpdate -> CheckStatus.Warning
@@ -118,6 +133,7 @@ sealed interface CheckRow {
     }
 
     data class Registration(val state: RegistrationState) : CheckRow {
+        override val key get() = RegistrationKey
         override val status = when (state) {
             RegistrationState.Checking -> CheckStatus.Checking
             RegistrationState.Unknown -> CheckStatus.Unknown
@@ -157,16 +173,38 @@ data class NotificationStatus(
 
     /** A local test needs only the permission, not a working registration. */
     val canSendTest: Boolean
-        get() = phoneRows.none { it is CheckRow.Permission && it.status == CheckStatus.Fail }
+        get() = phoneRows.any { it is CheckRow.Permission && it.status == CheckStatus.Pass }
 }
+
+const val PermissionKey = "permission"
+const val OtherChannelsKey = "channels"
+const val BatteryKey = "battery"
+const val BackgroundKey = "background"
+const val GooglePlayKey = "play"
+const val RegistrationKey = "registration"
+
+fun channelKey(channel: StatusChannel): String = "channel:${channel.id}"
+
+/**
+ * Every row "ON THIS PHONE" can hold, in the order it shows them. A refresh can add or remove
+ * channel rows; the order stays put, so rows animate in and out rather than reshuffling.
+ */
+val PhoneRowKeys: List<String> =
+    listOf(PermissionKey) + StatusChannel.entries.map(::channelKey) +
+        listOf(OtherChannelsKey, BatteryKey, BackgroundKey, GooglePlayKey)
+
+// The rows a phone with nothing blocked shows: the likely final set, laid out while the read runs.
+private val PendingPhoneRows: List<CheckRow> =
+    listOf(PermissionKey, OtherChannelsKey, BatteryKey, BackgroundKey, GooglePlayKey).map(CheckRow::Pending)
 
 private val limitingBuckets = setOf("rare", "restricted")
 
+/** [device] is null until the phone's settings have been read. */
 fun evaluateNotificationStatus(
-    device: DeviceSnapshot,
+    device: DeviceSnapshot?,
     registration: RegistrationState,
 ): NotificationStatus {
-    val phoneRows = buildList {
+    val phoneRows: List<CheckRow> = if (device == null) PendingPhoneRows else buildList {
         add(CheckRow.Permission(device.notificationsAllowed))
         // Channel rows mean nothing while notifications are off app-wide.
         if (device.notificationsAllowed) {
@@ -188,7 +226,7 @@ fun evaluateNotificationStatus(
     val warnings = rows.count { it.status == CheckStatus.Warning || it.status == CheckStatus.Unknown }
     val summary = when {
         rows.any { it.status == CheckStatus.Checking } -> Summary.Checking
-        !device.notificationsAllowed -> Summary.NotificationsOff
+        device?.notificationsAllowed == false -> Summary.NotificationsOff
         fails > 0 -> Summary.ThingsToFix(fails)
         warnings > 0 -> Summary.ThingsToCheck(warnings)
         else -> Summary.Working

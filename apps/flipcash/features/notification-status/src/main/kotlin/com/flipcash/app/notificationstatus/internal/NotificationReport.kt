@@ -61,7 +61,8 @@ fun buildNotificationReport(
                 val saved = lastRecord?.let { "${it.result.key}, ${it.source.key}, ${formatTime(it.at)}" } ?: "none saved"
                 appendLine("Registered for push: ${row.status.label()} ($outcome; last $saved)")
             }
-            is CheckRow.Permission, is CheckRow.BlockedChannel, is CheckRow.OtherChannels -> Unit
+            // The report always reads the device first, so it never holds a Pending row.
+            is CheckRow.Permission, is CheckRow.BlockedChannel, is CheckRow.OtherChannels, is CheckRow.Pending -> Unit
         }
     }
     appendLine()

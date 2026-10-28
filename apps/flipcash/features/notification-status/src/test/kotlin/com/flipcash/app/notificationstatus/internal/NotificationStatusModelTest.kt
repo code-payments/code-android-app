@@ -190,6 +190,34 @@ class NotificationStatusModelTest {
     }
 
     @Test
+    fun `settings not read yet - the likely rows are laid out as checking`() {
+        val status = evaluateNotificationStatus(device = null, registration = RegistrationState.Checking)
+
+        assertEquals(Summary.Checking, status.summary)
+        assertTrue(status.rows.all { it.status == CheckStatus.Checking })
+        // Each placeholder's key is the row that replaces it on a healthy phone, so nothing moves.
+        assertEquals(
+            evaluateNotificationStatus(healthy, registered).rows.map { it.key },
+            status.rows.map { it.key },
+        )
+        assertFalse(status.canSendTest)
+    }
+
+    @Test
+    fun `every phone row follows the fixed key order`() {
+        val devices = listOf(
+            healthy,
+            healthy.blocking(StatusChannel.Chat, StatusChannel.Gain),
+            healthy.blocking(*StatusChannel.entries.toTypedArray()),
+            healthy.copy(notificationsAllowed = false),
+        )
+        devices.forEach { device ->
+            val keys = evaluateNotificationStatus(device, registered).phoneRows.map { it.key }
+            assertEquals(PhoneRowKeys.filter { it in keys }, keys)
+        }
+    }
+
+    @Test
     fun `play services needing an update is a warning, missing is a fail`() {
         val update = evaluateNotificationStatus(
             healthy.copy(playServices = PlayServices.NeedsUpdate, playServicesResolvable = true),
