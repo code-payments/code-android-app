@@ -22,6 +22,12 @@ sealed interface DeeplinkType: Parcelable {
     @Serializable data class TipChat(val chatId: ChatId): DeeplinkType, Navigatable
 
     /**
+     * The notification status page — `app.flipcash.com/settings/notifications`. Only the app
+     * builds this link, as the tap target of the status page's test notification.
+     */
+    @Serializable data object NotificationStatus : DeeplinkType, Navigatable
+
+    /**
      * A group chat invite — `app.flipcash.com/chat/{uuid}`.
      *
      * Carries a [ChatId] rather than a [ChatIdentifier] because a group is only ever addressed by
@@ -112,6 +118,7 @@ sealed interface DeeplinkType: Parcelable {
 
             is Login,
             is EmailVerification,
+            is NotificationStatus,
             -> false
         }
 }

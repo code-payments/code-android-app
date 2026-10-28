@@ -83,6 +83,9 @@ class PushRegistrar internal constructor(
         )
     }
 
+    /** The last saved result from any call site. */
+    suspend fun lastSaved(): PushRegistration? = store.read()
+
     suspend fun clear() = store.clear()
 
     private fun classify(error: Throwable): PushRegistrationOutcome = when {

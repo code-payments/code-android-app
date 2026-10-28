@@ -80,12 +80,14 @@ class ConversionsTest {
             DeeplinkType.Tipcard(userId = id),
             DeeplinkType.Profile(ProfileAddress.ByUsername("someone")),
             DeeplinkType.EmailVerification(email = "a@b.c", code = "123"),
+            DeeplinkType.NotificationStatus,
         )
 
         assertEquals(
             listOf(
                 "Login", "CashLink", "TokenInfo", "TipChat",
                 "GroupChatInvite", "Tipcard", "Profile", "EmailVerification",
+                "NotificationStatus",
             ),
             types.map { it.analytics },
         )

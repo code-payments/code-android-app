@@ -12,6 +12,7 @@ import com.flipcash.app.myaccount.internal.settings.BetaFlags
 import com.flipcash.app.myaccount.internal.settings.Blocklist
 import com.flipcash.app.myaccount.internal.settings.DeleteAccount
 import com.flipcash.app.myaccount.internal.settings.DeviceLogs
+import com.flipcash.app.myaccount.internal.settings.NotificationStatus
 import com.flipcash.app.myaccount.internal.settings.LogOut
 import com.flipcash.app.myaccount.internal.settings.RequireBiometrics
 import com.flipcash.app.myaccount.internal.settings.SettingsViewModel
@@ -76,7 +77,7 @@ class SettingsViewModelTest {
             listOf(
                 AccessKey, RequireBiometrics,
                 Blocklist, TrustedWebsites,
-                DeviceLogs, BetaFlags,
+                DeviceLogs, NotificationStatus, BetaFlags,
                 LogOut, DeleteAccount,
             ),
             state.items(),

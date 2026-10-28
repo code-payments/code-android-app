@@ -19,6 +19,8 @@ import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
 import com.flipcash.app.router.internal.AppRouter.Companion.chat
 import com.flipcash.app.router.internal.AppRouter.Companion.login
+import com.flipcash.app.router.internal.AppRouter.Companion.notifications
+import com.flipcash.app.router.internal.AppRouter.Companion.settings
 import com.flipcash.app.router.internal.AppRouter.Companion.tip
 import com.flipcash.app.router.internal.AppRouter.Companion.token
 import com.flipcash.app.router.internal.AppRouter.Companion.verification
@@ -55,6 +57,8 @@ internal class AppRouter(
         val token = listOf("token")
         val chat = listOf("chat")
         val tip = listOf("tip")
+        val settings = listOf("settings")
+        val notifications = listOf("notifications")
 
         /**
          * Redirector host. It carries no route of its own — the real link is percent-encoded in
@@ -132,6 +136,10 @@ internal class AppRouter(
             )
 
             is DeeplinkType.EmailVerification -> resolveEmailVerification(type)
+
+            is DeeplinkType.NotificationStatus -> DeeplinkAction.Navigate(
+                listOf(AppRoute.Tabs.Menu, AppRoute.Menu.Settings, AppRoute.Menu.NotificationStatus)
+            )
 
             is DeeplinkType.TipChat -> DeeplinkAction.Navigate(
                 listOf(AppRoute.Tabs.Chats, AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(type.chatId)))
@@ -253,6 +261,7 @@ internal class AppRouter(
             deepLink.isCashLink() -> deepLink.handleCashLink()
             deepLink.isToken() -> deepLink.handleTokenLink()
             deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
+            deepLink.isNotificationStatus() -> DeeplinkType.NotificationStatus
             deepLink.isTipChat() -> deepLink.handleTipChat()
             deepLink.isTipCard() -> deepLink.handleTipCard()
             // Ahead of every other `/chat/` route: `/chat/invite` has a secret in its fragment and
@@ -357,6 +366,10 @@ private fun DeepLink.isToken(): Boolean = token.contains(pathSegments.getOrNull(
 
 private fun DeepLink.isEmailVerification(): Boolean = verification.contains(pathSegments.getOrNull(0))
         && data.toUri().getQueryParameter("email") != null
+
+// https://app.flipcash.com/settings/notifications
+private fun DeepLink.isNotificationStatus(): Boolean =
+    settings.contains(pathSegments.getOrNull(0)) && notifications.contains(pathSegments.getOrNull(1))
 
 // https://app.flipcash.com/tip/chat/{url encoded chatId}
 private fun DeepLink.isTipChat(): Boolean =

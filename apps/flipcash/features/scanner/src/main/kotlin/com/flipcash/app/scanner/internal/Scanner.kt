@@ -126,6 +126,12 @@ internal fun Scanner() {
                     )
                     // Scanned tip-DM code — same destination as the
                     // /tip/chat/{id} deeplink.
+                    // Not scannable (see DeeplinkType.isScannable); listed for exhaustiveness.
+                    is DeeplinkType.NotificationStatus -> listOf(
+                        AppRoute.Tabs.Menu,
+                        AppRoute.Menu.Settings,
+                        AppRoute.Menu.NotificationStatus,
+                    )
                     is DeeplinkType.TipChat -> listOf(
                         AppRoute.Tabs.Chats,
                         AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(deeplink.chatId)),
