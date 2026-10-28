@@ -18,7 +18,8 @@ import javax.inject.Singleton
  * (`KeyEnvelope` comment), so nothing here retries.
  *
  * [GroupKeyEnvelopes] writes it; a chat whose key later opens drops out. Held in memory only: the
- * next launch fetches the bundle again and lands here again if it still fails.
+ * next launch fetches the bundle again and lands here again if it still fails. Logout calls
+ * [reset], since chat ids aren't scoped to the account that marked them.
  */
 @Singleton
 class WrongKeyChats @Inject constructor() {
@@ -32,5 +33,9 @@ class WrongKeyChats @Inject constructor() {
 
     internal fun clear(chatId: ChatId) {
         if (chatId in wrong.value) wrong.update { it - chatId }
+    }
+
+    fun reset() {
+        wrong.value = emptySet()
     }
 }

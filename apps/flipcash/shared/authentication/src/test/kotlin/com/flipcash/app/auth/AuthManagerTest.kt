@@ -15,6 +15,7 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.profile.ProfileCoordinator
+import com.flipcash.services.chat.WrongKeyChats
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
@@ -72,6 +73,7 @@ class AuthManagerTest {
     private val profileCoordinator: ProfileCoordinator = mockk(relaxed = true)
     private val contactCoordinator: ContactCoordinator = mockk(relaxed = true)
     private val chatCoordinator: ChatCoordinator = mockk(relaxed = true)
+    private val wrongKeyChats: WrongKeyChats = mockk(relaxed = true)
     private val userManagerState = MutableStateFlow(UserManager.State())
 
     private val networkConnectivityListener = mockk<NetworkConnectivityListener>(relaxed = true)
@@ -122,6 +124,7 @@ class AuthManagerTest {
             profileCoordinator = profileCoordinator,
             contactCoordinator = contactCoordinator,
             chatCoordinator = chatCoordinator,
+            wrongKeyChats = wrongKeyChats,
             dispatchers = dispatchers,
             networkObserver = networkConnectivityListener,
         )
@@ -258,6 +261,8 @@ class AuthManagerTest {
         verify { featureFlagController.reset() }
         verify { appSettings.reset() }
         verify { userFlags.clearAll() }
+        // A wrong-key mark is keyed by chat id alone, so the next account must not inherit it.
+        verify { wrongKeyChats.reset() }
     }
 
     @Test
