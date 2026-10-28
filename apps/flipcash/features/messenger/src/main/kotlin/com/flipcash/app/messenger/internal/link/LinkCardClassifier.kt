@@ -77,7 +77,14 @@ internal class LinkCardClassifier @Inject constructor(
     private fun HttpUrl.isWebsitePage(): Boolean =
         host in WEBSITE_HOSTS &&
             fragment == null &&
-            pathSegments.first().lowercase() !in SECRET_SEGMENTS
+            pathSegments.first().lowercase() !in SECRET_SEGMENTS &&
+            !isInvitePath()
+
+    /** `/chat/invite` in any case: an invite URL is never unfurled, with its fragment or without. */
+    private fun HttpUrl.isInvitePath(): Boolean =
+        pathSegments.size >= 2 &&
+            pathSegments[0].equals("chat", ignoreCase = true) &&
+            pathSegments[1].equals("invite", ignoreCase = true)
 
     /**
      * The message a tapped link points at, when it is a message link on our hosts (wrapped in a

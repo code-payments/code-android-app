@@ -2720,11 +2720,7 @@ internal class ChatViewModel @AssistedInject constructor(
             .launchIn(viewModelScope)
     }
 
-    /**
-     * The group events that are not an RPC's answer: the gate appearing, and the taps on the
-     * invite sheet, an invite card, the gate's funding button and the group profile. The screens report the taps
-     * as events so the member count and the gate mint come from the state this holds.
-     */
+    /** Whether the key this account holds for the open chat is the wrong one (an invite join gone bad). */
     private fun initWrongKey() {
         stateFlow.map { it.chatId }.filterNotNull().distinctUntilChanged()
             .flatMapLatest { wrongKeyChats.observe(it) }
@@ -2732,6 +2728,11 @@ internal class ChatViewModel @AssistedInject constructor(
             .launchIn(viewModelScope)
     }
 
+    /**
+     * The group events that are not an RPC's answer: the gate appearing, and the taps on the
+     * invite sheet, an invite card, the gate's funding button and the group profile. The screens report the taps
+     * as events so the member count and the gate mint come from the state this holds.
+     */
     private fun initGroupAnalytics() {
         // Once per view model, which is once per visit: the chat flow scopes it to the Chat route.
         // Keyed on the gate being drawn — outside the group with the access decided — and not on

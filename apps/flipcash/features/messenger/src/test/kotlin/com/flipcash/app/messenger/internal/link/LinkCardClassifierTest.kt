@@ -318,6 +318,29 @@ class LinkCardClassifierTest {
         assertEquals(outside, (card as? LinkCard.Web)?.url)
     }
 
+    /**
+     * The fake router above stands in for the parser. These run the real `AppRouter` (through the
+     * module that builds it), so a route the fake mis-states cannot hide an invite card.
+     */
+    @Test
+    fun `the real router gives an invite link no card on any host or wrapper`() {
+        val classifier = LinkCardClassifier(
+            com.flipcash.app.router.inject.RouterModule.providesRouter(io.mockk.mockk(relaxed = true)),
+        )
+        val secret = "A".repeat(43)
+        val invite = "/chat/invite#s=$secret"
+        for (url in listOf(
+            "https://app.flipcash.com$invite",
+            "https://flipcash.com$invite",
+            "https://jump.flipcash.com/#source=" +
+                java.net.URLEncoder.encode("https://app.flipcash.com$invite", "UTF-8"),
+            "https://app.flipcash.com/chat/invite",
+            "https://flipcash.com/chat/invite",
+        )) {
+            assertNull(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))), url)
+        }
+    }
+
     /** The send-cash path under a chat opens a payment, not the group, so it stays a plain link. */
     @Test
     fun `a chat send cash link stays a link`() {
