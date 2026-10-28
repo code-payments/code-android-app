@@ -128,24 +128,6 @@ internal fun CodeNavigator.openMessageShare(messageId: Long) {
     }
 }
 
-/**
- * The colour scrim that fades a list out into the bottom edge: [color] opaque at the bottom of the
- * box, fading to transparent [tail] above its top. Drawn behind the box's content. Shared by the
- * Invite People sheet and Select Recipient, so the two lists fade alike.
- */
-internal fun Modifier.bottomEdgeScrim(color: Color, tail: Dp): Modifier = drawBehind {
-    val scrimHeight = size.height + tail.toPx()
-    drawRect(
-        brush = Brush.verticalGradient(
-            colors = listOf(Color.Transparent, color),
-            startY = size.height - scrimHeight,
-            endY = size.height,
-        ),
-        topLeft = Offset(0f, size.height - scrimHeight),
-        size = size.copy(height = scrimHeight),
-    )
-}
-
 /** Test id of the Show Group Card tile. */
 internal const val GroupCardTileTag = "group-card-tile"
 
@@ -378,7 +360,18 @@ internal fun GroupInviteSheet(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(headerHeight)
-                .bottomEdgeScrim(scrimColor, ScrimTail),
+                .drawBehind {
+                    val scrimHeight = size.height + ScrimTail.toPx()
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, scrimColor),
+                            startY = size.height - scrimHeight,
+                            endY = size.height,
+                        ),
+                        topLeft = Offset(0f, size.height - scrimHeight),
+                        size = size.copy(height = scrimHeight),
+                    )
+                },
         )
 
         AppBarWithTitle(
@@ -484,12 +477,10 @@ private fun InviteLinkTile(
 /** Node 10330:19568 — the list's label, an ordinary row that scrolls with the chats. */
 @Composable
 private fun RecentChatsHeader() {
-    // Node 11633:2259: SemiBold 14, 16 above and below; the divider under it runs edge to edge.
-    Column {
+    // Node 11633:2259: SemiBold 14, 16 above and below; the divider keeps the rows' insets.
+    Column(modifier = Modifier.padding(horizontal = ListInset)) {
         Text(
-            modifier = Modifier
-                .padding(horizontal = ListInset)
-                .padding(vertical = CodeTheme.dimens.grid.x3),
+            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
             text = stringResource(R.string.label_recentChats),
             style = CodeTheme.typography.textSmall,
             color = White50,

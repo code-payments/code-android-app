@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
@@ -72,10 +73,19 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.flipcash.shared.amountentry.AmountEntryHint
 import com.flipcash.app.messenger.internal.screens.foldStyledLetters
-import com.flipcash.app.messenger.internal.screens.bottomEdgeScrim
+import com.getcode.ui.components.BottomScrollEdge
+import com.getcode.ui.components.TextInput
+import com.getcode.theme.inputColors
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.Icon
+import com.getcode.theme.White50
+import com.getcode.ui.core.unboundedClickable
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.components.SearchInput
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -219,7 +229,7 @@ private fun SelectRecipientContent(
     }
 
     // Same arrangement as Edit Featured Groups: the list runs edge to edge behind the bottom
-    // button, the Invite People colour scrim fades what passes under it, and the button
+    // button, a progressive blur (BottomScrollEdge) fades what passes under it, and the button
     // sits on floatingGlass over the same haze source.
     val density = LocalDensity.current
     val hazeState = rememberHazeState()
@@ -241,7 +251,7 @@ private fun SelectRecipientContent(
                 .padding(top = innerPadding.calculateTopPadding()),
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                SearchInput(
+                RecipientSearchField(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = CodeTheme.dimens.inset)
@@ -263,13 +273,11 @@ private fun SelectRecipientContent(
                 }
             }
 
-            // The Invite People list's fade: a colour scrim from the surface up over the rows.
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(barHeight)
-                    .bottomEdgeScrim(CodeTheme.colors.surface, CodeTheme.dimens.grid.x10),
+            BottomScrollEdge(
+                hazeState = hazeState,
+                visible = true,
+                height = barHeight,
+                modifier = Modifier.align(Alignment.BottomCenter),
             )
 
             // Pinned, and present with an empty list too: it is the way out when there is no one to pay.
@@ -296,6 +304,54 @@ private fun SelectRecipientContent(
             }
         }
     }
+}
+
+/**
+ * Select Recipient's search field (Figma): a filled rectangle with no border, 46 tall, 10 radius,
+ * 8% white, an 18 search glyph, a 10 gap and 14 padding, with a Regular 17 placeholder at 50% white.
+ * Local to this screen; the shared SearchInput keeps its outlined pill for the other lists.
+ */
+@Composable
+private fun RecipientSearchField(state: androidx.compose.foundation.text.input.TextFieldState, modifier: Modifier = Modifier) {
+    val textStyle = CodeTheme.typography.textMedium.copy(fontSize = 17.sp, fontWeight = FontWeight.Normal)
+    TextInput(
+        modifier = modifier,
+        state = state,
+        minHeight = CodeTheme.dimens.grid.x11,
+        placeholder = stringResource(com.getcode.ui.components.R.string.action_search),
+        placeholderStyle = textStyle,
+        style = textStyle,
+        maxLines = 1,
+        shape = RoundedCornerShape(CodeTheme.dimens.grid.x2),
+        colors = inputColors(
+            backgroundColor = Color(0x14FFFFFF),
+            borderColor = Color.Transparent,
+            placeholderColor = White50,
+        ),
+        leadingIcon = {
+            Icon(
+                modifier = Modifier
+                    .padding(start = CodeTheme.dimens.grid.x3)
+                    .size(CodeTheme.dimens.staticGrid.x4),
+                imageVector = Icons.Filled.Search,
+                contentDescription = null,
+                tint = White50,
+            )
+        },
+        trailingIcon = {
+            if (state.text.isNotEmpty()) {
+                Icon(
+                    modifier = Modifier
+                        .unboundedClickable { state.clearText() }
+                        .padding(end = CodeTheme.dimens.grid.x3)
+                        .size(CodeTheme.dimens.staticGrid.x4),
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = null,
+                    tint = White50,
+                )
+            }
+        },
+    )
 }
 
 @Composable
