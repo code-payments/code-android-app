@@ -153,8 +153,10 @@ class GroupKeyEnvelopes @Inject constructor(
             ?: return Result.failure(IllegalStateException("No public key for the invite's creator"))
         val keyEnvelope = bundle.keyEnvelope.toSealed()
         val secretEnvelope = bundle.secretEnvelope.toPayload()
+        // A scheme this build doesn't implement says nothing about the key, so it is refused the
+        // way an unsupported KeyEnvelope is, without the wrong-key mark.
         if (keyEnvelope == null || secretEnvelope == null) {
-            return wrongKey(chatId, "Unsupported invite envelope scheme")
+            return Result.failure(UntrustedEnvelope("Unsupported invite envelope scheme"))
         }
 
         val opened = inviteCipher.openInviteKeyBundle(

@@ -12,6 +12,7 @@ import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.StoredKeyEnvelope
 import com.getcode.chatcipher.EncryptedPayload
 import com.getcode.ed25519kmp.KeyPair
+import com.getcode.solana.keys.PublicKey
 import com.getcode.opencode.model.core.ID
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -218,6 +219,7 @@ class GroupKeyEnvelopesTest {
         secretOwner: KeyPair = memberKeys,
         sealedFor: ByteArray = secret,
         secretScheme: Int = InviteSecretEnvelope.SCHEME_X25519_XCHACHA20POLY1305,
+        wrappedByPublicKey: PublicKey? = null,
     ): GetKeyEnvelopeError.InviteKeyBundleOnly {
         val copy = inviteCipher.sealInviteKeyEnvelope(signer, sealedFor, chatId.bytes, groupKey).toEnvelope()
         val own = inviteCipher.sealInviteSecretEnvelope(secretOwner, secret, chatId.bytes, inviteId.bytes)
@@ -227,7 +229,7 @@ class GroupKeyEnvelopesTest {
                 keyEnvelope = copy,
                 secretEnvelope = InviteSecretEnvelope(secretScheme, own.nonce, own.ciphertext),
                 wrappedBy = wrappedBy,
-                wrappedByPublicKey = null,
+                wrappedByPublicKey = wrappedByPublicKey,
             ),
         )
     }
@@ -280,7 +282,53 @@ class GroupKeyEnvelopesTest {
         assertWrongKey(bundle(sealedFor = ByteArray(32) { 4 }))
 
     @Test
-    fun `a bundle in an unknown scheme is the wrong key`() = assertWrongKey(bundle(secretScheme = 9))
+    fun `a bundle in an unknown scheme is refused without the wrong-key mark`() = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(bundle(secretScheme = 9))
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+
+        assertTrue(memberEnvelopes.key(chatId).exceptionOrNull() is UntrustedEnvelope)
+        assertFalse(chatId in wrongKeyChats.chats.value)
+        coVerify(exactly = 0) { controller.setKeyEnvelope(any(), any()) }
+    }
+
+    @Test
+    fun `the reported creator key opens the bundle when the creator's key can't be looked up`() = runTest {
+        val offline = object : ChatKeySource {
+            override fun ownKeyPair() = memberKeys
+            override fun ownUserId() = memberId
+            override suspend fun peerPublicKey(userId: ID): Result<ByteArray> = Result.failure(IOException("offline"))
+        }
+        val envelopes = GroupKeyEnvelopes(FakeChatCipher, inviteCipher, offline, controller, wrongKeyChats)
+        coEvery { controller.getKeyEnvelope(chatId) } returns
+            Result.failure(bundle(wrappedByPublicKey = PublicKey(creatorKeys.publicKey.toList())))
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+        coEvery { controller.setKeyEnvelope(chatId, any()) } returns Result.success(Unit)
+
+        assertContentEquals(groupKey, envelopes.key(chatId).getOrThrow())
+    }
+
+    @Test
+    fun `ALREADY_SET after the bundle opens reads the envelope another device stored`() = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returnsMany listOf(
+            Result.failure(bundle()),
+            Result.success(stored(memberKeys, memberPk, memberId)),
+        )
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+        coEvery { controller.setKeyEnvelope(chatId, any()) } returns Result.failure(SetKeyEnvelopeError.AlreadySet())
+
+        assertContentEquals(groupKey, memberEnvelopes.key(chatId).getOrThrow())
+        coVerify(exactly = 2) { controller.getKeyEnvelope(chatId) }
+    }
+
+    @Test
+    fun `a rejected bundle is not cached and is fetched again on the next open`() = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(bundle(wrappedBy = List(16) { 9 }))
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+
+        assertTrue(memberEnvelopes.key(chatId).isFailure)
+        assertTrue(memberEnvelopes.key(chatId).isFailure)
+        coVerify(exactly = 2) { controller.getKeyEnvelope(chatId) }
+    }
 
     @Test
     fun `a network failure is not cached and the next open retries`() = runTest {
