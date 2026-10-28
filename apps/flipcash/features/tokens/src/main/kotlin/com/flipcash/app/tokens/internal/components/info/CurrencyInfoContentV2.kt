@@ -29,6 +29,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -251,11 +255,14 @@ internal fun CurrencyInfoContentV2(
                             },
                         )
                     }
-                    items(state.communityChats.take(TopCommunityChatsPreviewCount), key = { it.chat.chatId.toString() }) { entry ->
+                    itemsIndexed(state.communityChats.take(TopCommunityChatsPreviewCount), key = { _, it -> it.chat.chatId.toString() }) { index, entry ->
                         CommunityChatRow(
+                            card = true,
+                            // Cards 10dp apart, 14dp under the header (node 11622:1621, 0.65 scale).
                             modifier = Modifier
                                 .fillParentMaxWidth()
-                                .padding(horizontal = inset),
+                                .padding(horizontal = inset)
+                                .padding(top = if (index == 0) 14.dp else 10.dp),
                             chat = entry.chat,
                             holdings = entry.holdings,
                             currencyName = token.name,
@@ -373,7 +380,8 @@ private fun CurrencyActionTiles(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+        // Node 11622:1609, drawn at 0.65: 5.2 gaps, i.e. 8dp.
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         currencyActionTiles(tokenMint, isHeld).forEach { tile ->
             val (label, icon) = when (tile) {
@@ -425,19 +433,22 @@ private fun ActionTile(
     Column(
         modifier = modifier
             .alpha(if (enabled) 1f else DisabledActionTileAlpha)
-            .height(CodeTheme.dimens.staticGrid.x18)
-            .clip(CodeTheme.shapes.extraSmall)
+            .height(88.dp)
+            .clip(RoundedCornerShape(12.dp))
             .background(Color.White.copy(alpha = 0.1f))
             .clickable(enabled = enabled, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         icon()
-        Spacer(Modifier.height(CodeTheme.dimens.grid.x1))
+        Spacer(Modifier.height(8.dp))
+        // 12sp medium in textMain, as drawn (7.8 at 0.65): "Transactions" fits one line.
         Text(
             text = label,
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textSecondary,
+            style = CodeTheme.typography.textSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+            color = CodeTheme.colors.textMain,
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }
