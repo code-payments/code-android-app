@@ -503,7 +503,7 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
 internal fun ChatModel.HoldingsSummary.toHoldingsSummary(): HoldingsSummary {
     return HoldingsSummary(
         mint = mint.toMint(),
-        holdings = Fiat(quarks = quarks),
+        quarks = quarks,
         holderCount = holderCount,
         asOf = Instant.fromEpochSeconds(asOf.seconds, asOf.nanos),
     )

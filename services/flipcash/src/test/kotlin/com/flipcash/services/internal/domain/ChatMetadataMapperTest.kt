@@ -166,4 +166,23 @@ class ChatMetadataMapperTest {
         val result = mapper.map(metadata())
         assertNull(result.lastMessage)
     }
+
+    @Test
+    fun `maps holdings summary in mint quarks`() {
+        val summary = ChatModel.HoldingsSummary.newBuilder()
+            .setMint(Common.PublicKey.newBuilder().setValue(ByteString.copyFrom(ByteArray(32) { 7 })))
+            .setQuarks(25_000_000_000L)
+            .setHolderCount(14)
+            .setAsOf(Timestamp.newBuilder().setSeconds(2000))
+            .build()
+        val result = mapper.map(metadata { setHoldingsSummary(summary) })
+        val mapped = assertNotNull(result.holdingsSummary)
+        assertEquals(25_000_000_000L, mapped.quarks)
+        assertEquals(14L, mapped.holderCount)
+    }
+
+    @Test
+    fun `holdings summary null when absent`() {
+        assertNull(mapper.map(metadata()).holdingsSummary)
+    }
 }

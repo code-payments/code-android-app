@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal.request
 
+import com.getcode.view.PaymentSuccessHoldDuration
+import com.getcode.view.holdPaymentSuccess
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
@@ -207,9 +209,10 @@ internal class RequestDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             payments.pay(pending, token, owner.withTimelockForToken(token))
                 .onSuccess {
-                    _state.update { it.copy(payProgress = LoadingSuccessState(success = true)) }
-                    delay(400.milliseconds)
-                    dismissSheet()
+                    holdPaymentSuccess(
+                        show = { _state.update { it.copy(payProgress = LoadingSuccessState(success = true)) } },
+                        release = { dismissSheet() },
+                    )
                 }
                 .onFailure { cause -> afterFailedPayment(pending, cause) }
         }

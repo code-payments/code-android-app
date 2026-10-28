@@ -1,5 +1,7 @@
 package com.flipcash.app.withdrawal
 
+import com.getcode.view.PaymentSuccessHoldDuration
+import com.getcode.view.holdPaymentSuccess
 import android.content.ClipboardManager
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
@@ -484,9 +486,10 @@ internal class WithdrawalViewModel @Inject constructor(
                         coroutineScope {
                             activityFeedCoordinator.fetchSinceLatest()
                         }
-                        dispatchEvent(Event.UpdateWithdrawalState(success = true))
-                        delay(400)
-                        dispatchEvent(Event.OnWithdrawSuccessful)
+                        holdPaymentSuccess(
+                            show = { dispatchEvent(Event.UpdateWithdrawalState(success = true)) },
+                            release = { dispatchEvent(Event.OnWithdrawSuccessful) },
+                        )
                     }
                 }
             )
@@ -569,9 +572,10 @@ internal class WithdrawalViewModel @Inject constructor(
                         coroutineScope {
                             activityFeedCoordinator.fetchSinceLatest()
                         }
-                        dispatchEvent(Event.UpdateWithdrawalState(success = true))
-                        delay(400)
-                        dispatchEvent(Event.OnWithdrawSuccessful)
+                        holdPaymentSuccess(
+                            show = { dispatchEvent(Event.UpdateWithdrawalState(success = true)) },
+                            release = { dispatchEvent(Event.OnWithdrawSuccessful) },
+                        )
                     }
                 },
                 onError = {

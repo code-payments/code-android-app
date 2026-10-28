@@ -196,7 +196,22 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class TokenSelection(val purpose: TokenPurpose) : Sheets
         @Serializable
-        data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Sheets
+        data class Give(
+            val mint: Mint? = null,
+            val fromTokenInfo: Boolean = false,
+            /**
+             * An amount in the viewer's preferred currency to give as-is. When set, the screen
+             * skips its own amount entry and goes straight to the bill.
+             */
+            val amount: Double? = null,
+        ) : Sheets
+
+        /**
+         * Send from Currency Info: an amount of [mint], then a recipient from the viewer's DMs.
+         * Dismisses back to Currency Info after the send.
+         */
+        @Serializable
+        data class CurrencySend(val mint: Mint) : Sheets
 
         /** Full unified paged activity history — the "dive in" from the wallet's recent-activity preview. */
         @Serializable
@@ -230,6 +245,9 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class Transactions(val mint: Mint) : Token
         @Serializable
         data class MarketCapExplainer(val mint: Mint) : Token
+        /** "Top Community Chats": View All from Currency Info. */
+        @Serializable
+        data class CommunityChats(val mint: Mint) : Token
         @Serializable
         data class Swap(
             val purpose: SwapPurpose,
@@ -284,9 +302,14 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     sealed interface Transfers : AppRoute {
         @Serializable
-        data class Deposit(val showOtherOptions: Boolean = true): Transfers, FlowRouteWithResult<DepositResult> {
+        data class Deposit(
+            val showOtherOptions: Boolean = true,
+            /** When set, opens straight on that currency's deposit address instead of the USDC intro. */
+            val mint: Mint? = null,
+        ): Transfers, FlowRouteWithResult<DepositResult> {
             override val initialStack: List<NavKey>
-                get() =  listOf(DepositStep.UsdcInformational(showOtherOptions))
+                get() = mint?.let { listOf(DepositStep.Destination(it)) }
+                    ?: listOf(DepositStep.UsdcInformational(showOtherOptions))
         }
 
         /**
@@ -547,6 +570,14 @@ sealed interface AppRoute : NavKey, Parcelable {
             val username: String?,
             val displayName: String?,
             val directChatId: ChatId?,
+        ) : Messaging, com.getcode.navigation.Sheet, com.getcode.navigation.FullscreenSheet
+
+        /** "Share <name>" from Currency Info: the page link shared, copied, or sent into recent chats. */
+        @Serializable
+        @Parcelize
+        data class ShareCurrencyToChats(
+            val mint: Mint,
+            val name: String,
         ) : Messaging, com.getcode.navigation.Sheet, com.getcode.navigation.FullscreenSheet
 
         /**

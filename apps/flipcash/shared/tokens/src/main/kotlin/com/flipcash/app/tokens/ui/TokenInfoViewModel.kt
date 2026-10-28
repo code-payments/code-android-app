@@ -15,6 +15,9 @@ import com.flipcash.app.tokens.data.MarketCapPoint
 import com.flipcash.app.tokens.data.Period
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.tokens.R
+import com.flipcash.app.funding.bottomBarCardAction
+import com.flipcash.services.controllers.CommunityController
+import com.flipcash.services.models.chat.ChatMetadata
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.AccountController
@@ -41,6 +44,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.emitAll
 import javax.inject.Inject
 
 @HiltViewModel
@@ -52,6 +56,7 @@ class TokenInfoViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val purchaseMethodController: PurchaseMethodController,
     private val feedCoordinator: ActivityFeedCoordinator,
+    private val communityController: CommunityController,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
@@ -72,6 +77,8 @@ class TokenInfoViewModel @Inject constructor(
         val fundableBalanceMints: Set<Mint> = emptySet(),
         /** Bounded per-token recent activity preview (newest first) for the v2 currency-info screen. */
         val transactions: List<TransactionListItem> = emptyList(),
+        /** Public groups gated on this currency, ranked by the server. Empty hides the section. */
+        val communityChats: List<CommunityChatEntry> = emptyList(),
     ) {
         /** True when the user holds a displayable balance in some token other than [mint], which could fund a buy of it. */
         val hasFundableBalance: Boolean
@@ -121,6 +128,9 @@ class TokenInfoViewModel @Inject constructor(
         data object Share : Event
         data class OnBuy(val shortFall: Fiat? = null) : Event
         data object OnConvert : Event
+        data object OnMore : Event
+        data object OnRankingInfo : Event
+        data class OnCommunityChatsLoaded(val chats: List<CommunityChatEntry>) : Event
         data object PresentDepositOptions: Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object Exit : Event
@@ -380,11 +390,103 @@ class TokenInfoViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.OnMintProvided>()
+            .map { it.mint }
+            .distinctUntilChanged()
+            .flatMapLatest { mint ->
+                kotlinx.coroutines.flow.flow {
+                    // USDF has no community; a failed call and an empty list both hide the section.
+                    val chats = if (mint == Mint.usdf) emptyList()
+                    else communityController.getCommunity(mint).topCommunityChats()
+                    val token = tokenCoordinator.cachedToken(mint)
+                    // Re-value when the viewer's currency or rates change.
+                    emitAll(
+                        exchange.observePreferredRate()
+                            .map { rate -> chats.asEntries(token, rate, exchange.rates()) }
+                    )
+                }
+            }
+            .onEach { dispatchEvent(Event.OnCommunityChatsLoaded(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnMore>()
+            .onEach { presentMore() }
+            .launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.Share>()
             .mapNotNull { stateFlow.value.token.dataOrNull }
-            .map { Shareable.TokenInfo(it) }
-            .onEach { shareController.present(it) }
+            .onEach { token ->
+                // The sheet offers the system share, copy, and recent chats; the system share
+                // sheet it opens is `shareController` with this same shareable.
+                dispatchEvent(
+                    Event.OpenScreen(AppRoute.Messaging.ShareCurrencyToChats(token.address, token.name))
+                )
+            }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnRankingInfo>()
+            .onEach {
+                val name = stateFlow.value.token.dataOrNull?.name ?: return@onEach
+                BottomBarManager.showInfo(
+                    title = resources.getString(R.string.title_howChatsAreRanked),
+                    message = resources.getString(R.string.description_howChatsAreRanked, name),
+                )
+            }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Convert, Withdraw and Deposit as card rows, styled as the group chat's Send/Request sheet:
+     * no title, no Dismiss.
+     */
+    private fun presentMore() {
+        val state = stateFlow.value
+        val mint = state.mint ?: return
+        val name = state.token.dataOrNull?.name ?: return
+        val rows = moreRows(mint)
+        BottomBarManager.showMessage(
+            title = "",
+            actions = rows.map { row ->
+                when (row) {
+                    MoreRow.Convert -> bottomBarCardAction(
+                        title = resources.getString(R.string.action_convert),
+                        subtitle = resources.getString(R.string.subtitle_moreConvert, name),
+                        iconRes = R.drawable.ic_convert,
+                        testTag = "more_action_convert",
+                        onClick = { dispatchEvent(Event.OnConvert) },
+                    )
+                    MoreRow.Withdraw -> bottomBarCardAction(
+                        title = resources.getString(R.string.action_withdraw),
+                        subtitle = resources.getString(R.string.subtitle_moreWithdraw, name),
+                        iconRes = R.drawable.ic_menu_withdraw,
+                        testTag = "more_action_withdraw",
+                        onClick = {
+                            dispatchEvent(
+                                Event.OpenScreen(AppRoute.Transfers.Withdrawal(preselectedMint = mint))
+                            )
+                        },
+                    )
+                    MoreRow.Deposit -> bottomBarCardAction(
+                        title = resources.getString(R.string.action_deposit),
+                        subtitle = resources.getString(R.string.subtitle_moreDeposit, name),
+                        iconRes = R.drawable.ic_menu_deposit,
+                        testTag = "more_action_deposit",
+                        // Dollars opens the add-money options (debit card, Phantom, other wallet);
+                        // any other currency opens its own deposit address.
+                        onClick = {
+                            if (mint == Mint.usdf) {
+                                dispatchEvent(Event.PresentDepositOptions)
+                            } else {
+                                dispatchEvent(Event.OpenScreen(AppRoute.Transfers.Deposit(mint = mint)))
+                            }
+                        },
+                    )
+                }
+            },
+        )
     }
 
     companion object {
@@ -423,11 +525,14 @@ class TokenInfoViewModel @Inject constructor(
                 is Event.OnTransactionHistoryEnabled -> { state -> state.copy(showTransactionHistory = event.enabled) }
 
                 is Event.OnMarketCapPeriodSelected -> { state -> state.copy(selectedPeriod = event.period) }
+                is Event.OnCommunityChatsLoaded -> { state -> state.copy(communityChats = event.chats) }
+                Event.OnMore -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
                 is Event.OnBuy -> { state -> state }
                 Event.OnConvert -> { state -> state }
                 is Event.LoadHistoricalDataForPeriod -> { state -> state }
                 is Event.Share -> { state -> state }
+                Event.OnRankingInfo -> { state -> state }
                 is Event.Exit -> { state -> state }
             }
         }

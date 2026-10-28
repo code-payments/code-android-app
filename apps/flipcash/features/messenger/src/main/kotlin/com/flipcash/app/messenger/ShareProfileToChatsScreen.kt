@@ -40,18 +40,7 @@ fun ShareProfileToChatsScreen(route: AppRoute.Messaging.ShareProfileToChats) {
 
     LaunchedEffect(viewModel, route.directChatId) { viewModel.exclude(route.directChatId) }
 
-    // The chat is opened once the sheet is gone, so it is not pushed under one still on its way
-    // out. The keyboard goes first: the message field has it up, and leaving with it still open
-    // drags the screen behind out from under it.
-    LaunchedEffect(viewModel) {
-        viewModel.invited.collect { chatId ->
-            keyboard.hideIfVisible {
-                navigator.pendingSheetDismiss = {
-                    navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId)))
-                }
-            }
-        }
-    }
+    OpenChatAfterShare(viewModel)
 
     GroupInviteSheet(
         inviteUrl = link,
@@ -63,7 +52,6 @@ fun ShareProfileToChatsScreen(route: AppRoute.Messaging.ShareProfileToChats) {
         ),
         state = state,
         // A person's link has no group analytics to fire.
-        onShare = {},
         onCopy = { viewModel.copyProfileLink(link) },
         onToggle = viewModel::toggle,
         onMessageChanged = viewModel::onMessageChanged,
@@ -76,4 +64,48 @@ fun ShareProfileToChatsScreen(route: AppRoute.Messaging.ShareProfileToChats) {
             }
         },
     )
+}
+
+/** Currency Info's "Share <name>" sheet, behind `AppRoute.Messaging.ShareCurrencyToChats`. */
+@Composable
+fun ShareCurrencyToChatsScreen(route: AppRoute.Messaging.ShareCurrencyToChats) {
+    val viewModel = hiltViewModel<GroupInviteViewModel>()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+
+    val link = remember(route.mint) { Linkify.tokenInfo(route.mint) }
+
+    OpenChatAfterShare(viewModel)
+
+    GroupInviteSheet(
+        inviteUrl = link,
+        subject = ShareToChatsSubject.Currency(route.name),
+        state = state,
+        onCopy = { viewModel.copyProfileLink(link) },
+        onToggle = viewModel::toggle,
+        onMessageChanged = viewModel::onMessageChanged,
+        onInvite = { viewModel.invite(link) },
+        onDismiss = dismissSheet,
+    )
+}
+
+/**
+ * What every root-level share-to-chats sheet does once the invites have gone out: the keyboard
+ * goes first (the message field has it up, and leaving with it still open drags the screen behind
+ * out from under it), then the sheet animates away, and only then is the first-selected chat
+ * opened, so it is not pushed under a sheet still on its way out.
+ */
+@Composable
+private fun OpenChatAfterShare(viewModel: GroupInviteViewModel) {
+    val navigator = LocalCodeNavigator.current
+    val keyboard = rememberKeyboardController()
+    LaunchedEffect(viewModel) {
+        viewModel.invited.collect { chatId ->
+            keyboard.hideIfVisible {
+                navigator.pendingSheetDismiss = {
+                    navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId)))
+                }
+            }
+        }
+    }
 }

@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal
 
+import com.getcode.view.PaymentSuccessHoldDuration
+import com.getcode.view.holdPaymentSuccess
 import com.flipcash.shared.chat.ui.settledUsd
 import com.flipcash.shared.chat.ui.partFor
 import com.flipcash.shared.chat.media.ChatPhoto
@@ -3707,12 +3709,15 @@ internal class ChatViewModel @AssistedInject constructor(
                     }
 
                     result.onSuccess {
-                        dispatchEvent(Event.SendStateUpdated(success = true))
-                        delay(400.milliseconds)
-                        analytics.track(sent(AnalyticsState.SUCCESS, null))
-                        dispatchEvent(
-                            Dispatchers.Main,
-                            Event.SendComplete(verifiedFiat.localFiat.nativeAmount)
+                        holdPaymentSuccess(
+                            show = { dispatchEvent(Event.SendStateUpdated(success = true)) },
+                            release = {
+                                analytics.track(sent(AnalyticsState.SUCCESS, null))
+                                dispatchEvent(
+                                    Dispatchers.Main,
+                                    Event.SendComplete(verifiedFiat.localFiat.nativeAmount)
+                                )
+                            },
                         )
                     }.onFailure { cause ->
                         dispatchEvent(Event.SendStateUpdated())
@@ -3926,12 +3931,15 @@ internal class ChatViewModel @AssistedInject constructor(
         )
 
         result.onSuccess {
-            dispatchEvent(Event.SendStateUpdated(success = true))
-            delay(400.milliseconds)
-            analytics.track(TransferEvents.sentCash(AnalyticsState.SUCCESS, total.analytics, null))
-            // The send state stays until the sheet has gone, so Select People doesn't flash back to
-            // the keypad on the way out. The next "$" starts a fresh one.
-            dispatchEvent(Dispatchers.Main, Event.SendComplete(total))
+            holdPaymentSuccess(
+                show = { dispatchEvent(Event.SendStateUpdated(success = true)) },
+                release = {
+                    analytics.track(TransferEvents.sentCash(AnalyticsState.SUCCESS, total.analytics, null))
+                    // The send state stays until the sheet has gone, so Select People doesn't flash back to
+                    // the keypad on the way out. The next "$" starts a fresh one.
+                    dispatchEvent(Dispatchers.Main, Event.SendComplete(total))
+                },
+            )
         }.onFailure { cause ->
             dispatchEvent(Event.SendStateUpdated())
             analytics.track(TransferEvents.sentCash(AnalyticsState.FAILURE, total.analytics, cause.analytics))

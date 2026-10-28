@@ -541,7 +541,6 @@ private fun FlowShareMessageSheet(messageId: Long) {
         inviteUrl = link,
         subject = ShareToChatsSubject.Message,
         state = inviteState,
-        onShare = {},
         onCopy = { viewModel.dispatchEvent(ChatViewModel.Event.CopyMessageLink(messageId)) },
         onToggle = inviteViewModel::toggle,
         onMessageChanged = inviteViewModel::onMessageChanged,
