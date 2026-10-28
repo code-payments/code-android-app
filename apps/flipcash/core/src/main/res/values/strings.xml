@@ -1996,6 +1996,7 @@
     <string name="action_checkAgain">Check Again</string>
     <string name="description_notificationStatusFooter">The test is posted by this phone. It shows that notifications can appear here, not that Flipcash\'s servers can reach you.</string>
     <string name="description_notificationStatusTestDisabled">Turn on notifications to send a test.</string>
+    <string name="description_notificationStatusTestDisabledChatOff">Turn on chat notifications to send a test.</string>
     <string name="toast_notificationStatusTestSent">Test notification sent</string>
 
     <string name="title_notificationCheckAllowed">Notifications allowed</string>
@@ -2043,13 +2044,12 @@
     <string name="title_notificationCheckRegistering">Checking registration…</string>
     <string name="subtitle_notificationCheckRegistering">Contacting Flipcash</string>
     <string name="subtitle_notificationCheckRegistered">Confirmed just now</string>
-    <string name="subtitle_notificationCheckNoToken">Couldn\'t get a push token from Google</string>
-    <string name="subtitle_notificationCheckTokenRejected">Flipcash rejected this phone\'s push token</string>
+    <string name="title_notificationCheckNoToken">Couldn\'t get a push token from Google</string>
+    <string name="title_notificationCheckTokenRejected">Flipcash rejected this phone\'s push token</string>
     <string name="title_notificationCheckUnreachable">Couldn\'t reach Flipcash</string>
     <string name="subtitle_notificationCheckUnreachable">Check your connection</string>
     <!-- %1$s is a relative time, e.g. "2 hours ago" -->
     <string name="subtitle_notificationCheckLastConfirmed">Last confirmed %1$s</string>
     <string name="subtitle_notificationCheckLastConfirmedJustNow">Last confirmed just now</string>
-    <string name="subtitle_notificationCheckFailed">Registration failed</string>
-    <string name="subtitle_notificationCheckInterrupted">The check didn\'t finish</string>
+    <string name="title_notificationCheckFailed">Registration failed</string>
 </resources>

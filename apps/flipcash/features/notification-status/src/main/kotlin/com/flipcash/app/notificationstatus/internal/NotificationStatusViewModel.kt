@@ -8,7 +8,6 @@ import com.flipcash.app.auth.push.PushRegistrar
 import com.flipcash.app.auth.push.PushRegistration
 import com.flipcash.app.auth.push.PushRegistrationAttempt
 import com.flipcash.app.auth.push.PushRegistrationOutcome
-import com.flipcash.app.auth.push.PushRegistrationResult
 import com.flipcash.app.auth.push.PushRegistrationSource
 import com.flipcash.app.notifications.TestNotificationPoster
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -27,8 +26,6 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 
 @HiltViewModel
@@ -55,6 +52,8 @@ internal class NotificationStatusViewModel @Inject constructor(
         val rechecking: Boolean = false,
         /** The page was folded when the re-run started; it stays folded while the run lasts. */
         val foldedAtRecheck: Boolean = false,
+        /** The first run has finished, so the summary can say when it last checked. */
+        val checked: Boolean = false,
     ) {
         val status: NotificationStatus get() = evaluateNotificationStatus(device, registration, rechecking)
 
@@ -72,6 +71,8 @@ internal class NotificationStatusViewModel @Inject constructor(
         data object RegistrationStarted : Event
         data class RegistrationFinished(val attempt: PushRegistrationAttempt, val saved: PushRegistration?) : Event
         data object TryAgain : Event
+        /** The in-app "Turn On" got the permission: re-read the phone and register again. */
+        data object PermissionGranted : Event
         /** Re-run every check, Registration included: the top bar's "Check again". */
         data object CheckAgain : Event
         data object RecheckStarted : Event
@@ -93,6 +94,14 @@ internal class NotificationStatusViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.TryAgain>()
             .onEach { register() }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.PermissionGranted>()
+            .onEach {
+                dispatchEvent(Event.Refresh)
+                register()
+            }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -138,10 +147,10 @@ internal class NotificationStatusViewModel @Inject constructor(
             PushRegistrationOutcome.InvalidPushToken
         registration = viewModelScope.launch {
             dispatchEvent(Event.RegistrationStarted)
+            // If the page closes mid-run this is cancelled before anything is saved.
             val attempt = registrar.register(
                 source = PushRegistrationSource.StatusPage,
                 resetToken = resetToken,
-                timeout = RegistrationTimeout,
             )
             dispatchEvent(Event.RegistrationFinished(attempt, registrar.lastSaved()))
         }
@@ -171,7 +180,6 @@ internal class NotificationStatusViewModel @Inject constructor(
     }
 
     internal companion object {
-        val RegistrationTimeout = 10.seconds
         val MinimumRecheck = 600.milliseconds
 
         private val ReportTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
@@ -186,7 +194,7 @@ internal class NotificationStatusViewModel @Inject constructor(
         }
 
         private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
-            when (event) {
+            val update: State.() -> State = when (event) {
                 is Event.DeviceRead -> { {
                     copy(device = event.device, rechecking = false)
                 } }
@@ -196,24 +204,26 @@ internal class NotificationStatusViewModel @Inject constructor(
                 is Event.RegistrationStarted -> { { copy(registration = RegistrationState.Checking) } }
                 is Event.RegistrationFinished -> { {
                     val attempt = event.attempt
-                    val lastConfirmedAt: Instant? = attempt.previous
-                        ?.takeIf { it.result == PushRegistrationResult.Ok }
-                        ?.at
                     copy(
-                        registration = RegistrationState.Finished(attempt.outcome, lastConfirmedAt),
+                        // The record from before the attempt, not the one it just wrote.
+                        registration = RegistrationState.Finished(attempt.outcome, attempt.previous?.lastOkAt),
                         lastRegistration = event.saved,
-                        tokenSuffix = attempt.tokenSuffix ?: tokenSuffix,
+                        // The token this attempt sent; none when it couldn't fetch one.
+                        tokenSuffix = attempt.tokenSuffix,
                     )
                 } }
                 is Event.ToggleExpanded -> { { copy(expanded = !expanded) } }
                 is Event.TestScheduled -> { { copy(testSent = true) } }
                 is Event.Refresh,
                 is Event.TryAgain,
+                is Event.PermissionGranted,
                 is Event.CheckAgain,
                 is Event.SendTest,
                 is Event.ShareReportRequested,
                 is Event.ShareReport -> { { this } }
             }
+            // "Checked just now" shows once the first run ends and stays through later runs.
+            { update().let { if (!it.checked && !it.running) it.copy(checked = true) else it } }
         }
     }
 }

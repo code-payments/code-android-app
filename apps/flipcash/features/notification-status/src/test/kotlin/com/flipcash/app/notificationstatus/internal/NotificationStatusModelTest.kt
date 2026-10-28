@@ -69,6 +69,26 @@ class NotificationStatusModelTest {
         val others = status.phoneRows.filterIsInstance<CheckRow.OtherChannels>().single()
         assertEquals(StatusChannel.entries - StatusChannel.Chat, others.covered)
         assertEquals(Summary.ThingsToFix(1), status.summary)
+        // The test posts on the chat channel, so it can't be sent while chat is off.
+        assertEquals(TestBlocked.ChatOff, status.testBlocked)
+        assertFalse(status.canSendTest)
+    }
+
+    @Test
+    fun `notifications off wins over chat off as the reason the test is disabled`() {
+        val status = evaluateNotificationStatus(
+            healthy.copy(notificationsAllowed = false).blocking(StatusChannel.Chat),
+            registered,
+        )
+
+        assertEquals(TestBlocked.NotificationsOff, status.testBlocked)
+    }
+
+    @Test
+    fun `a blocked channel other than chat leaves the test enabled`() {
+        val status = evaluateNotificationStatus(healthy.blocking(StatusChannel.Gain), registered)
+
+        assertEquals(null, status.testBlocked)
     }
 
     @Test
@@ -156,11 +176,35 @@ class NotificationStatusModelTest {
 
     @Test
     fun `12 registration in flight - row and summary are checking`() {
-        val status = evaluateNotificationStatus(healthy.blocking(StatusChannel.Chat), RegistrationState.Checking)
+        val status = evaluateNotificationStatus(healthy, RegistrationState.Checking)
 
         assertEquals(CheckStatus.Checking, status.flipcashRows.single().status)
         assertEquals(Summary.Checking, status.summary)
         assertFalse(status.allPassing)
+    }
+
+    @Test
+    fun `a finished fail wins over registration still checking`() {
+        val status = evaluateNotificationStatus(healthy.blocking(StatusChannel.Chat), RegistrationState.Checking)
+
+        assertEquals(Summary.ThingsToFix(1), status.summary)
+    }
+
+    @Test
+    fun `a finished warning wins over registration still checking`() {
+        val status = evaluateNotificationStatus(healthy.copy(ignoringBatteryOptimizations = false), RegistrationState.Checking)
+
+        assertEquals(Summary.ThingsToCheck(1), status.summary)
+    }
+
+    @Test
+    fun `a failed registration wins over phone rows still checking`() {
+        val status = evaluateNotificationStatus(
+            device = null,
+            registration = RegistrationState.Finished(PushRegistrationOutcome.Failed),
+        )
+
+        assertEquals(Summary.ThingsToFix(1), status.summary)
     }
 
     @Test
@@ -255,7 +299,7 @@ class NotificationStatusModelTest {
             registration = registered,
             lastRecord = PushRegistration(Instant.fromEpochSeconds(0), PushRegistrationResult.Ok, PushRegistrationSource.StatusPage),
             tokenSuffix = "a1b2c3",
-            formatTime = { "T" },
+            formatTime = { "2026-10-28 09:41" },
         )
 
         assertEquals(
@@ -274,11 +318,35 @@ class NotificationStatusModelTest {
             Battery optimization: pass (ignoring true)
             Background activity: warning (restricted false, bucket rare)
             Google Play services: pass (code 0)
-            Registered for push: pass (ok; last ok, statusPage, T)
+            Registered for push: pass (statusPage, 2026-10-28 09:41)
 
             Token: …a1b2c3 (last 6)
             """.trimIndent(),
             report,
+        )
+    }
+
+    @Test
+    fun `report names a failed result in camelCase and says when nothing was saved`() {
+        fun registrationLine(registration: RegistrationState, record: PushRegistration?) = buildNotificationReport(
+            header = ReportHeader("", "", "", ""),
+            device = healthy,
+            registration = registration,
+            lastRecord = record,
+            tokenSuffix = null,
+            formatTime = { "2026-10-28 09:41" },
+        ).lines().single { it.startsWith("Registered for push") }
+
+        assertEquals(
+            "Registered for push: fail (invalidPushToken, statusPage, 2026-10-28 09:41)",
+            registrationLine(
+                RegistrationState.Finished(PushRegistrationOutcome.InvalidPushToken),
+                PushRegistration(Instant.fromEpochSeconds(0), PushRegistrationResult.InvalidPushToken, PushRegistrationSource.StatusPage),
+            ),
+        )
+        assertEquals(
+            "Registered for push: fail (none saved)",
+            registrationLine(RegistrationState.Finished(PushRegistrationOutcome.NoToken), null),
         )
     }
 }

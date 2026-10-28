@@ -55,7 +55,10 @@ fun NotificationStatusScreen() {
     val viewModel = hiltViewModel<NotificationStatusViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
-    val permission = rememberNotificationPermission { viewModel.dispatchEvent(Event.Refresh) }
+    // A grant lets the phone register, so every check runs again, Registration included.
+    val permission = rememberNotificationPermission { result ->
+        viewModel.dispatchEvent(if (result == PermissionResult.Granted) Event.PermissionGranted else Event.Refresh)
+    }
 
     // Covers coming back from system settings after a Fix. Only the phone's settings are read
     // again; registration keeps its last result (Decision 2).

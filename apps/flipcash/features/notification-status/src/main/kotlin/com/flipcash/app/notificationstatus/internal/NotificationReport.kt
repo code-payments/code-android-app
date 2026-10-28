@@ -1,6 +1,7 @@
 package com.flipcash.app.notificationstatus.internal
 
 import com.flipcash.app.auth.push.PushRegistration
+import com.flipcash.app.auth.push.PushRegistrationResult
 import kotlin.time.Instant
 
 data class ReportHeader(
@@ -36,11 +37,8 @@ fun buildNotificationReport(
     // Every channel, whether or not the page shows a row for it.
     StatusChannel.entries.forEach { channel ->
         val setting = device.channels.firstOrNull { it.channel == channel }
-        val channelStatus = when {
-            setting == null -> CheckStatus.Unknown
-            setting.isBlocked -> channel.whenBlocked
-            else -> CheckStatus.Pass
-        }
+        // As on the page: only a blocked channel is a problem.
+        val channelStatus = if (setting?.isBlocked == true) channel.whenBlocked else CheckStatus.Pass
         val raw = setting?.let { "importance ${it.importance}, group blocked ${it.groupBlocked}" } ?: "missing"
         appendLine("Channel ${channel.id}: ${channelStatus.label()} ($raw)")
     }
@@ -53,13 +51,15 @@ fun buildNotificationReport(
             is CheckRow.GooglePlay ->
                 appendLine("Google Play services: ${row.status.label()} (code ${device.playServicesCode})")
             is CheckRow.Registration -> {
-                val outcome = when (val state = row.state) {
-                    RegistrationState.Checking -> "checking"
-                    RegistrationState.Unknown -> "interrupted"
-                    is RegistrationState.Finished -> state.outcome.name.lowercase()
-                }
-                val saved = lastRecord?.let { "${it.result.key}, ${it.source.key}, ${formatTime(it.at)}" } ?: "none saved"
-                appendLine("Registered for push: ${row.status.label()} ($outcome; last $saved)")
+                // "<status> (<result>, <source>, <time>)", the result left out when it is ok.
+                val saved = lastRecord?.let { record ->
+                    listOfNotNull(
+                        record.result.takeIf { it != PushRegistrationResult.Ok }?.key,
+                        record.source.key,
+                        formatTime(record.at),
+                    ).joinToString()
+                } ?: "none saved"
+                appendLine("Registered for push: ${row.status.label()} ($saved)")
             }
             // The report always reads the device first, so it never holds a Pending or Rechecking row.
             is CheckRow.Permission, is CheckRow.BlockedChannel, is CheckRow.OtherChannels,

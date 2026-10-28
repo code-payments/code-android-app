@@ -7,7 +7,7 @@ import kotlin.time.Instant
 // The status page's model: a snapshot of the phone's settings plus the registration result in,
 // ordered rows and a summary out. No Android types, so it can move to shared code later.
 
-enum class CheckStatus { Pass, Warning, Fail, Checking, Unknown }
+enum class CheckStatus { Pass, Warning, Fail, Checking }
 
 /**
  * The channels the page checks, in the order their rows show. A blocked channel is a Fail or a
@@ -53,9 +53,6 @@ data class DeviceSnapshot(
 
 sealed interface RegistrationState {
     data object Checking : RegistrationState
-
-    /** The check was interrupted before it finished. */
-    data object Unknown : RegistrationState
 
     /** @param lastConfirmedAt when the saved record last said `ok`, if it did. */
     data class Finished(
@@ -143,7 +140,6 @@ sealed interface CheckRow {
         override val key get() = RegistrationKey
         override val status = when (state) {
             RegistrationState.Checking -> CheckStatus.Checking
-            RegistrationState.Unknown -> CheckStatus.Unknown
             is RegistrationState.Finished -> when (state.outcome) {
                 PushRegistrationOutcome.Ok -> CheckStatus.Pass
                 // The server's copy is probably still good if it was confirmed before.
@@ -178,14 +174,27 @@ data class NotificationStatus(
     /** When true the page folds both groups into one "N checks passed" row. */
     val allPassing: Boolean get() = summary == Summary.Working
 
-    /** A local test needs only the permission, not a working registration. */
-    val canSendTest: Boolean
-        get() = phoneRows.any {
-            // A re-run doesn't take the test away while the permission is read again.
-            val row = (it as? CheckRow.Rechecking)?.previous ?: it
-            row is CheckRow.Permission && row.status == CheckStatus.Pass
+    /**
+     * Why the test button is disabled, or null when it isn't. A local test needs the permission and
+     * the chat channel it posts on, not a working registration.
+     */
+    val testBlocked: TestBlocked?
+        get() {
+            // A re-run doesn't take the test away while the settings are read again.
+            val settled = phoneRows.map { (it as? CheckRow.Rechecking)?.previous ?: it }
+            return when {
+                settled.none { it is CheckRow.Permission && it.status == CheckStatus.Pass } ->
+                    TestBlocked.NotificationsOff
+                settled.any { it is CheckRow.BlockedChannel && it.channel == StatusChannel.Chat } ->
+                    TestBlocked.ChatOff
+                else -> null
+            }
         }
+
+    val canSendTest: Boolean get() = testBlocked == null
 }
+
+enum class TestBlocked { NotificationsOff, ChatOff }
 
 const val PermissionKey = "permission"
 const val OtherChannelsKey = "channels"
@@ -238,13 +247,13 @@ fun evaluateNotificationStatus(
     val rows = phoneRows + flipcashRows
 
     val fails = rows.count { it.status == CheckStatus.Fail }
-    // An interrupted check is something to look at, not a pass.
-    val warnings = rows.count { it.status == CheckStatus.Warning || it.status == CheckStatus.Unknown }
+    val warnings = rows.count { it.status == CheckStatus.Warning }
+    // A finished problem wins over a row still checking: Fail, then Warning, then Checking.
     val summary = when {
-        rows.any { it.status == CheckStatus.Checking } -> Summary.Checking
-        device?.notificationsAllowed == false -> Summary.NotificationsOff
+        rows.any { it is CheckRow.Permission && it.status == CheckStatus.Fail } -> Summary.NotificationsOff
         fails > 0 -> Summary.ThingsToFix(fails)
         warnings > 0 -> Summary.ThingsToCheck(warnings)
+        rows.any { it.status == CheckStatus.Checking } -> Summary.Checking
         else -> Summary.Working
     }
 

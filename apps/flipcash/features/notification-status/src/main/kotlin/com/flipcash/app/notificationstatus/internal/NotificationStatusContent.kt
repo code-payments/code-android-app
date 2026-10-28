@@ -98,7 +98,7 @@ internal fun NotificationStatusContent(
         ) {
             // Settings' gap below its bar: the first section header's top padding.
             Spacer(Modifier.height(topPadding + CodeTheme.dimens.grid.x4))
-            SummaryCard(status.summary)
+            SummaryCard(status.summary, checked = state.checked)
 
             // All passing folds into one row; it stays as the toggle once expanded.
             AnimatedVisibility(
@@ -110,7 +110,8 @@ internal fun NotificationStatusContent(
                     Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
                     FoldedRow(
                         count = status.rows.size,
-                        checking = status.summary == Summary.Checking,
+                        // A finished Fail can beat Checking in the summary; this row tracks the run.
+                        checking = state.running,
                         expanded = state.expanded,
                         onClick = onToggleExpanded,
                     )
@@ -217,10 +218,10 @@ private fun Actions(
         Text(
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
             text = stringResource(
-                if (status.canSendTest) {
-                    R.string.description_notificationStatusFooter
-                } else {
-                    R.string.description_notificationStatusTestDisabled
+                when (status.testBlocked) {
+                    null -> R.string.description_notificationStatusFooter
+                    TestBlocked.NotificationsOff -> R.string.description_notificationStatusTestDisabled
+                    TestBlocked.ChatOff -> R.string.description_notificationStatusTestDisabledChatOff
                 },
             ),
             style = CodeTheme.typography.textSmall,
@@ -231,7 +232,7 @@ private fun Actions(
 }
 
 @Composable
-private fun SummaryCard(summary: Summary) {
+private fun SummaryCard(summary: Summary, checked: Boolean) {
     val title = when (summary) {
         Summary.Working -> stringResource(R.string.title_notificationStatusWorking)
         Summary.Checking -> stringResource(R.string.title_notificationStatusChecking)
@@ -258,11 +259,14 @@ private fun SummaryCard(summary: Summary) {
                 Crossfade(targetState = title, label = "summary title") {
                     Text(it, style = CodeTheme.typography.textLarge, color = CodeTheme.colors.textMain)
                 }
-                Text(
-                    stringResource(R.string.subtitle_notificationStatusCheckedJustNow),
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textSecondary,
-                )
+                // Hidden until the first run finishes.
+                AnimatedVisibility(visible = checked) {
+                    Text(
+                        stringResource(R.string.subtitle_notificationStatusCheckedJustNow),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                }
             }
         }
     }
@@ -450,18 +454,14 @@ private fun CheckRow.text(state: NotificationStatusViewModel.State): Pair<String
     is CheckRow.Registration -> when (val registration = this.state) {
         RegistrationState.Checking -> stringResource(R.string.title_notificationCheckRegistering) to
             stringResource(R.string.subtitle_notificationCheckRegistering)
-        RegistrationState.Unknown -> stringResource(R.string.title_notificationCheckRegistered) to
-            stringResource(R.string.subtitle_notificationCheckInterrupted)
         is RegistrationState.Finished -> when (registration.outcome) {
             PushRegistrationOutcome.Ok ->
                 stringResource(R.string.title_notificationCheckRegistered) to
                     stringResource(R.string.subtitle_notificationCheckRegistered)
-            PushRegistrationOutcome.NoToken ->
-                stringResource(R.string.title_notificationCheckRegistered) to
-                    stringResource(R.string.subtitle_notificationCheckNoToken)
+            // A failure says what went wrong in the title; these have nothing more to explain.
+            PushRegistrationOutcome.NoToken -> stringResource(R.string.title_notificationCheckNoToken) to ""
             PushRegistrationOutcome.InvalidPushToken ->
-                stringResource(R.string.title_notificationCheckRegistered) to
-                    stringResource(R.string.subtitle_notificationCheckTokenRejected)
+                stringResource(R.string.title_notificationCheckTokenRejected) to ""
             PushRegistrationOutcome.Transport ->
                 stringResource(R.string.title_notificationCheckUnreachable) to
                     (registration.lastConfirmedAt?.let {
@@ -476,9 +476,7 @@ private fun CheckRow.text(state: NotificationStatusViewModel.State): Pair<String
                             )
                         }
                     } ?: stringResource(R.string.subtitle_notificationCheckUnreachable))
-            PushRegistrationOutcome.Failed ->
-                stringResource(R.string.title_notificationCheckRegistered) to
-                    stringResource(R.string.subtitle_notificationCheckFailed)
+            PushRegistrationOutcome.Failed -> stringResource(R.string.title_notificationCheckFailed) to ""
         }
     }
 }
@@ -540,7 +538,7 @@ private fun StatusMark(status: CheckStatus, width: Dp = 16.dp, height: Dp = 24.d
         CheckStatus.Pass -> CodeTheme.colors.successText to Icons.Rounded.Check
         CheckStatus.Warning -> CodeTheme.colors.warningText to Icons.Rounded.PriorityHigh
         CheckStatus.Fail -> CodeTheme.colors.error to Icons.Rounded.Close
-        CheckStatus.Unknown, CheckStatus.Checking -> CodeTheme.colors.textSecondary to Icons.Rounded.Remove
+        CheckStatus.Checking -> CodeTheme.colors.textSecondary to Icons.Rounded.Remove
     }
     Box(
         modifier = Modifier
