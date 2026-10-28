@@ -354,11 +354,14 @@ internal class InternalChatRepository(
 
 }
 
-// Expected outcomes of a stale or bad link; not worth reporting. JoinChat's three dead-invite
-// results are here too: the joiner sees them as the dead-link state, not as an error.
+// Expected outcomes of a stale or bad link; not worth reporting. JoinChat's results that the
+// joiner sees as a user outcome are here too: the three dead-invite states, a link that matches
+// nothing, a vanished group and a ban. DENIED and RULES_NOT_SATISFIED stay out: with an invite
+// they point to a client bug.
 internal fun Throwable.isExpectedInviteFailure(): Boolean =
         this is JoinChatError.InviteExhausted || this is JoinChatError.InviteExpired ||
-            this is JoinChatError.InviteRevoked ||
+            this is JoinChatError.InviteRevoked || this is JoinChatError.InviteNotFound ||
+            this is JoinChatError.NotFound || this is JoinChatError.Banned ||
             this is CreateInviteError.Denied || this is CreateInviteError.NotFound ||
             this is CreateInviteError.InvalidExpiresAt || this is CreateInviteError.TooManyInvites ||
             this is GetInviteError.NotFound || this is GetInviteError.Banned ||
