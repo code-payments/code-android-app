@@ -262,7 +262,7 @@ internal fun CurrencyInfoContentV2(
                             modifier = Modifier
                                 .fillParentMaxWidth()
                                 .padding(horizontal = inset)
-                                .padding(top = if (index == 0) 14.dp else 10.dp),
+                                .padding(top = if (index == 0) CodeTheme.dimens.staticGrid.x4 else CodeTheme.dimens.staticGrid.x3),
                             chat = entry.chat,
                             holdings = entry.holdings,
                             currencyName = token.name,
@@ -381,7 +381,7 @@ private fun CurrencyActionTiles(
     Row(
         modifier = modifier,
         // Node 11622:1609, drawn at 0.65: 5.2 gaps, i.e. 8dp.
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
         currencyActionTiles(tokenMint, isHeld).forEach { tile ->
             val (label, icon) = when (tile) {
@@ -399,7 +399,7 @@ private fun CurrencyActionTiles(
                         painter = painterResource(icon),
                         contentDescription = null,
                         tint = CodeTheme.colors.textMain,
-                        modifier = Modifier.size(24.dp),
+                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
                     )
                 },
                 onClick = {
@@ -433,7 +433,7 @@ private fun ActionTile(
     Column(
         modifier = modifier
             .alpha(if (enabled) 1f else DisabledActionTileAlpha)
-            .height(88.dp)
+            .height(CodeTheme.dimens.staticGrid.x20 + CodeTheme.dimens.staticGrid.x2)
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White.copy(alpha = 0.1f))
             .clickable(enabled = enabled, onClick = onClick),
@@ -441,7 +441,7 @@ private fun ActionTile(
         verticalArrangement = Arrangement.Center,
     ) {
         icon()
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(CodeTheme.dimens.grid.x2))
         // 12sp medium in textMain, as drawn (7.8 at 0.65): "Transactions" fits one line.
         Text(
             text = label,

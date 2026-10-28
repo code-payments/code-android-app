@@ -11,7 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,7 +51,7 @@ fun CommunityChatsScreen(mint: Mint) {
                 horizontal = CodeTheme.dimens.inset,
                 vertical = CodeTheme.dimens.grid.x2,
             ),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x3),
         ) {
             items(state.chats, key = { it.chat.chatId.toString() }) { entry ->
                 CommunityChatRow(

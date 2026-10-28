@@ -92,7 +92,7 @@ internal fun CommunityChatRow(
             .clip(RoundedCornerShape(18.dp))
             .background(Color.White.copy(alpha = 0.05f))
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = CodeTheme.dimens.staticGrid.x4, vertical = CodeTheme.dimens.staticGrid.x3)
     } else {
         modifier
             .fillMaxWidth()
@@ -102,14 +102,14 @@ internal fun CommunityChatRow(
     Row(
         modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(if (card) 12.dp else CodeTheme.dimens.grid.x3),
+        horizontalArrangement = Arrangement.spacedBy(if (card) CodeTheme.dimens.staticGrid.x3 else CodeTheme.dimens.grid.x3),
     ) {
         ContactAvatar(
             image = chat.picture,
             displayName = chat.title.orEmpty(),
             access = BlobAccessContext.ChatProfile(chat.chatId),
             modifier = Modifier
-                .requiredSize(if (card) 42.dp else CodeTheme.dimens.staticGrid.x10)
+                .requiredSize(CodeTheme.dimens.staticGrid.x10)
                 .clip(CircleShape),
         )
         Column(modifier = Modifier.weight(1f)) {
@@ -120,7 +120,7 @@ internal fun CommunityChatRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (card) Spacer(Modifier.height(3.dp))
+            if (card) Spacer(Modifier.height(CodeTheme.dimens.staticGrid.x1))
             Text(
                 text = holdings.amount?.let {
                     pluralStringResource(
@@ -146,7 +146,7 @@ internal fun CommunityChatRow(
                 painter = painterResource(R.drawable.ic_chevron_right),
                 contentDescription = null,
                 tint = Color.White.copy(alpha = 0.55f),
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
             )
         }
     }

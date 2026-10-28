@@ -283,18 +283,18 @@ private fun RecipientRow(chat: ConversationReference, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp)
+            .height(CodeTheme.dimens.staticGrid.x12)
             .clickable(onClick = onClick)
             .padding(horizontal = CodeTheme.dimens.inset),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x4),
     ) {
         ContactAvatar(
             image = chat.image,
             displayName = chat.name.orEmpty(),
             access = chat.avatarAccess,
             modifier = Modifier
-                .requiredSize(24.dp)
+                .requiredSize(CodeTheme.dimens.staticGrid.x6)
                 .clip(CircleShape),
         )
         Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
@@ -386,8 +386,8 @@ private fun SwipeToSendSheet(
                 textStyle = CodeTheme.typography.textMedium,
                 imageSize = CodeTheme.dimens.staticGrid.x3,
                 contentPadding = PaddingValues(
-                    horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
-                    vertical = CodeTheme.dimens.grid.x1 - 1.dp,
+                    horizontal = CodeTheme.dimens.staticGrid.x1,
+                    vertical = CodeTheme.dimens.staticGrid.x1,
                 ),
                 showsPicker = false,
                 onClick = {},
