@@ -18,12 +18,14 @@ import com.flipcash.services.models.chat.ViewMode
 import com.getcode.chatcipher.InviteCipher
 import com.getcode.chatcipher.InviteLink
 import com.getcode.opencode.model.core.ID
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
@@ -132,8 +134,14 @@ class HostInvites internal constructor(
     // One secret per create attempt, kept until the server answers for certain, so a retry after a
     // dropped response sends the same token and the server hands back the first invite rather
     // than making a second.
-    private val pending = mutableMapOf<Pair<ChatId, InviteSettings>, ByteArray>()
+    // Concurrent because clear() can run (logout) while an attempt is in flight.
+    private val pending = ConcurrentHashMap<Pair<ChatId, InviteSettings>, ByteArray>()
     private val createLock = Mutex()
+
+    // Bumped by clear(), so a load or create that was in flight for the old account does not
+    // write its answer into the next one's state.
+    @Volatile
+    private var epoch = 0
 
     /** Reads [chatId]'s `can_invite` from the server into [canInvite]. A failure leaves it as it was. */
     suspend fun refreshAccess(chatId: ChatId): Result<Boolean> =
@@ -147,7 +155,14 @@ class HostInvites internal constructor(
     }
 
     /** Fetches every page of [chatId]'s invites and replaces what was held for it. */
-    suspend fun load(chatId: ChatId): Result<List<HostInvite>> = runCatching {
+    suspend fun load(chatId: ChatId): Result<List<HostInvite>> {
+        val started = epoch
+        return catching { loadAll(chatId) }.onSuccess { list ->
+            if (started == epoch) invites.update { it + (chatId to list) }
+        }
+    }
+
+    private suspend fun loadAll(chatId: ChatId): List<HostInvite> {
         val all = mutableListOf<Invite>()
         var options = QueryOptions()
         do {
@@ -155,26 +170,26 @@ class HostInvites internal constructor(
             all += page.invites
             options = options.copy(token = page.pagingToken)
         } while (page.hasMore && page.pagingToken != null)
-        all.distinctBy { it.id }
+        return all.distinctBy { it.id }
             .sortedByDescending { it.createdAt }
             .map { HostInvite(it, linkFor(it)) }
-    }.onSuccess { list ->
-        invites.update { it + (chatId to list) }
     }
 
     /**
      * The link the sheet shares: the newest ACTIVE invite the viewer created whose link this
-     * device can rebuild. Null when there is none, and the sheet makes one on first Share or Copy.
+     * device can rebuild. Null when there is none, and tapping Share Invite Link makes one.
      */
     fun current(chatId: ChatId): HostInvite? = currentOf(invites.value[chatId].orEmpty(), keys.ownUserId())
 
     /**
-     * The link the sheet shares, made when there is none: the first Share or Copy tap (spec
-     * Decision 9). The new link is 7 days with no use limit. [load] has to have run first, or a
-     * link that exists but was never fetched is not seen and a second one is made.
+     * The link the sheet shares, made when there is none: the tap on Share Invite Link (spec
+     * Decision 9, Open 9). The new link is 7 days with no use limit. [load] has to have run first,
+     * or a link that exists but was never fetched is not seen and a second one is made. The check
+     * runs again under the create lock, so two callers waiting on it make one link between them.
      */
-    suspend fun currentOrCreate(chatId: ChatId): InviteCreation =
-        current(chatId)?.let { InviteCreation.Created(it) } ?: create(chatId, InviteSettings.Default)
+    suspend fun currentOrCreate(chatId: ChatId): InviteCreation = createLock.withLock {
+        current(chatId)?.let { InviteCreation.Created(it) } ?: createLocked(chatId, InviteSettings.Default)
+    }
 
     /**
      * Makes an invite with [settings]. If the server answers OK with an invite that is no longer
@@ -185,6 +200,7 @@ class HostInvites internal constructor(
         createLock.withLock { createLocked(chatId, settings) }
 
     private suspend fun createLocked(chatId: ChatId, settings: InviteSettings): InviteCreation {
+        val started = epoch
         var attempt = settings
         var clamped = false
         var renewed = false
@@ -192,6 +208,7 @@ class HostInvites internal constructor(
             when (val result = attemptCreate(chatId, attempt)) {
                 is AttemptResult.Created -> {
                     val created = HostInvite(result.invite, result.url)
+                    if (started != epoch) return InviteCreation.Created(created)
                     invites.update { all ->
                         val others = all[chatId].orEmpty().filterNot { it.invite.id == created.invite.id }
                         all + (chatId to listOf(created) + others)
@@ -217,7 +234,7 @@ class HostInvites internal constructor(
 
     /** Revokes [inviteId]. Revoking an invite already revoked is OK, so a retry is safe. */
     suspend fun revoke(chatId: ChatId, inviteId: InviteId): Result<Unit> =
-        chatController.revokeInvite(chatId, inviteId).onSuccess {
+        chatController.revokeInvite(chatId, inviteId).onFailure { if (it is CancellationException) throw it }.onSuccess {
             invites.update { all ->
                 val list = all[chatId] ?: return@update all
                 all + (chatId to list.map { item ->
@@ -232,6 +249,7 @@ class HostInvites internal constructor(
 
     /** Drops everything held. For logout: the invites belong to the account. */
     fun clear() {
+        epoch++
         invites.value = emptyMap()
         access.value = emptyMap()
         pending.clear()
@@ -247,11 +265,14 @@ class HostInvites internal constructor(
     private suspend fun attemptCreate(chatId: ChatId, settings: InviteSettings): AttemptResult {
         val own = keys.ownKeyPair()
             ?: return AttemptResult.Done(InviteCreation.Failed(IllegalStateException("No account key pair")))
-        val chatKey = groupKeys.key(chatId).getOrElse { return AttemptResult.Done(InviteCreation.Failed(it)) }
+        val chatKey = groupKeys.key(chatId).getOrElse {
+            if (it is CancellationException) throw it
+            return AttemptResult.Done(InviteCreation.Failed(it))
+        }
 
         val slot = chatId to settings
         val secret = pending.getOrPut(slot) { cipher.newSecret() }
-        val sealed = runCatching {
+        val sealed = catching {
             val inviteId = cipher.inviteId(secret)
             Triple(
                 InviteToken(cipher.inviteToken(secret)),
@@ -273,6 +294,7 @@ class HostInvites internal constructor(
             expiresAt = settings.expiry.duration?.let { clock.now() + it },
         )
         val invite = result.getOrElse { error ->
+            if (error is CancellationException) throw error
             if (error.isAnswered()) pending.remove(slot)
             return when (error) {
                 is CreateInviteError.TooManyInvites -> AttemptResult.Done(InviteCreation.TooMany)
@@ -284,6 +306,15 @@ class HostInvites internal constructor(
         pending.remove(slot)
         if (invite.status != Invite.Status.ACTIVE) return AttemptResult.NotActive
         return AttemptResult.Created(invite, InviteLink.url(secret))
+    }
+
+    // runCatching that lets a cancelled caller cancel instead of reporting it as a failure.
+    private inline fun <T> catching(block: () -> T): Result<T> = try {
+        Result.success(block())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        Result.failure(e)
     }
 
     private fun linkFor(invite: Invite): String? {

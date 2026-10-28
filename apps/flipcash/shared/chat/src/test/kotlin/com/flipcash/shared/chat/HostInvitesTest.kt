@@ -6,6 +6,10 @@ import com.flipcash.services.chat.GroupKeySource
 import com.flipcash.services.chat.toInviteSecretEnvelope
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.CreateInviteError
+import com.flipcash.services.models.GetChatInvitesError
+import com.flipcash.services.models.RevokeInviteError
+import com.flipcash.services.models.chat.InviteSecretEnvelope
+import com.flipcash.shared.chat.HostInvites.Companion.isLostInviteAccess
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
@@ -22,12 +26,19 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
@@ -201,6 +212,205 @@ class HostInvitesTest {
         subject.create(chatId, InviteSettings(InviteExpiry.Never, InviteUses.NoLimit))
 
         assertEquals(listOf(null, now + 30.days), expiries)
+    }
+
+    @Test
+    fun `a refused expiry that is refused again fails with the expiry error`() = runTest {
+        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), any()) } returns
+            Result.failure(CreateInviteError.InvalidExpiresAt())
+
+        val failed = assertIs<InviteCreation.Failed>(
+            subject.create(chatId, InviteSettings(InviteExpiry.Never, InviteUses.NoLimit))
+        )
+        assertIs<CreateInviteError.InvalidExpiresAt>(failed.cause)
+        coVerify(exactly = 2) { chatController.createInvite(chatId, any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `the shortest expiry has nothing shorter to retry at`() = runTest {
+        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), any()) } returns
+            Result.failure(CreateInviteError.InvalidExpiresAt())
+
+        assertIs<InviteCreation.Failed>(subject.create(chatId, InviteSettings(InviteExpiry.OneDay, InviteUses.NoLimit)))
+        coVerify(exactly = 1) { chatController.createInvite(chatId, any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `an envelope that opens to another invite's secret gives no link`() = runTest {
+        val real = invite(secret(1))
+        // Sealed under this invite's id but holding a different secret, so it opens and then fails the id check.
+        val id = real.id.bytes
+        val forged = real.copy(
+            secretEnvelope = cipher.sealInviteSecretEnvelope(ownKeys, secret(2), chatId.bytes, id)
+                .toInviteSecretEnvelope(),
+        )
+        coEvery { chatController.getChatInvites(chatId, any()) } returns
+            Result.success(InvitesPage(listOf(forged), null, false))
+
+        val item = subject.load(chatId).getOrThrow().single()
+
+        assertNull(item.url)
+        assertFalse(item.canShare)
+        assertNull(subject.current(chatId))
+    }
+
+    @Test
+    fun `an envelope with an unsupported scheme gives no link`() = runTest {
+        val real = invite(secret(1))
+        val old = real.secretEnvelope!!
+        val odd = real.copy(secretEnvelope = InviteSecretEnvelope(99, old.nonce, old.ciphertext))
+        coEvery { chatController.getChatInvites(chatId, any()) } returns
+            Result.success(InvitesPage(listOf(odd), null, false))
+
+        val item = subject.load(chatId).getOrThrow().single()
+
+        assertNull(item.url)
+        assertFalse(item.canShare)
+        assertNull(subject.current(chatId))
+    }
+
+    @Test
+    fun `currentOrCreate reuses an existing link without calling createInvite`() = runTest {
+        val mine = invite(secret(1))
+        coEvery { chatController.getChatInvites(chatId, any()) } returns Result.success(InvitesPage(listOf(mine), null, false))
+        subject.load(chatId)
+
+        val result = assertIs<InviteCreation.Created>(subject.currentOrCreate(chatId))
+
+        assertEquals(mine.id, result.invite.invite.id)
+        coVerify(exactly = 0) { chatController.createInvite(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `two currentOrCreate calls at once make one link`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), any()) } coAnswers {
+            gate.await()
+            Result.success(invite(cipher.last))
+        }
+
+        val both = (1..2).map { async { subject.currentOrCreate(chatId) } }
+        runCurrent()
+        gate.complete(Unit)
+        val results = both.awaitAll()
+
+        assertTrue(results.all { it is InviteCreation.Created })
+        coVerify(exactly = 1) { chatController.createInvite(any(), any(), any(), any(), any(), any()) }
+        assertEquals(1, subject.state.value[chatId]?.size)
+    }
+
+    @Test
+    fun `concurrent creates run one after the other`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        var inFlight = 0
+        var peak = 0
+        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), any()) } coAnswers {
+            inFlight++
+            peak = maxOf(peak, inFlight)
+            gate.await()
+            inFlight--
+            Result.success(invite(cipher.last))
+        }
+
+        val both = (1..2).map { async { subject.create(chatId, InviteSettings.Default) } }
+        runCurrent()
+        assertEquals(1, inFlight)
+        gate.complete(Unit)
+        both.awaitAll()
+
+        assertEquals(1, peak)
+        coVerify(exactly = 2) { chatController.createInvite(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `the server returning the same invite twice adds one row`() = runTest {
+        val same = invite(secret(5))
+        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), any()) } returns Result.success(same)
+
+        subject.create(chatId, InviteSettings.Default)
+        subject.create(chatId, InviteSettings.Default)
+
+        assertEquals(listOf(same.id), subject.state.value[chatId]?.map { it.invite.id })
+    }
+
+    @Test
+    fun `clear between a failure and a retry makes a new secret`() = runTest {
+        val tokens = mutableListOf<InviteToken>()
+        coEvery { chatController.createInvite(chatId, capture(tokens), any(), any(), any(), any()) } returnsMany listOf(
+            Result.failure(CreateInviteError.Other(IOException("dropped"))),
+            Result.success(invite(secret(0))),
+        )
+
+        subject.create(chatId, InviteSettings.Default)
+        subject.clear()
+        subject.create(chatId, InviteSettings.Default)
+
+        assertNotEquals(tokens[0], tokens[1])
+    }
+
+    @Test
+    fun `a revoke failure leaves the invite as it was`() = runTest {
+        val mine = invite(secret(1))
+        coEvery { chatController.getChatInvites(chatId, any()) } returns Result.success(InvitesPage(listOf(mine), null, false))
+        coEvery { chatController.revokeInvite(chatId, mine.id) } returns Result.failure(RevokeInviteError.Other(IOException()))
+        subject.load(chatId)
+
+        assertTrue(subject.revoke(chatId, mine.id).isFailure)
+
+        assertEquals(Invite.Status.ACTIVE, subject.state.value[chatId]?.single()?.invite?.status)
+        assertEquals(mine.id, subject.current(chatId)?.invite?.id)
+    }
+
+    @Test
+    fun `a load failure keeps what was loaded before`() = runTest {
+        val mine = invite(secret(1))
+        coEvery { chatController.getChatInvites(chatId, any()) } returnsMany listOf(
+            Result.success(InvitesPage(listOf(mine), null, false)),
+            Result.failure(GetChatInvitesError.Other(IOException())),
+        )
+        subject.load(chatId)
+
+        assertTrue(subject.load(chatId).isFailure)
+
+        assertEquals(listOf(mine.id), subject.state.value[chatId]?.map { it.invite.id })
+    }
+
+    @Test
+    fun `only a denied list or revoke means the viewer lost access`() {
+        assertTrue(GetChatInvitesError.Denied().isLostInviteAccess())
+        assertTrue(RevokeInviteError.Denied().isLostInviteAccess())
+        assertFalse(CreateInviteError.Denied().isLostInviteAccess())
+        assertFalse(GetChatInvitesError.NotFound().isLostInviteAccess())
+        assertFalse(RevokeInviteError.NotFound().isLostInviteAccess())
+        assertFalse(GetChatInvitesError.Other(IOException()).isLostInviteAccess())
+        assertFalse(IOException().isLostInviteAccess())
+    }
+
+    @Test
+    fun `a cancelled load throws instead of returning a failure`() = runTest {
+        coEvery { chatController.getChatInvites(chatId, any()) } throws CancellationException("cancelled")
+
+        assertFailsWith<CancellationException> { subject.load(chatId) }
+        assertNull(subject.state.value[chatId])
+    }
+
+    @Test
+    fun `a cancelled load result throws too`() = runTest {
+        coEvery { chatController.getChatInvites(chatId, any()) } returns Result.failure(CancellationException("cancelled"))
+
+        assertFailsWith<CancellationException> { subject.load(chatId) }
+    }
+
+    @Test
+    fun `a cancelled create is not reported as a failure and keeps its secret`() = runTest {
+        val tokens = mutableListOf<InviteToken>()
+        coEvery { chatController.createInvite(chatId, capture(tokens), any(), any(), any(), any()) } throws
+            CancellationException("cancelled") andThen Result.success(invite(secret(0)))
+
+        assertFailsWith<CancellationException> { subject.create(chatId, InviteSettings.Default) }
+        assertIs<InviteCreation.Created>(subject.create(chatId, InviteSettings.Default))
+
+        assertEquals(tokens[0], tokens[1])
     }
 
     @Test
