@@ -1363,9 +1363,14 @@ internal class ChatViewModel @AssistedInject constructor(
     /**
      * Follows a tapped message link inside the app. True when [uri] was one: a message in this
      * chat is jumped to in place, and one in another chat is pushed over this one with a chip back
-     * here. False leaves [uri] to the ordinary link handling.
+     * here. An invite link opens its landing over this chat, so its secret stays in the app. False
+     * leaves [uri] to the ordinary link handling.
      */
     fun followMessageLink(uri: String): Boolean {
+        linkCardClassifier.inviteRoute(uri)?.let { route ->
+            dispatchEvent(Event.OpenScreen(route))
+            return true
+        }
         val link = linkCardClassifier.messageLink(uri) ?: return false
         val state = stateFlow.value
         if (link.chatId == state.chatId) {

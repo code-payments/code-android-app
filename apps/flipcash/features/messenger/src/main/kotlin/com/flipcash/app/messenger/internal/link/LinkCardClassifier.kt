@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.link
 
 import android.net.Uri
 import androidx.core.net.toUri
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.links.FIRST_PARTY_HOSTS
 import com.flipcash.app.core.navigation.DeeplinkType
@@ -96,6 +97,22 @@ internal class LinkCardClassifier @Inject constructor(
         val host = runCatching { target.toUri().host }.getOrNull() ?: return null
         if (host.lowercase() !in CARD_HOSTS) return null
         return router.classify(DeepLink(target)) as? DeeplinkType.ChatMessage
+    }
+
+    /**
+     * The invite landing a tapped `/chat/invite` link on our hosts opens, or null for any other link.
+     * The transcript opens it in the app rather than handing the URL to the system, so the secret in
+     * the fragment never reaches a browser. A link with no valid secret opens the broken-link state.
+     */
+    fun inviteRoute(url: String): AppRoute? {
+        val target = unwrapJumpTarget(url) ?: url
+        val host = runCatching { target.toUri().host }.getOrNull() ?: return null
+        if (host.lowercase() !in CARD_HOSTS) return null
+        return when (val type = router.classify(DeepLink(target))) {
+            is DeeplinkType.GroupInvite -> AppRoute.Messaging.GroupInvite(type.secret)
+            is DeeplinkType.InvalidGroupInvite -> AppRoute.Messaging.GroupInvite(null)
+            else -> null
+        }
     }
 
     /**

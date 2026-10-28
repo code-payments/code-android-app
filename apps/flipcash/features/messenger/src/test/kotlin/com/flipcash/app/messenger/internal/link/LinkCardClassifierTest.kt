@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.Router
@@ -339,6 +340,34 @@ class LinkCardClassifierTest {
         )) {
             assertNull(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))), url)
         }
+    }
+
+    /**
+     * A tapped invite link opens its landing in the app, never the browser, so the secret in the
+     * fragment stays on the device. Runs the real router, as the card test above does.
+     */
+    @Test
+    fun `a tapped invite link opens the invite landing in the app`() {
+        val classifier = LinkCardClassifier(
+            com.flipcash.app.router.inject.RouterModule.providesRouter(io.mockk.mockk(relaxed = true)),
+        )
+        val invite = "/chat/invite#s=${"A".repeat(43)}"
+        for (url in listOf(
+            "https://app.flipcash.com$invite",
+            "https://flipcash.com$invite",
+            "https://jump.flipcash.com/#source=" +
+                java.net.URLEncoder.encode("https://app.flipcash.com$invite", "UTF-8"),
+        )) {
+            val route = assertIs<AppRoute.Messaging.GroupInvite>(classifier.inviteRoute(url), url)
+            assertEquals(32, route.secret?.size, url)
+        }
+
+        assertEquals(
+            AppRoute.Messaging.GroupInvite(null),
+            classifier.inviteRoute("https://app.flipcash.com/chat/invite"),
+        )
+        assertNull(classifier.inviteRoute("https://example.com$invite"))
+        assertNull(classifier.inviteRoute("https://app.flipcash.com/chat/${UUID.randomUUID()}"))
     }
 
     /** The send-cash path under a chat opens a payment, not the group, so it stays a plain link. */
