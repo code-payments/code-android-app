@@ -185,15 +185,10 @@ internal class RequestDetailsViewModel @Inject constructor(
                     _state.update { it.copy(preparing = false) }
                     when (found) {
                         is ShareToPay.Ready -> {
-                            // Checked before the swipe sheet opens, so an empty wallet never reaches the swipe.
-                            val token = token.value ?: payer.observeSelectedToken().first()
-                            val blocked = payBlock(found.share.amount, token)
-                            if (blocked != null) {
-                                present(blocked)
-                            } else {
-                                ready = found
-                                _state.update { it.copy(sheet = Sheet.Pay, payProgress = LoadingSuccessState()) }
-                            }
+                            // No balance check here: the payer picks the token in the sheet, and the
+                            // check runs against that pick when they swipe.
+                            ready = found
+                            _state.update { it.copy(sheet = Sheet.Pay, payProgress = LoadingSuccessState()) }
                         }
                         is ShareToPay.NothingToPay -> _state.update { it.copy(hasPaymentIntent = false) }
                         is ShareToPay.Closed -> presentClosed()

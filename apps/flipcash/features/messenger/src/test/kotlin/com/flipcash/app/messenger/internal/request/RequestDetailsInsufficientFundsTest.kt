@@ -105,14 +105,14 @@ class RequestDetailsInsufficientFundsTest {
     ).also { it.open(ChatId(ByteArray(1)), "2") }
 
     @Test
-    fun `over balance on Pay presents insufficient funds and never opens the swipe sheet`() {
+    fun `Pay opens the swipe sheet even when the selected token is short, since the token is picked in the sheet`() {
         balance = Fiat(10.0)
         val vm = viewModel()
 
         vm.payTapped()
 
-        assertEquals(RequestDetailsViewModel.Sheet.None, vm.state.value.sheet)
-        verify(exactly = 1) { payer.presentInsufficientBalance(any()) }
+        assertEquals(RequestDetailsViewModel.Sheet.Pay, vm.state.value.sheet)
+        verify(exactly = 0) { payer.presentInsufficientBalance(any()) }
     }
 
     @Test
