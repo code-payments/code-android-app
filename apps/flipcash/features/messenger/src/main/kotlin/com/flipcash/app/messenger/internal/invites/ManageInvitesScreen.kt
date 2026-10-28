@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -38,6 +40,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,6 +64,7 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.ChoiceRow
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import kotlinx.coroutines.launch
 
@@ -95,6 +99,7 @@ internal fun ManageInvitesScreen(chatId: ChatId?) {
         onBack = { flowNavigator.back() },
         onRow = { rowMenu = it },
         onNewLink = { newLink = true },
+        onRetry = viewModel::refresh,
     )
 
     rowMenu?.let { invite ->
@@ -127,6 +132,7 @@ internal fun ManageInvitesContent(
     onBack: () -> Unit,
     onRow: (HostInvite) -> Unit,
     onNewLink: () -> Unit,
+    onRetry: () -> Unit = {},
 ) {
     CodeScaffold(
         topBar = {
@@ -143,7 +149,16 @@ internal fun ManageInvitesContent(
                 .padding(innerPadding)
                 .testTag("manage_invites_screen"),
         ) {
-            if (state.isEmpty) {
+            if (state.loading && state.active.isEmpty() && state.inactive.isEmpty()) {
+                // First load: not an empty list, which would read as "no links".
+                CodeCircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .testTag("manage_invites_loading"),
+                )
+            } else if (state.failed) {
+                LoadFailed(modifier = Modifier.align(Alignment.Center), onRetry = onRetry)
+            } else if (state.isEmpty) {
                 EmptyInvites(modifier = Modifier.align(Alignment.Center), onNewLink = onNewLink)
             } else {
                 LazyColumn(
@@ -276,6 +291,42 @@ private fun CurrentChip() {
         style = CodeTheme.typography.textSmall,
         color = CodeTheme.colors.textMain,
     )
+}
+
+/** The first load failed: say so, and offer to try again rather than showing a blank list. */
+@Composable
+private fun LoadFailed(onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .padding(horizontal = CodeTheme.dimens.inset)
+            .testTag("manage_invites_failed"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+    ) {
+        Text(
+            text = stringResource(R.string.title_inviteLinksNotLoaded),
+            style = CodeTheme.typography.textLarge,
+            color = CodeTheme.colors.textMain,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            modifier = Modifier.widthIn(max = 280.dp),
+            text = stringResource(R.string.description_inviteLinksNotLoaded),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+            textAlign = TextAlign.Center,
+        )
+        CodeButton(
+            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
+            text = stringResource(R.string.action_retry),
+            buttonState = ButtonState.Filled10,
+            shape = CircleShape,
+            style = CodeTheme.typography.textSmall,
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp),
+            overrideContentPadding = true,
+            onClick = onRetry,
+        )
+    }
 }
 
 /** Frame 2e. */
@@ -462,16 +513,22 @@ private fun <T> OptionChips(
     ) {
         for (option in options) {
             val isSelected = option == selected
-            Text(
+            // The chip is a radio button in a group, and at least 48dp tall to touch.
+            Box(
                 modifier = Modifier
+                    .heightIn(min = 48.dp)
                     .clip(CircleShape)
                     .background(if (isSelected) CodeTheme.colors.textMain else White05)
-                    .clickable { onSelect(option) }
+                    .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(option) })
                     .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x2),
-                text = label(option),
-                style = CodeTheme.typography.textSmall,
-                color = if (isSelected) CodeTheme.colors.background else CodeTheme.colors.textMain,
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = label(option),
+                    style = CodeTheme.typography.textSmall,
+                    color = if (isSelected) CodeTheme.colors.background else CodeTheme.colors.textMain,
+                )
+            }
         }
     }
 }

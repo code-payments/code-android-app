@@ -524,8 +524,8 @@ private fun FlowGroupInviteSheet() {
 }
 
 /**
- * [ChatStep.ShareInviteLink]: the invite sheet's invite variant (frames 1b, 1f). The first Share or
- * Copy tap makes a link when the host has none; sending goes through the same view model as the
+ * [ChatStep.ShareInviteLink]: the invite sheet's invite variant (frames 1b, 1f). The tap on Share Invite
+ * Link that opened it has the link made when the host had none; sending goes through the same view model as the
  * join variant, limited to chats an invite link may be sent into.
  */
 @Composable
@@ -540,6 +540,7 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?) {
     val keyboard = rememberKeyboardController()
     val navigator = LocalCodeNavigator.current
     val resultBack = resultBackNavigator<GroupInviteResult>(exit = dismissSheet)
+    val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
 
     LaunchedEffect(inviteViewModel, state.chatId) {
         state.chatId?.let(inviteViewModel::exclude)
@@ -572,6 +573,11 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?) {
                 InviteLinkViewModel.Effect.OpenJoinLink -> {
                     dismissSheet()
                     navigator.openGroupInvite()
+                }
+                // 1c's offer: revoke a link there to make room for another.
+                InviteLinkViewModel.Effect.OpenManageInvites -> {
+                    dismissSheet()
+                    flowNavigator.navigateTo(ChatStep.ManageInvites)
                 }
                 InviteLinkViewModel.Effect.Close -> dismissSheet()
                 else -> Unit

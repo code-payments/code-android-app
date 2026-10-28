@@ -76,10 +76,7 @@ internal class ManageInvitesViewModel @Inject constructor(
                         lostAccess(chatId)
                     } else {
                         _state.update { it.copy(loading = false, failed = true) }
-                        BottomBarManager.showError(
-                            title = resources.getString(R.string.title_inviteLinksNotLoaded),
-                            message = resources.getString(R.string.description_inviteLinkNotCreated),
-                        )
+                        showInviteLinksNotLoaded(resources)
                     }
                 }
         }

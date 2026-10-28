@@ -42,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -247,7 +248,8 @@ internal fun GroupInviteSheet(
     // module can see. Same size and access as the avatar the conversation bar draws.
     val inviteLink = subject as? ShareToChatsSubject.GroupInviteLink
     val group = (subject as? ShareToChatsSubject.Group)?.group ?: inviteLink?.group
-    val creating = inviteLink?.link is InviteLinkState.Creating
+    // Share, Copy and Send wait for the link: the tiles are disabled rather than dropping the tap.
+    val creating = inviteLink != null && inviteLink.link !is InviteLinkState.Ready
     val picture = group?.picture
     val pictureUrl = rememberMediaUrl(
         media = picture,
@@ -269,6 +271,8 @@ internal fun GroupInviteSheet(
     if (inviteEffects != null) {
         val groupTitle = group?.groupTitle
         val cacheKey = picture?.cacheKeyForSize(SharePreviewImage.TARGET_PX)
+        // The collector outlives recompositions, so it reads the latest callback rather than the first.
+        val currentOnInviteEffect by rememberUpdatedState(onInviteEffect)
         LaunchedEffect(inviteEffects) {
             inviteEffects.collect { effect ->
                 when (effect) {
@@ -281,7 +285,7 @@ internal fun GroupInviteSheet(
                         )
                     )
                     InviteLinkViewModel.Effect.Copied -> copied = true
-                    else -> onInviteEffect(effect)
+                    else -> currentOnInviteEffect(effect)
                 }
             }
         }
@@ -569,7 +573,7 @@ private fun InviteLinkTile(
 
 /**
  * Node 12933:113 — the invite link in a pill, with its expiry and joined count under it; while the
- * first tap makes the link, a spinner and "Creating link…" (node 12933:210). The link is cut in the
+ * tap on Share Invite Link makes the link, a spinner and "Creating link…" (node 12933:210). The link is cut in the
  * middle so the secret is never shown whole.
  */
 @Composable
@@ -600,12 +604,9 @@ internal fun InviteLinkPill(link: InviteLinkState, modifier: Modifier = Modifier
                     maxLines = 1,
                     overflow = TextOverflow.Clip,
                 )
-                // Nothing to show before the first tap makes a link, or while it is fetched.
-                InviteLinkState.None, InviteLinkState.Loading -> Text(
-                    text = stringResource(R.string.label_inviteLinkPlaceholder),
-                    style = CodeTheme.typography.textMedium,
-                    color = White50,
-                )
+                // A picked invite being fetched, or nothing to show as the sheet closes.
+                InviteLinkState.None, InviteLinkState.Loading ->
+                    CodeCircularProgressIndicator(modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6 / 2))
             }
         }
         if (link is InviteLinkState.Ready) {

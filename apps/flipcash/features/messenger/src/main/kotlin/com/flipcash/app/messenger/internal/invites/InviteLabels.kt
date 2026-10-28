@@ -31,10 +31,14 @@ internal sealed interface LinkStatus {
     data class Expired(val at: Instant?) : LinkStatus
     data object Revoked : LinkStatus
     data object ReachedLimit : LinkStatus
+
+    /** A status this build doesn't know. Listed as inactive, so it says so rather than promising an expiry. */
+    data object Unavailable : LinkStatus
 }
 
 internal fun Invite.linkStatus(): LinkStatus = when (status) {
-    Invite.Status.ACTIVE, Invite.Status.UNKNOWN -> expiresAt?.let(LinkStatus::Expires) ?: LinkStatus.NeverExpires
+    Invite.Status.ACTIVE -> expiresAt?.let(LinkStatus::Expires) ?: LinkStatus.NeverExpires
+    Invite.Status.UNKNOWN -> LinkStatus.Unavailable
     Invite.Status.EXPIRED -> LinkStatus.Expired(expiresAt)
     Invite.Status.REVOKED -> LinkStatus.Revoked
     Invite.Status.EXHAUSTED -> LinkStatus.ReachedLimit
@@ -56,6 +60,7 @@ internal fun LinkStatus.label(): String = when (this) {
         ?: stringResource(R.string.label_inviteExpired, "")
     LinkStatus.Revoked -> stringResource(R.string.label_inviteRevoked)
     LinkStatus.ReachedLimit -> stringResource(R.string.label_inviteReachedLimit)
+    LinkStatus.Unavailable -> stringResource(R.string.label_inviteUnavailable)
 }
 
 /** The invite sheet's line under the link: "Expires Nov 3 · 0 joined". */
@@ -65,16 +70,16 @@ internal fun inviteMetaLine(expiresAt: Instant?, useCount: Long, maxUses: Long):
     return "$ends · ${JoinedCount(useCount, maxUses).label()}"
 }
 
-/** Manage Invites' second line: joined first, then when it ends (or why it can't be shared). */
+/**
+ * Manage Invites' second line. An active link says how many joined, then when it ends (or why it
+ * can't be shared). An inactive one shows only its status and dates (spec surface 2).
+ */
 @Composable
 internal fun HostInvite.detailLine(): String {
+    if (!isActive) return invite.linkStatus().label()
     val joined = JoinedCount(invite.useCount, invite.maxUses).label()
-    val second = when {
-        !isActive -> invite.linkStatus().label()
-        !canShare -> stringResource(R.string.label_inviteCantShare)
-        else -> invite.linkStatus().label()
-    }
-    return if (isActive) "$joined · $second" else "$second · $joined"
+    val second = if (canShare) invite.linkStatus().label() else stringResource(R.string.label_inviteCantShare)
+    return "$joined · $second"
 }
 
 /** The link as the pill shows it: scheme dropped and the middle of the secret elided (node 12933:113). */

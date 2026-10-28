@@ -1489,7 +1489,6 @@
     <string name="action_manageInvites">Manage Invites</string>
     <string name="subtitle_manageInvites">See and revoke the invite links you\'ve made</string>
     <string name="label_creatingInviteLink">Creating link…</string>
-    <string name="label_inviteLinkPlaceholder">Your link is made when you share or copy it</string>
     <string name="action_shareLink">Share Link</string>
     <string name="footnote_inviteLink">Anyone with this link can join and see who\'s in the group. Share it only with people you want in the group</string>
     <!-- A link's lines, joined with " · ". %1$s is a date such as "Nov 3". -->
@@ -1502,6 +1501,7 @@
     <string name="label_inviteExpired">Expired %1$s</string>
     <string name="label_inviteRevoked">Revoked</string>
     <string name="label_inviteReachedLimit">Reached its limit</string>
+    <string name="label_inviteUnavailable">No longer available</string>
     <string name="label_inviteCurrent">Current</string>
     <string name="title_inviteLinks">Invite Links</string>
     <string name="title_inviteLink">Invite Link</string>
@@ -1527,7 +1527,7 @@
     <string name="label_inviteUses_noLimit">No limit</string>
     <string name="action_createInviteLink">Create Link</string>
     <string name="title_tooManyInviteLinks">Too Many Active Links</string>
-    <string name="description_tooManyInviteLinks">This group has as many active invite links as it can have. Revoke one in Manage Invites to make another</string>
+    <string name="description_tooManyInviteLinks">Revoke a link in Manage Invites to make another</string>
     <string name="title_inviteLinksNotAvailable">Invite Links Aren\'t Available Yet</string>
     <string name="description_inviteLinksNotAvailable">You can still share the group link. People who open it can ask to join, and you approve them</string>
     <string name="action_shareGroupLink">Share Group Link</string>
@@ -1535,6 +1535,7 @@
     <string name="description_inviteLinkNotCreated">Something went wrong. Please try again</string>
     <string name="title_inviteLinkNotRevoked">Couldn\'t Revoke Link</string>
     <string name="title_inviteLinksNotLoaded">Couldn\'t Load Invite Links</string>
+    <string name="description_inviteLinksNotLoaded">Something went wrong. Please try again.</string>
     <string name="title_shareToChat">Send to</string>
     <string name="label_chats">Chats</string>
     <string name="label_suggested">Suggested</string>
