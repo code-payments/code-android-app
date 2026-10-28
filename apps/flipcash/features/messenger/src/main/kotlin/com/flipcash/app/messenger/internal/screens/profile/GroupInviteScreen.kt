@@ -353,9 +353,10 @@ private fun JoinGroupBar(
     ProfilePinnedActionBar(
         modifier = modifier,
         text = stringResource(R.string.action_joinGroup),
+        // Frame 12846:175 keeps the button white while it spins; `isLoading` already blocks the
+        // tap and the view model ignores a second join.
         onClick = onJoin,
         isLoading = joining,
-        enabled = !joining,
         hazeState = hazeState,
         onHeightChanged = onHeightChanged,
     )
