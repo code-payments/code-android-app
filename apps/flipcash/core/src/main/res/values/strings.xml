@@ -945,7 +945,7 @@
     <string name="action_leaveChat">Leave Chat</string>
     <string name="prompt_title_leaveChat">Leave %1$s?</string>
     <!-- A private group: coming back means a new request, not an invite link (node 11206:98). -->
-    <string name="prompt_description_leavePrivateChat">You’ll lose access to the conversation. To rejoin, you’ll need to request again and wait for the host to approve</string>
+    <string name="prompt_description_leavePrivateChat">You’ll lose access to the conversation. To rejoin, you’ll need an invite link or the host’s approval</string>
     <string name="prompt_description_leaveChat">You won’t receive messages from this group any more. You can join again with an invite link</string>
     <string name="error_title_failedToLeave">Something Went Wrong</string>
     <string name="error_description_failedToLeave">We were unable to leave this group. Please try again</string>
@@ -1315,6 +1315,27 @@
     <string name="action_exploreCurrencies">Explore Currencies</string>
     <string name="title_newPrivateGroup">New Private Group</string>
     <string name="action_requestToJoin">Request to Join</string>
+    <!-- Opening a group invite link (nodes 12846:59, 12846:126, 12846:148, 12846:160, 12846:220, 12846:259). -->
+    <string name="subtitle_privateGroupInvited">Private group · You’ve been invited to join</string>
+    <string name="subtitle_inviteExhausted">This invite link has reached its limit.</string>
+    <string name="subtitle_inviteExpired">This invite link has expired.</string>
+    <string name="subtitle_inviteRevoked">This invite link was turned off by the host.</string>
+    <string name="action_joinGroup">Join Group</string>
+    <string name="action_leaveGroup">Leave Group</string>
+    <string name="title_inviteLinkNotFound">Link Not Found</string>
+    <string name="description_inviteLinkNotFound">This invite link isn’t valid. Ask whoever sent it for a new one.</string>
+    <string name="title_inviteBanned">You Can’t Join This Group</string>
+    <string name="description_inviteBanned">The host has removed you from this group.</string>
+    <string name="error_title_failedToJoinGroup">Couldn’t Join Group</string>
+    <string name="error_description_failedToJoinGroup">Check your connection and try again.</string>
+    <!-- Alert-bar copy: modals take no final period. The full-screen states above keep theirs. -->
+    <string name="description_inviteLinkNotFoundAlert">This invite link isn’t valid. Ask whoever sent it for a new one</string>
+    <string name="description_inviteBannedAlert">The host has removed you from this group</string>
+    <string name="error_description_failedToJoinGroupAlert">Check your connection and try again</string>
+    <string name="error_description_failedToJoinAlert">Something went wrong. Please try again</string>
+    <string name="title_cantReadGroup">Can’t read this group</string>
+    <string name="description_cantReadGroup">The invite link you used didn’t include a working key. Leave and ask the host to approve you.</string>
+    <string name="hint_cantSendHere">You can’t send messages here</string>
     <string name="action_requestSent">Request Sent</string>
     <string name="action_cancelRequest">Cancel Request</string>
     <string name="subtitle_privateGroupMembers">Private group · %1$s</string>

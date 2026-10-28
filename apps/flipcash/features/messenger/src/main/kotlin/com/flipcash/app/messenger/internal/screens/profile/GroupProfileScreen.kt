@@ -278,7 +278,15 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(top = CodeTheme.dimens.staticGrid.x3),
-                        memberCount = group.memberCount,
+                        summary = stringResource(
+                            R.string.subtitle_privateGroupMembers,
+                            pluralStringResource(
+                                R.plurals.subtitle_memberCount,
+                                group.memberCount.toInt(),
+                                group.memberCount.toString(),
+                            ),
+                        ),
+                        detail = stringResource(R.string.subtitle_hostApprovesJoins),
                     )
                 }
 
@@ -530,7 +538,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 
 /** The ⋯ button's menu: Encryption and Mute, then a divider and the red Report. */
 @Composable
-private fun GroupProfileMenu(
+internal fun GroupProfileMenu(
     expanded: Boolean,
     items: List<GroupProfileMenuAction>,
     isPrivate: Boolean,
@@ -572,11 +580,15 @@ private fun GroupProfileMenu(
 private val RuleNameHold = 1500.milliseconds
 
 /** Four rows of portraits; the count beside the title opens the rest. */
-private const val MembersGridLimit = 16
+internal const val MembersGridLimit = 16
 
-/** "Private group · 48 members" over "The host approves who joins", behind a lock. */
+/**
+ * A line behind a lock under a private group's description, with an optional second line. A
+ * member count reads "Private group · 48 members" over "The host approves who joins"; an invite
+ * link replaces both ([summary] alone, nodes 12846:59 and 12846:126).
+ */
 @Composable
-private fun PrivateGroupNote(memberCount: Long, modifier: Modifier = Modifier) {
+internal fun PrivateGroupNote(summary: String, detail: String?, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
@@ -589,19 +601,18 @@ private fun PrivateGroupNote(memberCount: Long, modifier: Modifier = Modifier) {
                 tint = CodeTheme.colors.textSecondary,
             )
             Text(
-                text = stringResource(
-                    R.string.subtitle_privateGroupMembers,
-                    pluralStringResource(R.plurals.subtitle_memberCount, memberCount.toInt(), memberCount.toString()),
-                ),
+                text = summary,
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
             )
         }
-        Text(
-            text = stringResource(R.string.subtitle_hostApprovesJoins),
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textSecondary,
-        )
+        if (detail != null) {
+            Text(
+                text = detail,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
     }
 }
 
@@ -610,7 +621,7 @@ private fun PrivateGroupNote(memberCount: Long, modifier: Modifier = Modifier) {
  * with Cancel Request under it and how long the request has waited above it.
  */
 @Composable
-private fun PrivateJoinBar(
+internal fun PrivateJoinBar(
     join: PrivateGroupJoin,
     hostName: String?,
     lobbyCall: LobbyCall?,
