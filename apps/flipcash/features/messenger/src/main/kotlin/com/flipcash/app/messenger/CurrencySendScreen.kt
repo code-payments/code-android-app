@@ -52,6 +52,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.session.LocalSessionController
 import com.flipcash.app.core.ui.TokenSelectionPill
 import com.flipcash.app.messenger.internal.currencysend.CurrencySendViewModel
 import com.flipcash.features.messenger.R
@@ -90,6 +91,10 @@ fun CurrencySendScreen(mint: Mint, resultStateRegistry: NavResultStateRegistry) 
     val navigator = LocalCodeNavigator.current
 
     LaunchedEffect(viewModel, mint) { viewModel.start(mint) }
+    val session = LocalSessionController.current
+    LaunchedEffect(viewModel, session) {
+        viewModel.bill.collect { session?.showBill(it) }
+    }
     // Raised once the checkmark has held: from then on the sheet may close, and only by our hand.
     var hiding by remember { mutableStateOf(false) }
     val locked by rememberUpdatedState(!state.sendProgress.isIdle && !hiding)
@@ -159,16 +164,7 @@ fun CurrencySendScreen(mint: Mint, resultStateRegistry: NavResultStateRegistry) 
                     onQueryChanged = viewModel::onQueryChanged,
                     onBack = viewModel::onBackToAmount,
                     onPick = viewModel::onRecipientTapped,
-                    onGiveAsCash = {
-                        val amount = state.amount ?: return@SelectRecipientContent
-                        navigator.push(
-                            AppRoute.Sheets.Give(
-                                mint = mint,
-                                fromTokenInfo = true,
-                                amount = amount.decimalValue,
-                            )
-                        )
-                    },
+                    onGiveAsCash = viewModel::giveAsCash,
                 )
             }
         },

@@ -50,6 +50,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.flipcash.app.core.bill.Scannable
 import javax.inject.Inject
 import kotlin.math.min
 import kotlin.time.Duration.Companion.milliseconds
@@ -96,6 +97,11 @@ internal class CurrencySendViewModel @Inject constructor(
     val state: StateFlow<State> = _state.asStateFlow()
 
     private val mint = MutableStateFlow<Mint?>(null)
+
+    private val _bill = Channel<Scannable.Payable>(Channel.BUFFERED)
+
+    /** A bill for the entered amount, priced and ready to present. */
+    val bill: Flow<Scannable.Payable> = _bill.receiveAsFlow()
 
     private val _done = Channel<Unit>(Channel.BUFFERED)
 
@@ -183,6 +189,39 @@ internal class CurrencySendViewModel @Inject constructor(
     fun onConfirmDismissed() {
         if (!_state.value.sendProgress.isIdle) return
         _state.update { it.copy(selected = null) }
+    }
+
+    /** Or Give As Cash: prices the entered amount in this currency and hands the bill to the screen. */
+    fun giveAsCash() {
+        val current = _state.value
+        val token = current.token ?: return
+        val amount = current.amount ?: return
+        viewModelScope.launch {
+            val verifiedFiat = verifiedFiatCalculator.compute(
+                amount = amount,
+                token = token,
+                balance = tokenCoordinator.balanceForToken(token),
+                rate = exchange.preferredRate,
+            ).getOrElse { error ->
+                val (title, message) = when (error) {
+                    is ComputeVerifiedFiatError.AmountBelowMinimum ->
+                        R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
+                    else -> R.string.error_title_staleRates to R.string.error_description_staleRates
+                }
+                BottomBarManager.showAlert(
+                    title = resources.getString(title),
+                    message = resources.getString(message),
+                )
+                return@launch
+            }
+            _bill.trySend(
+                Scannable.Payable.forToken(
+                    token = token,
+                    amount = verifiedFiat.localFiat,
+                    verifiedState = verifiedFiat.verifiedState,
+                )
+            )
+        }
     }
 
     fun send() {
