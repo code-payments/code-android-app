@@ -189,6 +189,26 @@ class GroupInviteViewModelTest {
     }
 
     @Test
+    fun `an invite link is only offered to private groups`() = runTest(scheduler) {
+        val privateGroup = ChatId(ByteArray(32) { 8 })
+        val publicGroup = ChatId(ByteArray(32) { 9 })
+        every { chatCoordinator.feed(*anyVararg()) } returns flowOf(
+            listOf(
+                summary(privateGroup, ChatType.GROUP).let { it.copy(metadata = it.metadata.copy(isPrivate = true)) },
+                summary(publicGroup, ChatType.GROUP),
+            ),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.restrictToEncrypted(true)
+        assertEquals(listOf(privateGroup), model.state.value.invitable?.map { it.chatId })
+
+        model.restrictToEncrypted(false)
+        assertEquals(listOf(privateGroup, publicGroup), model.state.value.invitable?.map { it.chatId })
+    }
+
+    @Test
     fun `a person's DM is left out of the chats their profile is sent to`() = runTest(scheduler) {
         val dm = ChatId(ByteArray(32) { 7 })
         every { chatCoordinator.feed(*anyVararg()) } returns flowOf(

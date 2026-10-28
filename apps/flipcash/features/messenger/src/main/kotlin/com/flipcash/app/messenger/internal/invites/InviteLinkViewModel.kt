@@ -9,8 +9,6 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.HostInvite
 import com.flipcash.shared.chat.HostInvites
 import com.flipcash.shared.chat.InviteCreation
-import com.getcode.manager.BottomBarAction
-import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -135,7 +133,7 @@ internal class InviteLinkViewModel @Inject constructor(
         val chatId = chatId ?: return
         val current = _state.value
         when {
-            current.unavailable -> showUnavailable()
+            current.unavailable -> showInviteLinksNotAvailable(resources) { _effects.trySend(Effect.OpenJoinLink) }
             current.link is InviteLinkState.Ready -> perform(action, current.link.url)
             current.link is InviteLinkState.None && specific == null -> create(chatId, action)
         }
@@ -148,7 +146,7 @@ internal class InviteLinkViewModel @Inject constructor(
             // has gone through, or the tap would add a second.
             if (!loaded && !load(chatId)) {
                 _state.update { it.copy(link = InviteLinkState.None) }
-                showFailed()
+                showInviteLinkNotCreated(resources)
                 return@launch
             }
             val ready = (_state.value.link as? InviteLinkState.Ready)
@@ -164,15 +162,15 @@ internal class InviteLinkViewModel @Inject constructor(
                 }
                 InviteCreation.TooMany -> {
                     _state.update { it.copy(link = InviteLinkState.None) }
-                    showTooMany()
+                    showTooManyInviteLinks(resources)
                 }
                 InviteCreation.NotAvailable -> {
                     _state.update { it.copy(link = InviteLinkState.None, unavailable = true) }
-                    showUnavailable()
+                    showInviteLinksNotAvailable(resources) { _effects.trySend(Effect.OpenJoinLink) }
                 }
                 is InviteCreation.Failed -> {
                     _state.update { it.copy(link = InviteLinkState.None) }
-                    showFailed()
+                    showInviteLinkNotCreated(resources)
                 }
             }
         }
@@ -191,29 +189,6 @@ internal class InviteLinkViewModel @Inject constructor(
             }
         }
     }
-
-    private fun showTooMany() = BottomBarManager.showAlert(
-        title = resources.getString(R.string.title_tooManyInviteLinks),
-        message = resources.getString(R.string.description_tooManyInviteLinks),
-    )
-
-    private fun showFailed() = BottomBarManager.showError(
-        title = resources.getString(R.string.title_inviteLinkNotCreated),
-        message = resources.getString(R.string.description_inviteLinkNotCreated),
-    )
-
-    /** Frame 1e: invite links are not available to this host yet; the plain link still works. */
-    private fun showUnavailable() = BottomBarManager.showMessage(
-        title = resources.getString(R.string.title_inviteLinksNotAvailable),
-        message = resources.getString(R.string.description_inviteLinksNotAvailable),
-        actions = listOf(
-            BottomBarAction(
-                text = resources.getString(R.string.action_shareGroupLink),
-                onClick = { _effects.trySend(Effect.OpenJoinLink) },
-            ),
-        ),
-        showCancel = true,
-    )
 
     private fun HostInvite.toState(): InviteLinkState =
         url?.let { InviteLinkState.Ready(it, invite.expiresAt, invite.useCount, invite.maxUses) }

@@ -78,7 +78,7 @@ internal fun HostInvite.detailLine(): String {
 }
 
 /** The link as the pill shows it: scheme dropped and the middle of the secret elided (node 12933:113). */
-internal fun elideInviteUrl(url: String, head: Int = 37, tail: Int = 4): String {
+internal fun elideInviteUrl(url: String, head: Int = 32, tail: Int = 4): String {
     val bare = url.removePrefix("https://").removePrefix("http://")
     return if (bare.length <= head + tail + 1) bare else bare.take(head) + "…" + bare.takeLast(tail)
 }

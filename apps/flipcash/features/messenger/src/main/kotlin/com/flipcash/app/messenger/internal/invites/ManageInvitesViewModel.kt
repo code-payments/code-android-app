@@ -9,7 +9,6 @@ import com.flipcash.shared.chat.HostInvites
 import com.flipcash.shared.chat.HostInvites.Companion.isLostInviteAccess
 import com.flipcash.shared.chat.InviteCreation
 import com.flipcash.shared.chat.InviteSettings
-import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -88,14 +87,7 @@ internal class ManageInvitesViewModel @Inject constructor(
 
     /** Asks first, because revoking cannot be undone (frame 2c). */
     fun confirmRevoke(invite: HostInvite) {
-        BottomBarManager.showAlert(
-            title = resources.getString(R.string.title_revokeInviteLink),
-            message = resources.getString(R.string.description_revokeInviteLink),
-            actions = listOf(
-                BottomBarAction(text = resources.getString(R.string.action_revokeLink)) { revoke(invite) },
-            ),
-            showCancel = true,
-        )
+        showRevokeInviteLink(resources) { revoke(invite) }
     }
 
     private fun revoke(invite: HostInvite) {
@@ -130,24 +122,15 @@ internal class ManageInvitesViewModel @Inject constructor(
                 }
                 InviteCreation.TooMany -> {
                     _state.update { it.copy(creating = false) }
-                    BottomBarManager.showAlert(
-                        title = resources.getString(R.string.title_tooManyInviteLinks),
-                        message = resources.getString(R.string.description_tooManyInviteLinks),
-                    )
+                    showTooManyInviteLinks(resources)
                 }
                 InviteCreation.NotAvailable -> {
                     _state.update { it.copy(creating = false) }
-                    BottomBarManager.showMessage(
-                        title = resources.getString(R.string.title_inviteLinksNotAvailable),
-                        message = resources.getString(R.string.description_inviteLinksNotAvailable),
-                    )
+                    showInviteLinksNotAvailable(resources)
                 }
                 is InviteCreation.Failed -> {
                     _state.update { it.copy(creating = false) }
-                    BottomBarManager.showError(
-                        title = resources.getString(R.string.title_inviteLinkNotCreated),
-                        message = resources.getString(R.string.description_inviteLinkNotCreated),
-                    )
+                    showInviteLinkNotCreated(resources)
                 }
             }
         }

@@ -236,7 +236,7 @@ private fun JoinRequestRow(
 }
 
 @Composable
-private fun NoJoinRequests(
+internal fun NoJoinRequests(
     groupName: String,
     canInvite: Boolean,
     onShare: () -> Unit,

@@ -2,11 +2,8 @@ package com.flipcash.app.messenger.internal.invites
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.flipcash.app.funding.bottomBarCardAction
-import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.HostInvites
-import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
@@ -34,41 +31,11 @@ internal class InviteHostViewModel @Inject constructor(
         viewModelScope.launch { hostInvites.refreshAccess(chatId) }
     }
 
-    /**
-     * Frame 1a, drawn by the bottom bar's card sheet that Group Money and Add Money use, so it
-     * keeps their spacing, colours and dismissal.
-     */
+    /** Frame 1a: see [showInviteHostSheet]. */
     fun presentHostSheet(
         groupName: String,
         onShareInviteLink: () -> Unit,
         onShareJoinLink: () -> Unit,
         onManageInvites: () -> Unit,
-    ) {
-        BottomBarManager.showMessage(
-            title = resources.getString(R.string.title_inviteToGroup, groupName),
-            actions = listOf(
-                bottomBarCardAction(
-                    title = resources.getString(R.string.action_shareInviteLinkLong),
-                    subtitle = resources.getString(R.string.subtitle_shareInviteLink),
-                    iconRes = R.drawable.ic_send_outlined,
-                    testTag = "invite_action_share_invite",
-                    onClick = onShareInviteLink,
-                ),
-                bottomBarCardAction(
-                    title = resources.getString(R.string.action_shareJoinLink),
-                    subtitle = resources.getString(R.string.subtitle_shareJoinLink),
-                    iconRes = R.drawable.ic_link_outlined,
-                    testTag = "invite_action_share_join",
-                    onClick = onShareJoinLink,
-                ),
-                bottomBarCardAction(
-                    title = resources.getString(R.string.action_manageInvites),
-                    subtitle = resources.getString(R.string.subtitle_manageInvites),
-                    iconRes = R.drawable.ic_checklist,
-                    testTag = "invite_action_manage",
-                    onClick = onManageInvites,
-                ),
-            ),
-        )
-    }
+    ) = showInviteHostSheet(resources, groupName, onShareInviteLink, onShareJoinLink, onManageInvites)
 }
