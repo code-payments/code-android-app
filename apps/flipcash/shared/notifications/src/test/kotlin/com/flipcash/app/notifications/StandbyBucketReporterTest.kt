@@ -13,6 +13,7 @@ class StandbyBucketReporterTest {
         assertEquals("frequent", bucketLabel(UsageStatsManager.STANDBY_BUCKET_FREQUENT))
         assertEquals("rare", bucketLabel(UsageStatsManager.STANDBY_BUCKET_RARE))
         assertEquals("restricted", bucketLabel(UsageStatsManager.STANDBY_BUCKET_RESTRICTED))
+        assertEquals("exempted", bucketLabel(5))
     }
 
     @Test

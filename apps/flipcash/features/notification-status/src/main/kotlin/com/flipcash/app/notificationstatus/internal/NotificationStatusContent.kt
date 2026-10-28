@@ -64,6 +64,7 @@ internal fun NotificationStatusContent(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = inset),
         ) {
+            Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
             SummaryCard(status.summary)
 
             if (status.allPassing && !state.expanded) {
@@ -98,6 +99,7 @@ internal fun NotificationStatusContent(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(R.string.action_shareReport),
                 buttonState = ButtonState.Subtle,
+                textColor = CodeTheme.colors.textMain,
                 onClick = onShareReport,
             )
             val (note, color) = when {
