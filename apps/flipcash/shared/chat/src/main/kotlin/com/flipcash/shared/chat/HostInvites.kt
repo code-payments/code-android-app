@@ -39,12 +39,13 @@ enum class InviteExpiry(val duration: Duration?) {
     Never(null),
 }
 
-/** New Invite Link's Who can join presets (node 12844:334). 0 is no limit. */
+/** New Invite Link's Who can join presets, in the spec's order (group-invites.md). 0 is no limit. */
 enum class InviteUses(val maxUses: Int) {
-    NoLimit(0),
     One(1),
+    Five(5),
     Ten(10),
-    Fifty(50),
+    TwentyFive(25),
+    NoLimit(0),
 }
 
 data class InviteSettings(val expiry: InviteExpiry, val uses: InviteUses) {

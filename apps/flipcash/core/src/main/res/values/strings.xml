@@ -1488,7 +1488,6 @@
     <string name="subtitle_shareJoinLink">People ask to join and you approve each one</string>
     <string name="action_manageInvites">Manage Invites</string>
     <string name="subtitle_manageInvites">See and revoke the invite links you\'ve made</string>
-    <string name="title_shareInviteLink">Share Invite Link</string>
     <string name="label_creatingInviteLink">Creating link…</string>
     <string name="label_inviteLinkPlaceholder">Your link is made when you share or copy it</string>
     <string name="action_shareLink">Share Link</string>
@@ -1521,10 +1520,11 @@
     <string name="label_inviteExpiry_sevenDays">7 days</string>
     <string name="label_inviteExpiry_thirtyDays">30 days</string>
     <string name="label_inviteExpiry_never">Never</string>
-    <string name="label_inviteUses_noLimit">No limit</string>
     <string name="label_inviteUses_one">1 person</string>
+    <string name="label_inviteUses_five">5</string>
     <string name="label_inviteUses_ten">10</string>
-    <string name="label_inviteUses_fifty">50</string>
+    <string name="label_inviteUses_twentyFive">25</string>
+    <string name="label_inviteUses_noLimit">No limit</string>
     <string name="action_createInviteLink">Create Link</string>
     <string name="title_tooManyInviteLinks">Too Many Active Links</string>
     <string name="description_tooManyInviteLinks">This group has as many active invite links as it can have. Revoke one in Manage Invites to make another</string>

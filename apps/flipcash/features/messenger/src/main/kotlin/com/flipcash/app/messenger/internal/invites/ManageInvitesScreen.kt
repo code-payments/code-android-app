@@ -484,10 +484,11 @@ private fun InviteExpiry.labelRes(): Int = when (this) {
 }
 
 private fun InviteUses.labelRes(): Int = when (this) {
-    InviteUses.NoLimit -> R.string.label_inviteUses_noLimit
     InviteUses.One -> R.string.label_inviteUses_one
+    InviteUses.Five -> R.string.label_inviteUses_five
     InviteUses.Ten -> R.string.label_inviteUses_ten
-    InviteUses.Fifty -> R.string.label_inviteUses_fifty
+    InviteUses.TwentyFive -> R.string.label_inviteUses_twentyFive
+    InviteUses.NoLimit -> R.string.label_inviteUses_noLimit
 }
 
 /** Inactive rows are greyed (frame 2a). */
