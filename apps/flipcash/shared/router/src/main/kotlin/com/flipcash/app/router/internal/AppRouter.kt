@@ -98,7 +98,11 @@ internal class AppRouter(
     }
 
     override fun dispatch(deepLink: DeepLink): DeeplinkAction {
-        val type = classify(deepLink) ?: return deepLink.unrouted()
+        // An invite-shaped link that no route claimed (`/chat/invite/extra#s=…`) is a broken
+        // invite, not a page for the browser: handing it on would send its fragment, the key,
+        // to whatever opens it.
+        val type = classify(deepLink)
+            ?: if (deepLink.mayCarryInviteSecret()) DeeplinkType.InvalidGroupInvite else return deepLink.unrouted()
 
         // Not logged in — redirect to login (or login deeplink itself)
         if (authStateProvider() !is AuthState.Ready) {

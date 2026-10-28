@@ -1262,5 +1262,114 @@ class AppRouterTest {
         assertTrue(reported.none { it.message.orEmpty().contains(encoded) })
     }
 
+    private val encodedSecret get() = InviteLink.url(inviteSecret).substringAfter("#s=")
+
+    private fun inviteRouteOf(url: String): AppRoute.Messaging.GroupInvite {
+        val action = router.dispatch(DeepLink(url))
+        assertIs<DeeplinkAction.Navigate>(action, url)
+        return assertIs<AppRoute.Messaging.GroupInvite>(action.routes.last(), url)
+    }
+
+    @Test
+    fun `an invite with a trailing slash opens`() {
+        loggedIn()
+        val route = inviteRouteOf("https://app.flipcash.com/chat/invite/#s=$encodedSecret")
+        assertTrue(route.secret.contentEquals(inviteSecret))
+    }
+
+    @Test
+    fun `an invite on the apex host opens, with the host pinned to the app origin`() {
+        loggedIn()
+        val route = inviteRouteOf("https://flipcash.com/chat/invite#s=$encodedSecret")
+        assertTrue(route.secret.contentEquals(inviteSecret))
+    }
+
+    /**
+     * The `chat` segment is matched exactly, as for every chat route, and `invite` is matched
+     * ignoring case. The secret parser then reads only the canonical `/chat/invite` path, so a
+     * cased path is a broken invite either way, and never a page for the browser.
+     */
+    @Test
+    fun `a cased invite path is a broken invite and never leaves the app`() {
+        loggedIn()
+        assertEquals(DeeplinkType.InvalidGroupInvite, router.classify(DeepLink("https://app.flipcash.com/chat/Invite#s=$encodedSecret")))
+        assertNull(router.classify(DeepLink("https://app.flipcash.com/Chat/Invite#s=$encodedSecret")))
+        for (url in listOf(
+            "https://app.flipcash.com/chat/Invite#s=$encodedSecret",
+            "https://app.flipcash.com/Chat/Invite#s=$encodedSecret",
+            "https://flipcash.com/CHAT/INVITE#s=$encodedSecret",
+        )) {
+            assertNull(inviteRouteOf(url).secret, url)
+        }
+    }
+
+    @Test
+    fun `an invite path with a tail is a broken invite, not a browser link`() {
+        loggedIn()
+        for (url in listOf(
+            "https://app.flipcash.com/chat/invite/extra#s=$encodedSecret",
+            "https://flipcash.com/chat/invite/extra#s=$encodedSecret",
+            "https://flipcash.com/www/chat/invite#s=$encodedSecret",
+        )) {
+            val action = router.dispatch(DeepLink(url))
+            assertIs<DeeplinkAction.Navigate>(action, url)
+            assertNull((action.routes.last() as AppRoute.Messaging.GroupInvite).secret, url)
+        }
+    }
+
+    @Test
+    fun `other apex links still go to the browser`() {
+        loggedIn()
+        assertIs<DeeplinkAction.OpenExternally>(router.dispatch(DeepLink("https://flipcash.com/download")))
+    }
+
+    @Test
+    fun `other fragment keys beside the secret are ignored`() {
+        loggedIn()
+        assertTrue(inviteRouteOf("https://app.flipcash.com/chat/invite#s=$encodedSecret/x=1").secret.contentEquals(inviteSecret))
+        assertTrue(inviteRouteOf("https://app.flipcash.com/chat/invite#x=1/s=$encodedSecret").secret.contentEquals(inviteSecret))
+    }
+
+    @Test
+    fun `two secrets or an empty one are a broken invite`() {
+        loggedIn()
+        assertNull(inviteRouteOf("https://app.flipcash.com/chat/invite#s=$encodedSecret/s=$encodedSecret").secret)
+        assertNull(inviteRouteOf("https://app.flipcash.com/chat/invite#s=").secret)
+    }
+
+    @Test
+    fun `a jump wrapped invite opens the invite`() {
+        loggedIn()
+        val wrapped = "https://jump.flipcash.com/#source=" + URLEncoder.encode(InviteLink.url(inviteSecret), "UTF-8")
+        val route = inviteRouteOf(wrapped)
+        assertTrue(route.secret.contentEquals(inviteSecret))
+    }
+
+    @Test
+    fun `a signed out invite goes to onboarding and the link is dropped`() {
+        loggedOut()
+        for (url in listOf(
+            InviteLink.url(inviteSecret),
+            "https://app.flipcash.com/chat/invite#s=",
+            "https://flipcash.com/chat/invite/extra#s=$encodedSecret",
+        )) {
+            val action = router.dispatch(DeepLink(url))
+            assertIs<DeeplinkAction.Navigate>(action, url)
+            assertEquals(listOf(AppRoute.OnboardingFlow()), action.routes, url)
+        }
+    }
+
+    @Test
+    fun `group invite routes redact the secret and compare by content`() {
+        val route = AppRoute.Messaging.GroupInvite(inviteSecret)
+        assertFalse(route.toString().contains(encodedSecret))
+        assertFalse(route.toString().contains(inviteSecret.joinToString(",")))
+        assertEquals(route, AppRoute.Messaging.GroupInvite(inviteSecret.copyOf()))
+        assertEquals(route.hashCode(), AppRoute.Messaging.GroupInvite(inviteSecret.copyOf()).hashCode())
+        assertTrue(route != AppRoute.Messaging.GroupInvite(ByteArray(32)))
+        assertTrue(route != AppRoute.Messaging.GroupInvite(null))
+        assertEquals(AppRoute.Messaging.GroupInvite(null), AppRoute.Messaging.GroupInvite(null))
+    }
+
     // endregion
 }
