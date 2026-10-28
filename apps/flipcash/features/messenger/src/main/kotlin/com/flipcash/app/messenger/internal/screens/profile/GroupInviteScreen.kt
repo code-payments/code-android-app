@@ -113,6 +113,11 @@ internal fun GroupInviteContent(
             body = stringResource(R.string.description_inviteLinkNotFound),
             onBack = onBack,
         )
+        InviteLandingState.Phase.GroupGone -> InviteNotice(
+            title = stringResource(R.string.error_title_groupNotFound),
+            body = stringResource(R.string.description_inviteGroupGone),
+            onBack = onBack,
+        )
         InviteLandingState.Phase.Banned -> InviteNotice(
             title = stringResource(R.string.title_inviteBanned),
             body = stringResource(R.string.description_inviteBanned),

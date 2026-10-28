@@ -59,6 +59,9 @@ internal object InviteLandingSamples {
     /** 3e. */
     val notFound = InviteLandingState(phase = InviteLandingState.Phase.NotFound)
 
+    /** JoinChat NOT_FOUND on a live link: the group is gone. */
+    val groupGone = InviteLandingState(phase = InviteLandingState.Phase.GroupGone)
+
     /** 3f. */
     val banned = InviteLandingState(phase = InviteLandingState.Phase.Banned)
 
@@ -89,6 +92,10 @@ private fun Preview_Revoked() = FlipcashPreview(showBackground = true) { GroupIn
 @Preview(name = "3e not found")
 @Composable
 private fun Preview_NotFound() = FlipcashPreview(showBackground = true) { GroupInviteContent(InviteLandingSamples.notFound, {}, {}, {}, {}) }
+
+@Preview(name = "3e group gone")
+@Composable
+private fun Preview_GroupGone() = FlipcashPreview(showBackground = true) { GroupInviteContent(InviteLandingSamples.groupGone, {}, {}, {}, {}) }
 
 @Preview(name = "3f banned")
 @Composable

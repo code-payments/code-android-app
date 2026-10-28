@@ -15,9 +15,11 @@ import com.flipcash.shared.chat.invite.InviteJoinResult
 import com.flipcash.shared.chat.invite.InviteLookup
 import com.flipcash.shared.chat.invite.InviteRosterResult
 import com.getcode.manager.BottomBarManager
+import com.flipcash.features.messenger.R
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -185,6 +187,32 @@ class InviteLandingViewModelTest {
         val vm = viewModel().apply { open(secret) }
         vm.join()
         assertEquals(InviteLandingState.Phase.NotFound, vm.state.value.phase)
+    }
+
+    @Test
+    fun `join group-gone is its own frame`() {
+        coEvery { landing.lookup(any()) } returns found()
+        coEvery { landing.roster(any(), any(), null) } returns page()
+        coEvery { landing.join(any(), chatId, token) } returns InviteJoinResult.GroupGone
+        val vm = viewModel().apply { open(secret) }
+        vm.join()
+        assertEquals(InviteLandingState.Phase.GroupGone, vm.state.value.phase)
+    }
+
+    @Test
+    fun `a refused join stays on the preview with the generic alert`() {
+        coEvery { landing.lookup(any()) } returns found()
+        coEvery { landing.roster(any(), any(), null) } returns page()
+        coEvery { landing.join(any(), chatId, token) } returns InviteJoinResult.Refused
+        every { resources.getString(R.string.error_title_failedToJoinGroup) } returns "Couldn't Join Group"
+        every { resources.getString(R.string.error_description_failedToJoinAlert) } returns "Something went wrong. Please try again"
+        val vm = viewModel().apply { open(secret) }
+        vm.join()
+        assertEquals(InviteLandingState.Phase.Preview, vm.state.value.phase)
+        assertEquals(false, vm.state.value.joining)
+        val alert = BottomBarManager.messages.value.single()
+        assertEquals("Couldn't Join Group", alert.title)
+        assertEquals("Something went wrong. Please try again", alert.subtitle)
     }
 
     @Test

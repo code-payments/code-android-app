@@ -42,7 +42,7 @@ internal data class InviteLandingState(
     val requesting: Boolean = false,
     val requestedAt: Instant? = null,
 ) {
-    enum class Phase { Loading, Preview, NotFound, Banned, LoadFailed }
+    enum class Phase { Loading, Preview, NotFound, GroupGone, Banned, LoadFailed }
 }
 
 /**
@@ -144,8 +144,17 @@ internal class InviteLandingViewModel @Inject constructor(
                 is InviteJoinResult.Dead -> markDead(result.reason)
                 is InviteJoinResult.NotFound ->
                     _state.update { it.copy(phase = InviteLandingState.Phase.NotFound, joining = false) }
+                is InviteJoinResult.GroupGone ->
+                    _state.update { it.copy(phase = InviteLandingState.Phase.GroupGone, joining = false) }
                 is InviteJoinResult.Banned ->
                     _state.update { it.copy(phase = InviteLandingState.Phase.Banned, joining = false) }
+                is InviteJoinResult.Refused -> {
+                    _state.update { it.copy(joining = false) }
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_failedToJoinGroup),
+                        message = resources.getString(R.string.error_description_failedToJoinAlert),
+                    )
+                }
                 is InviteJoinResult.Failed -> {
                     _state.update { it.copy(joining = false) }
                     BottomBarManager.showError(

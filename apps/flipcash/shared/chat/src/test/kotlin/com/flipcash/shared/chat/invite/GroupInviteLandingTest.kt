@@ -127,9 +127,10 @@ class GroupInviteLandingTest {
             JoinChatError.InviteExpired() to InviteJoinResult.Dead(DeadInviteReason.EXPIRED),
             JoinChatError.InviteRevoked() to InviteJoinResult.Dead(DeadInviteReason.REVOKED),
             JoinChatError.InviteNotFound() to InviteJoinResult.NotFound,
-            JoinChatError.NotFound() to InviteJoinResult.NotFound,
+            JoinChatError.NotFound() to InviteJoinResult.GroupGone,
             JoinChatError.Banned() to InviteJoinResult.Banned,
-            JoinChatError.Denied() to InviteJoinResult.Failed,
+            JoinChatError.Denied() to InviteJoinResult.Refused,
+            JoinChatError.RulesNotSatisfied() to InviteJoinResult.Refused,
             JoinChatError.Other(RuntimeException("offline")) to InviteJoinResult.Failed,
         )
         cases.forEach { (error, outcome) ->

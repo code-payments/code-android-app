@@ -15,7 +15,9 @@ class InviteFailureTest {
 
     @Test
     fun `other join failures are still reported`() {
+        // DENIED with an invite points to a client bug, so it must reach error reporting.
         assertFalse(JoinChatError.Denied().isExpectedInviteFailure())
+        assertFalse(JoinChatError.RulesNotSatisfied().isExpectedInviteFailure())
         assertFalse(JoinChatError.Unrecognized().isExpectedInviteFailure())
         assertFalse(JoinChatError.Other(RuntimeException()).isExpectedInviteFailure())
     }

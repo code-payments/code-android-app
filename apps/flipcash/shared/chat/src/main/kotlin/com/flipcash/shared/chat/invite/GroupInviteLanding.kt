@@ -17,6 +17,8 @@ import com.flipcash.services.models.chat.InviteParameters
 import com.flipcash.services.models.chat.InviteToken
 import com.flipcash.shared.chat.ChatCoordinator
 import com.getcode.chatcipher.InviteCipher
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import javax.inject.Inject
 
 /** Why a link no longer admits anyone. Each has its own line under the group's description (node 12846:126). */
@@ -51,11 +53,22 @@ sealed interface InviteJoinResult {
     /** The link died between preview and join; the screen switches to the dead state in place. */
     data class Dead(val reason: DeadInviteReason) : InviteJoinResult
 
+    /** INVITE_NOT_FOUND: the link matches no invite. */
     data object NotFound : InviteJoinResult
+
+    /** NOT_FOUND: the link is real but the group is gone. */
+    data object GroupGone : InviteJoinResult
 
     data object Banned : InviteJoinResult
 
-    /** A transport failure or DENIED: the connection alert (node 12846:220). */
+    /**
+     * DENIED, or RULES_NOT_SATISFIED. Neither should happen with an invite: the server answers
+     * DENIED to a private group joined without one, and a private group has no rules. The screen
+     * stays on the preview with the generic alert, not the connection one.
+     */
+    data object Refused : InviteJoinResult
+
+    /** A transport failure: the connection alert (node 12846:220). */
     data object Failed : InviteJoinResult
 }
 
@@ -116,8 +129,16 @@ class GroupInviteLanding @Inject constructor(
                     is JoinChatError.InviteExhausted -> InviteJoinResult.Dead(DeadInviteReason.EXHAUSTED)
                     is JoinChatError.InviteExpired -> InviteJoinResult.Dead(DeadInviteReason.EXPIRED)
                     is JoinChatError.InviteRevoked -> InviteJoinResult.Dead(DeadInviteReason.REVOKED)
-                    is JoinChatError.InviteNotFound, is JoinChatError.NotFound -> InviteJoinResult.NotFound
+                    is JoinChatError.InviteNotFound -> InviteJoinResult.NotFound
+                    is JoinChatError.NotFound -> InviteJoinResult.GroupGone
                     is JoinChatError.Banned -> InviteJoinResult.Banned
+                    is JoinChatError.Denied, is JoinChatError.RulesNotSatisfied -> {
+                        // Points to a client bug (see InviteJoinResult.Refused). The repository has
+                        // already reported the error; this line says it was an invite join. The
+                        // chat id is the only identifier here, never the link or its secret.
+                        trace(tag = TAG, message = "JoinChat refused an invite join (${error.message}) for $chatId", type = TraceType.Error)
+                        InviteJoinResult.Refused
+                    }
                     else -> InviteJoinResult.Failed
                 }
             },
@@ -131,3 +152,5 @@ private fun Invite.Status.deadReason(): DeadInviteReason? = when (this) {
     Invite.Status.REVOKED -> DeadInviteReason.REVOKED
     Invite.Status.ACTIVE, Invite.Status.UNKNOWN -> null
 }
+
+private const val TAG = "GroupInviteLanding"

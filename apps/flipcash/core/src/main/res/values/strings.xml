@@ -1324,6 +1324,7 @@
     <string name="action_leaveGroup">Leave Group</string>
     <string name="title_inviteLinkNotFound">Link Not Found</string>
     <string name="description_inviteLinkNotFound">This invite link isn’t valid. Ask whoever sent it for a new one.</string>
+    <string name="description_inviteGroupGone">This group no longer exists</string>
     <string name="title_inviteBanned">You Can’t Join This Group</string>
     <string name="description_inviteBanned">The host has removed you from this group.</string>
     <string name="error_title_failedToJoinGroup">Couldn’t Join Group</string>
