@@ -19,7 +19,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -127,11 +129,12 @@ fun NotificationStatusScreen() {
     }
 
     val testSent = stringResource(R.string.toast_notificationStatusTestSent)
+    val testSentIcon = ImageVector.vectorResource(R.drawable.ic_check_circle)
     LaunchedEffect(viewModel, toasts) {
         if (toasts == null) return@LaunchedEffect
         viewModel.eventFlow
             .filterIsInstance<Event.TestScheduled>()
-            .onEach { launch { toasts.show(message = testSent) } }
+            .onEach { launch { toasts.show(message = testSent, icon = testSentIcon) } }
             .launchIn(this)
     }
 }
