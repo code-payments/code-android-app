@@ -243,26 +243,31 @@ private fun SummaryCard(summary: Summary, checkAgainEnabled: Boolean, onCheckAga
                 Crossfade(targetState = title, label = "summary title") {
                     Text(it, style = CodeTheme.typography.textLarge, color = CodeTheme.colors.textMain)
                 }
-                Text(
-                    stringResource(R.string.subtitle_notificationStatusCheckedJustNow),
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textSecondary,
-                )
+                // "Check again" sits on the second line so every title keeps the full width and one
+                // line; a title that wrapped only when settled would grow the card at the end of a run.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(R.string.subtitle_notificationStatusCheckedJustNow),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                    CodeButton(
+                        modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2),
+                        text = stringResource(R.string.action_checkAgain),
+                        buttonState = ButtonState.Subtle,
+                        textColor = CodeTheme.colors.textMain,
+                        style = CodeTheme.typography.textSmall,
+                        enabled = checkAgainEnabled,
+                        overrideContentPadding = true,
+                        contentPadding = PaddingValues(
+                            horizontal = CodeTheme.dimens.grid.x2,
+                            vertical = CodeTheme.dimens.grid.x1,
+                        ),
+                        onClick = onCheckAgain,
+                    )
+                }
             }
-            CodeButton(
-                modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2),
-                text = stringResource(R.string.action_checkAgain),
-                buttonState = ButtonState.Subtle,
-                textColor = CodeTheme.colors.textMain,
-                style = CodeTheme.typography.textSmall,
-                enabled = checkAgainEnabled,
-                overrideContentPadding = true,
-                contentPadding = PaddingValues(
-                    horizontal = CodeTheme.dimens.grid.x2,
-                    vertical = CodeTheme.dimens.grid.x2,
-                ),
-                onClick = onCheckAgain,
-            )
         }
     }
 }
