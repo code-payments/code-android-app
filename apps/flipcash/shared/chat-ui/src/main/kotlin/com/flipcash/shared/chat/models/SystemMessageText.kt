@@ -84,8 +84,13 @@ data class SystemUserLink(val start: Int, val end: Int, val userId: ID)
 /**
  * The tappable names in [text], the result of [displayText] for this notice. Only the inviter of an
  * invite-link join is one: "your" and "you" name the viewer, who has no profile to open from here.
+ *
+ * The span is found by formatting the same string again with a marker in the inviter's place, so
+ * where the name sits follows the string resource and not an assumption about its wording. If the
+ * result doesn't line up with [text], there is no link.
  */
 fun MessageContent.System.userLinks(
+    resources: ResourceHelper,
     text: String,
     selfId: ID?,
     nameOf: (ID) -> String?,
@@ -93,8 +98,18 @@ fun MessageContent.System.userLinks(
     val joined = event as? MessageContent.SystemEvent.UserJoined ?: return emptyList()
     val inviter = joined.invitedBy?.takeUnless { selfId != null && it == selfId } ?: return emptyList()
     val name = nameOf(inviter) ?: return emptyList()
-    // The possessive anchors the match: the joiner's own name may be a substring of the inviter's.
-    val at = text.lastIndexOf("$name’s")
-    if (at < 0) return emptyList()
+    val marked = when {
+        selfId != null && joined.userId == selfId ->
+            resources.getString(R.string.label_chat_system_joinedSelfViaInvite, INVITER_MARKER)
+        else -> {
+            val joinedName = nameOf(joined.userId) ?: return emptyList()
+            resources.getString(R.string.label_chat_system_joinedViaInvite, joinedName, INVITER_MARKER)
+        }
+    }
+    val at = marked.indexOf(INVITER_MARKER)
+    if (at < 0 || !text.regionMatches(at, name, 0, name.length)) return emptyList()
     return listOf(SystemUserLink(at, at + name.length, inviter))
 }
+
+// A private-use character, so it can't collide with a name or the surrounding wording.
+private const val INVITER_MARKER = "\uE000"

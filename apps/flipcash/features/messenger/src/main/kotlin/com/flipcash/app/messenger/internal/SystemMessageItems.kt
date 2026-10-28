@@ -28,6 +28,6 @@ internal fun systemMessageItem(
         contentIndex = contentIndex,
         timestamp = timestamp,
         text = text,
-        userLinks = content.userLinks(text, selfId, nameOf),
+        userLinks = content.userLinks(resources, text, selfId, nameOf),
     )
 }

@@ -15,6 +15,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -51,6 +53,8 @@ internal fun SystemMessageRow(
     userLinks: List<SystemUserLink> = emptyList(),
     onUserClick: (ID) -> Unit = {},
 ) {
+    // The text is remembered across recompositions, so the click goes through the latest handler.
+    val currentOnUserClick by rememberUpdatedState(onUserClick)
     val lineHeight = with(LocalDensity.current) { CodeTheme.typography.caption.lineHeight.toDp() }
 
     Row(
@@ -72,7 +76,7 @@ internal fun SystemMessageRow(
         }
         Text(
             modifier = Modifier.widthIn(max = SYSTEM_TEXT_MAX_WIDTH),
-            text = remember(text, userLinks) { linkedText(text, userLinks, onUserClick) },
+            text = remember(text, userLinks) { linkedText(text, userLinks) { currentOnUserClick(it) } },
             // Centred in each 18sp line box, as iOS does with its baseline offset. The default
             // proportional split sits the glyphs high, off the glyph's centre.
             style = CodeTheme.typography.caption.copy(
