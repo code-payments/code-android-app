@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal.request
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Spring
@@ -10,7 +9,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +19,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Keyboard
@@ -44,7 +40,6 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,11 +49,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.layout.positionInParent
-import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -90,6 +81,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White10
+import com.getcode.ui.components.SlidingChipRow
 import com.getcode.ui.theme.CodeButton
 import com.flipcash.shared.chat.ui.media.rememberReducedMotion
 import kotlinx.coroutines.launch
@@ -143,10 +135,12 @@ internal fun TimeToPaySheet(
                 textAlign = TextAlign.Center,
             )
             RangeFields(sheet)
-            PresetChips(
+            SlidingChipRow(
+                options = Deadline.Preset.entries,
                 selected = (sheet.choice as? TimeToPay.Choice.Preset)?.preset,
+                onSelect = { sheet = sheet.choosePreset(it) },
+                label = { stringResource(it.label) },
                 reducedMotion = reducedMotion,
-                onChoose = { sheet = sheet.choosePreset(it) },
             )
             DayGrid(sheet, reducedMotion, onChoose = { sheet = sheet.chooseDay(it) })
             TimeRow(time = sheet.time, onClick = { pickingTime = true })
@@ -243,69 +237,6 @@ private fun RangeField(label: String, value: String, outlined: Boolean, modifier
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-    }
-}
-
-/**
- * The preset chips. One white highlight slides to the chosen chip and fades out when the choice
- * becomes custom.
- */
-@Composable
-private fun PresetChips(selected: Deadline.Preset?, reducedMotion: Boolean, onChoose: (Deadline.Preset) -> Unit) {
-    val bounds = remember { mutableStateMapOf<Deadline.Preset, Rect>() }
-    val highlight = remember { Animatable(Rect.Zero, Rect.VectorConverter) }
-    val shown = remember { Animatable(0f) }
-    var placed by remember { mutableStateOf(false) }
-    val target = selected?.let { bounds[it] }
-    LaunchedEffect(selected, target) {
-        val spec = TimeToPayMotion.spec<Float>(reducedMotion)
-        when {
-            selected == null -> shown.animateTo(0f, spec)
-            target == null -> Unit
-            !placed -> {
-                highlight.snapTo(target)
-                shown.snapTo(1f)
-                placed = true
-            }
-            else -> {
-                launch { highlight.animateTo(target, TimeToPayMotion.spec(reducedMotion)) }
-                shown.animateTo(1f, spec)
-            }
-        }
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .drawBehind {
-                bounds.values.forEach { chip ->
-                    drawRoundRect(White10, chip.topLeft, chip.size, CornerRadius(chip.height / 2))
-                }
-                val chip = highlight.value
-                drawRoundRect(White, chip.topLeft, chip.size, CornerRadius(chip.height / 2), alpha = shown.value)
-            },
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
-    ) {
-        Deadline.Preset.entries.forEach { preset ->
-            val isSelected = preset == selected
-            val color by animateColorAsState(
-                targetValue = if (isSelected) Color.Black else CodeTheme.colors.textMain,
-                animationSpec = TimeToPayMotion.spec(reducedMotion),
-                label = "chip text",
-            )
-            Text(
-                modifier = Modifier
-                    .onPlaced { bounds[preset] = Rect(it.positionInParent(), it.size.toSize()) }
-                    .clip(CircleShape)
-                    .clickable(role = Role.Button) { onChoose(preset) }
-                    .semantics { this.selected = isSelected }
-                    .padding(horizontal = 10.dp, vertical = 7.dp),
-                text = stringResource(preset.label),
-                style = CodeTheme.typography.caption,
-                color = color,
-                maxLines = 1,
-            )
-        }
     }
 }
 
