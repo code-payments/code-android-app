@@ -15,6 +15,7 @@ import com.flipcash.shared.chat.invite.InviteJoinResult
 import com.flipcash.shared.chat.invite.InviteLookup
 import com.flipcash.shared.chat.invite.InviteRosterResult
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.SelectedBottomBarAction
 import com.flipcash.features.messenger.R
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
@@ -22,6 +23,8 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -65,8 +68,20 @@ class InviteLandingViewModelTest {
 
     private fun viewModel() = InviteLandingViewModel(landing, lobby, resources)
 
+    private val requests = MutableStateFlow<Map<ChatId, Instant>>(emptyMap())
+    private val requestedAt = Instant.fromEpochMilliseconds(5_000)
+
     @Before
-    fun setUp() = BottomBarManager.clear()
+    fun setUp() {
+        BottomBarManager.clear()
+        every { lobby.observe() } returns requests
+        every { resources.getString(R.string.title_inviteLinkNotFound) } returns "Link Not Found"
+        every { resources.getString(R.string.description_inviteLinkNotFoundAlert) } returns "This invite link isn’t valid. Ask whoever sent it for a new one"
+        every { resources.getString(R.string.error_title_groupNotFound) } returns "Group Not Found"
+        every { resources.getString(R.string.description_inviteGroupGone) } returns "This group no longer exists"
+        every { resources.getString(R.string.title_inviteBanned) } returns "You Can’t Join This Group"
+        every { resources.getString(R.string.description_inviteBannedAlert) } returns "The host has removed you from this group"
+    }
 
     @After
     fun tearDown() = BottomBarManager.clear()
@@ -178,25 +193,224 @@ class InviteLandingViewModelTest {
         assertTrue(BottomBarManager.messages.value.isEmpty())
     }
 
-    @Test
-    fun `join not-found and banned switch frames`() {
+    private fun openLive(): InviteLandingViewModel {
         coEvery { landing.lookup(any()) } returns found()
         coEvery { landing.roster(any(), any(), null) } returns page()
-        coEvery { landing.join(any(), chatId, token) } returnsMany
-            listOf(InviteJoinResult.NotFound, InviteJoinResult.Banned)
-        val vm = viewModel().apply { open(secret) }
+        return viewModel().apply { open(secret) }
+    }
+
+    private fun dismissAlert() {
+        val alert = BottomBarManager.messages.value.single()
+        alert.onClose(SelectedBottomBarAction(index = -1))
+    }
+
+    private suspend fun assertPopsAfterAlert(
+        result: InviteJoinResult,
+        title: String,
+        body: String,
+    ) {
+        BottomBarManager.clear()
+        coEvery { landing.join(any(), chatId, token) } returns result
+        val vm = openLive()
         vm.join()
-        assertEquals(InviteLandingState.Phase.NotFound, vm.state.value.phase)
+
+        val alert = BottomBarManager.messages.value.single()
+        assertEquals(title, alert.title)
+        assertEquals(body, alert.subtitle)
+        // Still on the preview, and re-enabled, until the alert is dismissed.
+        assertEquals(InviteLandingState.Phase.Preview, vm.state.value.phase)
+        assertEquals(false, vm.state.value.joining)
+
+        dismissAlert()
+        assertEquals(InviteLandingViewModel.Effect.Pop, vm.effects.first())
     }
 
     @Test
-    fun `join group-gone is its own frame`() {
-        coEvery { landing.lookup(any()) } returns found()
-        coEvery { landing.roster(any(), any(), null) } returns page()
-        coEvery { landing.join(any(), chatId, token) } returns InviteJoinResult.GroupGone
+    fun `join with an unknown invite alerts then pops the preview`() = runTest(mainCoroutineRule.dispatcher) {
+        assertPopsAfterAlert(
+            InviteJoinResult.NotFound,
+            "Link Not Found",
+            "This invite link isn’t valid. Ask whoever sent it for a new one",
+        )
+    }
+
+    @Test
+    fun `join into a group that is gone alerts then pops the preview`() = runTest(mainCoroutineRule.dispatcher) {
+        assertPopsAfterAlert(InviteJoinResult.GroupGone, "Group Not Found", "This group no longer exists")
+    }
+
+    @Test
+    fun `join when banned alerts then pops the preview`() = runTest(mainCoroutineRule.dispatcher) {
+        assertPopsAfterAlert(
+            InviteJoinResult.Banned,
+            "You Can’t Join This Group",
+            "The host has removed you from this group",
+        )
+    }
+
+    @Test
+    fun `the open-time not-found and banned lookups keep their full-screen frames`() {
+        coEvery { landing.lookup(any()) } returnsMany listOf(InviteLookup.NotFound, InviteLookup.Banned)
+        val notFound = viewModel().apply { open(secret) }
+        assertEquals(InviteLandingState.Phase.NotFound, notFound.state.value.phase)
+        val banned = viewModel().apply { open(secret) }
+        assertEquals(InviteLandingState.Phase.Banned, banned.state.value.phase)
+        assertTrue(BottomBarManager.messages.value.isEmpty())
+    }
+
+    @Test
+    fun `a viewer who already asked sees the request on a dead link`() {
+        requests.value = mapOf(chatId to requestedAt)
+        coEvery { landing.lookup(any()) } returns found(DeadInviteReason.EXPIRED)
         val vm = viewModel().apply { open(secret) }
+        assertTrue(vm.state.value.dead)
+        assertEquals(requestedAt, vm.state.value.requestedAt)
+    }
+
+    @Test
+    fun `a request for another chat is not this one's`() {
+        requests.value = mapOf(ChatId(ByteArray(16) { 6 }.toList()) to requestedAt)
+        val vm = openLive()
+        assertNull(vm.state.value.requestedAt)
+    }
+
+    @Test
+    fun `a viewer waiting in the lobby still sees a live link as joinable`() {
+        requests.value = mapOf(chatId to requestedAt)
+        val vm = openLive()
+        assertEquals(false, vm.state.value.dead)
+        assertEquals(InviteLandingState.Phase.Preview, vm.state.value.phase)
+    }
+
+    @Test
+    fun `a request that leaves the store leaves the screen`() {
+        requests.value = mapOf(chatId to requestedAt)
+        val vm = openLive()
+        requests.value = emptyMap()
+        assertNull(vm.state.value.requestedAt)
+    }
+
+    @Test
+    fun `joining clears the stored request for that chat`() = runTest(mainCoroutineRule.dispatcher) {
+        requests.value = mapOf(chatId to requestedAt)
+        coEvery { landing.join(any(), chatId, token) } returns InviteJoinResult.Joined(chatId)
+        val vm = openLive()
         vm.join()
-        assertEquals(InviteLandingState.Phase.GroupGone, vm.state.value.phase)
+        coVerify(exactly = 1) { lobby.clear(chatId) }
+        assertEquals(InviteLandingViewModel.Effect.OpenChat(chatId), vm.effects.first())
+    }
+
+    @Test
+    fun `a join that does not land leaves the stored request alone`() {
+        coEvery { landing.join(any(), chatId, token) } returns InviteJoinResult.Dead(DeadInviteReason.REVOKED)
+        val vm = openLive()
+        vm.join()
+        coVerify(exactly = 0) { lobby.clear(any()) }
+    }
+
+    @Test
+    fun `after joining the held secret is gone, so a second join does nothing`() = runTest(mainCoroutineRule.dispatcher) {
+        coEvery { landing.join(any(), chatId, token) } returns InviteJoinResult.Joined(chatId)
+        val vm = openLive()
+        vm.join()
+        vm.join()
+        coVerify(exactly = 1) { landing.join(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a double tap on join makes one call`() = runTest(mainCoroutineRule.dispatcher) {
+        val gate = CompletableDeferred<InviteJoinResult>()
+        coEvery { landing.join(any(), chatId, token) } coAnswers { gate.await() }
+        val vm = openLive()
+        vm.join()
+        vm.join()
+        assertTrue(vm.state.value.joining)
+        gate.complete(InviteJoinResult.Joined(chatId))
+        coVerify(exactly = 1) { landing.join(any(), any(), any()) }
+    }
+
+    @Test
+    fun `requesting to join records the time and a failure alerts`() {
+        every { resources.getString(R.string.error_title_failedToRequestJoin) } returns "Couldn't Request"
+        every { resources.getString(R.string.error_description_failedToRequestJoin) } returns "Try again"
+        coEvery { lobby.request(chatId) } returnsMany
+            listOf(Result.failure(RuntimeException("offline")), Result.success(requestedAt))
+        coEvery { landing.lookup(any()) } returns found(DeadInviteReason.EXPIRED)
+        val vm = viewModel().apply { open(secret) }
+
+        vm.requestToJoin()
+        assertNull(vm.state.value.requestedAt)
+        assertEquals(false, vm.state.value.requesting)
+        assertEquals("Couldn't Request", BottomBarManager.messages.value.single().title)
+
+        vm.requestToJoin()
+        assertEquals(requestedAt, vm.state.value.requestedAt)
+        assertEquals(false, vm.state.value.requesting)
+    }
+
+    @Test
+    fun `cancelling clears the request, and a failed cancel keeps it`() {
+        requests.value = mapOf(chatId to requestedAt)
+        coEvery { landing.lookup(any()) } returns found(DeadInviteReason.EXPIRED)
+        coEvery { lobby.cancel(chatId) } returnsMany
+            listOf(Result.failure(RuntimeException("offline")), Result.success(Unit))
+        val vm = viewModel().apply { open(secret) }
+        assertEquals(requestedAt, vm.state.value.requestedAt)
+
+        vm.cancelRequest()
+        assertEquals(requestedAt, vm.state.value.requestedAt)
+        assertEquals(false, vm.state.value.requesting)
+
+        vm.cancelRequest()
+        assertNull(vm.state.value.requestedAt)
+        assertEquals(false, vm.state.value.requesting)
+    }
+
+    @Test
+    fun `request and cancel before the group has loaded do nothing`() {
+        val vm = viewModel()
+        vm.requestToJoin()
+        vm.cancelRequest()
+        coVerify(exactly = 0) { lobby.request(any()) }
+        coVerify(exactly = 0) { lobby.cancel(any()) }
+    }
+
+    @Test
+    fun `roster pages append in order`() {
+        val first = mockk<ChatMember>(relaxed = true)
+        val second = mockk<ChatMember>(relaxed = true)
+        val next = listOf<Byte>(2)
+        coEvery { landing.lookup(any()) } returns found()
+        coEvery { landing.roster(any(), any(), null) } returns InviteRosterResult.Page(listOf(first), next, 48)
+        coEvery { landing.roster(any(), any(), next) } returns InviteRosterResult.Page(listOf(second), null, 49)
+        val vm = viewModel().apply { open(secret) }
+        assertEquals(listOf(first, second), vm.state.value.members)
+        assertEquals(49L, vm.state.value.memberCount)
+    }
+
+    @Test
+    fun `roster paging stops at the row cap`() {
+        val a = listOf<Byte>(1)
+        val b = listOf<Byte>(2)
+        val rows = List(100) { mockk<ChatMember>(relaxed = true) }
+        coEvery { landing.lookup(any()) } returns found()
+        coEvery { landing.roster(any(), any(), null) } returns InviteRosterResult.Page(rows, a, 500)
+        coEvery { landing.roster(any(), any(), a) } returns InviteRosterResult.Page(rows, b, 500)
+        coEvery { landing.roster(any(), any(), b) } returns InviteRosterResult.Page(rows, null, 500)
+        val vm = viewModel().apply { open(secret) }
+        assertEquals(200, vm.state.value.members.size)
+        coVerify(exactly = 0) { landing.roster(any(), any(), b) }
+    }
+
+    @Test
+    fun `a failed later page keeps the rows already loaded`() {
+        val next = listOf<Byte>(2)
+        coEvery { landing.lookup(any()) } returns found()
+        coEvery { landing.roster(any(), any(), null) } returns page(next)
+        coEvery { landing.roster(any(), any(), next) } returns InviteRosterResult.Failed
+        val vm = viewModel().apply { open(secret) }
+        assertEquals(listOf(member), vm.state.value.members)
+        assertEquals(false, vm.state.value.dead)
     }
 
     @Test

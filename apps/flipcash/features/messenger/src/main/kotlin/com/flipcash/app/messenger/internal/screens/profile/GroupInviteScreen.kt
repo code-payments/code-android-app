@@ -81,6 +81,7 @@ fun GroupInviteScreen(secret: ByteArray?) {
                 // Replaces this screen, so back from the chat does not land on the link again.
                 is InviteLandingViewModel.Effect.OpenChat ->
                     navigator.replace(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(effect.chatId)))
+                InviteLandingViewModel.Effect.Pop -> navigator.pop()
             }
         }
     }
@@ -111,11 +112,6 @@ internal fun GroupInviteContent(
         InviteLandingState.Phase.NotFound -> InviteNotice(
             title = stringResource(R.string.title_inviteLinkNotFound),
             body = stringResource(R.string.description_inviteLinkNotFound),
-            onBack = onBack,
-        )
-        InviteLandingState.Phase.GroupGone -> InviteNotice(
-            title = stringResource(R.string.error_title_groupNotFound),
-            body = stringResource(R.string.description_inviteGroupGone),
             onBack = onBack,
         )
         InviteLandingState.Phase.Banned -> InviteNotice(

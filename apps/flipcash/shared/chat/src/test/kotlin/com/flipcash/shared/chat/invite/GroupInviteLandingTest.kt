@@ -17,6 +17,9 @@ import com.flipcash.services.models.chat.InviteToken
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.RosterSummary
 import com.flipcash.shared.chat.ChatCoordinator
+import com.getcode.chatcipher.ChatCipherException
+import com.getcode.chatcipher.EncryptedPayload
+import com.getcode.chatcipher.InviteCipher
 import com.getcode.ed25519kmp.KeyPair
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -142,6 +145,29 @@ class GroupInviteLandingTest {
     @Test
     fun `join without an account fails without calling the server`() = runTest {
         every { keys.ownKeyPair() } returns null
+        assertIs<InviteJoinResult.Failed>(landing.join(secret, chatId, token))
+        coVerify(exactly = 0) { coordinator.joinWithInvite(any(), any()) }
+    }
+
+    @Test
+    fun `a secret that cannot be turned into a token is a link not found, with no call`() = runTest {
+        val broken = object : InviteCipher by cipher {
+            override fun inviteToken(secret: ByteArray): ByteArray = throw ChatCipherException("bad secret")
+        }
+        val landing = GroupInviteLanding(broken, keys, controller, metadata, coordinator)
+
+        assertEquals(InviteLookup.NotFound, landing.lookup(secret))
+        coVerify(exactly = 0) { controller.getInvite(any()) }
+    }
+
+    @Test
+    fun `join that cannot seal the secret fails without calling the server`() = runTest {
+        val broken = object : InviteCipher by cipher {
+            override fun sealInviteSecretEnvelope(owner: KeyPair, secret: ByteArray, chatId: ByteArray, inviteId: ByteArray): EncryptedPayload =
+                throw ChatCipherException("cannot seal")
+        }
+        val landing = GroupInviteLanding(broken, keys, controller, metadata, coordinator)
+
         assertIs<InviteJoinResult.Failed>(landing.join(secret, chatId, token))
         coVerify(exactly = 0) { coordinator.joinWithInvite(any(), any()) }
     }

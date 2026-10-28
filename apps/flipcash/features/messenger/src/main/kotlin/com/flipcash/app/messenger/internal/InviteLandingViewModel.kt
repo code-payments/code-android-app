@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -42,7 +44,7 @@ internal data class InviteLandingState(
     val requesting: Boolean = false,
     val requestedAt: Instant? = null,
 ) {
-    enum class Phase { Loading, Preview, NotFound, GroupGone, Banned, LoadFailed }
+    enum class Phase { Loading, Preview, NotFound, Banned, LoadFailed }
 }
 
 /**
@@ -59,6 +61,9 @@ internal class InviteLandingViewModel @Inject constructor(
     sealed interface Effect {
         /** Land in the chat: the viewer is a member, already or just now. */
         data class OpenChat(val chatId: ChatId) : Effect
+
+        /** Leave the preview: a join found the link or the group gone, or the viewer banned. */
+        data object Pop : Effect
     }
 
     private val _state = MutableStateFlow(InviteLandingState())
@@ -91,6 +96,15 @@ internal class InviteLandingViewModel @Inject constructor(
             is InviteLookup.Failed -> _state.update { it.copy(phase = InviteLandingState.Phase.LoadFailed) }
             is InviteLookup.Found -> {
                 token = result.token
+                val chatId = result.chat.chatId
+                // A viewer waiting in the lobby still joins with a live link, and one who asked
+                // before the link died sees that request.
+                viewModelScope.launch {
+                    lobbyRequests.observe()
+                        .map { it[chatId] }
+                        .distinctUntilChanged()
+                        .collect { at -> _state.update { it.copy(requestedAt = at) } }
+                }
                 _state.update {
                     it.copy(
                         phase = InviteLandingState.Phase.Preview,
@@ -140,14 +154,25 @@ internal class InviteLandingViewModel @Inject constructor(
         _state.update { it.copy(joining = true) }
         viewModelScope.launch {
             when (val result = landing.join(secret, chatId, token)) {
-                is InviteJoinResult.Joined -> _effects.send(Effect.OpenChat(result.chatId))
+                is InviteJoinResult.Joined -> {
+                    // Joining takes the viewer out of the lobby, so the stored request is stale.
+                    lobbyRequests.clear(chatId)
+                    this@InviteLandingViewModel.secret = null
+                    _effects.send(Effect.OpenChat(result.chatId))
+                }
                 is InviteJoinResult.Dead -> markDead(result.reason)
-                is InviteJoinResult.NotFound ->
-                    _state.update { it.copy(phase = InviteLandingState.Phase.NotFound, joining = false) }
-                is InviteJoinResult.GroupGone ->
-                    _state.update { it.copy(phase = InviteLandingState.Phase.GroupGone, joining = false) }
-                is InviteJoinResult.Banned ->
-                    _state.update { it.copy(phase = InviteLandingState.Phase.Banned, joining = false) }
+                is InviteJoinResult.NotFound -> popWithAlert(
+                    R.string.title_inviteLinkNotFound,
+                    R.string.description_inviteLinkNotFoundAlert,
+                )
+                is InviteJoinResult.GroupGone -> popWithAlert(
+                    R.string.error_title_groupNotFound,
+                    R.string.description_inviteGroupGone,
+                )
+                is InviteJoinResult.Banned -> popWithAlert(
+                    R.string.title_inviteBanned,
+                    R.string.description_inviteBannedAlert,
+                )
                 is InviteJoinResult.Refused -> {
                     _state.update { it.copy(joining = false) }
                     BottomBarManager.showError(
@@ -164,6 +189,16 @@ internal class InviteLandingViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /** The link, the group or the viewer's standing ended the join: say so, then leave the preview. */
+    private fun popWithAlert(title: Int, body: Int) {
+        _state.update { it.copy(joining = false) }
+        BottomBarManager.showError(
+            title = resources.getString(title),
+            message = resources.getString(body),
+            onDismiss = { _effects.trySend(Effect.Pop) },
+        )
     }
 
     fun requestToJoin() {
