@@ -357,7 +357,7 @@ internal fun CurrencyInfoContentV2(
                                         .padding(top = grid.x6, bottom = grid.x6)
                                         .padding(horizontal = inset),
                                     text = stringResource(R.string.label_createdAt, formattedDate),
-                                    style = CodeTheme.typography.caption,
+                                    style = CodeTheme.typography.textSmall,
                                     color = SnippetText,
                                     textAlign = TextAlign.Center,
                                 )
@@ -487,7 +487,7 @@ private fun CurrencyAboutSection(
             ExpandableText(
                 modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
                 text = description,
-                style = CodeTheme.typography.textMedium,
+                style = CodeTheme.typography.textSmall,
                 color = SnippetText,
                 isExpanded = isExpanded,
                 contentPadding = PaddingValues(horizontal = inset),
