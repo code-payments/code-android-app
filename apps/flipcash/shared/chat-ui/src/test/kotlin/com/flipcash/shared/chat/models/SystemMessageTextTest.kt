@@ -25,6 +25,9 @@ class SystemMessageTextTest {
         R.string.label_chat_system_added to "%1\$s added %2\$s",
         R.string.label_chat_system_addedSelf to "%1\$s added you",
         R.string.label_chat_system_selfAdded to "You added %1\$s",
+        R.string.label_chat_system_joinedViaInvite to "%1\$s joined with %2\$s’s invite link",
+        R.string.label_chat_system_joinedSelfViaInvite to "You joined with %1\$s’s invite link",
+        R.string.label_chat_system_joinedViaYourInvite to "%1\$s joined with your invite link",
     )
 
     private val resources = mockk<ResourceHelper> {
@@ -37,9 +40,10 @@ class SystemMessageTextTest {
     private fun text(
         joined: ID,
         admittedBy: ID? = null,
+        invitedBy: ID? = null,
         nameOf: (ID) -> String? = names::get,
         fallback: String = "Someone joined",
-    ) = MessageContent.System(fallback, UserJoined(joined, admittedBy))
+    ) = MessageContent.System(fallback, UserJoined(joined, admittedBy, invitedBy))
         .displayText(resources, self, nameOf)
 
     @Test
@@ -92,5 +96,68 @@ class SystemMessageTextTest {
         assertEquals(listOf(sam), MessageContent.System("x", UserJoined(self, sam)).namedUsers(self))
         assertEquals(listOf(alex), MessageContent.System("x", UserJoined(alex, alex)).namedUsers(self))
         assertEquals(emptyList(), MessageContent.System("x").namedUsers(self))
+    }
+
+    @Test
+    fun `an invite-link join names the joiner and the link's owner`() {
+        assertEquals("Alex joined with Sam’s invite link", text(alex, invitedBy = sam))
+    }
+
+    @Test
+    fun `the viewer joining with an invite reads as you`() {
+        assertEquals("You joined with Sam’s invite link", text(self, invitedBy = sam))
+    }
+
+    @Test
+    fun `the viewer's own invite reads as your`() {
+        assertEquals("Alex joined with your invite link", text(alex, invitedBy = self))
+    }
+
+    @Test
+    fun `an invite join wins over an admitted one`() {
+        assertEquals("Alex joined with Sam’s invite link", text(alex, admittedBy = sam, invitedBy = sam))
+    }
+
+    @Test
+    fun `an invite join whose names are not known yet falls back`() {
+        assertEquals("Someone joined", text(alex, invitedBy = sam, nameOf = { if (it == alex) "Alex" else null }))
+        assertEquals("Someone joined", text(alex, invitedBy = sam, nameOf = { if (it == sam) "Sam" else null }))
+        assertEquals("Someone joined", text(self, invitedBy = sam, nameOf = { null }))
+    }
+
+    @Test
+    fun `an invite join names the inviter among the named users`() {
+        val notice = MessageContent.System("x", UserJoined(alex, null, sam))
+        assertEquals(listOf(alex, sam), notice.namedUsers(self))
+        assertEquals(listOf(alex), notice.namedUsers(sam))
+    }
+
+    private fun linksOf(joined: ID, invitedBy: ID?, nameOf: (ID) -> String? = names::get): List<SystemUserLink> {
+        val notice = MessageContent.System("x", UserJoined(joined, null, invitedBy))
+        val text = notice.displayText(resources, self, nameOf).orEmpty()
+        return notice.userLinks(text, self, nameOf)
+    }
+
+    @Test
+    fun `the inviter's name is the one tappable span`() {
+        val text = "Alex joined with Sam’s invite link"
+        val link = linksOf(alex, sam).single()
+        assertEquals("Sam", text.substring(link.start, link.end))
+        assertEquals(sam, link.userId)
+    }
+
+    @Test
+    fun `the span lands on the inviter when the joiner's name contains it`() {
+        val nameOf = { id: ID -> mapOf(alex to "Sam Jr", sam to "Sam")[id] }
+        val link = linksOf(alex, sam, nameOf).single()
+        assertEquals("Sam", "Sam Jr joined with Sam’s invite link".substring(link.start, link.end))
+        assertEquals(19, link.start)
+    }
+
+    @Test
+    fun `your own invite and a plain join have no tappable name`() {
+        assertEquals(emptyList(), linksOf(alex, self))
+        assertEquals(emptyList(), linksOf(self, null))
+        assertEquals(emptyList(), linksOf(alex, null))
     }
 }

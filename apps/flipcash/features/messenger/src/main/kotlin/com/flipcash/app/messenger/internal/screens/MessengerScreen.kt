@@ -197,6 +197,29 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         else UpdateAppAction(label = updateLabel, onClick = { scope.launch { updater.startOptionalUpdate() } })
     }
 
+    val openUser = { targetId: ID, targetIsOwn: Boolean ->
+        val counterpart = (state.participant as? ChatParticipant.TipUser)?.userId
+        when {
+            // Your own card lives on the You tab, where scanning it and its deep link
+            // already send you. There is no chat with yourself to open.
+            targetIsOwn -> keyboard.hideIfVisible {
+                navigator.rootNavigator.navigateAll(listOf(AppRoute.Tabs.Menu))
+            }
+            // A link to the person this DM is with has nowhere to go.
+            targetId == counterpart -> Unit
+            else -> keyboard.hideIfVisible {
+                viewModel.dispatchEvent(
+                    ChatViewModel.Event.OpenScreen(
+                        // The profile their flipcash.com link opens, pushed as the group
+                        // card pushes its chat, so Back returns here. Its Message shortcut
+                        // goes on to the DM.
+                        AppRoute.Messaging.Profile(ProfileAddress.ById(targetId))
+                    )
+                )
+            }
+        }
+    }
+
     val chatActionHandler = { action: ChatAction ->
         when (action) {
             is ChatAction.AdvanceReadPointer -> {
@@ -304,28 +327,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 }
             }
 
-            is ChatAction.OpenUser -> {
-                val counterpart = (state.participant as? ChatParticipant.TipUser)?.userId
-                when {
-                    // Your own card lives on the You tab, where scanning it and its deep link
-                    // already send you. There is no chat with yourself to open.
-                    action.isOwn -> keyboard.hideIfVisible {
-                        navigator.rootNavigator.navigateAll(listOf(AppRoute.Tabs.Menu))
-                    }
-                    // A link to the person this DM is with has nowhere to go.
-                    action.userId == counterpart -> Unit
-                    else -> keyboard.hideIfVisible {
-                        viewModel.dispatchEvent(
-                            ChatViewModel.Event.OpenScreen(
-                                // The profile their flipcash.com link opens, pushed as the group
-                                // card pushes its chat, so Back returns here. Its Message shortcut
-                                // goes on to the DM.
-                                AppRoute.Messaging.Profile(ProfileAddress.ById(action.userId))
-                            )
-                        )
-                    }
-                }
-            }
+            is ChatAction.OpenUser -> openUser(action.userId, action.isOwn)
+            is ChatAction.OpenUserById -> openUser(action.userId, action.isOwn)
 
             is ChatAction.OpenMention -> {
                 viewModel.dispatchEvent(ChatViewModel.Event.MentionTapped(action.username))

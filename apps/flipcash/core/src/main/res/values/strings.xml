@@ -1008,6 +1008,9 @@
     <string name="label_chat_system_added">%1$s added %2$s</string>
     <string name="label_chat_system_addedSelf">%1$s added you</string>
     <string name="label_chat_system_selfAdded">You added %1$s</string>
+    <string name="label_chat_system_joinedViaInvite">%1$s joined with %2$s’s invite link</string>
+    <string name="label_chat_system_joinedSelfViaInvite">You joined with %1$s’s invite link</string>
+    <string name="label_chat_system_joinedViaYourInvite">%1$s joined with your invite link</string>
     <string name="label_chat_preview_sentCash_bySender">%1$s sent %2$s</string>
     <string name="label_chat_preview_tippedCash_bySender">%1$s tipped %2$s</string>
     <string name="label_chat_preview_sharedProfile">Shared a profile</string>

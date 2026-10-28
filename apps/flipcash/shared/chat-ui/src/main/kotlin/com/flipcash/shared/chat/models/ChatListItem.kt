@@ -73,6 +73,8 @@ sealed interface ChatListItem {
         val contentIndex: Int,
         override val timestamp: Instant,
         val text: String,
+        /** Names in [text] that open a profile when tapped. */
+        val userLinks: List<SystemUserLink> = emptyList(),
     ) : TranscriptMessage {
         override val isFromSelf: Boolean = false
         override val itemKey: Any =

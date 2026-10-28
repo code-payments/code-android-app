@@ -287,7 +287,13 @@ internal fun MessageRow(
             }
 
             is ChatListItem.SystemMessage -> Box(insertionModifier) {
-                SystemMessageRow(item.text)
+                SystemMessageRow(
+                    text = item.text,
+                    userLinks = item.userLinks,
+                    onUserClick = { userId ->
+                        onAction(ChatAction.OpenUserById(userId, isOwn = false))
+                    },
+                )
             }
 
             is ChatListItem.ContentBubble -> {

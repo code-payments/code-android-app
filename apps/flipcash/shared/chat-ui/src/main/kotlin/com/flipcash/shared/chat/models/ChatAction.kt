@@ -53,6 +53,12 @@ sealed interface ChatAction {
     data class OpenUser(val userId: ID, val profile: UserProfile, val isOwn: Boolean) : ChatAction
 
     /**
+     * Opens the person a tapped name in a system notice names. Where [OpenUser] arrives with the
+     * profile a card already resolved, a notice carries the id alone.
+     */
+    data class OpenUserById(val userId: ID, val isOwn: Boolean) : ChatAction
+
+    /**
      * Opens whoever a tapped `@handle` names. Only the handle travels: nothing is looked up until
      * the tap, and the handler decides where it leads once it has.
      */

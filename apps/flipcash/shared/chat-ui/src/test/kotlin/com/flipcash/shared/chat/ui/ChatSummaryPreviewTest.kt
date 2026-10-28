@@ -513,4 +513,30 @@ class ChatSummaryPreviewTest {
         val notice = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(self, admittedBy = other))
         assertNull(groupSummary(listOf(notice), senderId = null).unnamedGroupSender(self, emptyMap()))
     }
+
+    @Test
+    fun `an invite-link join previews with the inviter's name, for every viewer form`() {
+        val inviter: ID = listOf(6)
+        every { resources.getString(R.string.label_chat_system_joinedViaInvite, "Alice", "Jeff") } returns "Alice joined with Jeff’s invite link"
+        every { resources.getString(R.string.label_chat_system_joinedSelfViaInvite, "Alice") } returns "You joined with Alice’s invite link"
+        every { resources.getString(R.string.label_chat_system_joinedViaYourInvite, "Alice") } returns "Alice joined with your invite link"
+        // Named through the roster: `other` is Alice; the inviter is Jeff.
+        val roster = mapOf(inviter.hexEncodedString() to profile("Jeff"))
+
+        val others = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(other, null, inviter))
+        assertEquals("Alice joined with Jeff’s invite link", groupReference(listOf(others), senderId = null, senderProfiles = roster).lastMessagePreview)
+
+        val viewer = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(self, null, other))
+        assertEquals("You joined with Alice’s invite link", groupReference(listOf(viewer), senderId = null).lastMessagePreview)
+
+        val host = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(other, null, self))
+        assertEquals("Alice joined with your invite link", groupReference(listOf(host), senderId = null).lastMessagePreview)
+    }
+
+    @Test
+    fun `an invite-link join whose inviter is unknown asks for them`() {
+        val stranger: ID = listOf(5)
+        val notice = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(self, null, stranger))
+        assertEquals(stranger, groupSummary(listOf(notice), senderId = null).unnamedGroupSender(self, emptyMap()))
+    }
 }
