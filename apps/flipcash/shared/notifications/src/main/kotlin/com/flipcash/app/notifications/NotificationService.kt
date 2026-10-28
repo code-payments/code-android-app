@@ -32,6 +32,7 @@ import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.PaymentRequests
+import com.flipcash.shared.chat.ui.labelInviteLinks
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.UserProfileDataSource
@@ -490,8 +491,13 @@ class NotificationService : FirebaseMessagingService(),
         // stand-in. The opened text is the message itself, with no sender prefix to strip; a group
         // line takes its sender from the Person. Unencrypted messages open to null and keep the body.
         // A payment request carries only its id, so its body comes from fetching the request.
-        val opened = openPushedMessage(chatId, metadata) ?: pushedRequestBody(chatId, metadata)
-        style.addMessage(opened ?: planMessageBody(body, senderNames), System.currentTimeMillis(), senderPerson)
+        // An invite link's fragment is the group's key, so it never shows on the lock screen. Only
+        // message text is labelled; a request's body is built from its amount and title.
+        val inviteLabel = getString(com.flipcash.core.R.string.label_inviteLinkPreview)
+        val line = openPushedMessage(chatId, metadata)?.let { labelInviteLinks(it, inviteLabel) }
+            ?: pushedRequestBody(chatId, metadata)
+            ?: labelInviteLinks(planMessageBody(body, senderNames), inviteLabel)
+        style.addMessage(line, System.currentTimeMillis(), senderPerson)
 
         // After the extract above, not before: a re-post rebuilds the style from the notification
         // already on screen, which carries the old flag and title back with it.

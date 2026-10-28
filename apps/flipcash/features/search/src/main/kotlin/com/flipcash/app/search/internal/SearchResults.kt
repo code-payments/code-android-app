@@ -80,11 +80,12 @@ internal fun buildResults(
     currencies: List<Token>,
     currencyShares: Map<String, StoredMessage>,
     senderName: (ID) -> String?,
+    inviteLinkLabel: String,
 ): SearchResults {
     val nameOf = { id: ID? -> id?.let(senderName) }
     val chatsById: Map<ChatId, ConversationReference> = chats.associateBy { it.chatId }
 
-    val messageResults = searchMessages(messages.filter { it.chatId in chatsById }, query)
+    val messageResults = searchMessages(messages.filter { it.chatId in chatsById }, query, inviteLinkLabel)
         .map { hit -> MessageResult(chatsById.getValue(hit.chatId), hit, nameOf(hit.senderId)) }
 
     val linkResults = filterLinks(

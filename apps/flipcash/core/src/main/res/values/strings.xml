@@ -1215,6 +1215,8 @@
     <string name="action_linkCard_view">View</string>
     <string name="label_linkCard_groupUnavailable">Group Unavailable</string>
     <string name="label_linkCard_privateGroupInvite">Private group · Invite link</string>
+    <!-- Stands in for an invite URL in a chat-list preview, a push and a reply citation: its fragment is the group's key. -->
+    <string name="label_inviteLinkPreview">Invite link</string>
     <string name="label_messageLink_kindPrivateGroup">Private group</string>
     <string name="label_messageLink_kindDirect">Direct message</string>
     <string name="label_messageLink_you">You</string>

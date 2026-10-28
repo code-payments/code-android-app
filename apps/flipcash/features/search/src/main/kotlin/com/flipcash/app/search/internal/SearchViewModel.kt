@@ -1,5 +1,6 @@
 package com.flipcash.app.search.internal
 
+import com.flipcash.core.R
 import com.getcode.opencode.exchange.Exchange
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
@@ -56,6 +57,8 @@ internal class SearchViewModel @Inject constructor(
     private val currencySearch: CurrencySearch,
     private val recentStore: RecentSearchStore,
 ) : ViewModel() {
+
+    private val inviteLinkLabel = resources.getString(R.string.label_inviteLinkPreview)
 
     val query = TextFieldState()
 
@@ -129,6 +132,7 @@ internal class SearchViewModel @Inject constructor(
             currencies = currencies,
             currencyShares = transcripts.currencyShares,
             senderName = { id -> directory.profiles.nameOf(id) },
+            inviteLinkLabel = inviteLinkLabel,
         )
     }
         .flowOn(dispatchers.Default)

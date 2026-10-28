@@ -4,6 +4,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
+import com.flipcash.shared.chat.ui.labelInviteLinks
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
@@ -40,10 +41,21 @@ private fun searchableText(content: MessageContent): String? = when (content) {
     else -> null
 }
 
-/** The messages in [messages] whose text contains [query] (already folded), newest first. */
-internal fun searchMessages(messages: List<StoredMessage>, query: String): List<MessageHit> =
+/**
+ * The messages in [messages] whose text contains [query] (already folded), newest first.
+ *
+ * Each invite link reads as [inviteLinkLabel], both for matching and in the hit's text. Its fragment
+ * is the group's key, so a query can't find a message by its secret and a result never shows it.
+ */
+internal fun searchMessages(
+    messages: List<StoredMessage>,
+    query: String,
+    inviteLinkLabel: String,
+): List<MessageHit> =
     messages.mapNotNull { (chatId, message) ->
-        val text = searchableText(message.content) ?: return@mapNotNull null
+        val text = searchableText(message.content)
+            ?.let { labelInviteLinks(it, inviteLinkLabel) }
+            ?: return@mapNotNull null
         if (!SearchMatching.matches(query, text)) return@mapNotNull null
         MessageHit(
             chatId = chatId,

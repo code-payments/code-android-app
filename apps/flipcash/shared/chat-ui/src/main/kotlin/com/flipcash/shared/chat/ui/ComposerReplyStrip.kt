@@ -167,7 +167,7 @@ private fun QuoteLine(snippet: ChatQuoteSnippet) {
     val style = CodeTheme.typography.textSmall.copy(fontWeight = FontWeight.Medium)
     when (snippet) {
         is ChatQuoteSnippet.Text -> Text(
-            text = snippet.body,
+            text = labelInviteLinks(snippet.body, stringResource(R.string.label_inviteLinkPreview)),
             style = style,
             color = CodeTheme.colors.textMain,
             maxLines = ComposerReplyStripDefaults.textMaxLines,
@@ -176,7 +176,10 @@ private fun QuoteLine(snippet: ChatQuoteSnippet) {
 
         // Plain text: the thumbnail is its own item in the strip's row, not part of this line.
         is ChatQuoteSnippet.Photo -> Text(
-            text = ChatMediaText.preview(snippet.caption, stringResource(R.string.label_chat_media_photo)),
+            text = ChatMediaText.preview(
+                snippet.caption?.let { labelInviteLinks(it, stringResource(R.string.label_inviteLinkPreview)) },
+                stringResource(R.string.label_chat_media_photo),
+            ),
             style = style,
             color = CodeTheme.colors.textMain,
             maxLines = ComposerReplyStripDefaults.textMaxLines,
