@@ -38,6 +38,9 @@ import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
+import com.flipcash.app.core.chat.InviteLinkAction
+import com.flipcash.app.messenger.internal.invites.InviteLinkActions
+import com.flipcash.app.messenger.internal.invites.InviteLinkActionsViewModel
 import com.flipcash.app.messenger.internal.invites.InviteLinkViewModel
 import com.flipcash.app.messenger.internal.invites.ManageInvitesScreen
 import com.flipcash.app.messenger.internal.screens.EmojiPickerViewModel
@@ -175,6 +178,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.ShareInviteLink> { step ->
         FlowInviteLinkSheet(step.inviteIdHex)
+    }
+    annotatedEntry<ChatStep.InviteLinkActions> { step ->
+        FlowInviteLinkActionsSheet(step.inviteIdHex)
     }
     annotatedEntry<ChatStep.ManageInvites> {
         ManageInvitesScreen(flowSharedViewModel<ChatViewModel>().stateFlow.collectAsStateWithLifecycle().value.chatId)
@@ -583,6 +589,32 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?) {
                 else -> Unit
             }
         },
+    )
+}
+
+/**
+ * [ChatStep.InviteLinkActions]: frame 2b on the app's sheet scene, like the other choice sheets.
+ * It returns the pick and closes; Manage Invites, still beneath it, shares or confirms the revoke.
+ * An invite that is gone by the time the sheet draws closes it, as a missing share link does.
+ */
+@Composable
+private fun FlowInviteLinkActionsSheet(inviteIdHex: String) {
+    val chatId = flowSharedViewModel<ChatViewModel>().stateFlow.collectAsStateWithLifecycle().value.chatId
+    val viewModel = hiltViewModel<InviteLinkActionsViewModel>()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val resultBack = resultBackNavigator<InviteLinkAction>(exit = dismissSheet)
+    val invite = chatId?.let { viewModel.invite(it, inviteIdHex) }
+
+    LaunchedEffect(invite == null && chatId != null) {
+        if (invite == null && chatId != null) dismissSheet()
+    }
+    invite ?: return
+
+    InviteLinkActions(
+        invite = invite,
+        onShare = { resultBack.returnValue(InviteLinkAction.Share) },
+        onRevoke = { resultBack.returnValue(InviteLinkAction.Revoke) },
+        onDismiss = dismissSheet,
     )
 }
 

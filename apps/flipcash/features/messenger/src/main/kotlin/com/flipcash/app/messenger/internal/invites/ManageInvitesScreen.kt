@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.InviteLinkAction
 import com.flipcash.app.messenger.internal.screens.openInviteLinkShare
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
@@ -56,6 +57,8 @@ import com.flipcash.shared.chat.InviteSettings
 import com.flipcash.shared.chat.InviteUses
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.rememberFlowNavigator
+import com.getcode.navigation.results.NavResultOrCanceled
+import com.getcode.navigation.results.navigateForResult
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
@@ -81,7 +84,6 @@ internal fun ManageInvitesScreen(chatId: ChatId?) {
 
     LaunchedEffect(chatId) { chatId?.let(viewModel::open) }
 
-    var rowMenu by remember { mutableStateOf<HostInvite?>(null) }
     var newLink by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
@@ -97,25 +99,22 @@ internal fun ManageInvitesScreen(chatId: ChatId?) {
     ManageInvitesContent(
         state = state,
         onBack = { flowNavigator.back() },
-        onRow = { rowMenu = it },
+        onRow = { invite ->
+            // The row sheet is a step of its own; the pick comes back here, where the list is.
+            navigator.navigateForResult<InviteLinkAction>(
+                ChatStep.InviteLinkActions(invite.invite.id.toHex())
+            ) { result ->
+                if (result !is NavResultOrCanceled.ReturnValue) return@navigateForResult
+                when (result.value) {
+                    InviteLinkAction.Share -> navigator.openInviteLinkShare(invite.invite.id.toHex())
+                    InviteLinkAction.Revoke -> viewModel.confirmRevoke(invite)
+                }
+            }
+        },
         onNewLink = { newLink = true },
         onRetry = viewModel::refresh,
     )
 
-    rowMenu?.let { invite ->
-        InviteLinkActionsSheet(
-            invite = invite,
-            onShare = {
-                rowMenu = null
-                navigator.openInviteLinkShare(invite.invite.id.toHex())
-            },
-            onRevoke = {
-                rowMenu = null
-                viewModel.confirmRevoke(invite)
-            },
-            onDismiss = { rowMenu = null },
-        )
-    }
     if (newLink) {
         NewInviteLinkSheet(
             creating = state.creating,
@@ -364,23 +363,6 @@ private fun EmptyInvites(onNewLink: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 /** Frame 2b: Share Link and Revoke Link, in the mute sheet's style. A link that can't be shared gets Revoke only. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun InviteLinkActionsSheet(
-    invite: HostInvite,
-    onShare: () -> Unit,
-    onRevoke: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = CodeTheme.colors.background,
-    ) {
-        InviteLinkActions(invite = invite, onShare = onShare, onRevoke = onRevoke, onDismiss = onDismiss)
-    }
-}
-
 @Composable
 internal fun InviteLinkActions(
     invite: HostInvite,

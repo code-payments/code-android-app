@@ -28,6 +28,11 @@ data object ChatSendResult : Parcelable
 @Serializable
 data class GroupInviteResult(val chatId: ChatId) : Parcelable
 
+/** What the host picked on Manage Invites' row sheet (frame 2b). */
+@Parcelize
+@Serializable
+enum class InviteLinkAction : Parcelable { Share, Revoke }
+
 /** A custom paid-reaction amount, in whole US cents. */
 @Parcelize
 @Serializable
@@ -102,6 +107,21 @@ sealed interface ChatStep : FlowStep, Parcelable {
         NavigationRetVal<GroupInviteResult>,
         Sheet,
         com.getcode.navigation.FullscreenSheet
+
+    /**
+     * Frame 2b: Share Link and Revoke Link for one invite on Manage Invites. Returns the pick and
+     * leaves the work to Manage Invites, which is still on screen beneath it and owns the revoke
+     * confirm (2c).
+     *
+     * Carries the invite's id and never its link, as [ShareInviteLink] does.
+     */
+    @Parcelize
+    @Serializable
+    data class InviteLinkActions(val inviteIdHex: String) :
+        ChatStep,
+        NavigationRetVal<InviteLinkAction>,
+        Sheet,
+        WrapContentSheet
 
     /** Frame 2a: the invite links this host has made, Active then Inactive. Pushed, like [EditGroup]. */
     @Parcelize
