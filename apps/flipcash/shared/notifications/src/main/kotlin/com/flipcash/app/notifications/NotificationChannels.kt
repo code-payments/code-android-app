@@ -16,8 +16,8 @@ object NotificationChannels {
     const val CHANNEL_CHAT = "channel_chat"
     const val CHANNEL_CONTACT_JOIN = "channel_contact_join"
 
-    private const val GROUP_TRANSACTIONS = "group_transactions"
-    private const val GROUP_SOCIAL = "group_social"
+    const val GROUP_TRANSACTIONS = "group_transactions"
+    const val GROUP_SOCIAL = "group_social"
 
     private data class ChannelDef(
         val id: String,
@@ -38,6 +38,18 @@ object NotificationChannels {
                 .build(),
         )
         groups.forEach { manager.createNotificationChannelGroup(it) }
+    }
+
+    /**
+     * Creates every channel and group up front. Until a channel exists the user can't turn it off
+     * in system settings, and the notification status page can't check it. Re-creating an existing
+     * channel keeps the user's settings, so this is safe on every launch.
+     */
+    fun createAll(context: Context, manager: NotificationManagerCompat) {
+        ensureChannelGroups(context, manager)
+        NotificationCategory.entries.forEach { category ->
+            manager.createNotificationChannel(channelFor(context, category))
+        }
     }
 
     fun channelFor(context: Context, category: NotificationCategory): NotificationChannelCompat {

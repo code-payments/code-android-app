@@ -31,6 +31,21 @@ class NotificationChannelsTest {
         notificationManager = NotificationManagerCompat.from(context)
     }
 
+    @Test
+    fun `createAll creates every channel and both groups before any push arrives`() {
+        NotificationChannels.createAll(context, notificationManager)
+
+        assertEquals(
+            NotificationCategory.entries.map { NotificationChannels.channelFor(context, it).id }.toSet(),
+            notificationManager.notificationChannelsCompat.map { it.id }.toSet(),
+        )
+        assertEquals(6, notificationManager.notificationChannelsCompat.size)
+        assertEquals(
+            setOf(NotificationChannels.GROUP_TRANSACTIONS, NotificationChannels.GROUP_SOCIAL),
+            notificationManager.notificationChannelGroupsCompat.map { it.id }.toSet(),
+        )
+    }
+
     // region Channel ID mapping
 
     @Test
