@@ -6,6 +6,7 @@ import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.InviteParameters
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.EditChatParameters
@@ -169,8 +170,13 @@ class GroupFeedDelegate @Inject constructor(
     /**
      * Joins [chatId], caching the chat the server returns so the list has it before any sync runs.
      */
-    override suspend fun join(chatId: ChatId): Result<Unit> {
-        return chatController.joinChat(chatId)
+    override suspend fun join(chatId: ChatId): Result<Unit> = joinWith(chatId, invite = null)
+
+    override suspend fun joinWithInvite(chatId: ChatId, invite: InviteParameters): Result<Unit> =
+        joinWith(chatId, invite)
+
+    private suspend fun joinWith(chatId: ChatId, invite: InviteParameters?): Result<Unit> {
+        return chatController.joinChat(chatId, invite)
             .onSuccess { metadata ->
                 persist(listOf(metadata))
                 metadataDataSource.setMembership(metadata.chatId, isMember = true)

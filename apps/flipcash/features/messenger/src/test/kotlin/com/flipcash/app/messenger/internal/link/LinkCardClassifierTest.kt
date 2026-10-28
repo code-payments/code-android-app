@@ -50,7 +50,9 @@ class LinkCardClassifierTest {
                     ?.let { DeeplinkType.TokenInfo(Mint(it)) }
                 // As `AppRouter` does: a message link is matched first, on its exact shape;
                 // otherwise the id segment is checked and anything after it is not.
-                "chat" -> link.messageLinkForTest() ?: link.pathSegmentsForTest().getOrNull(1)
+                // `/chat/invite` is ahead of every other chat route, as in `AppRouter`; whether
+                // its fragment parses does not matter to the classifier.
+                "chat" -> link.inviteLinkForTest() ?: link.messageLinkForTest() ?: link.pathSegmentsForTest().getOrNull(1)
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?.let { DeeplinkType.GroupChatInvite(ChatId(it.bytes)) }
                 "tip" -> link.pathSegmentsForTest().getOrNull(1)
@@ -61,6 +63,16 @@ class LinkCardClassifierTest {
         }
 
         override fun dispatch(deepLink: DeepLink) = error("not used in classification tests")
+    }
+
+    private fun DeepLink.inviteLinkForTest(): DeeplinkType? {
+        val segments = pathSegmentsForTest()
+        if (segments.size != 2 || segments[1] != "invite") return null
+        return if (data.contains("#s=")) {
+            DeeplinkType.GroupInvite(ByteArray(32))
+        } else {
+            DeeplinkType.InvalidGroupInvite
+        }
     }
 
     private fun DeepLink.messageLinkForTest(): DeeplinkType.ChatMessage? {
@@ -268,6 +280,42 @@ class LinkCardClassifierTest {
         assertEquals(0, group?.start)
         assertEquals(url.length, group?.end)
         assertEquals(LinkCard.GroupInvite.State.Loading, group?.state)
+    }
+
+    /**
+     * Decision 6 of the invite-link spec: an invite URL carries the group's key, so nothing unfurls
+     * it, not even as a plain web card. `link_detection.json` has no `/chat/invite` case; its
+     * `group-invite` vector is the plain join link, which still gets a card.
+     */
+    @Test
+    fun `an invite link gets no card of any kind`() {
+        val classifier = LinkCardClassifier(router)
+        val secret = "A".repeat(43)
+        for (url in listOf(
+            "https://app.flipcash.com/chat/invite#s=$secret",
+            "https://app.flipcash.com/chat/invite",
+            "https://app.flipcash.com/chat/invite#s=",
+            "https://jump.flipcash.com/#source=" +
+                java.net.URLEncoder.encode("https://app.flipcash.com/chat/invite#s=$secret", "UTF-8"),
+        )) {
+            assertNull(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))), url)
+        }
+    }
+
+    @Test
+    fun `an invite link beside an outside link leaves only the outside link a card`() {
+        val classifier = LinkCardClassifier(router)
+        val invite = "https://app.flipcash.com/chat/invite#s=${"A".repeat(43)}"
+        val outside = "https://example.com/post"
+
+        val card = classifier.firstCard(
+            listOf(
+                DetectedUrl(0, invite.length, invite),
+                DetectedUrl(invite.length + 1, invite.length + 1 + outside.length, outside),
+            )
+        )
+
+        assertEquals(outside, (card as? LinkCard.Web)?.url)
     }
 
     /** The send-cash path under a chat opens a payment, not the group, so it stays a plain link. */
