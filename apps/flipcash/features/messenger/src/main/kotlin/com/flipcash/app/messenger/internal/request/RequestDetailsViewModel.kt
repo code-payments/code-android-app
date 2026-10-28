@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.request
 
+import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.getcode.view.PaymentSuccessHoldDuration
 import com.getcode.view.holdPaymentSuccess
 import androidx.lifecycle.ViewModel
@@ -38,6 +39,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -54,8 +56,7 @@ import kotlin.time.Instant
  * Request details, frames 09–11, 24 and 35 of the group requests spec: one request, the viewer's
  * share to pay, and the creator's close and mark-paid actions.
  *
- * The share's payment intent id lives in [ready] only, for as long as the swipe sheet is up. It
- * is never put in [State], so it can't reach a log through the state's toString.
+ * Paying the viewer's share is [RequestPayFlow]; this keeps the creator's sheets and the screen's data.
  */
 @HiltViewModel
 internal class RequestDetailsViewModel @Inject constructor(
@@ -72,8 +73,6 @@ internal class RequestDetailsViewModel @Inject constructor(
 
     sealed interface Sheet {
         data object None : Sheet
-        /** Frame 10: swipe to pay the viewer's share. */
-        data object Pay : Sheet
         /** Frame 33: the creator's "•••". */
         data object Options : Sheet
         /** Frame 34. */
@@ -88,9 +87,6 @@ internal class RequestDetailsViewModel @Inject constructor(
         val chatId: ChatId? = null,
         val requestId: ID? = null,
         val sheet: Sheet = Sheet.None,
-        /** Fetching the request before the swipe sheet opens: the Send button spins. */
-        val preparing: Boolean = false,
-        val payProgress: LoadingSuccessState = LoadingSuccessState(),
         /** A close or mark-paid call is out. */
         val working: Boolean = false,
         /**
@@ -126,11 +122,7 @@ internal class RequestDetailsViewModel @Inject constructor(
         all[s.chatId].orEmpty().associateBy { it.userId }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
-    val token: StateFlow<Token?> = payer.observeSelectedToken()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-
-    /** The share being paid, with its intent id. Only set while [Sheet.Pay] is up. */
-    private var ready: ShareToPay.Ready? = null
+    val token: StateFlow<Token?> get() = payFlow.token
 
     init {
         viewModelScope.launch {
@@ -162,82 +154,31 @@ internal class RequestDetailsViewModel @Inject constructor(
         }
     }
 
-    private var paidOnOpen = false
+    /** The pay flow: the sheet and everything the viewer's share needs, shared with the chat's deck Pay. */
+    private val payFlow = RequestPayFlow(
+        scope = viewModelScope,
+        payments = payments,
+        payer = payer,
+        tokenCoordinator = tokenCoordinator,
+        transactionController = transactionController,
+        exchange = exchange,
+        userManager = userManager,
+        resources = resources,
+        openScreen = { route -> effects.trySend(Effect.OpenScreen(route)) },
+        onNothingToPay = { _state.update { it.copy(hasPaymentIntent = false) } },
+    )
 
-    /** The deck's Pay button: [payTapped] once, as the screen opens, and not again on its return. */
-    fun payOnOpen() {
-        if (paidOnOpen) return
-        paidOnOpen = true
-        payTapped()
-    }
+    val pay: StateFlow<RequestPayFlow.State> = payFlow.state
+    val swipePayActions: SwipePayActions = payFlow.actions
 
-    /** "Send <share>": refetch for the intent id, then show the swipe sheet if there is still a share to pay. */
+    /** "Send <share>". */
     fun payTapped() {
-        val id = _state.value.requestId ?: return
-        val viewer = viewerId ?: return
-        if (_state.value.preparing) return
-        _state.update { it.copy(preparing = true) }
-        viewModelScope.launch {
-            payments.prepare(id, viewer)
-                .onSuccess { found ->
-                    _state.update { it.copy(preparing = false) }
-                    when (found) {
-                        is ShareToPay.Ready -> {
-                            ready = found
-                            _state.update { it.copy(sheet = Sheet.Pay, payProgress = LoadingSuccessState()) }
-                        }
-                        is ShareToPay.NothingToPay -> _state.update { it.copy(hasPaymentIntent = false) }
-                        is ShareToPay.Closed -> presentClosed()
-                    }
-                }
-                .onFailure {
-                    _state.update { it.copy(preparing = false) }
-                    presentSendFailed()
-                }
-        }
+        _state.value.requestId?.let(payFlow::start)
     }
 
-    /** The swipe on frame 10. A second swipe after a failure pays under the same intent id. */
-    fun confirmPay() {
-        val pending = ready ?: return
-        val token = token.value ?: return
-        val owner = userManager.accountCluster ?: return
-        if (!_state.value.payProgress.isIdle) return
-        if (overBalance(pending.share.amount, token) || overSendLimit(pending.share.amount)) return
+    fun confirmPay() = payFlow.confirm()
 
-        _state.update { it.copy(payProgress = LoadingSuccessState(loading = true)) }
-        viewModelScope.launch {
-            payments.pay(pending, token, owner.withTimelockForToken(token))
-                .onSuccess {
-                    holdPaymentSuccess(
-                        show = { _state.update { it.copy(payProgress = LoadingSuccessState(success = true)) } },
-                        release = { dismissSheet() },
-                    )
-                }
-                .onFailure { cause -> afterFailedPayment(pending, cause) }
-        }
-    }
-
-    /**
-     * The outcome is unknown, so refetch before anything else: a share that landed after all is
-     * paid, and a request closed meanwhile is "Request Closed".
-     */
-    private suspend fun afterFailedPayment(pending: ShareToPay.Ready, cause: Throwable) {
-        _state.update { it.copy(payProgress = LoadingSuccessState()) }
-        val viewer = viewerId ?: return
-        when (val found = payments.prepare(pending.request.id, viewer).getOrNull()) {
-            is ShareToPay.Closed -> {
-                dismissSheet()
-                presentClosed()
-            }
-            is ShareToPay.NothingToPay -> dismissSheet()
-            is ShareToPay.Ready -> {
-                ready = found
-                presentPaymentError(cause)
-            }
-            null -> presentPaymentError(cause)
-        }
-    }
+    fun presentDeposit() = payFlow.presentDeposit()
 
     fun showOptions() = setSheet(Sheet.Options)
 
@@ -263,16 +204,8 @@ internal class RequestDetailsViewModel @Inject constructor(
     }
 
     fun dismissSheet() {
-        if (!_state.value.payProgress.isIdle && !_state.value.payProgress.success) return
         if (_state.value.working) return
-        ready = null
-        _state.update { it.copy(sheet = Sheet.None, payProgress = LoadingSuccessState()) }
-    }
-
-    fun presentDeposit() {
-        viewModelScope.launch {
-            payer.depositRoute()?.let { effects.send(Effect.OpenScreen(it)) }
-        }
+        _state.update { it.copy(sheet = Sheet.None) }
     }
 
     private fun setSheet(sheet: Sheet) {
@@ -296,51 +229,6 @@ internal class RequestDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun overBalance(amount: Fiat, token: Token): Boolean {
-        val rate = exchange.rateFor(amount.currencyCode) ?: return false
-        val balance = tokenCoordinator.balanceForToken(token).convertingTo(rate)
-        val over = amount.valueGreaterThan(balance)
-        if (over) payer.presentInsufficientBalance(onAddMoney = ::presentDeposit)
-        return over
-    }
-
-    private fun overSendLimit(amount: Fiat): Boolean {
-        val limit = transactionController.limits.value?.sendLimitFor(amount.currencyCode) ?: return false
-        val over = amount.toDouble() > limit.nextTransaction
-        if (over) {
-            BottomBarManager.showAlert(
-                resources.getString(R.string.error_title_sendLimitReached),
-                resources.getString(R.string.error_description_sendLimitReached),
-            )
-        }
-        return over
-    }
-
-    private fun presentClosed() {
-        BottomBarManager.showAlert(
-            resources.getString(R.string.error_title_requestClosed),
-            resources.getString(R.string.error_description_requestClosed),
-        )
-    }
-
-    private fun presentSendFailed() {
-        BottomBarManager.showError(
-            title = resources.getString(R.string.error_title_cashFailedToSend),
-            message = resources.getString(R.string.error_description_cashFailedToSend),
-        )
-    }
-
-    private fun presentPaymentError(cause: Throwable) {
-        val (title, message) = when (cause) {
-            is ComputeVerifiedFiatError.AmountBelowMinimum ->
-                R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
-            is ComputeVerifiedFiatError ->
-                R.string.error_title_staleRates to R.string.error_description_staleRates
-            else ->
-                R.string.error_title_cashFailedToSend to R.string.error_description_cashFailedToSend
-        }
-        BottomBarManager.showError(title = resources.getString(title), message = resources.getString(message))
-    }
 }
 
 /** Whether the viewer, as creator, can mark [userId]'s share paid: open request, unpaid, not their own. */

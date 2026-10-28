@@ -70,7 +70,10 @@ import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.view.LoadingSuccessState
+import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
+import com.flipcash.app.messenger.internal.swipepay.SwipePaySheet
+import com.flipcash.app.messenger.internal.swipepay.SwipePayUiState
+import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
 import kotlin.time.Instant
 
 /**
@@ -84,12 +87,10 @@ internal fun RequestDetailsScreen(
     onBack: () -> Unit,
     onOpenScreen: (AppRoute) -> Unit,
     pushed: Boolean = false,
-    payOnOpen: Boolean = false,
 ) {
     val viewModel = hiltViewModel<RequestDetailsViewModel>()
     LaunchedEffect(chatId, requestId) {
         viewModel.open(chatId, requestId)
-        if (payOnOpen) viewModel.payOnOpen()
     }
 
     // Fetch on open and every 45 s while the screen is visible with the app in the foreground.
@@ -109,6 +110,7 @@ internal fun RequestDetailsScreen(
     val request by viewModel.request.collectAsStateWithLifecycle()
     val members by viewModel.members.collectAsStateWithLifecycle()
     val token by viewModel.token.collectAsStateWithLifecycle()
+    val pay by viewModel.pay.collectAsStateWithLifecycle()
     val now by viewModel.now.collectAsStateWithLifecycle()
     val viewerId = viewModel.viewerId
 
@@ -162,7 +164,7 @@ internal fun RequestDetailsScreen(
                         .testTag("request_details_send"),
                     text = stringResource(R.string.action_sendShare, share.amount.requestText()),
                     buttonState = ButtonState.Filled,
-                    isLoading = state.preparing,
+                    isLoading = pay.preparing,
                     onClick = viewModel::payTapped,
                 )
             }
@@ -181,21 +183,17 @@ internal fun RequestDetailsScreen(
 
     val unnamed = stringResource(R.string.title_unnamedUser)
     val name = { userId: ID -> memberName(members[userId], unnamed) }
+    RequestPaySheet(
+        pay = pay,
+        request = current,
+        members = members,
+        viewerId = viewerId,
+        now = now,
+        token = token,
+        actions = viewModel.swipePayActions,
+    )
     when (val sheet = state.sheet) {
         RequestDetailsViewModel.Sheet.None -> Unit
-        RequestDetailsViewModel.Sheet.Pay -> {
-            val share = current?.let { unpaidShareOf(it, viewerId, now) }
-            if (current != null && share != null) {
-                PayShareSheet(
-                    creator = members[current.creator],
-                    share = share,
-                    token = token,
-                    progress = state.payProgress,
-                    onConfirm = viewModel::confirmPay,
-                    onDismiss = viewModel::dismissSheet,
-                )
-            }
-        }
         RequestDetailsViewModel.Sheet.Options -> ActionSheet(
             title = null,
             body = null,
@@ -364,92 +362,6 @@ private fun ShareRow(
     }
 }
 
-/**
- * Frame 10: who is being paid, the share, the token, and the swipe. The token pill swaps this
- * sheet's content for the currency list, as on the group send confirm sheet.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PayShareSheet(
-    creator: ChatMember?,
-    share: Share,
-    token: Token?,
-    progress: LoadingSuccessState,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val locked by rememberUpdatedState(!progress.isIdle)
-    var pickingCurrency by rememberSaveable { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { !locked && !pickingCurrency },
-    )
-    ModalBottomSheet(
-        onDismissRequest = { if (!locked) onDismiss() },
-        sheetState = sheetState,
-        containerColor = CodeTheme.colors.background,
-    ) {
-        BackHandler(enabled = pickingCurrency) { pickingCurrency = false }
-        if (pickingCurrency) {
-            CurrencyPickerContent(onPicked = { pickingCurrency = false })
-            return@ModalBottomSheet
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = CodeTheme.dimens.inset)
-                .padding(bottom = CodeTheme.dimens.grid.x4),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-        ) {
-            MemberAvatar(creator, Modifier.requiredSize(CodeTheme.dimens.staticGrid.x10))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = memberName(creator),
-                    style = CodeTheme.typography.textLarge,
-                    color = CodeTheme.colors.textMain,
-                    textAlign = TextAlign.Center,
-                )
-                creator?.userProfile?.username?.takeIf { it.isNotBlank() }?.let { username ->
-                    Text(
-                        text = "@$username",
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
-                    )
-                }
-            }
-            Text(
-                text = share.amount.requestText(),
-                style = CodeTheme.typography.displayMedium,
-                color = CodeTheme.colors.textMain,
-            )
-            TokenSelectionPill(
-                token = token,
-                background = White10,
-                textStyle = CodeTheme.typography.textMedium,
-                imageSize = CodeTheme.dimens.staticGrid.x3,
-                contentPadding = PaddingValues(
-                    horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
-                    vertical = CodeTheme.dimens.grid.x1 - 1.dp,
-                ),
-                onClick = { if (!locked) pickingCurrency = true },
-            )
-            SlideToConfirm(
-                onConfirm = onConfirm,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = CodeTheme.dimens.grid.x3)
-                    .testTag("request_pay_swipe"),
-                enabled = progress.isIdle,
-                isLoading = progress.loading,
-                isSuccess = progress.success,
-                label = stringResource(R.string.action_swipeToSend),
-            )
-        }
-    }
-}
-
 /** Frames 28, 29, 33 and 34: an optional title and body, one action, and Cancel. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -504,7 +416,7 @@ private fun ActionSheet(
 }
 
 @Composable
-private fun memberName(member: ChatMember?): String =
+internal fun memberName(member: ChatMember?): String =
     memberName(member, stringResource(R.string.title_unnamedUser))
 
 private fun memberName(member: ChatMember?, fallback: String): String =
@@ -512,7 +424,7 @@ private fun memberName(member: ChatMember?, fallback: String): String =
 
 /** A member's avatar, or an empty circle of the same size while the roster loads. */
 @Composable
-private fun MemberAvatar(member: ChatMember?, modifier: Modifier) {
+internal fun MemberAvatar(member: ChatMember?, modifier: Modifier) {
     if (member != null) {
         ContactAvatar(userProfile = member.userProfile, modifier = modifier.clip(CircleShape))
     } else {

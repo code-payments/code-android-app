@@ -79,7 +79,7 @@ private val Expanded = SheetDetent("expanded") { containerHeight, _ ->
  * to the content — so dropping `fillMaxHeight()` from the sheet body is not enough on its own. This
  * is the half of wrap-content that makes the sheet hug three lines instead of claiming the screen.
  */
-private val WrapContent = SheetDetent("wrap-content") { containerHeight, sheetHeight ->
+internal val WrapContent = SheetDetent("wrap-content") { containerHeight, sheetHeight ->
     sheetHeight.coerceAtMost(containerHeight * 0.925f)
 }
 

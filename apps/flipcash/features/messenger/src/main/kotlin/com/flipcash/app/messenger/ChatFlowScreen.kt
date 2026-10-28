@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger
 
+import com.flipcash.app.messenger.internal.swipepay.SwipePayUiState
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.Text
@@ -270,7 +271,6 @@ private fun chatEntryProvider(
         RequestDetailsScreen(
             chatId = step.chatId,
             requestId = step.requestId,
-            payOnOpen = step.pay,
             onBack = { dismissSheet() },
             onOpenScreen = { route -> navigator.navigate(route) },
         )
@@ -439,10 +439,13 @@ private fun FlowGroupSelectPeople(viewModel: ChatViewModel, onSendComplete: () -
         GroupSendConfirmSheet(
             groupSend = groupSend,
             recipients = groupSend.selected.mapNotNull { id -> candidates.find { it.userId == id } },
-            token = state.token,
-            sendProgress = state.sendProgress,
-            onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested) },
-            onDismiss = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
+            swipePay = SwipePayUiState(
+                token = state.token,
+                progress = state.sendProgress,
+                tokenPickable = true,
+                backOnly = true,
+            ),
+            actions = remember(viewModel) { viewModel.groupSendSwipeActions },
         )
     }
     LaunchedEffect(viewModel) {

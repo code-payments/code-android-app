@@ -1,5 +1,9 @@
 package com.flipcash.app.messenger.internal.screens.cash
 
+import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
+import com.flipcash.app.messenger.internal.swipepay.SwipePaySheet
+import com.flipcash.app.messenger.internal.swipepay.SwipePayUiState
+import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -183,51 +187,24 @@ private fun MemberCheckRow(
  * by back, as iOS's confirm is, never by a drag or a tap outside it.
  *
  * The token pill swaps this sheet's content for the currency list and back, rather than opening a
- * sheet of its own: this one is a separate window, so a navigation sheet would draw beneath it.
+ * sheet of its own, which a navigation sheet would draw over this one.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun GroupSendConfirmSheet(
     groupSend: GroupSendState,
     recipients: List<ChatMember>,
-    token: Token?,
-    sendProgress: LoadingSuccessState,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
+    swipePay: SwipePayUiState,
+    actions: SwipePayActions,
 ) {
-    val locked by rememberUpdatedState(!sendProgress.isIdle)
-    var pickingCurrency by rememberSaveable { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        // Back or a swipe on the currency list returns to the confirm content, not Select People.
-        confirmValueChange = { !locked && !pickingCurrency },
-    )
     val total = groupSend.total ?: return
     val parts = (groupSend.plan as? GroupSendPlan.Pay)?.parts ?: return
     val unknownName = stringResource(R.string.title_unnamedUser)
 
-    ModalBottomSheet(
-        onDismissRequest = { if (!locked) onDismiss() },
-        sheetState = sheetState,
-        sheetGesturesEnabled = false,
-        dragHandle = null,
-        properties = ModalBottomSheetProperties(shouldDismissOnClickOutside = false),
-        containerColor = CodeTheme.colors.background,
-    ) {
-        BackHandler(enabled = pickingCurrency) { pickingCurrency = false }
-        if (pickingCurrency) {
-            CurrencyPickerContent(onPicked = { pickingCurrency = false })
-            return@ModalBottomSheet
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = CodeTheme.dimens.inset)
-                .padding(top = CodeTheme.dimens.grid.x6, bottom = CodeTheme.dimens.grid.x4),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-        ) {
+    SwipePaySheet(
+        state = swipePay,
+        actions = actions,
+        sheetState = rememberSwipePaySheetState(locked = swipePay.locked),
+        header = {
             RecipientAvatars(recipients)
 
             val first = recipients.firstOrNull()?.let {
@@ -241,7 +218,8 @@ internal fun GroupSendConfirmSheet(
                 color = CodeTheme.colors.textMain,
                 textAlign = TextAlign.Center,
             )
-
+        },
+        amount = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = total.formatted(),
@@ -256,31 +234,8 @@ internal fun GroupSendConfirmSheet(
                     )
                 }
             }
-
-            TokenSelectionPill(
-                token = token,
-                background = White10,
-                textStyle = CodeTheme.typography.textMedium,
-                imageSize = CodeTheme.dimens.staticGrid.x3,
-                contentPadding = PaddingValues(
-                    horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
-                    vertical = CodeTheme.dimens.grid.x1 - 1.dp,
-                ),
-                onClick = { if (!locked) pickingCurrency = true },
-            )
-
-            SlideToConfirm(
-                onConfirm = onConfirm,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = CodeTheme.dimens.grid.x3),
-                enabled = sendProgress.isIdle,
-                isLoading = sendProgress.loading,
-                isSuccess = sendProgress.success,
-                label = stringResource(R.string.action_swipeToSend),
-            )
-        }
-    }
+        },
+    )
 }
 
 /** "$1.00 Each" when the parts are equal, else "~$0.33 Each" for the smallest. */

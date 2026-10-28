@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal
 
+import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.getcode.view.PaymentSuccessHoldDuration
 import com.getcode.view.holdPaymentSuccess
 import com.flipcash.shared.chat.ui.settledUsd
@@ -3618,6 +3619,8 @@ internal class ChatViewModel @AssistedInject constructor(
         eventFlow
             .filterIsInstance<Event.PresentDepositOptions>()
             .onEach {
+                // Add Money from a modal over the confirm sheet: close it, then open the deposit.
+                closeGroupSendConfirm()
                 startChattingPayer.depositRoute()?.let { route ->
                     dispatchEvent(Event.OpenScreen(route))
                 }
@@ -3909,6 +3912,12 @@ internal class ChatViewModel @AssistedInject constructor(
             .launchIn(viewModelScope)
     }
 
+    /** What the group-send confirm sheet asks of this view model, in one place. */
+    val groupSendSwipeActions = SwipePayActions(
+        onConfirm = { dispatchEvent(Event.OnGroupSendRequested) },
+        onDismiss = { dispatchEvent(Event.OnGroupSendBack) },
+    )
+
     private fun sendToMembers() = viewModelScope.launch {
         val groupSend = stateFlow.value.groupSend ?: return@launch
         val plan = groupSend.plan as? GroupSendPlan.Pay ?: return@launch
@@ -3956,6 +3965,13 @@ internal class ChatViewModel @AssistedInject constructor(
                 message = resources.getString(message),
             )
         }
+    }
+
+    /** Takes the group send's confirm sheet down, back to Select People. */
+    private fun closeGroupSendConfirm() {
+        val groupSend = stateFlow.value.groupSend ?: return
+        if (groupSend.stage != GroupSendState.Stage.Confirm) return
+        dispatchEvent(Event.GroupSendUpdated(groupSend.copy(stage = GroupSendState.Stage.People)))
     }
 
     private fun checkBalanceLimit(amount: Fiat): Boolean {

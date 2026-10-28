@@ -356,7 +356,13 @@ fun CodeButton(
                     Box(
                         modifier = Modifier
                             .addIf(size.isSpecified) { Modifier.size(size) }
-                            .addIf(size.isUnspecified) { Modifier.measured { if (it.width > 0.dp && it.height > 0.dp) size = it } }
+                            // Latch the size from the label only: a button first composed while loading would
+                            // otherwise freeze at the spinner's size and clip its text once loading ends.
+                            .addIf(size.isUnspecified) {
+                                Modifier.measured {
+                                    if (contentState == ButtonContentState.Content && it.width > 0.dp && it.height > 0.dp) size = it
+                                }
+                            }
                             .width(IntrinsicSize.Max)
                             .height(IntrinsicSize.Min)
                     ) {
