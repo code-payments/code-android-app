@@ -147,7 +147,7 @@ internal fun CommunityChatRow(
                     holdings.memberCount.toInt(),
                 ),
                 style = CodeTheme.typography.textSmall.let {
-                    if (card) it.copy(fontSize = 12.sp, fontWeight = FontWeight.Normal) else it
+                    if (card) it.copy(fontSize = 12.sp) else it
                 },
                 color = if (card) SnippetText else CodeTheme.colors.textSecondary,
                 maxLines = 1,

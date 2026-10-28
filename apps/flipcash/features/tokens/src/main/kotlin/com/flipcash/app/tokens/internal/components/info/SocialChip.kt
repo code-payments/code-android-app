@@ -66,8 +66,7 @@ internal fun SocialChip(
                 is SocialLink.Telegram -> stringResource(R.string.label_social_tg)
             },
             color = CodeTheme.colors.textMain,
-            // Regular 16 (node 11622:1636).
-            style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.Normal)
+            style = CodeTheme.typography.textMedium
         )
     }
 }

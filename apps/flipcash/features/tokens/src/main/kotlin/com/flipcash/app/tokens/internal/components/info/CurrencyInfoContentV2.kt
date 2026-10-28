@@ -357,12 +357,7 @@ internal fun CurrencyInfoContentV2(
                                         .padding(top = grid.x6, bottom = grid.x6)
                                         .padding(horizontal = inset),
                                     text = stringResource(R.string.label_createdAt, formattedDate),
-                                    // Regular 12, line height 1.4 (node 11622:1678).
-                                    style = CodeTheme.typography.textSmall.copy(
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Normal,
-                                        lineHeight = 16.8.sp,
-                                    ),
+                                    style = CodeTheme.typography.caption,
                                     color = SnippetText,
                                     textAlign = TextAlign.Center,
                                 )
@@ -492,11 +487,7 @@ private fun CurrencyAboutSection(
             ExpandableText(
                 modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
                 text = description,
-                // Regular 14, line height 1.4 (node 11622:1627).
-                style = CodeTheme.typography.textSmall.copy(
-                    fontWeight = FontWeight.Normal,
-                    lineHeight = 19.6.sp,
-                ),
+                style = CodeTheme.typography.textMedium,
                 color = SnippetText,
                 isExpanded = isExpanded,
                 contentPadding = PaddingValues(horizontal = inset),

@@ -308,12 +308,12 @@ private fun SelectRecipientContent(
 
 /**
  * Select Recipient's search field (Figma): a filled rectangle with no border, 46 tall, 10 radius,
- * 8% white, an 18 search glyph, a 10 gap and 14 padding, with a Regular 17 placeholder at 50% white.
+ * 8% white, an 18 search glyph, a 10 gap and 14 padding, with the theme text style and a 50% white placeholder.
  * Local to this screen; the shared SearchInput keeps its outlined pill for the other lists.
  */
 @Composable
 private fun RecipientSearchField(state: androidx.compose.foundation.text.input.TextFieldState, modifier: Modifier = Modifier) {
-    val textStyle = CodeTheme.typography.textMedium.copy(fontSize = 17.sp, fontWeight = FontWeight.Normal)
+    val textStyle = CodeTheme.typography.textMedium
     TextInput(
         modifier = modifier,
         state = state,
@@ -453,11 +453,7 @@ private fun SwipeToSendSheet(
                     recipient.handle?.let {
                         Text(
                             text = "@${it.removePrefix("@")}",
-                            // Regular 13 in #ffffff8c.
-                            style = CodeTheme.typography.textSmall.copy(
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Normal,
-                            ),
+                            style = CodeTheme.typography.textSmall,
                             color = Color(0x8CFFFFFF),
                         )
                     }
