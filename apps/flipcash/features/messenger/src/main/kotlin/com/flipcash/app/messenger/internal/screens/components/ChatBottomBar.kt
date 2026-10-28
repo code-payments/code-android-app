@@ -174,7 +174,7 @@ internal fun UserControlBottomBar(
             requirement = ChatRuleRequirement.Never,
             hazeState = hazeState,
             currencyName = null,
-            textOverride = stringResource(R.string.subtitle_chatGate_wrongKey),
+            textOverride = stringResource(R.string.hint_cantSendHere),
         )
         return
     }

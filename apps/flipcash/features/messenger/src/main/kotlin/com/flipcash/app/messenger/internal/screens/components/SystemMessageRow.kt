@@ -126,6 +126,13 @@ private fun Preview_SystemMessageRow() {
             text = "Alex joined with Jeff Yanta’s invite link",
             userLinks = listOf(SystemUserLink(start = 17, end = 27, userId = listOf(1))),
         )
+        SystemMessageRow(
+            text = "You joined with Jeff Yanta’s invite link",
+            userLinks = listOf(SystemUserLink(start = 16, end = 26, userId = listOf(1))),
+        )
+        SystemMessageRow(
+            text = "Alex joined with your invite link",
+        )
         SystemMessageRow("Alex added Sam, Jordan and Riley to the group, and changed the group name to Weekend plans")
     }
 }

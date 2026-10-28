@@ -37,12 +37,12 @@ internal fun WrongKeyBanner(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
         Text(
-            text = stringResource(R.string.title_wrongKey),
+            text = stringResource(R.string.title_cantReadGroup),
             style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.SemiBold),
             color = CodeTheme.colors.textMain,
         )
         Text(
-            text = stringResource(R.string.subtitle_wrongKey),
+            text = stringResource(R.string.description_cantReadGroup),
             style = CodeTheme.typography.caption,
             color = CodeTheme.colors.textSecondary,
         )
