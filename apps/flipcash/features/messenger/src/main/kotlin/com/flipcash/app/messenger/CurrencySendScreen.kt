@@ -41,11 +41,12 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.rememberHazeState
 import dev.chrisbanes.haze.hazeSource
 import com.getcode.ui.components.glass.floatingGlass
-import com.getcode.ui.components.BottomScrollEdge
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Box
@@ -68,7 +69,10 @@ import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.flipcash.app.messenger.internal.currencysend.CurrencySendStep
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White10
+import com.getcode.theme.White05
+import com.flipcash.shared.amountentry.AmountEntryHint
+import com.flipcash.app.messenger.internal.screens.foldStyledLetters
+import com.flipcash.app.messenger.internal.screens.bottomEdgeScrim
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SearchInput
@@ -132,6 +136,21 @@ fun CurrencySendScreen(mint: Mint, resultStateRegistry: NavResultStateRegistry) 
                     controller = viewModel.amountDelegate,
                     onConfirm = viewModel::onAmountConfirmed,
                     largeHeader = true,
+                    headerCaption = {
+                        val available by viewModel.availableText.collectAsStateWithLifecycle()
+                        val config by viewModel.amountDelegate.config.collectAsStateWithLifecycle()
+                        // Over the limit the delegate's own error line takes over.
+                        if (config.hint !is AmountEntryHint.Error) {
+                            available?.let {
+                                Text(
+                                    text = it,
+                                    // Medium 16 in #ffffff8c.
+                                    style = CodeTheme.typography.textMessage,
+                                    color = Color(0x8CFFFFFF),
+                                )
+                            }
+                        }
+                    },
                     appBar = {
                         AppBarWithTitle(
                             titleAlignment = Alignment.CenterHorizontally,
@@ -200,7 +219,7 @@ private fun SelectRecipientContent(
     }
 
     // Same arrangement as Edit Featured Groups: the list runs edge to edge behind the bottom
-    // button, a progressive blur (BottomScrollEdge) fades what passes under it, and the button
+    // button, the Invite People colour scrim fades what passes under it, and the button
     // sits on floatingGlass over the same haze source.
     val density = LocalDensity.current
     val hazeState = rememberHazeState()
@@ -244,11 +263,13 @@ private fun SelectRecipientContent(
                 }
             }
 
-            BottomScrollEdge(
-                hazeState = hazeState,
-                visible = true,
-                height = barHeight,
-                modifier = Modifier.align(Alignment.BottomCenter),
+            // The Invite People list's fade: a colour scrim from the surface up over the rows.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(barHeight)
+                    .bottomEdgeScrim(CodeTheme.colors.surface, CodeTheme.dimens.grid.x10),
             )
 
             // Pinned, and present with an empty list too: it is the way out when there is no one to pay.
@@ -279,7 +300,7 @@ private fun SelectRecipientContent(
 
 @Composable
 private fun RecipientRow(chat: ConversationReference, onClick: () -> Unit) {
-    // Design: 24 avatar, 16 gap, 48 row; the divider sits under the name column only.
+    // Design (node 11622:1826): 24 avatar, 16 gap, 52 row; the divider sits under the name column only.
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -294,13 +315,13 @@ private fun RecipientRow(chat: ConversationReference, onClick: () -> Unit) {
             displayName = chat.name.orEmpty(),
             access = chat.avatarAccess,
             modifier = Modifier
-                .requiredSize(CodeTheme.dimens.staticGrid.x6)
+                .requiredSize(CodeTheme.dimens.staticGrid.x5)
                 .clip(CircleShape),
         )
         Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 Text(
-                    text = chat.name.orEmpty(),
+                    text = chat.name.orEmpty().foldStyledLetters(),
                     style = CodeTheme.typography.textMedium.copy(fontSize = 17.sp),
                     color = CodeTheme.colors.textMain,
                     maxLines = 1,
@@ -350,53 +371,74 @@ private fun SwipeToSendSheet(
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .padding(top = CodeTheme.dimens.grid.x6, bottom = CodeTheme.dimens.grid.x4),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            // Section gap 40 (node 11622:2232).
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x8),
         ) {
-            ContactAvatar(
-                image = recipient.image,
-                displayName = recipient.name.orEmpty(),
-                access = recipient.avatarAccess,
-                modifier = Modifier
-                    .requiredSize(CodeTheme.dimens.staticGrid.x12)
-                    .clip(CircleShape),
-            )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = recipient.name.orEmpty(),
-                    style = CodeTheme.typography.textLarge,
-                    color = CodeTheme.colors.textMain,
-                    textAlign = TextAlign.Center,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            ) {
+                ContactAvatar(
+                    image = recipient.image,
+                    displayName = recipient.name.orEmpty(),
+                    access = recipient.avatarAccess,
+                    modifier = Modifier
+                        .requiredSize(CodeTheme.dimens.staticGrid.x11)
+                        .clip(CircleShape),
                 )
-                recipient.handle?.let {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "@${it.removePrefix("@")}",
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
+                        text = recipient.name.orEmpty().foldStyledLetters(),
+                        // SemiBold 19 (node 11622:2236).
+                        style = CodeTheme.typography.textLarge.copy(fontSize = 19.sp),
+                        color = CodeTheme.colors.textMain,
+                        textAlign = TextAlign.Center,
                     )
+                    recipient.handle?.let {
+                        Text(
+                            text = "@${it.removePrefix("@")}",
+                            // Regular 13 in #ffffff8c.
+                            style = CodeTheme.typography.textSmall.copy(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Normal,
+                            ),
+                            color = Color(0x8CFFFFFF),
+                        )
+                    }
                 }
             }
-            Text(
-                text = amountText,
-                style = CodeTheme.typography.displayMedium,
-                color = CodeTheme.colors.textMain,
-            )
-            TokenSelectionPill(
-                token = token,
-                background = White10,
-                textStyle = CodeTheme.typography.textMedium,
-                imageSize = CodeTheme.dimens.staticGrid.x3,
-                contentPadding = PaddingValues(
-                    horizontal = CodeTheme.dimens.grid.x1,
-                    vertical = CodeTheme.dimens.grid.x1,
-                ),
-                showsPicker = false,
-                onClick = {},
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            ) {
+                Text(
+                    text = amountText,
+                    // SemiBold 44, tracking -1 (node 11881:2467).
+                    style = CodeTheme.typography.displayMedium.copy(
+                        fontSize = 44.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = (-1).sp,
+                    ),
+                    color = CodeTheme.colors.textMain,
+                )
+                // Node 11881:2468: 36 tall, 20 coin, SemiBold 17, 5% fill. No chevron: the currency is locked.
+                TokenSelectionPill(
+                    modifier = Modifier.height(CodeTheme.dimens.grid.x7),
+                    token = token,
+                    background = White05,
+                    textStyle = CodeTheme.typography.textMedium.copy(fontSize = 17.sp),
+                    imageSize = CodeTheme.dimens.staticGrid.x4,
+                    contentPadding = PaddingValues(
+                        horizontal = CodeTheme.dimens.grid.x2,
+                        vertical = CodeTheme.dimens.grid.x1,
+                    ),
+                    showsPicker = false,
+                    onClick = {},
+                )
+            }
             SlideToConfirm(
                 onConfirm = onConfirm,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = CodeTheme.dimens.grid.x3),
+                modifier = Modifier.fillMaxWidth(),
                 enabled = sendProgress.isIdle,
                 isLoading = sendProgress.loading,
                 isSuccess = sendProgress.success,

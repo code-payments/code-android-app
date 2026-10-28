@@ -72,6 +72,7 @@ import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SocialLink
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White10
 import com.getcode.theme.extraSmall
 import com.getcode.ui.components.text.ExpandableText
 import com.getcode.ui.core.addIf
@@ -347,15 +348,20 @@ internal fun CurrencyInfoContentV2(
                 if (!isUsdf) {
                     token.createdAt?.let { createdAt ->
                         item {
-                            val formattedDate = createdAt.format("MMMM dd, yyyy")
+                            val formattedDate = createdAt.format("MMM d, yyyy")
                             Text(
                                 modifier = Modifier
                                     .fillParentMaxWidth()
                                     .padding(top = grid.x6, bottom = grid.x6)
                                     .padding(horizontal = inset),
-                                text = stringResource(R.string.label_createdAt, formattedDate).uppercase(),
-                                style = CodeTheme.typography.caption,
-                                color = CodeTheme.colors.textMain.copy(alpha = 0.3f),
+                                text = stringResource(R.string.label_createdAt, formattedDate),
+                                // Regular 12, line height 1.4 (node 11622:1678).
+                                style = CodeTheme.typography.textSmall.copy(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Normal,
+                                    lineHeight = 16.8.sp,
+                                ),
+                                color = SnippetText,
                                 textAlign = TextAlign.Center,
                             )
                         }
@@ -399,7 +405,7 @@ private fun CurrencyActionTiles(
                         painter = painterResource(icon),
                         contentDescription = null,
                         tint = CodeTheme.colors.textMain,
-                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
                     )
                 },
                 onClick = {
@@ -434,18 +440,18 @@ private fun ActionTile(
         modifier = modifier
             .alpha(if (enabled) 1f else DisabledActionTileAlpha)
             .height(CodeTheme.dimens.grid.x18)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.1f))
+            .clip(CodeTheme.shapes.small)
+            .background(White10)
             .clickable(enabled = enabled, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         icon()
         Spacer(Modifier.height(CodeTheme.dimens.grid.x2))
-        // 12sp medium in textMain, as drawn (7.8 at 0.65): "Transactions" fits one line.
+        // Medium 12, line height 1.4, in textMain (node 11622:1610): "Transactions" fits one line.
         Text(
             text = label,
-            style = CodeTheme.typography.textSmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+            style = CodeTheme.typography.caption.copy(lineHeight = 16.8.sp),
             color = CodeTheme.colors.textMain,
             maxLines = 1,
             softWrap = false,
@@ -468,13 +474,17 @@ private fun CurrencyAboutSection(
                 modifier = Modifier.padding(horizontal = inset),
                 text = stringResource(R.string.subtitle_about),
                 style = CodeTheme.typography.textLarge,
-                color = CodeTheme.colors.textMain.copy(alpha = 0.6f),
+                color = CodeTheme.colors.textMain,
             )
             ExpandableText(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
                 text = description,
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textSecondary,
+                // Regular 14, line height 1.4 (node 11622:1627).
+                style = CodeTheme.typography.textSmall.copy(
+                    fontWeight = FontWeight.Normal,
+                    lineHeight = 19.6.sp,
+                ),
+                color = SnippetText,
                 isExpanded = isExpanded,
                 contentPadding = PaddingValues(horizontal = inset),
                 onToggle = onToggleExpand,
@@ -485,7 +495,7 @@ private fun CurrencyAboutSection(
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = CodeTheme.dimens.grid.x4),
+                    .padding(top = CodeTheme.dimens.grid.x3),
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 contentPadding = PaddingValues(horizontal = inset),
             ) {

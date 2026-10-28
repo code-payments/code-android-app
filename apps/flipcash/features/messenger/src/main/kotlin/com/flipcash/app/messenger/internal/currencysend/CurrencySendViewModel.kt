@@ -127,13 +127,20 @@ internal class CurrencySendViewModel @Inject constructor(
         style = AmountEntryStyle(
             actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_next)),
             actionStyle = ConfirmationStyle.Button,
-            infoHint = { resources.getString(R.string.subtitle_sendHint, it) },
+            // "$X available" is drawn by the screen in its own style (see [availableText]), so the
+            // delegate's own line stays empty until the entry goes over the limit.
+            infoHint = { "" },
             overMaxHint = { resources.getString(R.string.subtitle_sendHintLimitExceeded, it) },
             standingHint = AmountEntryStyle.StandingHint.Ceiling,
         ),
         loadingState = MutableStateFlow(LoadingSuccessState()),
         maxAmount = maxAmount,
     )
+
+    /** "$X available": what the line under the amount says (node 11622:1762), as iOS words it. */
+    val availableText: StateFlow<String?> = maxAmount
+        .map { max -> max?.let { resources.getString(R.string.subtitle_currencySendAvailable, it.formatted()) } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
         viewModelScope.launch {

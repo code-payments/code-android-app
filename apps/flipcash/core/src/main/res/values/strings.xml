@@ -55,6 +55,7 @@
     <string name="subtitle_giveCashHintLimitExceeded">You can only give up to %1$s</string>
 
     <string name="subtitle_sendHint">Enter up to %1$s</string>
+    <string name="subtitle_currencySendAvailable">%1$s available</string>
     <string name="subtitle_sendHintLimitExceeded">You can only send up to %1$s</string>
 
     <string name="error_title_sendLimitReached">Transaction Limit Reached</string>

@@ -9,6 +9,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -52,6 +54,7 @@ internal fun SocialChip(
                 }
             ),
             contentDescription = null,
+            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
             colorFilter = ColorFilter.tint(CodeTheme.colors.textSecondary)
         )
 
@@ -63,7 +66,8 @@ internal fun SocialChip(
                 is SocialLink.Telegram -> stringResource(R.string.label_social_tg)
             },
             color = CodeTheme.colors.textMain,
-            style = CodeTheme.typography.textMedium
+            // Regular 16 (node 11622:1636).
+            style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.Normal)
         )
     }
 }

@@ -47,6 +47,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import com.getcode.theme.extraSmall
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -123,6 +126,24 @@ internal fun CodeNavigator.openMessageShare(messageId: Long) {
             navigate(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(result.value.chatId)))
         }
     }
+}
+
+/**
+ * The colour scrim that fades a list out into the bottom edge: [color] opaque at the bottom of the
+ * box, fading to transparent [tail] above its top. Drawn behind the box's content. Shared by the
+ * Invite People sheet and Select Recipient, so the two lists fade alike.
+ */
+internal fun Modifier.bottomEdgeScrim(color: Color, tail: Dp): Modifier = drawBehind {
+    val scrimHeight = size.height + tail.toPx()
+    drawRect(
+        brush = Brush.verticalGradient(
+            colors = listOf(Color.Transparent, color),
+            startY = size.height - scrimHeight,
+            endY = size.height,
+        ),
+        topLeft = Offset(0f, size.height - scrimHeight),
+        size = size.copy(height = scrimHeight),
+    )
 }
 
 /** Test id of the Show Group Card tile. */
@@ -272,7 +293,7 @@ internal fun GroupInviteSheet(
                             .height(IntrinsicSize.Min)
                             .padding(horizontal = ListInset)
                             .padding(top = TileRowTop, bottom = TileRowBottom),
-                        horizontalArrangement = Arrangement.spacedBy(TileGap),
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     ) {
                         InviteLinkTile(
                             modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -357,18 +378,7 @@ internal fun GroupInviteSheet(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(headerHeight)
-                .drawBehind {
-                    val scrimHeight = size.height + ScrimTail.toPx()
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, scrimColor),
-                            startY = size.height - scrimHeight,
-                            endY = size.height,
-                        ),
-                        topLeft = Offset(0f, size.height - scrimHeight),
-                        size = size.copy(height = scrimHeight),
-                    )
-                },
+                .bottomEdgeScrim(scrimColor, ScrimTail),
         )
 
         AppBarWithTitle(
@@ -448,19 +458,19 @@ private fun InviteLinkTile(
     Column(
         modifier = modifier
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
-            .heightIn(min = TileMinHeight)
-            .clip(TileShape)
+            .heightIn(min = CodeTheme.dimens.grid.x19)
+            .clip(CodeTheme.shapes.extraSmall)
             .background(White05)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = TilePaddingHorizontal, vertical = TilePaddingVertical),
+            .padding(horizontal = CodeTheme.dimens.grid.x2, vertical = CodeTheme.dimens.grid.x3),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(TileIconGap, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1, Alignment.CenterVertically),
     ) {
         Icon(
             painter = painterResource(icon),
             contentDescription = null,
             tint = CodeTheme.colors.textMain,
-            modifier = Modifier.size(TileIconSize),
+            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
         )
         Text(
             text = label,
@@ -474,9 +484,12 @@ private fun InviteLinkTile(
 /** Node 10330:19568 — the list's label, an ordinary row that scrolls with the chats. */
 @Composable
 private fun RecentChatsHeader() {
-    Column(modifier = Modifier.padding(horizontal = ListInset)) {
+    // Node 11633:2259: SemiBold 14, 16 above and below; the divider under it runs edge to edge.
+    Column {
         Text(
-            modifier = Modifier.padding(vertical = HeaderRowVertical),
+            modifier = Modifier
+                .padding(horizontal = ListInset)
+                .padding(vertical = CodeTheme.dimens.grid.x3),
             text = stringResource(R.string.label_recentChats),
             style = CodeTheme.typography.textSmall,
             color = White50,
@@ -507,25 +520,27 @@ private fun RecentChatRow(
             )
             .padding(horizontal = ListInset),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(RowGap),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {
         ContactAvatar(
             image = chat.image,
             displayName = chat.name.orEmpty(),
             access = chat.avatarAccess,
             modifier = Modifier
-                .requiredSize(CodeTheme.dimens.staticGrid.x6)
+                .requiredSize(CodeTheme.dimens.staticGrid.x5)
                 .clip(CircleShape),
         )
         Column(modifier = Modifier.weight(1f)) {
             Row(
-                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x4),
+                // Node 11633:2262: 52 tall including the 1 divider.
+                modifier = Modifier.height(CodeTheme.dimens.grid.x10),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     modifier = Modifier.weight(1f),
-                    text = chat.name.orEmpty(),
-                    style = CodeTheme.typography.textMedium,
+                    text = chat.name.orEmpty().foldStyledLetters(),
+                    // SemiBold 17.
+                    style = CodeTheme.typography.textMedium.copy(fontSize = 17.sp),
                     color = CodeTheme.colors.textMain,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -533,6 +548,7 @@ private fun RecentChatRow(
                 // The same mark the token and currency pickers use, so this reads as the same kind
                 // of list.
                 Image(
+                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
                     painter = painterResource(
                         if (selected) R.drawable.ic_checked else R.drawable.ic_unchecked
                     ),
@@ -594,23 +610,13 @@ private val ListInset = 20.dp
 private val ComposerFill = Color(0x751E1E1E)
 private val ComposerBlurRadius = 24.dp
 private val HeaderPadding = 16.dp
-private val HeaderRowVertical = 16.dp
 // More above than below. AppBarWithTitle holds its height fixed and ignores HeaderPadding's bottom,
 // while its top pushes the close button down past the bar's measured edge, which is where the list
 // starts. iOS pads its header 16 on every side over the same 12 row inset; the extra 16 here stands
 // in for that bottom padding.
 private val TileRowTop = 28.dp
 private val TileRowBottom = 12.dp
-private val TileGap = 10.dp
-private val TileMinHeight = 95.dp
-private val TileShape = RoundedCornerShape(6.dp)
-private val TilePaddingHorizontal = 8.dp
-private val TilePaddingVertical = 16.dp
-private val TileIconSize = 28.dp
-private val TileIconGap = 6.dp
 
-// Node 10330:19572: the gap between avatar and name, which is also where the row's divider starts.
-private val RowGap = 16.dp
 
 private val ComposerMinBottom = 8.dp
 
@@ -620,3 +626,11 @@ private val ScrimTail = 48.dp
 private val ComposerTravel = 120.dp
 // iOS's spring(response: 0.35): stiffness (2π / 0.35)² and its default damping.
 private val ComposerSpring = spring<IntOffset>(dampingRatio = 0.825f, stiffness = 322f)
+
+/**
+ * Names can arrive in Unicode "styled" letters (e.g. U+1D5D4 mathematical sans-serif bold), which
+ * the app font has no glyphs for, so those rows fell back to a system font. NFKC folds them to
+ * the plain letters the app font draws; plain names are unchanged.
+ */
+internal fun String.foldStyledLetters(): String =
+    java.text.Normalizer.normalize(this, java.text.Normalizer.Form.NFKC)

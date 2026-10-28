@@ -19,11 +19,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Spacer
@@ -34,8 +34,15 @@ import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White05
 
-/** "Top Community Chats", its info button and View All, then the chats given. */
+/** The Figma "snippet" text colour, #ffffff8c, for secondary lines on a dark card. */
+internal val SnippetText = Color(0x8CFFFFFF)
+
+/**
+ * "Top Community Chats", its info button and View All (nodes 11622:1616-1620): a 19 SemiBold title,
+ * a 14 glyph, and View All in white at 13 Medium, in a row 28 tall.
+ */
 @Composable
 internal fun CommunityChatsHeader(
     onInfo: () -> Unit,
@@ -43,21 +50,23 @@ internal fun CommunityChatsHeader(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(CodeTheme.dimens.grid.x6),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = stringResource(R.string.title_topCommunityChats),
-            style = CodeTheme.typography.textMedium,
+            style = CodeTheme.typography.textLarge.copy(fontSize = 19.sp),
             color = CodeTheme.colors.textMain,
         )
         Icon(
             imageVector = Icons.Outlined.Info,
             contentDescription = stringResource(R.string.title_howChatsAreRanked),
-            tint = CodeTheme.colors.textSecondary,
+            tint = SnippetText,
             modifier = Modifier
                 .padding(start = CodeTheme.dimens.grid.x1)
-                .requiredSize(CodeTheme.dimens.staticGrid.x4)
+                .requiredSize(CodeTheme.dimens.staticGrid.x3)
                 .clip(CircleShape)
                 .clickable(onClick = onInfo),
         )
@@ -66,13 +75,18 @@ internal fun CommunityChatsHeader(
                 .weight(1f)
                 .clickable(onClick = onViewAll),
             text = stringResource(R.string.action_viewAll),
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textSecondary,
-            textAlign = androidx.compose.ui.text.style.TextAlign.End,
+            // Medium 13: the caption style is the true Medium face; no theme style is 13.
+            style = CodeTheme.typography.caption.copy(fontSize = 13.sp),
+            color = CodeTheme.colors.textMain,
+            textAlign = TextAlign.End,
         )
     }
 }
 
+/**
+ * A chat card (node 11622:1622), on Currency Info and View All: 12 radius, a 5% white fill, a 42
+ * photo, 16 SemiBold title over a 12 Regular subtitle, and a trailing 16 chevron, 67 tall.
+ */
 @Composable
 internal fun CommunityChatRow(
     chat: ChatMetadata,
@@ -80,19 +94,16 @@ internal fun CommunityChatRow(
     currencyName: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    /**
-     * The View All card (node 11622:3267, drawn at 0.65 and scaled here): a 5% white fill, 18dp
-     * corners, 16/12 padding, a 42dp photo, 16/12sp text and a trailing chevron.
-     */
     card: Boolean = false,
 ) {
     val rowModifier = if (card) {
         modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color.White.copy(alpha = 0.05f))
+            .height(CodeTheme.dimens.grid.x13)
+            .clip(CodeTheme.shapes.medium)
+            .background(White05)
             .clickable(onClick = onClick)
-            .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x2)
+            .padding(horizontal = CodeTheme.dimens.grid.x3)
     } else {
         modifier
             .fillMaxWidth()
@@ -109,13 +120,13 @@ internal fun CommunityChatRow(
             displayName = chat.title.orEmpty(),
             access = BlobAccessContext.ChatProfile(chat.chatId),
             modifier = Modifier
-                .requiredSize(CodeTheme.dimens.staticGrid.x10)
+                .requiredSize(if (card) CodeTheme.dimens.staticGrid.x8 else CodeTheme.dimens.staticGrid.x10)
                 .clip(CircleShape),
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = chat.title.orEmpty(),
-                style = CodeTheme.typography.textMedium.let { if (card) it.copy(fontSize = 16.sp) else it },
+                style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textMain,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -135,8 +146,10 @@ internal fun CommunityChatRow(
                     holdings.memberCount.toInt(),
                     holdings.memberCount.toInt(),
                 ),
-                style = CodeTheme.typography.textSmall.let { if (card) it.copy(fontSize = 12.sp) else it },
-                color = if (card) Color.White.copy(alpha = 0.55f) else CodeTheme.colors.textSecondary,
+                style = CodeTheme.typography.textSmall.let {
+                    if (card) it.copy(fontSize = 12.sp, fontWeight = FontWeight.Normal) else it
+                },
+                color = if (card) SnippetText else CodeTheme.colors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -145,8 +158,8 @@ internal fun CommunityChatRow(
             Icon(
                 painter = painterResource(R.drawable.ic_chevron_right),
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.55f),
-                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
+                tint = SnippetText,
+                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
             )
         }
     }
