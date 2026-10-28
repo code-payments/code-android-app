@@ -14,6 +14,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Invite
 import com.flipcash.services.models.chat.InviteId
 import com.flipcash.services.models.chat.InviteToken
+import com.flipcash.services.models.chat.ViewMode
 import com.getcode.chatcipher.InviteCipher
 import com.getcode.chatcipher.InviteLink
 import com.getcode.opencode.model.core.ID
@@ -116,6 +117,13 @@ class HostInvites internal constructor(
     ) : this(chatController, groupKeys, keys, cipher, Clock.System)
 
     private val invites = MutableStateFlow<Map<ChatId, List<HostInvite>>>(emptyMap())
+    private val access = MutableStateFlow<Map<ChatId, Boolean>>(emptyMap())
+
+    /**
+     * Each checked chat's `can_invite`, as `GetChat` last returned it. Kept here because the local
+     * store does not carry the permission yet, so a chat read from disk always says false.
+     */
+    val canInvite: StateFlow<Map<ChatId, Boolean>> = access.asStateFlow()
 
     /** Each loaded chat's invites, newest first. A chat never loaded is absent. */
     val state: StateFlow<Map<ChatId, List<HostInvite>>> = invites.asStateFlow()
@@ -125,6 +133,17 @@ class HostInvites internal constructor(
     // than making a second.
     private val pending = mutableMapOf<Pair<ChatId, InviteSettings>, ByteArray>()
     private val createLock = Mutex()
+
+    /** Reads [chatId]'s `can_invite` from the server into [canInvite]. A failure leaves it as it was. */
+    suspend fun refreshAccess(chatId: ChatId): Result<Boolean> =
+        chatController.getChat(chatId, ViewMode.FULL_OR_REDACTED)
+            .map { it.viewerState?.permissions?.canInvite == true }
+            .onSuccess { allowed -> access.update { it + (chatId to allowed) } }
+
+    /** Records that the viewer can no longer invite to [chatId], after a `DENIED`. */
+    fun revokeAccess(chatId: ChatId) {
+        access.update { it + (chatId to false) }
+    }
 
     /** Fetches every page of [chatId]'s invites and replaces what was held for it. */
     suspend fun load(chatId: ChatId): Result<List<HostInvite>> = runCatching {
@@ -205,6 +224,7 @@ class HostInvites internal constructor(
     /** Drops everything held. For logout: the invites belong to the account. */
     fun clear() {
         invites.value = emptyMap()
+        access.value = emptyMap()
         pending.clear()
     }
 

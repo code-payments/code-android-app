@@ -8,10 +8,13 @@ import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.CreateInviteError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.Invite
 import com.flipcash.services.models.chat.InviteId
 import com.flipcash.services.models.chat.InviteToken
 import com.flipcash.services.models.chat.InvitesPage
+import com.flipcash.services.models.chat.ViewerState
 import com.getcode.chatcipher.InviteCipher
 import com.getcode.chatcipher.InviteLink
 import com.getcode.ed25519kmp.KeyPair
@@ -227,6 +230,35 @@ class HostInvitesTest {
 
         assertEquals(listOf(active), shownActive)
         assertEquals(listOf(recentRevoke, expiredRecently), shownInactive)
+    }
+
+    @Test
+    fun `refreshAccess keeps the server's can_invite until a denial takes it away`() = runTest {
+        coEvery { chatController.getChat(chatId, any()) } returns Result.success(
+            ChatMetadata(
+                chatId = chatId,
+                type = ChatType.GROUP,
+                members = emptyList(),
+                lastMessage = null,
+                lastActivity = now,
+                viewerState = ViewerState(permissions = ViewerState.Permissions(canInvite = true)),
+            ),
+        )
+
+        assertTrue(subject.refreshAccess(chatId).getOrThrow())
+        assertEquals(true, subject.canInvite.value[chatId])
+
+        subject.revokeAccess(chatId)
+        assertEquals(false, subject.canInvite.value[chatId])
+    }
+
+    @Test
+    fun `a failed refreshAccess leaves what was known`() = runTest {
+        subject.revokeAccess(chatId)
+        coEvery { chatController.getChat(chatId, any()) } returns Result.failure(IOException("offline"))
+
+        assertTrue(subject.refreshAccess(chatId).isFailure)
+        assertEquals(false, subject.canInvite.value[chatId])
     }
 
     @Test
