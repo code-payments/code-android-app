@@ -38,9 +38,6 @@ import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
@@ -77,7 +75,6 @@ internal fun NotificationStatusContent(
     hazeState: HazeState,
     onFix: (Fix) -> Unit,
     onToggleExpanded: () -> Unit,
-    onCheckAgain: () -> Unit,
     onSendTest: () -> Unit,
     onShareReport: () -> Unit,
     modifier: Modifier = Modifier,
@@ -87,75 +84,58 @@ internal fun NotificationStatusContent(
     val density = LocalDensity.current
     // The pinned actions float over the page, so the page leaves room for them.
     var actionsHeight by remember { mutableStateOf(0.dp) }
-    val pullState = rememberPullToRefreshState()
 
     Box(modifier = modifier.fillMaxSize()) {
-        PullToRefreshBox(
-            isRefreshing = state.refreshing,
-            onRefresh = onCheckAgain,
-            state = pullState,
-            modifier = Modifier.fillMaxSize(),
-            indicator = {
-                PullToRefreshDefaults.Indicator(
-                    state = pullState,
-                    isRefreshing = state.refreshing,
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = topPadding),
-                    containerColor = CodeTheme.colors.surface,
-                    color = CodeTheme.colors.textMain,
-                )
-            },
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(hazeState)
+                .verticalScroll(scrollState)
+                .padding(horizontal = inset),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .hazeSource(hazeState)
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = inset),
-            ) {
-                // Settings' gap below its bar: the first section header's top padding.
-                Spacer(Modifier.height(topPadding + CodeTheme.dimens.grid.x4))
-                SummaryCard(status.summary, checkAgainEnabled = !state.running, onCheckAgain = onCheckAgain)
+            // Settings' gap below its bar: the first section header's top padding.
+            Spacer(Modifier.height(topPadding + CodeTheme.dimens.grid.x4))
+            SummaryCard(status.summary)
 
-                // All passing folds into one row; it stays as the toggle once expanded.
-                AnimatedVisibility(
-                    visible = state.folded,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically(),
-                ) {
-                    Column {
-                        Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
-                        FoldedRow(
-                            count = status.rows.size,
-                            checking = status.summary == Summary.Checking,
-                            expanded = state.expanded,
-                            onClick = onToggleExpanded,
-                        )
-                    }
+            // All passing folds into one row; it stays as the toggle once expanded.
+            AnimatedVisibility(
+                visible = state.folded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                Column {
+                    Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
+                    FoldedRow(
+                        count = status.rows.size,
+                        checking = status.summary == Summary.Checking,
+                        expanded = state.expanded,
+                        onClick = onToggleExpanded,
+                    )
                 }
-                AnimatedVisibility(
-                    visible = !state.folded || state.expanded,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically(),
-                ) {
-                    Column {
-                        Group(
-                            title = stringResource(R.string.header_notificationStatusPhone),
-                            keys = PhoneRowKeys,
-                            rows = status.phoneRows,
-                            state = state,
-                            onFix = onFix,
-                        )
-                        Group(
-                            title = stringResource(R.string.header_notificationStatusFlipcash),
-                            keys = listOf(RegistrationKey),
-                            rows = status.flipcashRows,
-                            state = state,
-                            onFix = onFix,
-                        )
-                    }
-                }
-                Spacer(Modifier.height(actionsHeight + CodeTheme.dimens.grid.x4))
             }
+            AnimatedVisibility(
+                visible = !state.folded || state.expanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                Column {
+                    Group(
+                        title = stringResource(R.string.header_notificationStatusPhone),
+                        keys = PhoneRowKeys,
+                        rows = status.phoneRows,
+                        state = state,
+                        onFix = onFix,
+                    )
+                    Group(
+                        title = stringResource(R.string.header_notificationStatusFlipcash),
+                        keys = listOf(RegistrationKey),
+                        rows = status.flipcashRows,
+                        state = state,
+                        onFix = onFix,
+                    )
+                }
+            }
+            Spacer(Modifier.height(actionsHeight + CodeTheme.dimens.grid.x4))
         }
 
         // Content fades out under the actions while there is more to scroll to.
@@ -216,7 +196,7 @@ internal fun NotificationStatusContent(
 }
 
 @Composable
-private fun SummaryCard(summary: Summary, checkAgainEnabled: Boolean, onCheckAgain: () -> Unit) {
+private fun SummaryCard(summary: Summary) {
     val title = when (summary) {
         Summary.Working -> stringResource(R.string.title_notificationStatusWorking)
         Summary.Checking -> stringResource(R.string.title_notificationStatusChecking)
@@ -243,30 +223,11 @@ private fun SummaryCard(summary: Summary, checkAgainEnabled: Boolean, onCheckAga
                 Crossfade(targetState = title, label = "summary title") {
                     Text(it, style = CodeTheme.typography.textLarge, color = CodeTheme.colors.textMain)
                 }
-                // "Check again" sits on the second line so every title keeps the full width and one
-                // line; a title that wrapped only when settled would grow the card at the end of a run.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        modifier = Modifier.weight(1f),
-                        text = stringResource(R.string.subtitle_notificationStatusCheckedJustNow),
-                        style = CodeTheme.typography.textMedium,
-                        color = CodeTheme.colors.textSecondary,
-                    )
-                    CodeButton(
-                        modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2),
-                        text = stringResource(R.string.action_checkAgain),
-                        buttonState = ButtonState.Subtle,
-                        textColor = CodeTheme.colors.textMain,
-                        style = CodeTheme.typography.textSmall,
-                        enabled = checkAgainEnabled,
-                        overrideContentPadding = true,
-                        contentPadding = PaddingValues(
-                            horizontal = CodeTheme.dimens.grid.x2,
-                            vertical = CodeTheme.dimens.grid.x1,
-                        ),
-                        onClick = onCheckAgain,
-                    )
-                }
+                Text(
+                    stringResource(R.string.subtitle_notificationStatusCheckedJustNow),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textSecondary,
+                )
             }
         }
     }
@@ -511,7 +472,9 @@ private fun Card(modifier: Modifier = Modifier, content: @Composable () -> Unit)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(White05, CodeTheme.shapes.medium)
+            // Clip before any clickable in [modifier] or inside, so ripples stay in the rounded corners.
+            .clip(CodeTheme.shapes.medium)
+            .background(White05)
             .then(modifier),
     ) { content() }
 }

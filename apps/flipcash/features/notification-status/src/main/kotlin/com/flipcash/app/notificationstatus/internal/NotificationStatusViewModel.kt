@@ -53,18 +53,14 @@ internal class NotificationStatusViewModel @Inject constructor(
         val testSent: Boolean = false,
         /** "Check again" is waiting on the phone's settings; the last read shows as Checking. */
         val rechecking: Boolean = false,
-        /** The run in progress was started by hand, so pull-to-refresh shows it. */
-        val manualRun: Boolean = false,
         /** The page was folded when the re-run started; it stays folded while the run lasts. */
         val foldedAtRecheck: Boolean = false,
     ) {
         val status: NotificationStatus get() = evaluateNotificationStatus(device, registration, rechecking)
 
-        /** Any check still running; "Check again" waits for it. */
+        /** Any check still running; "Check again" is disabled until it ends. */
         val running: Boolean
             get() = device == null || rechecking || registration == RegistrationState.Checking
-
-        val refreshing: Boolean get() = manualRun && running
 
         val folded: Boolean get() = status.allPassing || (running && foldedAtRecheck)
     }
@@ -76,7 +72,7 @@ internal class NotificationStatusViewModel @Inject constructor(
         data object RegistrationStarted : Event
         data class RegistrationFinished(val attempt: PushRegistrationAttempt, val saved: PushRegistration?) : Event
         data object TryAgain : Event
-        /** Re-run every check, Registration included: "Check again" and pull-to-refresh. */
+        /** Re-run every check, Registration included: the top bar's "Check again". */
         data object CheckAgain : Event
         data object RecheckStarted : Event
         data object ToggleExpanded : Event
@@ -192,14 +188,10 @@ internal class NotificationStatusViewModel @Inject constructor(
         private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
                 is Event.DeviceRead -> { {
-                    copy(
-                        device = event.device,
-                        rechecking = false,
-                        manualRun = manualRun && registration == RegistrationState.Checking,
-                    )
+                    copy(device = event.device, rechecking = false)
                 } }
                 is Event.RecheckStarted -> { {
-                    copy(rechecking = true, manualRun = true, foldedAtRecheck = status.allPassing)
+                    copy(rechecking = true, foldedAtRecheck = status.allPassing)
                 } }
                 is Event.RegistrationStarted -> { { copy(registration = RegistrationState.Checking) } }
                 is Event.RegistrationFinished -> { {
@@ -211,7 +203,6 @@ internal class NotificationStatusViewModel @Inject constructor(
                         registration = RegistrationState.Finished(attempt.outcome, lastConfirmedAt),
                         lastRegistration = event.saved,
                         tokenSuffix = attempt.tokenSuffix ?: tokenSuffix,
-                        manualRun = manualRun && rechecking,
                     )
                 } }
                 is Event.ToggleExpanded -> { { copy(expanded = !expanded) } }

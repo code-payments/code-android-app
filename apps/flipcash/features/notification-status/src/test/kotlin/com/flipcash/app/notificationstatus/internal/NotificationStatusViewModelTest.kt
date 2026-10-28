@@ -79,7 +79,6 @@ class NotificationStatusViewModelTest {
         assertEquals(settled.rows.map { it.key }, during.status.rows.map { it.key })
         assertTrue(during.status.rows.all { it.status == CheckStatus.Checking })
         assertTrue(during.running)
-        assertTrue(during.refreshing)
         // Folded when the run started, so it stays folded rather than opening and closing again.
         assertTrue(during.folded)
 
@@ -88,7 +87,6 @@ class NotificationStatusViewModelTest {
         val after = viewModel.stateFlow.value
         assertEquals(Summary.Working, after.status.summary)
         assertFalse(after.running)
-        assertFalse(after.refreshing)
     }
 
     @Test

@@ -1,6 +1,13 @@
 package com.flipcash.app.notificationstatus
 
 import android.content.Context
+import com.getcode.ui.components.CircularIconButton
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.animation.core.animateFloatAsState
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
@@ -60,6 +67,12 @@ fun NotificationStatusScreen() {
             AppBarWithTitle(
                 title = stringResource(R.string.title_notificationStatus),
                 onBackIconClicked = { navigator.pop() },
+                endContent = {
+                    CheckAgainAction(
+                        enabled = !state.running,
+                        onClick = { viewModel.dispatchEvent(Event.CheckAgain) },
+                    )
+                },
             )
         },
     ) { barPadding ->
@@ -95,7 +108,6 @@ fun NotificationStatusScreen() {
                     }
                 },
                 onToggleExpanded = { viewModel.dispatchEvent(Event.ToggleExpanded) },
-                onCheckAgain = { viewModel.dispatchEvent(Event.CheckAgain) },
                 onSendTest = { viewModel.dispatchEvent(Event.SendTest) },
                 onShareReport = { viewModel.dispatchEvent(Event.ShareReportRequested) },
             )
@@ -117,3 +129,20 @@ private fun Context.openAppNotificationSettings() {
             .putExtra(Settings.EXTRA_APP_PACKAGE, packageName),
     )
 }
+
+/** Re-runs every check. Dimmed and inert while a run is in progress (Behaviour 7). */
+@Composable
+private fun CheckAgainAction(enabled: Boolean, onClick: () -> Unit) {
+    val alpha by animateFloatAsState(if (enabled) 1f else DisabledContentAlpha, label = "check again alpha")
+    CircularIconButton(enabled = enabled, onClick = onClick) { size ->
+        Icon(
+            imageVector = Icons.Rounded.Refresh,
+            contentDescription = stringResource(R.string.action_checkAgain),
+            tint = Color.White.copy(alpha = alpha),
+            modifier = Modifier.requiredSize(size),
+        )
+    }
+}
+
+// Matches ListItem's dimmed state for an action that can't run right now.
+private const val DisabledContentAlpha = 0.38f
