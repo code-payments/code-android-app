@@ -5,6 +5,9 @@ import com.flipcash.services.models.GetKeyEnvelopeError
 import com.flipcash.services.models.SetKeyEnvelopeError
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.InviteId
+import com.flipcash.services.models.chat.InviteKeyBundle
+import com.flipcash.services.models.chat.InviteSecretEnvelope
 import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.StoredKeyEnvelope
 import com.getcode.chatcipher.EncryptedPayload
@@ -20,6 +23,7 @@ import org.junit.Test
 import java.io.IOException
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GroupKeyEnvelopesTest {
@@ -33,7 +37,7 @@ class GroupKeyEnvelopesTest {
         override suspend fun peerPublicKey(userId: ID): Result<ByteArray> = error("unused")
     }
     private val controller = mockk<ChatController>()
-    private val envelopes = GroupKeyEnvelopes(FakeChatCipher, keys, controller)
+    private val envelopes = GroupKeyEnvelopes(FakeChatCipher, FakeInviteCipher(), keys, controller, WrongKeyChats())
 
     @Test
     fun `storeNewKey stores a self-wrapped envelope`() = runTest {
@@ -96,13 +100,15 @@ class GroupKeyEnvelopesTest {
     private val creatorId: ID = List(16) { 1 }
     private val memberId: ID = List(16) { 2 }
     private val memberKeys = KeyPair(publicKey = memberPk, privateKey = ByteArray(64) { 22 })
+    private val inviteCipher = FakeInviteCipher()
+    private val wrongKeyChats = WrongKeyChats()
     private val memberSource = object : ChatKeySource {
         override fun ownKeyPair() = memberKeys
         override fun ownUserId() = memberId
         override suspend fun peerPublicKey(userId: ID): Result<ByteArray> =
             if (userId == creatorId) Result.success(creatorKeys.publicKey) else Result.failure(IOException("unknown"))
     }
-    private val memberEnvelopes = GroupKeyEnvelopes(FakeChatCipher, memberSource, controller)
+    private val memberEnvelopes = GroupKeyEnvelopes(FakeChatCipher, inviteCipher, memberSource, controller, wrongKeyChats)
     private val groupKey = ByteArray(32) { 5 }
 
     private fun stored(wrapper: KeyPair, recipient: ByteArray, wrappedBy: ID?): StoredKeyEnvelope {
@@ -193,11 +199,117 @@ class GroupKeyEnvelopesTest {
             override fun ownUserId() = creatorId
             override suspend fun peerPublicKey(userId: ID): Result<ByteArray> = error("unused")
         }
-        val creatorEnvelopes = GroupKeyEnvelopes(FakeChatCipher, creatorSource, controller)
+        val creatorEnvelopes = GroupKeyEnvelopes(FakeChatCipher, FakeInviteCipher(), creatorSource, controller, WrongKeyChats())
         coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(GetKeyEnvelopeError.NoEnvelope())
         coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
         coEvery { controller.setKeyEnvelope(chatId, any()) } returns Result.success(Unit)
 
         assertContentEquals(FakeChatCipher.newGroupKey(), creatorEnvelopes.key(chatId).getOrThrow())
+    }
+
+    // Invite path: the member joined with a link and the server holds only the invite's copy.
+
+    private val secret = ByteArray(32) { 3 }
+    private val inviteId = InviteId(inviteCipher.inviteId(secret))
+
+    private fun bundle(
+        signer: KeyPair = creatorKeys,
+        wrappedBy: ID? = creatorId,
+        secretOwner: KeyPair = memberKeys,
+        sealedFor: ByteArray = secret,
+        secretScheme: Int = InviteSecretEnvelope.SCHEME_X25519_XCHACHA20POLY1305,
+    ): GetKeyEnvelopeError.InviteKeyBundleOnly {
+        val copy = inviteCipher.sealInviteKeyEnvelope(signer, sealedFor, chatId.bytes, groupKey).toEnvelope()
+        val own = inviteCipher.sealInviteSecretEnvelope(secretOwner, secret, chatId.bytes, inviteId.bytes)
+        return GetKeyEnvelopeError.InviteKeyBundleOnly(
+            InviteKeyBundle(
+                inviteId = inviteId,
+                keyEnvelope = copy,
+                secretEnvelope = InviteSecretEnvelope(secretScheme, own.nonce, own.ciphertext),
+                wrappedBy = wrappedBy,
+                wrappedByPublicKey = null,
+            ),
+        )
+    }
+
+    private fun assertWrongKey(error: GetKeyEnvelopeError.InviteKeyBundleOnly) = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(error)
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+
+        assertTrue(memberEnvelopes.key(chatId).exceptionOrNull() is UntrustedEnvelope)
+        assertTrue(chatId in wrongKeyChats.chats.value)
+        coVerify(exactly = 0) { controller.setKeyEnvelope(any(), any()) }
+    }
+
+    @Test
+    fun `an invite bundle opens and the member stores a self-wrapped copy`() = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(bundle())
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+        val rewrapped = slot<KeyEnvelope>()
+        coEvery { controller.setKeyEnvelope(chatId, capture(rewrapped)) } returns Result.success(Unit)
+
+        assertContentEquals(groupKey, memberEnvelopes.key(chatId).getOrThrow())
+
+        assertContentEquals(memberPk + memberPk + groupKey, rewrapped.captured.ciphertext)
+        assertFalse(chatId in wrongKeyChats.chats.value)
+    }
+
+    @Test
+    fun `a failed store after the bundle opens still returns the key`() = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(bundle())
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+        coEvery { controller.setKeyEnvelope(chatId, any()) } returns Result.failure(IOException("offline"))
+
+        assertContentEquals(groupKey, memberEnvelopes.key(chatId).getOrThrow())
+    }
+
+    @Test
+    fun `a bundle wrapped by someone other than the creator is the wrong key`() =
+        assertWrongKey(bundle(wrappedBy = List(16) { 9 }))
+
+    @Test
+    fun `a bundle not signed by the creator is the wrong key`() =
+        assertWrongKey(bundle(signer = KeyPair(publicKey = ByteArray(32) { 99.toByte() }, privateKey = ByteArray(64))))
+
+    @Test
+    fun `a bundle whose secret envelope does not open is the wrong key`() =
+        assertWrongKey(bundle(secretOwner = KeyPair(publicKey = ByteArray(32) { 77 }, privateKey = ByteArray(64))))
+
+    @Test
+    fun `a bundle whose copy does not open is the wrong key`() =
+        assertWrongKey(bundle(sealedFor = ByteArray(32) { 4 }))
+
+    @Test
+    fun `a bundle in an unknown scheme is the wrong key`() = assertWrongKey(bundle(secretScheme = 9))
+
+    @Test
+    fun `a network failure is not cached and the next open retries`() = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returnsMany listOf(
+            Result.failure(GetKeyEnvelopeError.Other(IOException("offline"))),
+            Result.failure(bundle()),
+        )
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+        coEvery { controller.setKeyEnvelope(chatId, any()) } returns Result.success(Unit)
+
+        assertTrue(memberEnvelopes.key(chatId).isFailure)
+        assertFalse(chatId in wrongKeyChats.chats.value)
+
+        assertContentEquals(groupKey, memberEnvelopes.key(chatId).getOrThrow())
+        coVerify(exactly = 2) { controller.getKeyEnvelope(chatId) }
+    }
+
+    @Test
+    fun `a key that opens later clears the wrong-key mark`() = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returnsMany listOf(
+            Result.failure(bundle(wrappedBy = List(16) { 9 })),
+            Result.success(stored(memberKeys, memberPk, memberId)),
+        )
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+
+        assertTrue(memberEnvelopes.key(chatId).isFailure)
+        assertTrue(chatId in wrongKeyChats.chats.value)
+
+        memberEnvelopes.key(chatId).getOrThrow()
+        assertFalse(chatId in wrongKeyChats.chats.value)
     }
 }

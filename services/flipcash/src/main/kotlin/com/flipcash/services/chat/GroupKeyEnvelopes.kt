@@ -4,9 +4,12 @@ import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.GetKeyEnvelopeError
 import com.flipcash.services.models.SetKeyEnvelopeError
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.InviteKeyBundle
 import com.flipcash.services.models.chat.KeyEnvelope
 import com.getcode.chatcipher.ChatCipher
 import com.getcode.chatcipher.EncryptedPayload
+import com.getcode.chatcipher.InviteBundleResult
+import com.getcode.chatcipher.InviteCipher
 import com.getcode.ed25519kmp.KeyPair
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.sync.Mutex
@@ -25,8 +28,10 @@ import javax.inject.Singleton
 @Singleton
 class GroupKeyEnvelopes @Inject constructor(
     private val cipher: ChatCipher,
+    private val inviteCipher: InviteCipher,
     private val keys: ChatKeySource,
     private val chatController: ChatController,
+    private val wrongKeyChats: WrongKeyChats,
 ) : GroupKeySource {
     // Own public key in the key so a different account on this device never reuses a group key.
     private data class CacheKey(val chatId: ID, val ownPk: ID)
@@ -74,6 +79,11 @@ class GroupKeyEnvelopes @Inject constructor(
      *
      * `NO_ENVELOPE` means a creator whose setup stopped before [storeNewKey] landed; only the
      * creator regenerates the key there.
+     *
+     * A member who joined with an invite link gets the invite's copy of the key until they store
+     * their own envelope. It is opened and re-wrapped the same way; a copy that fails a check marks
+     * the chat in [WrongKeyChats]. A fetch that fails for any other reason is not cached, so the
+     * next call, such as opening the chat, tries again.
      */
     override suspend fun key(chatId: ChatId): Result<ByteArray> {
         val own = keys.ownKeyPair()
@@ -84,7 +94,10 @@ class GroupKeyEnvelopes @Inject constructor(
         return locks.getOrPut(cacheKey) { Mutex() }.withLock {
             groupKeys[cacheKey]?.let { return@withLock Result.success(it) }
             fetchKey(chatId, own)
-                .onSuccess { groupKeys[cacheKey] = it }
+                .onSuccess {
+                    groupKeys[cacheKey] = it
+                    wrongKeyChats.clear(chatId)
+                }
         }
     }
 
@@ -96,6 +109,9 @@ class GroupKeyEnvelopes @Inject constructor(
                     groupKeys[CacheKey(chatId.bytes.toList(), own.publicKey.toList())]
                         ?: fetchKey(chatId, own, retried = true).getOrThrow()
                 }
+            }
+            if (error is GetKeyEnvelopeError.InviteKeyBundleOnly) {
+                return openInviteBundle(chatId, own, error.bundle, retried)
             }
             return Result.failure(error)
         }
@@ -117,7 +133,51 @@ class GroupKeyEnvelopes @Inject constructor(
         val creatorPk = keys.peerPublicKey(creator).getOrElse { return Result.failure(it) }
         val groupKey = runCatching { cipher.unwrapGroupKey(own, creatorPk, chatId.bytes, payload) }
             .getOrElse { return Result.failure(UntrustedEnvelope("Creator-wrapped envelope did not open", it)) }
+        return storeSelfCopy(chatId, own, groupKey, retried)
+    }
 
+    /**
+     * Opens the invite's copy of the key in the order the `InviteKeyEnvelope` comment sets. The
+     * creator's key comes from the Resolver like a creator-wrapped envelope's, and falls back to the
+     * `wrapped_by_public_key` the server reports when the Resolver can't answer.
+     */
+    private suspend fun openInviteBundle(
+        chatId: ChatId,
+        own: KeyPair,
+        bundle: InviteKeyBundle,
+        retried: Boolean,
+    ): Result<ByteArray> {
+        val creator = chatController.getChat(chatId).getOrElse { return Result.failure(it) }.creator
+        val creatorPk = creator?.let { keys.peerPublicKey(it) }?.getOrNull()
+            ?: bundle.wrappedByPublicKey?.byteArray
+            ?: return Result.failure(IllegalStateException("No public key for the invite's creator"))
+        val keyEnvelope = bundle.keyEnvelope.toSealed()
+        val secretEnvelope = bundle.secretEnvelope.toPayload()
+        if (keyEnvelope == null || secretEnvelope == null) {
+            return wrongKey(chatId, "Unsupported invite envelope scheme")
+        }
+
+        val opened = inviteCipher.openInviteKeyBundle(
+            member = own,
+            creatorPk = creatorPk,
+            wrappedByCreator = creator != null && bundle.wrappedBy == creator,
+            chatId = chatId.bytes,
+            inviteId = bundle.inviteId.bytes,
+            keyEnvelope = keyEnvelope,
+            secretEnvelope = secretEnvelope,
+        )
+        return when (opened) {
+            is InviteBundleResult.Opened -> storeSelfCopy(chatId, own, opened.chatKey, retried)
+            is InviteBundleResult.Rejected -> wrongKey(chatId, "Invite key bundle rejected at ${opened.failsAt}")
+        }
+    }
+
+    private fun wrongKey(chatId: ChatId, reason: String): Result<ByteArray> {
+        wrongKeyChats.mark(chatId)
+        return Result.failure(UntrustedEnvelope(reason))
+    }
+
+    private suspend fun storeSelfCopy(chatId: ChatId, own: KeyPair, groupKey: ByteArray, retried: Boolean): Result<ByteArray> {
         // The self-wrapped copy only saves the next launch a trip through the creator's envelope, so
         // failing to store it doesn't cost the key that just opened.
         val selfWrapped = runCatching {
