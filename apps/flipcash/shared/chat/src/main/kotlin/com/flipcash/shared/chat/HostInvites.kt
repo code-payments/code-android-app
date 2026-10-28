@@ -158,6 +158,14 @@ class HostInvites internal constructor(
     fun current(chatId: ChatId): HostInvite? = currentOf(invites.value[chatId].orEmpty(), keys.ownUserId())
 
     /**
+     * The link the sheet shares, made when there is none: the first Share or Copy tap (spec
+     * Decision 9). The new link is 7 days with no use limit. [load] has to have run first, or a
+     * link that exists but was never fetched is not seen and a second one is made.
+     */
+    suspend fun currentOrCreate(chatId: ChatId): InviteCreation =
+        current(chatId)?.let { InviteCreation.Created(it) } ?: create(chatId, InviteSettings.Default)
+
+    /**
      * Makes an invite with [settings]. If the server answers OK with an invite that is no longer
      * ACTIVE, which only a reused token can cause, the secret is dropped and one new attempt made.
      * Every other refusal, `INVALID_EXPIRES_AT` included, ends the attempt: the presets all fit the
