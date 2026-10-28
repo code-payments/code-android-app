@@ -95,6 +95,7 @@ fun NotificationStatusScreen() {
                     }
                 },
                 onToggleExpanded = { viewModel.dispatchEvent(Event.ToggleExpanded) },
+                onCheckAgain = { viewModel.dispatchEvent(Event.CheckAgain) },
                 onSendTest = { viewModel.dispatchEvent(Event.SendTest) },
                 onShareReport = { viewModel.dispatchEvent(Event.ShareReportRequested) },
             )

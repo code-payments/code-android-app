@@ -87,6 +87,13 @@ sealed interface CheckRow {
         override val fix: Fix? = null
     }
 
+    /** A row being checked again: it keeps its place and title until the new result is in. */
+    data class Rechecking(val previous: CheckRow) : CheckRow {
+        override val key get() = previous.key
+        override val status = CheckStatus.Checking
+        override val fix: Fix? = null
+    }
+
     data class Permission(val allowed: Boolean) : CheckRow {
         override val key get() = PermissionKey
         override val status = if (allowed) CheckStatus.Pass else CheckStatus.Fail
@@ -173,7 +180,11 @@ data class NotificationStatus(
 
     /** A local test needs only the permission, not a working registration. */
     val canSendTest: Boolean
-        get() = phoneRows.any { it is CheckRow.Permission && it.status == CheckStatus.Pass }
+        get() = phoneRows.any {
+            // A re-run doesn't take the test away while the permission is read again.
+            val row = (it as? CheckRow.Rechecking)?.previous ?: it
+            row is CheckRow.Permission && row.status == CheckStatus.Pass
+        }
 }
 
 const val PermissionKey = "permission"
@@ -199,12 +210,17 @@ private val PendingPhoneRows: List<CheckRow> =
 
 private val limitingBuckets = setOf("rare", "restricted")
 
-/** [device] is null until the phone's settings have been read. */
+/**
+ * [device] is null until the phone's settings have been read. [rechecking] marks a re-run in
+ * progress: [device] is the last read, and every row it gives shows Checking in its place until
+ * the new read arrives.
+ */
 fun evaluateNotificationStatus(
     device: DeviceSnapshot?,
     registration: RegistrationState,
+    rechecking: Boolean = false,
 ): NotificationStatus {
-    val phoneRows: List<CheckRow> = if (device == null) PendingPhoneRows else buildList {
+    val phoneRows: List<CheckRow> = if (device == null) PendingPhoneRows else buildList<CheckRow> {
         add(CheckRow.Permission(device.notificationsAllowed))
         // Channel rows mean nothing while notifications are off app-wide.
         if (device.notificationsAllowed) {
@@ -217,7 +233,7 @@ fun evaluateNotificationStatus(
         add(CheckRow.Battery(optimized = !device.ignoringBatteryOptimizations))
         add(CheckRow.Background(device.backgroundRestricted, device.standbyBucket))
         add(CheckRow.GooglePlay(device.playServices, device.playServicesResolvable))
-    }
+    }.let { rows -> if (rechecking) rows.map(CheckRow::Rechecking) else rows }
     val flipcashRows = listOf(CheckRow.Registration(registration))
     val rows = phoneRows + flipcashRows
 

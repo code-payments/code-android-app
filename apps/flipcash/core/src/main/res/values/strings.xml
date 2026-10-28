@@ -1993,6 +1993,7 @@
     <string name="action_turnOn">Turn on</string>
     <string name="action_fix">Fix</string>
     <string name="action_tryAgain">Try again</string>
+    <string name="action_checkAgain">Check again</string>
     <string name="description_notificationStatusFooter">The test is posted by this phone. It shows that notifications can appear here, not that Flipcash\'s servers can reach you.</string>
     <string name="description_notificationStatusTestDisabled">Turn on notifications to send a test.</string>
     <string name="description_notificationStatusTestSent">Sent. Lock your phone in the next 3 seconds to see it on the Lock Screen.</string>

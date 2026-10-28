@@ -38,6 +38,9 @@ import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,6 +77,7 @@ internal fun NotificationStatusContent(
     hazeState: HazeState,
     onFix: (Fix) -> Unit,
     onToggleExpanded: () -> Unit,
+    onCheckAgain: () -> Unit,
     onSendTest: () -> Unit,
     onShareReport: () -> Unit,
     modifier: Modifier = Modifier,
@@ -83,53 +87,75 @@ internal fun NotificationStatusContent(
     val density = LocalDensity.current
     // The pinned actions float over the page, so the page leaves room for them.
     var actionsHeight by remember { mutableStateOf(0.dp) }
+    val pullState = rememberPullToRefreshState()
 
     Box(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(hazeState)
-                .verticalScroll(scrollState)
-                .padding(horizontal = inset),
+        PullToRefreshBox(
+            isRefreshing = state.refreshing,
+            onRefresh = onCheckAgain,
+            state = pullState,
+            modifier = Modifier.fillMaxSize(),
+            indicator = {
+                PullToRefreshDefaults.Indicator(
+                    state = pullState,
+                    isRefreshing = state.refreshing,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = topPadding),
+                    containerColor = CodeTheme.colors.surface,
+                    color = CodeTheme.colors.textMain,
+                )
+            },
         ) {
-            // Settings' gap below its bar: the first section header's top padding.
-            Spacer(Modifier.height(topPadding + CodeTheme.dimens.grid.x4))
-            SummaryCard(status.summary)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = inset),
+            ) {
+                // Settings' gap below its bar: the first section header's top padding.
+                Spacer(Modifier.height(topPadding + CodeTheme.dimens.grid.x4))
+                SummaryCard(status.summary, checkAgainEnabled = !state.running, onCheckAgain = onCheckAgain)
 
-            // All passing folds into one row; it stays as the toggle once expanded.
-            AnimatedVisibility(
-                visible = status.allPassing,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-            ) {
-                Column {
-                    Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
-                    FoldedRow(count = status.rows.size, expanded = state.expanded, onClick = onToggleExpanded)
+                // All passing folds into one row; it stays as the toggle once expanded.
+                AnimatedVisibility(
+                    visible = state.folded,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                ) {
+                    Column {
+                        Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
+                        FoldedRow(
+                            count = status.rows.size,
+                            checking = status.summary == Summary.Checking,
+                            expanded = state.expanded,
+                            onClick = onToggleExpanded,
+                        )
+                    }
                 }
-            }
-            AnimatedVisibility(
-                visible = !status.allPassing || state.expanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically(),
-            ) {
-                Column {
-                    Group(
-                        title = stringResource(R.string.header_notificationStatusPhone),
-                        keys = PhoneRowKeys,
-                        rows = status.phoneRows,
-                        state = state,
-                        onFix = onFix,
-                    )
-                    Group(
-                        title = stringResource(R.string.header_notificationStatusFlipcash),
-                        keys = listOf(RegistrationKey),
-                        rows = status.flipcashRows,
-                        state = state,
-                        onFix = onFix,
-                    )
+                AnimatedVisibility(
+                    visible = !state.folded || state.expanded,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                ) {
+                    Column {
+                        Group(
+                            title = stringResource(R.string.header_notificationStatusPhone),
+                            keys = PhoneRowKeys,
+                            rows = status.phoneRows,
+                            state = state,
+                            onFix = onFix,
+                        )
+                        Group(
+                            title = stringResource(R.string.header_notificationStatusFlipcash),
+                            keys = listOf(RegistrationKey),
+                            rows = status.flipcashRows,
+                            state = state,
+                            onFix = onFix,
+                        )
+                    }
                 }
+                Spacer(Modifier.height(actionsHeight + CodeTheme.dimens.grid.x4))
             }
-            Spacer(Modifier.height(actionsHeight + CodeTheme.dimens.grid.x4))
         }
 
         // Content fades out under the actions while there is more to scroll to.
@@ -190,7 +216,7 @@ internal fun NotificationStatusContent(
 }
 
 @Composable
-private fun SummaryCard(summary: Summary) {
+private fun SummaryCard(summary: Summary, checkAgainEnabled: Boolean, onCheckAgain: () -> Unit) {
     val title = when (summary) {
         Summary.Working -> stringResource(R.string.title_notificationStatusWorking)
         Summary.Checking -> stringResource(R.string.title_notificationStatusChecking)
@@ -213,7 +239,7 @@ private fun SummaryCard(summary: Summary) {
         ) {
             Crossfade(targetState = mark, label = "summary mark") { StatusMark(it, width = 26.dp, height = 40.dp) }
             Spacer(Modifier.width(CodeTheme.dimens.grid.x3))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Crossfade(targetState = title, label = "summary title") {
                     Text(it, style = CodeTheme.typography.textLarge, color = CodeTheme.colors.textMain)
                 }
@@ -223,26 +249,44 @@ private fun SummaryCard(summary: Summary) {
                     color = CodeTheme.colors.textSecondary,
                 )
             }
+            CodeButton(
+                modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2),
+                text = stringResource(R.string.action_checkAgain),
+                buttonState = ButtonState.Subtle,
+                textColor = CodeTheme.colors.textMain,
+                style = CodeTheme.typography.textSmall,
+                enabled = checkAgainEnabled,
+                overrideContentPadding = true,
+                contentPadding = PaddingValues(
+                    horizontal = CodeTheme.dimens.grid.x2,
+                    vertical = CodeTheme.dimens.grid.x2,
+                ),
+                onClick = onCheckAgain,
+            )
         }
     }
 }
 
 @Composable
-private fun FoldedRow(count: Int, expanded: Boolean, onClick: () -> Unit) {
+private fun FoldedRow(count: Int, checking: Boolean, expanded: Boolean, onClick: () -> Unit) {
     val chevron by animateFloatAsState(if (expanded) 180f else 0f, label = "chevron")
     Card(modifier = Modifier.clickable(onClick = onClick)) {
         Row(
             modifier = Modifier.padding(CodeTheme.dimens.grid.x4),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            StatusMark(CheckStatus.Pass)
+            Crossfade(targetState = checking, label = "folded mark") {
+                StatusMark(if (it) CheckStatus.Checking else CheckStatus.Pass)
+            }
             Spacer(Modifier.width(CodeTheme.dimens.grid.x3))
-            Text(
-                modifier = Modifier.weight(1f),
-                text = pluralStringResource(R.plurals.title_notificationStatusChecksPassed, count, count),
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textMain,
-            )
+            val text = if (checking) {
+                stringResource(R.string.title_notificationStatusChecking)
+            } else {
+                pluralStringResource(R.plurals.title_notificationStatusChecksPassed, count, count)
+            }
+            Crossfade(targetState = text, modifier = Modifier.weight(1f), label = "folded text") {
+                Text(it, style = CodeTheme.typography.textMedium, color = CodeTheme.colors.textMain)
+            }
             Icon(
                 modifier = Modifier.rotate(chevron),
                 imageVector = Icons.Rounded.KeyboardArrowDown,
@@ -352,6 +396,8 @@ private fun CheckRow.text(state: NotificationStatusViewModel.State): Pair<String
             else -> R.string.title_notificationCheckPlayServices
         },
     ) to stringResource(R.string.title_notificationStatusChecking)
+
+    is CheckRow.Rechecking -> previous.text(state).first to stringResource(R.string.title_notificationStatusChecking)
 
     is CheckRow.Permission -> if (allowed) {
         stringResource(R.string.title_notificationCheckAllowed) to stringResource(R.string.subtitle_notificationCheckAllowed)

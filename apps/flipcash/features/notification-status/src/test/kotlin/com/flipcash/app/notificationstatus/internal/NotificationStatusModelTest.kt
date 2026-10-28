@@ -204,6 +204,21 @@ class NotificationStatusModelTest {
     }
 
     @Test
+    fun `check again - every row shows checking in its place, none added or removed`() {
+        val devices = listOf(healthy, healthy.copy(notificationsAllowed = false), healthy.blocking(StatusChannel.Chat))
+        devices.forEach { device ->
+            val before = evaluateNotificationStatus(device, registered)
+            val during = evaluateNotificationStatus(device, RegistrationState.Checking, rechecking = true)
+
+            assertEquals(before.rows.map { it.key }, during.rows.map { it.key })
+            assertTrue(during.rows.all { it.status == CheckStatus.Checking })
+            assertEquals(Summary.Checking, during.summary)
+            // The test button doesn't flicker off while the permission is read again.
+            assertEquals(before.canSendTest, during.canSendTest)
+        }
+    }
+
+    @Test
     fun `every phone row follows the fixed key order`() {
         val devices = listOf(
             healthy,

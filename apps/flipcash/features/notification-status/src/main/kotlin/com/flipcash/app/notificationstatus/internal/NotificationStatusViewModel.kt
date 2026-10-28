@@ -16,6 +16,7 @@ import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -25,6 +26,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
@@ -49,8 +51,22 @@ internal class NotificationStatusViewModel @Inject constructor(
         val tokenSuffix: String? = null,
         val expanded: Boolean = false,
         val testSent: Boolean = false,
+        /** "Check again" is waiting on the phone's settings; the last read shows as Checking. */
+        val rechecking: Boolean = false,
+        /** The run in progress was started by hand, so pull-to-refresh shows it. */
+        val manualRun: Boolean = false,
+        /** The page was folded when the re-run started; it stays folded while the run lasts. */
+        val foldedAtRecheck: Boolean = false,
     ) {
-        val status: NotificationStatus get() = evaluateNotificationStatus(device, registration)
+        val status: NotificationStatus get() = evaluateNotificationStatus(device, registration, rechecking)
+
+        /** Any check still running; "Check again" waits for it. */
+        val running: Boolean
+            get() = device == null || rechecking || registration == RegistrationState.Checking
+
+        val refreshing: Boolean get() = manualRun && running
+
+        val folded: Boolean get() = status.allPassing || (running && foldedAtRecheck)
     }
 
     sealed interface Event {
@@ -60,6 +76,9 @@ internal class NotificationStatusViewModel @Inject constructor(
         data object RegistrationStarted : Event
         data class RegistrationFinished(val attempt: PushRegistrationAttempt, val saved: PushRegistration?) : Event
         data object TryAgain : Event
+        /** Re-run every check, Registration included: "Check again" and pull-to-refresh. */
+        data object CheckAgain : Event
+        data object RecheckStarted : Event
         data object ToggleExpanded : Event
         data object SendTest : Event
         data object TestScheduled : Event
@@ -78,6 +97,19 @@ internal class NotificationStatusViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.TryAgain>()
             .onEach { register() }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CheckAgain>()
+            .onEach {
+                if (stateFlow.value.running) return@onEach
+                dispatchEvent(Event.RecheckStarted)
+                register()
+                // The settings read is instant; hold Checking long enough to see that it ran.
+                val device = withContext(dispatchers.IO) { reader.read() }
+                delay(MinimumRecheck)
+                dispatchEvent(Event.DeviceRead(device))
+            }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -144,6 +176,7 @@ internal class NotificationStatusViewModel @Inject constructor(
 
     internal companion object {
         val RegistrationTimeout = 10.seconds
+        val MinimumRecheck = 600.milliseconds
 
         private val ReportTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
@@ -158,7 +191,16 @@ internal class NotificationStatusViewModel @Inject constructor(
 
         private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
-                is Event.DeviceRead -> { { copy(device = event.device) } }
+                is Event.DeviceRead -> { {
+                    copy(
+                        device = event.device,
+                        rechecking = false,
+                        manualRun = manualRun && registration == RegistrationState.Checking,
+                    )
+                } }
+                is Event.RecheckStarted -> { {
+                    copy(rechecking = true, manualRun = true, foldedAtRecheck = status.allPassing)
+                } }
                 is Event.RegistrationStarted -> { { copy(registration = RegistrationState.Checking) } }
                 is Event.RegistrationFinished -> { {
                     val attempt = event.attempt
@@ -169,12 +211,14 @@ internal class NotificationStatusViewModel @Inject constructor(
                         registration = RegistrationState.Finished(attempt.outcome, lastConfirmedAt),
                         lastRegistration = event.saved,
                         tokenSuffix = attempt.tokenSuffix ?: tokenSuffix,
+                        manualRun = manualRun && rechecking,
                     )
                 } }
                 is Event.ToggleExpanded -> { { copy(expanded = !expanded) } }
                 is Event.TestScheduled -> { { copy(testSent = true) } }
                 is Event.Refresh,
                 is Event.TryAgain,
+                is Event.CheckAgain,
                 is Event.SendTest,
                 is Event.ShareReportRequested,
                 is Event.ShareReport -> { { this } }
