@@ -191,16 +191,15 @@ class HostInvitesTest {
     }
 
     @Test
-    fun `a refused expiry is retried once at the next shorter preset`() = runTest {
-        val expiries = mutableListOf<Instant?>()
-        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), captureNullable(expiries)) } answers {
-            if (expiries.size == 1) Result.failure(CreateInviteError.InvalidExpiresAt())
-            else Result.success(invite(cipher.last))
-        }
+    fun `a refused expiry fails without retry`() = runTest {
+        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), any()) } returns
+            Result.failure(CreateInviteError.InvalidExpiresAt())
 
-        subject.create(chatId, InviteSettings(InviteExpiry.Never, InviteUses.NoLimit))
-
-        assertEquals(listOf(null, now + 30.days), expiries)
+        val failed = assertIs<InviteCreation.Failed>(
+            subject.create(chatId, InviteSettings(InviteExpiry.Never, InviteUses.NoLimit))
+        )
+        assertIs<CreateInviteError.InvalidExpiresAt>(failed.cause)
+        coVerify(exactly = 1) { chatController.createInvite(chatId, any(), any(), any(), any(), any()) }
     }
 
     @Test

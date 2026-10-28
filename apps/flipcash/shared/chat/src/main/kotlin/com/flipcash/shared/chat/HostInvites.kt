@@ -37,16 +37,6 @@ enum class InviteExpiry(val duration: Duration?) {
     SevenDays(7.days),
     ThirtyDays(30.days),
     Never(null),
-    ;
-
-    /** The next shorter preset, for a server that refuses this one's `expires_at`. */
-    val shorter: InviteExpiry?
-        get() = when (this) {
-            Never -> ThirtyDays
-            ThirtyDays -> SevenDays
-            SevenDays -> OneDay
-            OneDay -> null
-        }
 }
 
 /** New Invite Link's Who can join presets (node 12844:334). 0 is no limit. */
@@ -170,17 +160,16 @@ class HostInvites internal constructor(
     /**
      * Makes an invite with [settings]. If the server answers OK with an invite that is no longer
      * ACTIVE, which only a reused token can cause, the secret is dropped and one new attempt made.
-     * A refused `expires_at` is retried once at the next shorter preset.
+     * Every other refusal, `INVALID_EXPIRES_AT` included, ends the attempt: the presets all fit the
+     * server's limits, so a refused expiry is a bug rather than something to retry around.
      */
     suspend fun create(chatId: ChatId, settings: InviteSettings): InviteCreation =
         createLock.withLock { createLocked(chatId, settings) }
 
     private suspend fun createLocked(chatId: ChatId, settings: InviteSettings): InviteCreation {
-        var attempt = settings
-        var clamped = false
         var renewed = false
         while (true) {
-            when (val result = attemptCreate(chatId, attempt)) {
+            when (val result = attemptCreate(chatId, settings)) {
                 is AttemptResult.Created -> {
                     val created = HostInvite(result.invite, result.url)
                     invites.update { all ->
@@ -192,14 +181,6 @@ class HostInvites internal constructor(
                 AttemptResult.NotActive -> {
                     if (renewed) return InviteCreation.Failed(IllegalStateException("Created invite is not active"))
                     renewed = true
-                }
-                AttemptResult.ExpiryRefused -> {
-                    val shorter = attempt.expiry.shorter
-                    if (clamped || shorter == null) {
-                        return InviteCreation.Failed(CreateInviteError.InvalidExpiresAt())
-                    }
-                    clamped = true
-                    attempt = attempt.copy(expiry = shorter)
                 }
                 is AttemptResult.Done -> return result.creation
             }
@@ -231,7 +212,6 @@ class HostInvites internal constructor(
     private sealed interface AttemptResult {
         class Created(val invite: Invite, val url: String) : AttemptResult
         data object NotActive : AttemptResult
-        data object ExpiryRefused : AttemptResult
         class Done(val creation: InviteCreation) : AttemptResult
     }
 
@@ -268,7 +248,6 @@ class HostInvites internal constructor(
             return when (error) {
                 is CreateInviteError.TooManyInvites -> AttemptResult.Done(InviteCreation.TooMany)
                 is CreateInviteError.Denied -> AttemptResult.Done(InviteCreation.NotAvailable)
-                is CreateInviteError.InvalidExpiresAt -> AttemptResult.ExpiryRefused
                 else -> AttemptResult.Done(InviteCreation.Failed(error))
             }
         }
