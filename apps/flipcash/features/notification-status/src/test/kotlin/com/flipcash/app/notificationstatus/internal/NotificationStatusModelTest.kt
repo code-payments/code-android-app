@@ -319,7 +319,12 @@ class NotificationStatusModelTest {
             header = ReportHeader("2026-10-28 09:41 (UTC-4)", "3.4.1 (812)", "Android 16 (API 36)", "Google Pixel 9"),
             device = healthy.blocking(StatusChannel.Chat).copy(standbyBucket = "rare"),
             registration = registered,
-            lastRecord = PushRegistration(Instant.fromEpochSeconds(0), PushRegistrationResult.Ok, PushRegistrationSource.StatusPage),
+            lastRecord = PushRegistration(
+                Instant.fromEpochSeconds(0),
+                PushRegistrationResult.Ok,
+                PushRegistrationSource.StatusPage,
+                lastOkAt = Instant.fromEpochSeconds(0),
+            ),
             tokenSuffix = "a1b2c3",
             formatTime = { "2026-10-28 09:41" },
         )
@@ -341,6 +346,7 @@ class NotificationStatusModelTest {
             Background activity: warning (restricted false, bucket rare)
             Google Play services: pass (code 0)
             Registered for push: pass (statusPage, 2026-10-28 09:41)
+            Last ok: 2026-10-28 09:41
 
             Token: …a1b2c3 (last 6)
             """.trimIndent(),
@@ -349,26 +355,51 @@ class NotificationStatusModelTest {
     }
 
     @Test
-    fun `report names a failed result in camelCase and says when nothing was saved`() {
-        fun registrationLine(registration: RegistrationState, record: PushRegistration?) = buildNotificationReport(
+    fun `report describes this page's latest run, never an older saved record`() {
+        val olderOk = Instant.fromEpochSeconds(100)
+        fun registrationLines(
+            registration: RegistrationState,
+            record: PushRegistration?,
+            tokenSuffix: String?,
+        ) = buildNotificationReport(
             header = ReportHeader("", "", "", ""),
             device = healthy,
             registration = registration,
             lastRecord = record,
-            tokenSuffix = null,
-            formatTime = { "2026-10-28 09:41" },
-        ).lines().single { it.startsWith("Registered for push") }
+            tokenSuffix = tokenSuffix,
+            formatTime = { if (it == olderOk) "2026-10-27 08:00" else "2026-10-28 09:41" },
+        ).lines().dropWhile { !it.startsWith("Registered for push") }.take(2)
 
+        // This run sent a token and saved a failure; the ok from earlier survives on its own line.
         assertEquals(
-            "Registered for push: fail (invalidPushToken, statusPage, 2026-10-28 09:41)",
-            registrationLine(
+            listOf("Registered for push: fail (invalidPushToken, statusPage, 2026-10-28 09:41)", "Last ok: 2026-10-27 08:00"),
+            registrationLines(
                 RegistrationState.Finished(PushRegistrationOutcome.InvalidPushToken),
-                PushRegistration(Instant.fromEpochSeconds(0), PushRegistrationResult.InvalidPushToken, PushRegistrationSource.StatusPage),
+                PushRegistration(Instant.fromEpochSeconds(0), PushRegistrationResult.InvalidPushToken, PushRegistrationSource.StatusPage, lastOkAt = olderOk),
+                tokenSuffix = "a1b2c3",
+            ),
+        )
+        // No token, so this run saved nothing: the older login record is not printed as its result.
+        assertEquals(
+            listOf("Registered for push: fail (noToken)", "Last ok: 2026-10-27 08:00"),
+            registrationLines(
+                RegistrationState.Finished(PushRegistrationOutcome.NoToken),
+                PushRegistration(olderOk, PushRegistrationResult.Ok, PushRegistrationSource.Login, lastOkAt = olderOk),
+                tokenSuffix = null,
             ),
         )
         assertEquals(
-            "Registered for push: fail (none saved)",
-            registrationLine(RegistrationState.Finished(PushRegistrationOutcome.NoToken), null),
+            listOf("Registered for push: fail (noToken)", "Last ok: never"),
+            registrationLines(RegistrationState.Finished(PushRegistrationOutcome.NoToken), null, tokenSuffix = null),
+        )
+        // Still running.
+        assertEquals(
+            listOf("Registered for push: checking", "Last ok: 2026-10-27 08:00"),
+            registrationLines(
+                RegistrationState.Checking,
+                PushRegistration(olderOk, PushRegistrationResult.Ok, PushRegistrationSource.Login, lastOkAt = olderOk),
+                tokenSuffix = "a1b2c3",
+            ),
         )
     }
 }

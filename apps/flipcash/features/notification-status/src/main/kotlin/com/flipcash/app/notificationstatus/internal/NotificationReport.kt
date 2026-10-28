@@ -21,7 +21,9 @@ fun buildNotificationReport(
     header: ReportHeader,
     device: DeviceSnapshot,
     registration: RegistrationState,
+    /** The store's newest record, from any call site. */
     lastRecord: PushRegistration?,
+    /** The token this page's latest run sent; null when it sent none, and so saved nothing. */
     tokenSuffix: String?,
     formatTime: (Instant) -> String,
 ): String = buildString {
@@ -51,15 +53,25 @@ fun buildNotificationReport(
             is CheckRow.GooglePlay ->
                 appendLine("Google Play services: ${row.status.label()} (code ${device.playServicesCode})")
             is CheckRow.Registration -> {
-                // "<status> (<result>, <source>, <time>)", the result left out when it is ok.
-                val saved = lastRecord?.let { record ->
-                    listOfNotNull(
-                        record.result.takeIf { it != PushRegistrationResult.Ok }?.key,
-                        record.source.key,
-                        formatTime(record.at),
-                    ).joinToString()
-                } ?: "none saved"
-                appendLine("Registered for push: ${row.status.label()} ($saved)")
+                // This page's latest run, never an older saved record.
+                val line = when (val state = row.state) {
+                    RegistrationState.Checking -> row.status.label()
+                    is RegistrationState.Finished -> {
+                        // A run saves a record exactly when it sent a token.
+                        val detail = lastRecord?.takeIf { tokenSuffix != null }?.let { record ->
+                            // "<result>, <source>, <time>", the result left out when it is ok.
+                            listOfNotNull(
+                                record.result.takeIf { it != PushRegistrationResult.Ok }?.key,
+                                record.source.key,
+                                formatTime(record.at),
+                            ).joinToString()
+                        } ?: state.outcome.key
+                        "${row.status.label()} ($detail)"
+                    }
+                }
+                appendLine("Registered for push: $line")
+                // From any call site, so it survives a run that saved nothing.
+                appendLine("Last ok: ${lastRecord?.lastOkAt?.let(formatTime) ?: "never"}")
             }
             // The report always reads the device first, so it never holds a Pending or Rechecking row.
             is CheckRow.Permission, is CheckRow.BlockedChannel, is CheckRow.OtherChannels,
