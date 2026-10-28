@@ -65,6 +65,7 @@ class ChatMetadataDaoTest {
         muteForever: Boolean = false,
         viewerStateVersion: Long = 0,
         canEdit: Boolean = false,
+        canInvite: Boolean = false,
         useE2ee: Boolean = false,
         isPrivate: Boolean = false,
     ) = ChatMetadataEntity(
@@ -88,6 +89,7 @@ class ChatMetadataDaoTest {
         muteForever = muteForever,
         viewerStateVersion = viewerStateVersion,
         canEdit = canEdit,
+        canInvite = canInvite,
         useE2ee = useE2ee,
         isPrivate = isPrivate,
     )
@@ -351,6 +353,7 @@ class ChatMetadataDaoTest {
             muteUntilEpochMs = null,
             muteForever = false,
             canEdit = false,
+            canInvite = false,
             version = 5,
         )
 
@@ -368,10 +371,10 @@ class ChatMetadataDaoTest {
     @Test
     fun `an older viewer state version leaves the mute alone`() = runTest {
         dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 0))
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = true, canEdit = false, version = 5)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = true, canEdit = false, canInvite = false, version = 5)
 
         // The mute this supersedes, arriving late.
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = 5_000, muteForever = false, canEdit = false, version = 4)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = 5_000, muteForever = false, canEdit = false, canInvite = false, version = 4)
 
         val stored = requireNotNull(dao.getById(CHAT_HEX))
         assertEquals(true, stored.muteForever)
@@ -394,6 +397,7 @@ class ChatMetadataDaoTest {
             muteUntilEpochMs = null,
             muteForever = false,
             canEdit = true,
+            canInvite = false,
             version = 0,
         )
 
@@ -407,9 +411,9 @@ class ChatMetadataDaoTest {
     @Test
     fun `a viewer state at version zero cannot overwrite a real one`() = runTest {
         dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 0))
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, version = 3)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, canInvite = false, version = 3)
 
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = false, version = 0)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = false, canInvite = false, version = 0)
 
         val stored = requireNotNull(dao.getById(CHAT_HEX))
         assertEquals(true, stored.canEdit)
@@ -433,7 +437,7 @@ class ChatMetadataDaoTest {
     fun `switching to an indefinite mute clears the deadline`() = runTest {
         dao.upsert(entity(chatType = "GROUP", muteUntilEpochMs = 5_000, viewerStateVersion = 1))
 
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = true, canEdit = false, version = 2)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = true, canEdit = false, canInvite = false, version = 2)
 
         val stored = requireNotNull(dao.getById(CHAT_HEX))
         assertNull(stored.muteUntilEpochMs)
@@ -457,7 +461,7 @@ class ChatMetadataDaoTest {
         assertEquals(0L, stored.viewerStateVersion)
 
         // A rejoin's first state numbers from the bottom again, and must still apply.
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = 9_000, muteForever = false, canEdit = false, version = 1)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = 9_000, muteForever = false, canEdit = false, canInvite = false, version = 1)
         assertEquals(9_000L, dao.getById(CHAT_HEX)?.muteUntilEpochMs)
     }
 
@@ -468,10 +472,10 @@ class ChatMetadataDaoTest {
     @Test
     fun `an older viewer state leaves the edit grant alone`() = runTest {
         dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 4))
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, version = 5)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, canInvite = false, version = 5)
 
         // The withdrawal this supersedes, arriving late.
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = false, version = 3)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = false, canInvite = false, version = 3)
 
         assertEquals(true, dao.getById(CHAT_HEX)?.canEdit)
     }
@@ -484,7 +488,7 @@ class ChatMetadataDaoTest {
     fun `a newer viewer state withdraws the edit grant`() = runTest {
         dao.upsert(entity(chatType = "GROUP", canEdit = true, viewerStateVersion = 4))
 
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = false, version = 5)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = false, canInvite = false, version = 5)
 
         assertEquals(false, dao.getById(CHAT_HEX)?.canEdit)
     }
@@ -511,9 +515,42 @@ class ChatMetadataDaoTest {
         db.openHelper.writableDatabase.execSQL(FlipcashDatabase.Migration36To37.REARM_VIEWER_STATE)
 
         // The version the row already held, which the gate would otherwise drop.
-        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, version = 7)
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, canInvite = false, version = 7)
 
         assertEquals(true, dao.getById(CHAT_HEX)?.canEdit)
+    }
+
+    @Test
+    fun `a newer viewer state grants and withdraws the invite right`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 4))
+
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, canInvite = true, version = 5)
+        assertEquals(true, dao.getById(CHAT_HEX)?.canInvite)
+
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = true, canInvite = false, version = 6)
+        assertEquals(false, dao.getById(CHAT_HEX)?.canInvite)
+    }
+
+    /** A chat the user has left grants nothing, invite right included. */
+    @Test
+    fun `clearing the viewer state drops the invite grant`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", canInvite = true, viewerStateVersion = 7))
+
+        dao.clearViewerState(CHAT_HEX)
+
+        assertEquals(false, dao.getById(CHAT_HEX)?.canInvite)
+    }
+
+    /** Same reason as the v37 re-arm, for the invite right added at v46. */
+    @Test
+    fun `the v46 re-arm lets the next fetch fill the invite grant`() = runTest {
+        dao.upsert(entity(chatType = "GROUP", viewerStateVersion = 7))
+
+        db.openHelper.writableDatabase.execSQL(FlipcashDatabase.Migration36To37.REARM_VIEWER_STATE)
+
+        dao.updateViewerStateIfNewer(CHAT_HEX, muteUntilEpochMs = null, muteForever = false, canEdit = false, canInvite = true, version = 7)
+
+        assertEquals(true, dao.getById(CHAT_HEX)?.canInvite)
     }
 
     @Test

@@ -98,6 +98,7 @@ class ChatEntityMapper @Inject constructor() {
             muteForever = isMuteForever(metadata.viewerState?.mute),
             viewerStateVersion = metadata.viewerState?.version ?: 0,
             canEdit = metadata.viewerState?.permissions?.canEdit ?: false,
+            canInvite = metadata.viewerState?.permissions?.canInvite ?: false,
             creatorHex = metadata.creator?.hexEncodedString(),
             useE2ee = metadata.useE2ee,
             isPrivate = metadata.isPrivate,
@@ -153,7 +154,7 @@ class ChatEntityMapper @Inject constructor() {
      * the domain model disagree about what is stored, and a later write gate compare against a
      * version whose state had been silently rewritten.
      *
-     * A granted `can_edit` counts as state held about the viewer, so it keeps the row out of the
+     * A granted `can_edit` or `can_invite` counts as state held about the viewer, so it keeps the row out of the
      * null case on its own: a chat nobody has muted still has to report that the viewer may edit
      * it, and returning null there would deny an edit the server allows.
      */
@@ -165,11 +166,11 @@ class ChatEntityMapper @Inject constructor() {
             until != null -> MuteState.Until(Instant.fromEpochMilliseconds(until))
             else -> null
         }
-        if (mute == null && viewerStateVersion == 0L && !canEdit) return null
+        if (mute == null && viewerStateVersion == 0L && !canEdit && !canInvite) return null
         return ViewerState(
             mute = mute,
             version = viewerStateVersion,
-            permissions = ViewerState.Permissions(canEdit = canEdit),
+            permissions = ViewerState.Permissions(canEdit = canEdit, canInvite = canInvite),
         )
     }
 

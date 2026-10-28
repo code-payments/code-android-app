@@ -133,6 +133,31 @@ class ChatEntityMapperTest {
         assertEquals(false, entity(MessageContent.Text("still here")).isDeleted)
     }
 
+    /** The 5b–5d copy names the inviter, so a stored join has to keep who invited them. */
+    @Test
+    fun `an invite join keeps its inviter through the round trip`() {
+        val joined = MessageContent.System(
+            fallbackText = "joined",
+            event = MessageContent.SystemEvent.UserJoined(
+                userId = listOf(0x01.toByte()),
+                admittedBy = null,
+                invitedBy = listOf(0x02.toByte()),
+            ),
+        )
+        val entity = mapper.toEntity(
+            CHAT_HEX,
+            ChatMessage(
+                messageId = 1,
+                senderId = listOf(0xAB.toByte()),
+                content = listOf(joined),
+                timestamp = Instant.fromEpochSeconds(1_000),
+                unreadSeq = 1,
+            ),
+        )
+
+        assertEquals(joined, mapper.toMessage(entity).content.single())
+    }
+
     @Test
     fun `a denied row maps to a denied delivery`() {
         val entity = mapper.toEntity(
@@ -543,6 +568,20 @@ class ChatEntityMapperTest {
         val restored = mapper.toMetadata(entity, emptyList(), null)
 
         assertEquals(true, restored.viewerState?.permissions?.canEdit)
+    }
+
+    @Test
+    fun `an invite grant survives the round trip`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(permissions = ViewerState.Permissions(canInvite = true))
+            )
+        )
+        assertEquals(true, entity.canInvite)
+
+        val restored = mapper.toMetadata(entity, emptyList(), null)
+
+        assertEquals(true, restored.viewerState?.permissions?.canInvite)
     }
 
     // region Reactions

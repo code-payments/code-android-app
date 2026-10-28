@@ -65,6 +65,9 @@ data class ChatMetadataEntity(
     // ViewerState.Permissions — a column no write has reached yet denies rather than grants.
     @ColumnInfo(name = "can_edit", defaultValue = "0")
     val canEdit: Boolean = false,
+    // Private group creator only. Same storage rules as can_edit.
+    @ColumnInfo(name = "can_invite", defaultValue = "0")
+    val canInvite: Boolean = false,
     // Group creator; null for DMs and for group chats reconstructed without a server round
     // trip. Stored hex-encoded, matching every other user id column in this database.
     @ColumnInfo(name = "creator_hex")

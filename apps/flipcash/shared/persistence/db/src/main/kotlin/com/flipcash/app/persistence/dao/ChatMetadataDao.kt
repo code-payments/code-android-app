@@ -165,7 +165,7 @@ interface ChatMetadataDao {
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = :muteUntilEpochMs, " +
             "mute_forever = :muteForever, viewer_state_version = :version, " +
-            "can_edit = :canEdit " +
+            "can_edit = :canEdit, can_invite = :canInvite " +
             "WHERE chat_id_hex = :chatIdHex AND (:version > viewer_state_version OR viewer_state_version = 0)"
     )
     suspend fun updateViewerStateIfNewer(
@@ -173,6 +173,7 @@ interface ChatMetadataDao {
         muteUntilEpochMs: Long?,
         muteForever: Boolean,
         canEdit: Boolean,
+        canInvite: Boolean,
         version: Long,
     )
 
@@ -189,7 +190,7 @@ interface ChatMetadataDao {
      */
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = NULL, mute_forever = 0, " +
-            "viewer_state_version = 0, can_edit = 0 WHERE chat_id_hex = :chatIdHex"
+            "viewer_state_version = 0, can_edit = 0, can_invite = 0 WHERE chat_id_hex = :chatIdHex"
     )
     suspend fun clearViewerState(chatIdHex: String)
 
@@ -232,6 +233,7 @@ interface ChatMetadataDao {
             muteUntilEpochMs = entity.muteUntilEpochMs,
             muteForever = entity.muteForever,
             canEdit = entity.canEdit,
+            canInvite = entity.canInvite,
             version = entity.viewerStateVersion,
         )
     }
