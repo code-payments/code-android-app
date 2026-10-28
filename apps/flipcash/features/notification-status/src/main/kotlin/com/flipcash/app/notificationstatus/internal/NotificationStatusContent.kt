@@ -143,7 +143,7 @@ internal fun NotificationStatusContent(
             } else {
                 Actions(
                     state = state,
-                    hazeState = hazeState,
+                    hazeState = null,
                     onSendTest = onSendTest,
                     onShareReport = onShareReport,
                     modifier = Modifier
@@ -181,7 +181,8 @@ internal fun NotificationStatusContent(
 @Composable
 private fun Actions(
     state: NotificationStatusViewModel.State,
-    hazeState: HazeState,
+    // Null when the actions scroll inside the page: there is nothing beneath them to blur.
+    hazeState: HazeState?,
     onSendTest: () -> Unit,
     onShareReport: () -> Unit,
     modifier: Modifier = Modifier,
@@ -195,7 +196,9 @@ private fun Actions(
             modifier = Modifier
                 .fillMaxWidth()
                 // "Send again" is translucent; the glass keeps it legible over the page.
-                .then(if (state.testSent) Modifier.floatingGlass(hazeState, CircleShape) else Modifier),
+                .then(
+                    if (state.testSent && hazeState != null) Modifier.floatingGlass(hazeState, CircleShape) else Modifier,
+                ),
             text = stringResource(
                 if (state.testSent) R.string.action_sendTestNotificationAgain else R.string.action_sendTestNotification,
             ),
