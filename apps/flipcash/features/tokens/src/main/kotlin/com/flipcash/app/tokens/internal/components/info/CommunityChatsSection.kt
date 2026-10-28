@@ -92,7 +92,7 @@ internal fun CommunityChatRow(
             .clip(RoundedCornerShape(18.dp))
             .background(Color.White.copy(alpha = 0.05f))
             .clickable(onClick = onClick)
-            .padding(horizontal = CodeTheme.dimens.staticGrid.x4, vertical = CodeTheme.dimens.staticGrid.x3)
+            .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x2)
     } else {
         modifier
             .fillMaxWidth()
@@ -102,7 +102,7 @@ internal fun CommunityChatRow(
     Row(
         modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(if (card) CodeTheme.dimens.staticGrid.x3 else CodeTheme.dimens.grid.x3),
+        horizontalArrangement = Arrangement.spacedBy(if (card) CodeTheme.dimens.grid.x2 else CodeTheme.dimens.grid.x3),
     ) {
         ContactAvatar(
             image = chat.picture,
@@ -120,7 +120,7 @@ internal fun CommunityChatRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (card) Spacer(Modifier.height(CodeTheme.dimens.staticGrid.x1))
+            if (card) Spacer(Modifier.height(CodeTheme.dimens.grid.x1))
             Text(
                 text = holdings.amount?.let {
                     pluralStringResource(

@@ -264,7 +264,7 @@ private fun SelectRecipientContent(
                         .navigationBarsPadding()
                         .padding(horizontal = CodeTheme.dimens.inset)
                         .padding(
-                            top = CodeTheme.dimens.staticGrid.x3,
+                            top = CodeTheme.dimens.grid.x2,
                             bottom = CodeTheme.dimens.grid.x2,
                         )
                         .floatingGlass(hazeState, CodeTheme.shapes.small),
@@ -283,11 +283,11 @@ private fun RecipientRow(chat: ConversationReference, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(CodeTheme.dimens.staticGrid.x12)
+            .height(CodeTheme.dimens.grid.x10)
             .clickable(onClick = onClick)
             .padding(horizontal = CodeTheme.dimens.inset),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x4),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {
         ContactAvatar(
             image = chat.image,
@@ -386,8 +386,8 @@ private fun SwipeToSendSheet(
                 textStyle = CodeTheme.typography.textMedium,
                 imageSize = CodeTheme.dimens.staticGrid.x3,
                 contentPadding = PaddingValues(
-                    horizontal = CodeTheme.dimens.staticGrid.x1,
-                    vertical = CodeTheme.dimens.staticGrid.x1,
+                    horizontal = CodeTheme.dimens.grid.x1,
+                    vertical = CodeTheme.dimens.grid.x1,
                 ),
                 showsPicker = false,
                 onClick = {},

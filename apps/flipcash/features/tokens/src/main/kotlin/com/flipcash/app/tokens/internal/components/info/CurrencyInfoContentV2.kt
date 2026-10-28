@@ -262,7 +262,7 @@ internal fun CurrencyInfoContentV2(
                             modifier = Modifier
                                 .fillParentMaxWidth()
                                 .padding(horizontal = inset)
-                                .padding(top = if (index == 0) CodeTheme.dimens.staticGrid.x4 else CodeTheme.dimens.staticGrid.x3),
+                                .padding(top = if (index == 0) CodeTheme.dimens.grid.x3 else CodeTheme.dimens.grid.x2),
                             chat = entry.chat,
                             holdings = entry.holdings,
                             currencyName = token.name,
@@ -433,7 +433,7 @@ private fun ActionTile(
     Column(
         modifier = modifier
             .alpha(if (enabled) 1f else DisabledActionTileAlpha)
-            .height(CodeTheme.dimens.staticGrid.x20 + CodeTheme.dimens.staticGrid.x2)
+            .height(CodeTheme.dimens.grid.x18)
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White.copy(alpha = 0.1f))
             .clickable(enabled = enabled, onClick = onClick),

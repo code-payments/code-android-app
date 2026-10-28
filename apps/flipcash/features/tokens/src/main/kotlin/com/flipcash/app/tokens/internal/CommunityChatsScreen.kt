@@ -51,7 +51,7 @@ fun CommunityChatsScreen(mint: Mint) {
                 horizontal = CodeTheme.dimens.inset,
                 vertical = CodeTheme.dimens.grid.x2,
             ),
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x3),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             items(state.chats, key = { it.chat.chatId.toString() }) { entry ->
                 CommunityChatRow(
