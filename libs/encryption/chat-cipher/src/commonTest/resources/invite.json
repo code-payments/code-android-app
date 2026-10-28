@@ -1,0 +1,556 @@
+{
+  "algorithm": "flipcash-group-invite-v1: HKDF-SHA256 derivation, InviteKeyEnvelope XCHACHA20POLY1305 + Ed25519, InviteSecretEnvelope X25519_XCHACHA20POLY1305",
+  "spec": "Invite, InviteKeyEnvelope, InviteSecretEnvelope and KeyEnvelope in flipcash2-protobuf-api proto/chat/v1/model.proto (flipcash2-client-protocol 0.22.0). Link format: docs/specs/group-invites.md Decision 5. All fields are lowercase hex unless noted.",
+  "note": "Cross-platform parity gate for the invite cipher in :libs:encryption:chat-cipher, exported to iOS through :kmp:shared-core. chatId is the raw ChatId.value (16-byte UUID for a group). An empty HKDF salt is 32 zero bytes. Nonces are fixed here; production nonces are random. `rejects` cases must fail at the step named in `failsAt`.",
+  "derivation": [
+    {
+      "name": "pattern/chat-1",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+      "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+      "inviteToken": "2b5e3a8574e4ddfb0b428d2fa8dc371e41354e4733af6265757cd980b03495e2",
+      "wrapKey": "dad952b94a2169287b8941822fe1d51eebe72681b09b674846d1df40a6ee6506",
+      "inviteId": "a93f48c2a250501856a290e1babf91aa"
+    },
+    {
+      "name": "pattern/chat-2",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+      "chatId": "0b1c2d3e4f5061728394a5b6c7d8e9f0",
+      "inviteToken": "2b5e3a8574e4ddfb0b428d2fa8dc371e41354e4733af6265757cd980b03495e2",
+      "wrapKey": "ba3813bb89fe2bd56143271f6080b0756e3009cf63a2cb79c0d142d6b9254b78",
+      "inviteId": "a93f48c2a250501856a290e1babf91aa"
+    },
+    {
+      "name": "all-zero/chat-1",
+      "secret": "0000000000000000000000000000000000000000000000000000000000000000",
+      "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+      "inviteToken": "2d1d00f091442a5b96a998b9bb64ed31a99ff8281df1b082f3a40fa6e133517f",
+      "wrapKey": "3039b1e294240d3eee722baff8bff9e25c2ec41c8f43f77a57bae7477efce330",
+      "inviteId": "3b18832cb378a9083e2f3449a8570840"
+    },
+    {
+      "name": "all-zero/chat-2",
+      "secret": "0000000000000000000000000000000000000000000000000000000000000000",
+      "chatId": "0b1c2d3e4f5061728394a5b6c7d8e9f0",
+      "inviteToken": "2d1d00f091442a5b96a998b9bb64ed31a99ff8281df1b082f3a40fa6e133517f",
+      "wrapKey": "1d5b97383504cbbc248dc1877dfbbb18fc3fe620004ad58224e24bb652e3b647",
+      "inviteId": "3b18832cb378a9083e2f3449a8570840"
+    },
+    {
+      "name": "all-ff/chat-1",
+      "secret": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+      "inviteToken": "d89701b8276e318a5944844c84de82509a8b76ff8452acb7e4a7588f67a2175f",
+      "wrapKey": "69273581173a38a169cfac66b388fbd684862bc2e6dd65621ea53c204a96a27d",
+      "inviteId": "6c9d7e871a4904ae635db92c7452e44e"
+    },
+    {
+      "name": "all-ff/chat-2",
+      "secret": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "chatId": "0b1c2d3e4f5061728394a5b6c7d8e9f0",
+      "inviteToken": "d89701b8276e318a5944844c84de82509a8b76ff8452acb7e4a7588f67a2175f",
+      "wrapKey": "7f5b6af4e74aa9101c1eed3929326d79afc168c2a69fb487ab3ebf45c7eacbcb",
+      "inviteId": "6c9d7e871a4904ae635db92c7452e44e"
+    },
+    {
+      "name": "sha256-seed/chat-1",
+      "secret": "c23f9c80a99760bae87574ea4090ab1f4f4929e262b973bd30608392d3b7ba1d",
+      "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+      "inviteToken": "32f96288d18ac73d6a7ce9334226a243b98eed8a82f66ab7e708525e88bb4503",
+      "wrapKey": "ba68222d4afb6a434a5c8b35b38f4b474714ee578b776059902dc31c5f651fa1",
+      "inviteId": "8b53332bd9ecda59b786d416c51916a8"
+    },
+    {
+      "name": "sha256-seed/chat-2",
+      "secret": "c23f9c80a99760bae87574ea4090ab1f4f4929e262b973bd30608392d3b7ba1d",
+      "chatId": "0b1c2d3e4f5061728394a5b6c7d8e9f0",
+      "inviteToken": "32f96288d18ac73d6a7ce9334226a243b98eed8a82f66ab7e708525e88bb4503",
+      "wrapKey": "709e9a2f9a5c330705368b6979034c944106b89d9fe5422edddaf70d11e5154d",
+      "inviteId": "8b53332bd9ecda59b786d416c51916a8"
+    }
+  ],
+  "keyEnvelopes": [
+    {
+      "name": "pattern/chat-1",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+      "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+      "inviteId": "a93f48c2a250501856a290e1babf91aa",
+      "wrapKey": "dad952b94a2169287b8941822fe1d51eebe72681b09b674846d1df40a6ee6506",
+      "chatKey": "1d70c778f0315928b0ddfc81eca0f50ae31d4af419382e1da3cad79374b54687",
+      "inviterSeed": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+      "aad": "666c6970636173682d67726f75702d696e766974652d777261702d76316f9619ff8b86d011b42d00c04fc964ffa93f48c2a250501856a290e1babf91aa",
+      "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e26",
+      "signedMessage": "666c6970636173682d67726f75702d696e766974652d7369672d76316f9619ff8b86d011b42d00c04fc964ffa93f48c2a250501856a290e1babf91aa000102030405060708090a0b0c0d0e0f101112131415161708c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e26",
+      "signature": "7dfffc895aa4fb96e0a75c837d6f389b12c38cdcb7f9054e28c8282f5ab82ebea4578869d50b5e86348615df49d01e1b3de4b70f1dedb18b8b1dd4663bed2e01"
+    },
+    {
+      "name": "pattern/chat-2",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+      "chatId": "0b1c2d3e4f5061728394a5b6c7d8e9f0",
+      "inviteId": "a93f48c2a250501856a290e1babf91aa",
+      "wrapKey": "ba3813bb89fe2bd56143271f6080b0756e3009cf63a2cb79c0d142d6b9254b78",
+      "chatKey": "1d70c778f0315928b0ddfc81eca0f50ae31d4af419382e1da3cad79374b54687",
+      "inviterSeed": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "nonce": "0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122",
+      "aad": "666c6970636173682d67726f75702d696e766974652d777261702d76310b1c2d3e4f5061728394a5b6c7d8e9f0a93f48c2a250501856a290e1babf91aa",
+      "ciphertext": "daefc0d29e1f0a58d724d82d1416a78aecec4571461d725697228df524639d7dff48e77b68d55a7171542702d7dd18e2",
+      "signedMessage": "666c6970636173682d67726f75702d696e766974652d7369672d76310b1c2d3e4f5061728394a5b6c7d8e9f0a93f48c2a250501856a290e1babf91aa0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122daefc0d29e1f0a58d724d82d1416a78aecec4571461d725697228df524639d7dff48e77b68d55a7171542702d7dd18e2",
+      "signature": "53c82f3ab691cec3ebc7ea5c18d59666a0bfcf4f8d01d4f93830821089af7c3c3720fedc33283ddfc6bed1e30833dc54ffafce2f14d0c3aa7d636a0db7a8a902"
+    },
+    {
+      "name": "all-zero/chat-1",
+      "secret": "0000000000000000000000000000000000000000000000000000000000000000",
+      "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+      "inviteId": "3b18832cb378a9083e2f3449a8570840",
+      "wrapKey": "3039b1e294240d3eee722baff8bff9e25c2ec41c8f43f77a57bae7477efce330",
+      "chatKey": "1d70c778f0315928b0ddfc81eca0f50ae31d4af419382e1da3cad79374b54687",
+      "inviterSeed": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "nonce": "161718191a1b1c1d1e1f202122232425262728292a2b2c2d",
+      "aad": "666c6970636173682d67726f75702d696e766974652d777261702d76316f9619ff8b86d011b42d00c04fc964ff3b18832cb378a9083e2f3449a8570840",
+      "ciphertext": "c9f4e2a0553a2387876a3b223183e22142c5fce883b37db8bf1fdc72547adfc59d385557f1b5859819b531cd03c93807",
+      "signedMessage": "666c6970636173682d67726f75702d696e766974652d7369672d76316f9619ff8b86d011b42d00c04fc964ff3b18832cb378a9083e2f3449a8570840161718191a1b1c1d1e1f202122232425262728292a2b2c2dc9f4e2a0553a2387876a3b223183e22142c5fce883b37db8bf1fdc72547adfc59d385557f1b5859819b531cd03c93807",
+      "signature": "83e4269e2ac62836462ae16b4ea92234b2b861d3048b85476c26bfe84c6173a9b761cdc4955d4b7fd18cb4f8cf5fbe5a7f48baa2577195f59ea88880a3c54f08"
+    },
+    {
+      "name": "all-zero/chat-2",
+      "secret": "0000000000000000000000000000000000000000000000000000000000000000",
+      "chatId": "0b1c2d3e4f5061728394a5b6c7d8e9f0",
+      "inviteId": "3b18832cb378a9083e2f3449a8570840",
+      "wrapKey": "1d5b97383504cbbc248dc1877dfbbb18fc3fe620004ad58224e24bb652e3b647",
+      "chatKey": "1d70c778f0315928b0ddfc81eca0f50ae31d4af419382e1da3cad79374b54687",
+      "inviterSeed": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "nonce": "2122232425262728292a2b2c2d2e2f303132333435363738",
+      "aad": "666c6970636173682d67726f75702d696e766974652d777261702d76310b1c2d3e4f5061728394a5b6c7d8e9f03b18832cb378a9083e2f3449a8570840",
+      "ciphertext": "dea46b00e8706bbd3162ea727cfb9bf3297ea5e787ba7d0d36e2a17e7601d708d06f8a5336f4cb0bafe5bc7a9b056289",
+      "signedMessage": "666c6970636173682d67726f75702d696e766974652d7369672d76310b1c2d3e4f5061728394a5b6c7d8e9f03b18832cb378a9083e2f3449a85708402122232425262728292a2b2c2d2e2f303132333435363738dea46b00e8706bbd3162ea727cfb9bf3297ea5e787ba7d0d36e2a17e7601d708d06f8a5336f4cb0bafe5bc7a9b056289",
+      "signature": "de4a0731ba5d6394b58317e1c902770526e038f3c11d2a70e0c96ba62f68468f130edfb8cf3919a6739101d59b6b72dd5049b434be3c997f7a17c17b87abbc06"
+    }
+  ],
+  "secretEnvelopes": [
+    {
+      "name": "host/chat-1",
+      "ownerSeed": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "ownerPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+      "inviteId": "a93f48c2a250501856a290e1babf91aa",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+      "sharedSecret": "ef5bcef3cc6b22665571c18e97fed5ae78a55b6182b3a9b070178856e1c6b409",
+      "salt": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966479b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "info": "666c6970636173682d67726f75702d696e766974652d7365637265742d76316f9619ff8b86d011b42d00c04fc964ffa93f48c2a250501856a290e1babf91aa",
+      "wrapKey": "2066bbaece7e97d71418c5eeb39c23236a21d0661a6f0d8d2ff122969464d7d0",
+      "nonce": "6e6f707172737475767778797a7b7c7d7e7f808182838485",
+      "aad": "666c6970636173682d67726f75702d696e766974652d7365637265742d76316f9619ff8b86d011b42d00c04fc964ffa93f48c2a250501856a290e1babf91aa79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966479b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "ciphertext": "4d5c41b7c0657e2e38465ffa9d35878a80fb3da9024721225a516a12204f79fa12c62b55044372f18800072dd2f30013"
+    },
+    {
+      "name": "host/chat-2",
+      "ownerSeed": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "ownerPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "chatId": "0b1c2d3e4f5061728394a5b6c7d8e9f0",
+      "inviteId": "a93f48c2a250501856a290e1babf91aa",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+      "sharedSecret": "ef5bcef3cc6b22665571c18e97fed5ae78a55b6182b3a9b070178856e1c6b409",
+      "salt": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966479b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "info": "666c6970636173682d67726f75702d696e766974652d7365637265742d76310b1c2d3e4f5061728394a5b6c7d8e9f0a93f48c2a250501856a290e1babf91aa",
+      "wrapKey": "f520c73b24b05ac4c9bd8d02362846443784d94247a3b35a96775db4d8543231",
+      "nonce": "797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f90",
+      "aad": "666c6970636173682d67726f75702d696e766974652d7365637265742d76310b1c2d3e4f5061728394a5b6c7d8e9f0a93f48c2a250501856a290e1babf91aa79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966479b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "ciphertext": "2de1501b1f72b4550588c1bd5d748ea29e48c0bf8d0581b292a2ecf86e3745a49d6576ca92daf0410787fef2f15bcefd"
+    },
+    {
+      "name": "joiner/chat-1",
+      "ownerSeed": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+      "ownerPublicKey": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+      "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+      "inviteId": "a93f48c2a250501856a290e1babf91aa",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+      "sharedSecret": "0ba70c7a7b16889b5a16d4bf6d3555938e7c76335e4e105d8360fed7383fc279",
+      "salt": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+      "info": "666c6970636173682d67726f75702d696e766974652d7365637265742d76316f9619ff8b86d011b42d00c04fc964ffa93f48c2a250501856a290e1babf91aa",
+      "wrapKey": "b459853ea32abdab18a40340bfccf5a259de4d2547aa387a4df851c975440dcd",
+      "nonce": "8485868788898a8b8c8d8e8f909192939495969798999a9b",
+      "aad": "666c6970636173682d67726f75702d696e766974652d7365637265742d76316f9619ff8b86d011b42d00c04fc964ffa93f48c2a250501856a290e1babf91aae7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+      "ciphertext": "f1511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b8"
+    },
+    {
+      "name": "joiner/chat-2",
+      "ownerSeed": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+      "ownerPublicKey": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+      "chatId": "0b1c2d3e4f5061728394a5b6c7d8e9f0",
+      "inviteId": "a93f48c2a250501856a290e1babf91aa",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+      "sharedSecret": "0ba70c7a7b16889b5a16d4bf6d3555938e7c76335e4e105d8360fed7383fc279",
+      "salt": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+      "info": "666c6970636173682d67726f75702d696e766974652d7365637265742d76310b1c2d3e4f5061728394a5b6c7d8e9f0a93f48c2a250501856a290e1babf91aa",
+      "wrapKey": "de50d72a089810a4d44759d00ff398473657632fa273987c4da34376fd9819ab",
+      "nonce": "8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6",
+      "aad": "666c6970636173682d67726f75702d696e766974652d7365637265742d76310b1c2d3e4f5061728394a5b6c7d8e9f0a93f48c2a250501856a290e1babf91aae7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+      "ciphertext": "a032f892d4884d55503c3f6983bf6e0240b11fae6e26761d3cc9546b23aff33a109421e06d09dcf8ad118f0066b01485"
+    }
+  ],
+  "bundles": [
+    {
+      "name": "opens",
+      "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+      "creatorPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "wrappedByPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+      "wrappedByIsCreator": true,
+      "memberSeed": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+      "memberPublicKey": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+      "keyEnvelope": {
+        "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+        "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e26",
+        "signature": "7dfffc895aa4fb96e0a75c837d6f389b12c38cdcb7f9054e28c8282f5ab82ebea4578869d50b5e86348615df49d01e1b3de4b70f1dedb18b8b1dd4663bed2e01"
+      },
+      "secretEnvelope": {
+        "nonce": "8485868788898a8b8c8d8e8f909192939495969798999a9b",
+        "ciphertext": "f1511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b8"
+      },
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+      "inviteId": "a93f48c2a250501856a290e1babf91aa",
+      "chatKey": "1d70c778f0315928b0ddfc81eca0f50ae31d4af419382e1da3cad79374b54687"
+    }
+  ],
+  "links": [
+    {
+      "name": "pattern",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+      "fragment": "s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g",
+      "url": "https://app.flipcash.com/chat/invite#s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g"
+    },
+    {
+      "name": "all-zero",
+      "secret": "0000000000000000000000000000000000000000000000000000000000000000",
+      "fragment": "s=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "url": "https://app.flipcash.com/chat/invite#s=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    {
+      "name": "all-ff",
+      "secret": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "fragment": "s=__________________________________________8",
+      "url": "https://app.flipcash.com/chat/invite#s=__________________________________________8"
+    },
+    {
+      "name": "sha256-seed",
+      "secret": "c23f9c80a99760bae87574ea4090ab1f4f4929e262b973bd30608392d3b7ba1d",
+      "fragment": "s=wj-cgKmXYLrodXTqQJCrH09JKeJiuXO9MGCDktO3uh0",
+      "url": "https://app.flipcash.com/chat/invite#s=wj-cgKmXYLrodXTqQJCrH09JKeJiuXO9MGCDktO3uh0"
+    }
+  ],
+  "fragmentParse": [
+    {
+      "name": "plain",
+      "fragment": "s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98"
+    },
+    {
+      "name": "unknown-key-ignored",
+      "fragment": "v=1/s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98"
+    },
+    {
+      "name": "unknown-key-after",
+      "fragment": "s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g/x=y",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98"
+    },
+    {
+      "name": "empty",
+      "fragment": "",
+      "secret": null
+    },
+    {
+      "name": "missing-s",
+      "fragment": "t=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g",
+      "secret": null
+    },
+    {
+      "name": "empty-value",
+      "fragment": "s=",
+      "secret": null
+    },
+    {
+      "name": "padded",
+      "fragment": "s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g=",
+      "secret": null
+    },
+    {
+      "name": "standard-alphabet",
+      "fragment": "s=+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/v7+/s",
+      "secret": null
+    },
+    {
+      "name": "short-31-bytes",
+      "fragment": "s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-iw",
+      "secret": null
+    },
+    {
+      "name": "long-33-bytes",
+      "fragment": "s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5gA",
+      "secret": null
+    },
+    {
+      "name": "non-canonical-pad-bits",
+      "fragment": "s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5h",
+      "secret": null
+    },
+    {
+      "name": "duplicate-s",
+      "fragment": "s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g/s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g",
+      "secret": null
+    },
+    {
+      "name": "whitespace",
+      "fragment": "s= BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g",
+      "secret": null
+    }
+  ],
+  "routes": [
+    {
+      "name": "invite",
+      "url": "https://app.flipcash.com/chat/invite#s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g",
+      "route": "invite",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98"
+    },
+    {
+      "name": "invite-trailing-slash",
+      "url": "https://app.flipcash.com/chat/invite/#s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g",
+      "route": "invite",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98"
+    },
+    {
+      "name": "invite-with-query",
+      "url": "https://app.flipcash.com/chat/invite?utm=x#s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g",
+      "route": "invite",
+      "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98"
+    },
+    {
+      "name": "invite-no-fragment",
+      "url": "https://app.flipcash.com/chat/invite",
+      "route": "invalidInvite"
+    },
+    {
+      "name": "invite-bad-fragment",
+      "url": "https://app.flipcash.com/chat/invite#s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g=",
+      "route": "invalidInvite"
+    },
+    {
+      "name": "chat-uuid",
+      "url": "https://app.flipcash.com/chat/6f9619ff-8b86-d011-b42d-00c04fc964ff",
+      "route": "chat"
+    },
+    {
+      "name": "not-invite-prefix",
+      "url": "https://app.flipcash.com/chat/invites#s=BRIfLDlGU2BteoeUoa67yNXi7_wJFiMwPUpXZHF-i5g",
+      "route": "other"
+    }
+  ],
+  "rejects": {
+    "keyEnvelope": [
+      {
+        "name": "tampered-ciphertext",
+        "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+        "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e27",
+        "signature": "7dfffc895aa4fb96e0a75c837d6f389b12c38cdcb7f9054e28c8282f5ab82ebea4578869d50b5e86348615df49d01e1b3de4b70f1dedb18b8b1dd4663bed2e01",
+        "failsAt": "signature"
+      },
+      {
+        "name": "tampered-nonce",
+        "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "nonce": "010102030405060708090a0b0c0d0e0f1011121314151617",
+        "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e26",
+        "signature": "7dfffc895aa4fb96e0a75c837d6f389b12c38cdcb7f9054e28c8282f5ab82ebea4578869d50b5e86348615df49d01e1b3de4b70f1dedb18b8b1dd4663bed2e01",
+        "failsAt": "signature"
+      },
+      {
+        "name": "tampered-signature",
+        "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+        "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e26",
+        "signature": "7cfffc895aa4fb96e0a75c837d6f389b12c38cdcb7f9054e28c8282f5ab82ebea4578869d50b5e86348615df49d01e1b3de4b70f1dedb18b8b1dd4663bed2e01",
+        "failsAt": "signature"
+      },
+      {
+        "name": "signed-by-other-key",
+        "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+        "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e26",
+        "signature": "62d9e45de749b823fe8f91ae0a06122255d29f1e3e9d01c972b49c98ccae292d3297b3a281b571c2911e943bc0b04d07eb775e42a871189e1c58605e2961b00e",
+        "failsAt": "signature"
+      },
+      {
+        "name": "wrong-chat-id",
+        "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+        "chatId": "0b1c2d3e4f5061728394a5b6c7d8e9f0",
+        "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+        "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e26",
+        "signature": "7dfffc895aa4fb96e0a75c837d6f389b12c38cdcb7f9054e28c8282f5ab82ebea4578869d50b5e86348615df49d01e1b3de4b70f1dedb18b8b1dd4663bed2e01",
+        "failsAt": "signature"
+      },
+      {
+        "name": "resigned-tampered-ciphertext",
+        "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+        "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e27",
+        "signature": "c79bacc7c570a5cd20d9c67250065926112dc9a28d4a630972bb0cd47722f4499553e650b0fae2723ec6df3f4d6e1dd75b0d2733f74f4b63335faea0b62ac90e",
+        "failsAt": "open"
+      },
+      {
+        "name": "wrong-secret",
+        "secret": "c23f9c80a99760bae87574ea4090ab1f4f4929e262b973bd30608392d3b7ba1d",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+        "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e26",
+        "signature": "7dfffc895aa4fb96e0a75c837d6f389b12c38cdcb7f9054e28c8282f5ab82ebea4578869d50b5e86348615df49d01e1b3de4b70f1dedb18b8b1dd4663bed2e01",
+        "failsAt": "signature"
+      },
+      {
+        "name": "other-chats-copy",
+        "secret": "05121f2c394653606d7a8794a1aebbc8d5e2effc091623303d4a5764717e8b98",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviterPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "nonce": "0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122",
+        "ciphertext": "daefc0d29e1f0a58d724d82d1416a78aecec4571461d725697228df524639d7dff48e77b68d55a7171542702d7dd18e2",
+        "signature": "04179b56ba2648ccde865aadca2f0e7a31690dbcbf9e8594a11ed3fb045c86f6f1e9730360307949bbb8cb81728de88025371d20cf50e6c7e8eef5f31a7d910b",
+        "failsAt": "open"
+      }
+    ],
+    "secretEnvelope": [
+      {
+        "name": "tampered-tag",
+        "ownerSeed": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+        "ownerPublicKey": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviteId": "a93f48c2a250501856a290e1babf91aa",
+        "nonce": "8485868788898a8b8c8d8e8f909192939495969798999a9b",
+        "ciphertext": "f1511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b9",
+        "failsAt": "open"
+      },
+      {
+        "name": "tampered-body",
+        "ownerSeed": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+        "ownerPublicKey": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviteId": "a93f48c2a250501856a290e1babf91aa",
+        "nonce": "8485868788898a8b8c8d8e8f909192939495969798999a9b",
+        "ciphertext": "f0511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b8",
+        "failsAt": "open"
+      },
+      {
+        "name": "wrong-owner",
+        "ownerSeed": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+        "ownerPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviteId": "a93f48c2a250501856a290e1babf91aa",
+        "nonce": "8485868788898a8b8c8d8e8f909192939495969798999a9b",
+        "ciphertext": "f1511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b8",
+        "failsAt": "open"
+      },
+      {
+        "name": "wrong-chat-id",
+        "ownerSeed": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+        "ownerPublicKey": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+        "chatId": "0b1c2d3e4f5061728394a5b6c7d8e9f0",
+        "inviteId": "a93f48c2a250501856a290e1babf91aa",
+        "nonce": "8485868788898a8b8c8d8e8f909192939495969798999a9b",
+        "ciphertext": "f1511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b8",
+        "failsAt": "open"
+      },
+      {
+        "name": "wrong-invite-id",
+        "ownerSeed": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+        "ownerPublicKey": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviteId": "a93f48c2a250501856a290e1babf91ab",
+        "nonce": "8485868788898a8b8c8d8e8f909192939495969798999a9b",
+        "ciphertext": "f1511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b8",
+        "failsAt": "open"
+      },
+      {
+        "name": "wrong-nonce",
+        "ownerSeed": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+        "ownerPublicKey": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "inviteId": "a93f48c2a250501856a290e1babf91aa",
+        "nonce": "4142434445464748494a4b4c4d4e4f505152535455565758",
+        "ciphertext": "f1511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b8",
+        "failsAt": "open"
+      }
+    ],
+    "bundles": [
+      {
+        "name": "wrapped-by-not-creator",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "creatorPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "wrappedByPublicKey": "adc14011f82d1c56d956aa4f9d73d8858361a606048525e0d08c638dc75dd8c7",
+        "wrappedByIsCreator": false,
+        "memberSeed": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+        "memberPublicKey": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+        "keyEnvelope": {
+          "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+          "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e26",
+          "signature": "62d9e45de749b823fe8f91ae0a06122255d29f1e3e9d01c972b49c98ccae292d3297b3a281b571c2911e943bc0b04d07eb775e42a871189e1c58605e2961b00e"
+        },
+        "secretEnvelope": {
+          "nonce": "8485868788898a8b8c8d8e8f909192939495969798999a9b",
+          "ciphertext": "f1511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b8"
+        },
+        "failsAt": "wrappedBy"
+      },
+      {
+        "name": "resigned-tampered-copy",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "creatorPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "wrappedByPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "wrappedByIsCreator": true,
+        "memberSeed": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+        "memberPublicKey": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+        "keyEnvelope": {
+          "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+          "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e27",
+          "signature": "c79bacc7c570a5cd20d9c67250065926112dc9a28d4a630972bb0cd47722f4499553e650b0fae2723ec6df3f4d6e1dd75b0d2733f74f4b63335faea0b62ac90e"
+        },
+        "secretEnvelope": {
+          "nonce": "8485868788898a8b8c8d8e8f909192939495969798999a9b",
+          "ciphertext": "f1511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b8"
+        },
+        "failsAt": "keyOpen"
+      },
+      {
+        "name": "secret-envelope-of-another-owner",
+        "chatId": "6f9619ff8b86d011b42d00c04fc964ff",
+        "creatorPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "wrappedByPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+        "wrappedByIsCreator": true,
+        "memberSeed": "2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f40",
+        "memberPublicKey": "e7f162a10bec559afea195e4dce84b69568d5d2cb0963eb446c0685e2b17f2f0",
+        "keyEnvelope": {
+          "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+          "ciphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e26",
+          "signature": "7dfffc895aa4fb96e0a75c837d6f389b12c38cdcb7f9054e28c8282f5ab82ebea4578869d50b5e86348615df49d01e1b3de4b70f1dedb18b8b1dd4663bed2e01"
+        },
+        "secretEnvelope": {
+          "nonce": "6e6f707172737475767778797a7b7c7d7e7f808182838485",
+          "ciphertext": "4d5c41b7c0657e2e38465ffa9d35878a80fb3da9024721225a516a12204f79fa12c62b55044372f18800072dd2f30013"
+        },
+        "failsAt": "secretOpen"
+      }
+    ]
+  }
+}

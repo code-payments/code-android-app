@@ -70,7 +70,7 @@ object DefaultChatCipher : ChatCipher {
      * Steps 1–3 shared by the DM chat key and the group key wrap: X25519 between the two members,
      * then HKDF-SHA256 salted with both Ed25519 public keys in bytewise order.
      */
-    private fun pairKey(ownKeyPair: KeyPair, peerPublicKey: ByteArray, info: ByteArray): ByteArray {
+    internal fun pairKey(ownKeyPair: KeyPair, peerPublicKey: ByteArray, info: ByteArray): ByteArray {
         if (ownKeyPair.publicKey.size != KEY_SIZE || ownKeyPair.privateKey.size != 64) {
             throw ChatCipherException("own key pair must be a 32-byte public and 64-byte private key")
         }
@@ -249,7 +249,7 @@ object DefaultChatCipher : ChatCipher {
         return out.copyOfRange(0, length)
     }
 
-    private fun seal(plain: ByteArray, aad: ByteArray, nonce: ByteArray, key: ByteArray): ByteArray {
+    internal fun seal(plain: ByteArray, aad: ByteArray, nonce: ByteArray, key: ByteArray): ByteArray {
         checkKeyAndNonce(key, nonce)
         ensureSodium()
         return AuthenticatedEncryptionWithAssociatedData.xChaCha20Poly1305IetfEncrypt(
@@ -275,7 +275,7 @@ object DefaultChatCipher : ChatCipher {
         if (nonce.size != NONCE_SIZE) throw ChatCipherException("nonce must be 24 bytes")
     }
 
-    private fun randomNonce(): ByteArray {
+    internal fun randomNonce(): ByteArray {
         ensureSodium()
         return LibsodiumRandom.buf(NONCE_SIZE).toByteArray()
     }
@@ -289,7 +289,7 @@ object DefaultChatCipher : ChatCipher {
         return a.size - b.size
     }
 
-    private fun ensureSodium() {
+    internal fun ensureSodium() {
         // Synchronous on JVM/Android/Native; the app also initializes it at startup.
         if (!LibsodiumInitializer.isInitialized()) LibsodiumInitializer.initializeWithCallback { }
     }
