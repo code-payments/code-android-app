@@ -72,6 +72,7 @@ import com.flipcash.app.messenger.internal.reactionStripFor
 import com.flipcash.app.messenger.internal.withLiveSelfReactions
 import com.flipcash.app.messenger.internal.MentionDestination
 import com.flipcash.app.messenger.internal.link.CashCardTap
+import com.flipcash.app.messenger.internal.screens.components.WrongKeyBanner
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.deckBackdropSpec
 import com.flipcash.app.messenger.internal.screens.components.chatBackdrop
@@ -574,6 +575,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         requests = lastRequests,
                         onReview = { keyboard.hideIfVisible { navigator.push(ChatStep.JoinRequests) } },
                         hazeState = hazeState,
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.grid.x2),
+                    )
+                }
+                if (state.wrongKey) {
+                    WrongKeyBanner(
+                        onLeave = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(top = CodeTheme.dimens.grid.x2),

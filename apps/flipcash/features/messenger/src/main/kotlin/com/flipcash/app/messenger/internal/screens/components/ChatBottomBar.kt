@@ -167,6 +167,18 @@ internal fun UserControlBottomBar(
         return
     }
 
+    // A member whose invite key failed its checks cannot read the group, so there is nothing they
+    // could usefully send into. The banner above the transcript carries the way out.
+    if (state.wrongKey) {
+        SpeakerGateBar(
+            requirement = ChatRuleRequirement.Never,
+            hazeState = hazeState,
+            currencyName = null,
+            textOverride = stringResource(R.string.subtitle_chatGate_wrongKey),
+        )
+        return
+    }
+
     // A member the speaker rules keep from speaking: nothing to type into, so the panel stands
     // where the composer would. Checked after the join gate, which owns every viewer outside.
     state.speakerBlock?.takeIf { state.isReadOnlySpeaker }?.let { block ->

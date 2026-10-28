@@ -1321,6 +1321,9 @@
     <string name="subtitle_inviteExpired">This invite link has expired.</string>
     <string name="subtitle_inviteRevoked">This invite link was turned off by the host.</string>
     <string name="action_joinGroup">Join Group</string>
+    <string name="title_wrongKey">Can\u2019t read this group</string>
+    <string name="subtitle_wrongKey">The invite link you used didn\u2019t include a working key. Leave and ask the host to approve you.</string>
+    <string name="subtitle_chatGate_wrongKey">You can\u2019t send messages here</string>
     <string name="action_leaveGroup">Leave Group</string>
     <string name="title_inviteLinkNotFound">Link Not Found</string>
     <string name="description_inviteLinkNotFound">This invite link isn’t valid. Ask whoever sent it for a new one.</string>
