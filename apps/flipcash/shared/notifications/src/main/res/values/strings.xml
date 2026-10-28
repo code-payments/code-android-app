@@ -26,4 +26,9 @@
     <!-- Channel group names -->
     <string name="notification_group_transactions">Transactions</string>
     <string name="notification_group_social">Social</string>
+
+    <!-- Payment-request push bodies; the sender is drawn by MessagingStyle, so it is not named here. -->
+    <string name="notification_request_amountAndTitle">Requested %1$s for %2$s</string>
+    <string name="notification_request_amountOnly">Requested %1$s</string>
+    <string name="notification_request_titleOnly">Sent request for %1$s</string>
 </resources>

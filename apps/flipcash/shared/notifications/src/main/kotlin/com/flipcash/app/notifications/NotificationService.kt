@@ -31,6 +31,7 @@ import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.PaymentRequests
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.UserProfileDataSource
@@ -48,6 +49,9 @@ import com.flipcash.services.models.PushChatMetadata
 import com.flipcash.services.models.Substitution
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
+import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.notifications.R
 import com.getcode.utils.TraceType
@@ -92,6 +96,7 @@ class NotificationService : FirebaseMessagingService(),
         // bound only caps the cold-cache network fetch so the notification isn't
         // held back indefinitely.
         private const val AVATAR_FETCH_TIMEOUT_MS = 5_000L
+        private const val REQUEST_FETCH_TIMEOUT_MS = 5_000L
     }
 
     @Inject
@@ -120,6 +125,9 @@ class NotificationService : FirebaseMessagingService(),
 
     @Inject
     lateinit var chatCoordinator: ChatCoordinator
+
+    @Inject
+    lateinit var paymentRequests: PaymentRequests
 
     @Inject
     lateinit var profileController: ProfileController
@@ -481,7 +489,8 @@ class NotificationService : FirebaseMessagingService(),
         // The server can't read an end-to-end encrypted DM or private group, so its body is a
         // stand-in. The opened text is the message itself, with no sender prefix to strip; a group
         // line takes its sender from the Person. Unencrypted messages open to null and keep the body.
-        val opened = openPushedMessage(chatId, metadata)
+        // A payment request carries only its id, so its body comes from fetching the request.
+        val opened = openPushedMessage(chatId, metadata) ?: pushedRequestBody(chatId, metadata)
         style.addMessage(opened ?: planMessageBody(body, senderNames), System.currentTimeMillis(), senderPerson)
 
         // After the extract above, not before: a re-post rebuilds the style from the notification
@@ -508,6 +517,39 @@ class NotificationService : FirebaseMessagingService(),
             throw e
         } catch (e: Exception) {
             trace(tag = "NotificationService", message = "Couldn't open a pushed message", error = e)
+            null
+        }
+    }
+
+    /**
+     * What a payment-request push asks, from fetching the request, or `null` to keep the server's
+     * body: the message isn't a request, or the fetch failed or took longer than
+     * [REQUEST_FETCH_TIMEOUT_MS]. A sealed (private group) request's title is opened by the fetch.
+     */
+    private suspend fun pushedRequestBody(chatId: ChatId, metadata: PushChatMetadata?): String? {
+        if (metadata == null || (metadata.message == null && metadata.messageId == null)) return null
+        return try {
+            val widget = (metadata.message?.content?.singleOrNull() as? MessageContent.Widget)?.widget
+                ?: (chatCoordinator.openPushedChatMessage(chatId, metadata.message, metadata.messageId)
+                    ?.content?.singleOrNull() as? MessageContent.Widget)?.widget
+            val requestId = (widget as? WidgetContent.PaymentRequest)?.id ?: return null
+            val request: PaymentRequest? = withTimeoutOrNull(REQUEST_FETCH_TIMEOUT_MS.milliseconds) {
+                paymentRequests.fetch(requestId).getOrNull()?.paymentRequest
+            }
+            planPaymentRequestBody(
+                request = request,
+                chatId = chatId,
+                viewerId = userManager.accountId,
+                templates = PaymentRequestBodyTemplates(
+                    amountAndTitle = getString(R.string.notification_request_amountAndTitle),
+                    amountOnly = getString(R.string.notification_request_amountOnly),
+                    titleOnly = getString(R.string.notification_request_titleOnly),
+                ),
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            trace(tag = "NotificationService", message = "Couldn't build a payment request body", error = e)
             null
         }
     }
