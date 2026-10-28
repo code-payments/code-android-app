@@ -75,6 +75,10 @@ class ChatTypingGateTest {
         displayNumber = "(555) 123-4567",
     )
     private val chatId = ChatId(UUID.randomUUID().bytes)
+    private val wrongKey = MutableStateFlow(false)
+    private val wrongKeyChats = mockk<com.flipcash.services.chat.WrongKeyChats> {
+        every { observe(any()) } returns wrongKey
+    }
 
     @Before
     fun setUp() {
@@ -95,7 +99,7 @@ class ChatTypingGateTest {
 
     private fun createViewModel(): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
-        wrongKeyChats = com.flipcash.services.chat.WrongKeyChats(),
+        wrongKeyChats = wrongKeyChats,
         mediaUploads = noMediaUploads(),
         e2eePolicy = E2eePolicy(),
         contactCoordinator = contactCoordinator,
@@ -165,5 +169,30 @@ class ChatTypingGateTest {
         assertTrue(state.chatType == ChatType.CONTACT_DM)
         assertTrue(state.typingConstraints.resolved)
         assertFalse(state.typingConstraints.enabled)
+    }
+
+    @Test
+    fun `a wrong-key mark on the open chat reaches state and clears with it`() = runTest {
+        every { contactCoordinator.lookupContact(any()) } returns Result.failure(NoSuchElementException())
+        coEvery { contactCoordinator.lookupContactByDmChatId(any()) } returns null
+        every { chatCoordinator.observeMetadata(chatId) } returns flowOf(
+            ChatMembership(
+                metadata = mockk<ChatMetadata>(relaxed = true) { every { this@mockk.type } returns ChatType.TIP_DM },
+                isMember = true,
+            ),
+        )
+
+        val viewModel = createViewModel()
+        viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(ChatIdentifier.ByChatId(chatId)))
+        advanceUntilIdle()
+        assertFalse(viewModel.stateFlow.value.wrongKey)
+
+        wrongKey.value = true
+        advanceUntilIdle()
+        assertTrue(viewModel.stateFlow.value.wrongKey)
+
+        wrongKey.value = false
+        advanceUntilIdle()
+        assertFalse(viewModel.stateFlow.value.wrongKey)
     }
 }
