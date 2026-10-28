@@ -12,6 +12,7 @@ import com.flipcash.shared.chat.InviteSettings
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -167,5 +168,104 @@ class ManageInvitesViewModelTest {
         model.create(InviteSettings.Default)
         assertTrue(model.effects.first() is ManageInvitesViewModel.Effect.Created)
         assertFalse(model.state.value.creating)
+    }
+
+    @Test
+    fun `a created link becomes the current one`() = runTest {
+        val created = hostInvite()
+        coEvery { hostInvites.load(chatId) } returns Result.success(emptyList())
+        coEvery { hostInvites.create(chatId, InviteSettings.Default) } coAnswers {
+            listed.value = mapOf(chatId to listOf(created))
+            every { hostInvites.current(chatId) } returns created
+            InviteCreation.Created(created)
+        }
+        val model = viewModel()
+        model.open(chatId)
+
+        model.create(InviteSettings.Default)
+
+        assertEquals(created, model.state.value.current)
+        assertEquals(listOf(created), model.state.value.active)
+    }
+
+    @Test
+    fun `too many from inside Manage Invites is OK only`() = runTest {
+        coEvery { hostInvites.load(chatId) } returns Result.success(emptyList())
+        coEvery { hostInvites.create(chatId, any()) } returns InviteCreation.TooMany
+        val model = viewModel()
+        model.open(chatId)
+
+        model.create(InviteSettings.Default)
+
+        val message = BottomBarManager.messages.value.single()
+        assertFalse(message.showCancel)
+        assertEquals(1, message.actions.size)
+        assertFalse(model.state.value.creating)
+    }
+
+    @Test
+    fun `denied and failed creates each show one message and re-enable the button`() = runTest {
+        coEvery { hostInvites.load(chatId) } returns Result.success(emptyList())
+        val model = viewModel()
+        model.open(chatId)
+
+        coEvery { hostInvites.create(chatId, any()) } returns InviteCreation.NotAvailable
+        model.create(InviteSettings.Default)
+        assertEquals(1, BottomBarManager.messages.value.size)
+        assertFalse(model.state.value.creating)
+
+        BottomBarManager.clear()
+        coEvery { hostInvites.create(chatId, any()) } returns InviteCreation.Failed(IllegalStateException())
+        model.create(InviteSettings.Default)
+        assertEquals(1, BottomBarManager.messages.value.size)
+        assertFalse(model.state.value.creating)
+    }
+
+    @Test
+    fun `a second create while one is in flight is ignored`() = runTest {
+        coEvery { hostInvites.load(chatId) } returns Result.success(emptyList())
+        coEvery { hostInvites.create(chatId, any()) } coAnswers { kotlinx.coroutines.awaitCancellation() }
+        val model = viewModel()
+        model.open(chatId)
+
+        model.create(InviteSettings.Default)
+        model.create(InviteSettings.Default)
+
+        assertTrue(model.state.value.creating)
+        coVerify(exactly = 1) { hostInvites.create(chatId, any()) }
+    }
+
+    @Test
+    fun `a failed revoke shows an error and leaves the list as it was`() = runTest {
+        val active = hostInvite()
+        listed.value = mapOf(chatId to listOf(active))
+        coEvery { hostInvites.load(chatId) } returns Result.success(listOf(active))
+        coEvery { hostInvites.revoke(chatId, active.invite.id) } returns Result.failure(IllegalStateException())
+        val model = viewModel()
+        model.open(chatId)
+
+        model.confirmRevoke(active)
+        val confirm = BottomBarManager.messages.value.single()
+        confirm.actions.single().onClick()
+
+        assertEquals(listOf(active), model.state.value.active)
+        // The confirmation is still up (the UI removes it on a tap); the error is the second.
+        assertEquals(2, BottomBarManager.messages.value.size)
+        assertTrue(BottomBarManager.messages.value.last().isError)
+        verify(exactly = 0) { hostInvites.revokeAccess(any()) }
+    }
+
+    @Test
+    fun `refresh after a failed first load loads again`() = runTest {
+        coEvery { hostInvites.load(chatId) } returns Result.failure(IllegalStateException())
+        val model = viewModel()
+        model.open(chatId)
+        assertTrue(model.state.value.failed)
+
+        coEvery { hostInvites.load(chatId) } returns Result.success(emptyList())
+        model.refresh()
+
+        assertFalse(model.state.value.failed)
+        assertTrue(model.state.value.isEmpty)
     }
 }

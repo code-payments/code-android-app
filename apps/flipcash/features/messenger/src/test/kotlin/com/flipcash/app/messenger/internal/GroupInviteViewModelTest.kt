@@ -1,6 +1,8 @@
 package com.flipcash.app.messenger.internal
 
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMember
+import com.getcode.chatcipher.ChatEncryptionPolicy
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.user.UserManager
@@ -206,6 +208,41 @@ class GroupInviteViewModelTest {
 
         model.restrictToEncrypted(false)
         assertEquals(listOf(privateGroup, publicGroup), model.state.value.invitable?.map { it.chatId })
+    }
+
+    @Test
+    fun `restricting to encrypted keeps an E2EE DM, drops the flipcash DM and prunes the selection`() = runTest(scheduler) {
+        val e2eeDm = ChatId(ByteArray(32) { 10 })
+        val flipcashDm = ChatId(ByteArray(32) { 11 })
+        fun dm(id: ChatId, peer: ByteArray) = summary(id, ChatType.CONTACT_DM).let {
+            it.copy(
+                metadata = it.metadata.copy(
+                    useE2ee = true,
+                    members = listOf(
+                        ChatMember(
+                            userId = peer.toList(),
+                            userProfile = mockk(relaxed = true),
+                            pointers = emptyList(),
+                        ),
+                    ),
+                ),
+            )
+        }
+        every { chatCoordinator.feed(*anyVararg()) } returns flowOf(
+            listOf(
+                dm(e2eeDm, ByteArray(16) { 3 }),
+                dm(flipcashDm, ChatEncryptionPolicy.FLIPCASH_USER_ID),
+            ),
+        )
+        val model = viewModel()
+        advanceUntilIdle()
+        model.toggle(e2eeDm)
+        model.toggle(flipcashDm)
+
+        model.restrictToEncrypted(true)
+
+        assertEquals(listOf(e2eeDm), model.state.value.invitable?.map { it.chatId })
+        assertEquals(listOf(e2eeDm), model.state.value.selection)
     }
 
     @Test
