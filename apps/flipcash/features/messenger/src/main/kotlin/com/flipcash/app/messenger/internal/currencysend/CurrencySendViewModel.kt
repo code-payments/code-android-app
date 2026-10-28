@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.currencysend
 
 import com.getcode.view.PaymentSuccessHoldDuration
+import com.getcode.view.holdPaymentSuccess
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.analytics.State as AnalyticsState
@@ -224,12 +225,15 @@ internal class CurrencySendViewModel @Inject constructor(
                 origin = TipOrigin.CHAT,
                 action = TipAction.SEND,
             ).onSuccess {
-                _state.update { it.copy(sendProgress = LoadingSuccessState(success = true)) }
-                delay(PaymentSuccessHoldDuration)
-                analytics.track(
-                    TransferEvents.sentCash(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null)
+                holdPaymentSuccess(
+                    show = { _state.update { it.copy(sendProgress = LoadingSuccessState(success = true)) } },
+                    release = {
+                        analytics.track(
+                            TransferEvents.sentCash(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null)
+                        )
+                        _done.trySend(Unit)
+                    },
                 )
-                _done.trySend(Unit)
             }.onFailure { cause ->
                 _state.update { it.copy(sendProgress = LoadingSuccessState()) }
                 analytics.track(

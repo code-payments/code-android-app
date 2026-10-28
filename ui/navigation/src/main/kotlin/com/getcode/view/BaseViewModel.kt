@@ -93,6 +93,16 @@ val SuccessHoldDuration = 500.milliseconds
 val PaymentSuccessHoldDuration = 1.seconds
 
 /**
+ * Shows payment success, holds it for [PaymentSuccessHoldDuration], then releases. Cancellation
+ * during the hold skips [release]. Mirrors iOS `PaymentSuccess.release(after:_:)`.
+ */
+suspend inline fun holdPaymentSuccess(show: () -> Unit, release: () -> Unit) {
+    show()
+    delay(PaymentSuccessHoldDuration)
+    release()
+}
+
+/**
  * The least time a confirm button's spinner stays up once it has gone up.
  *
  * A floor, not a hold: work that already ran longer moves on as soon as it is done, and only work
