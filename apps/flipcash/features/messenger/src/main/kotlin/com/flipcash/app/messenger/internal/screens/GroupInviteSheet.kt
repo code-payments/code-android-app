@@ -487,8 +487,8 @@ internal fun GroupInviteSheet(
                     stringResource(R.string.title_shareCurrency, subject.name)
                 is ShareToChatsSubject.User -> stringResource(R.string.title_shareProfileToChats)
                 is ShareToChatsSubject.Message -> stringResource(R.string.title_shareMessageToChats)
-                is ShareToChatsSubject.Group -> stringResource(R.string.title_invitePeople)
-                is ShareToChatsSubject.GroupInviteLink -> stringResource(R.string.title_shareInviteLink)
+                is ShareToChatsSubject.Group,
+                is ShareToChatsSubject.GroupInviteLink -> stringResource(R.string.title_invitePeople)
             },
             titleAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(HeaderPadding),
