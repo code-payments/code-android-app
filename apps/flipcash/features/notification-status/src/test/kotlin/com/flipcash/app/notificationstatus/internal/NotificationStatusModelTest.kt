@@ -263,6 +263,28 @@ class NotificationStatusModelTest {
     }
 
     @Test
+    fun `check again - fixes stay on their rows while they re-check`() {
+        val failed = RegistrationState.Finished(PushRegistrationOutcome.NoToken)
+        val device = healthy.blocking(StatusChannel.Chat).copy(ignoringBatteryOptimizations = false)
+        val before = evaluateNotificationStatus(device, failed)
+        val during = evaluateNotificationStatus(device, RegistrationState.Checking, rechecking = true, previousRegistration = failed)
+
+        assertEquals(before.rows.map { it.fix }, during.rows.map { it.fix })
+        assertEquals(Fix.TryAgain, during.flipcashRows.single().fix)
+        assertTrue(during.rows.all { it.status == CheckStatus.Checking })
+    }
+
+    @Test
+    fun `registration checking with no earlier run on the page has no fix`() {
+        val status = evaluateNotificationStatus(healthy, RegistrationState.Checking)
+        assertEquals(null, status.flipcashRows.single().fix)
+
+        // An earlier pass leaves nothing to keep.
+        val afterOk = evaluateNotificationStatus(healthy, RegistrationState.Checking, previousRegistration = registered)
+        assertEquals(null, afterOk.flipcashRows.single().fix)
+    }
+
+    @Test
     fun `every phone row follows the fixed key order`() {
         val devices = listOf(
             healthy,

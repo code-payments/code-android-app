@@ -192,6 +192,20 @@ class NotificationStatusViewModelTest {
     }
 
     @Test
+    fun `check again keeps try again on the registration row, disabled while it runs`() = runTest(dispatcher) {
+        // Slow enough that the re-run is still going when the row is read.
+        coEvery { tokenProvider.getToken() } coAnswers { delay(1_000); null }
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        assertEquals(Fix.TryAgain, viewModel.stateFlow.value.status.flipcashRows.single().fix)
+
+        viewModel.dispatchEvent(NotificationStatusViewModel.Event.CheckAgain)
+        val row = viewModel.stateFlow.value.status.flipcashRows.single()
+        assertEquals(CheckStatus.Checking, row.status)
+        assertEquals(Fix.TryAgain, row.fix)
+    }
+
+    @Test
     fun `no token clears the suffix from an earlier attempt`() = runTest(dispatcher) {
         val viewModel = viewModel()
         advanceUntilIdle()

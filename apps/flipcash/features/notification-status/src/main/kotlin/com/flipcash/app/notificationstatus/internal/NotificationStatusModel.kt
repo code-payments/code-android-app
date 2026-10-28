@@ -84,11 +84,14 @@ sealed interface CheckRow {
         override val fix: Fix? = null
     }
 
-    /** A row being checked again: it keeps its place and title until the new result is in. */
+    /**
+     * A row being checked again: it keeps its place, title and fix until the new result is in. The
+     * page shows the fix disabled while the row is Checking.
+     */
     data class Rechecking(val previous: CheckRow) : CheckRow {
         override val key get() = previous.key
         override val status = CheckStatus.Checking
-        override val fix: Fix? = null
+        override val fix: Fix? get() = previous.fix
     }
 
     data class Permission(val allowed: Boolean) : CheckRow {
@@ -136,7 +139,11 @@ sealed interface CheckRow {
         override val fix = if (status != CheckStatus.Pass && resolvable) Fix.ResolvePlayServices else null
     }
 
-    data class Registration(val state: RegistrationState) : CheckRow {
+    /** @param previous the page's last finished run, whose fix stays while [state] is Checking. */
+    data class Registration(
+        val state: RegistrationState,
+        val previous: RegistrationState.Finished? = null,
+    ) : CheckRow {
         override val key get() = RegistrationKey
         override val status = when (state) {
             RegistrationState.Checking -> CheckStatus.Checking
@@ -150,7 +157,11 @@ sealed interface CheckRow {
                 PushRegistrationOutcome.Failed -> CheckStatus.Fail
             }
         }
-        override val fix = if (status == CheckStatus.Warning || status == CheckStatus.Fail) Fix.TryAgain else null
+        override val fix: Fix? = when (status) {
+            CheckStatus.Warning, CheckStatus.Fail -> Fix.TryAgain
+            CheckStatus.Checking -> previous?.let { Registration(it).fix }
+            CheckStatus.Pass -> null
+        }
     }
 }
 
@@ -222,12 +233,14 @@ private val limitingBuckets = setOf("rare", "restricted")
 /**
  * [device] is null until the phone's settings have been read. [rechecking] marks a re-run in
  * progress: [device] is the last read, and every row it gives shows Checking in its place until
- * the new read arrives.
+ * the new read arrives. [previousRegistration] is the page's last finished registration, kept while
+ * [registration] runs again.
  */
 fun evaluateNotificationStatus(
     device: DeviceSnapshot?,
     registration: RegistrationState,
     rechecking: Boolean = false,
+    previousRegistration: RegistrationState.Finished? = null,
 ): NotificationStatus {
     val phoneRows: List<CheckRow> = if (device == null) PendingPhoneRows else buildList<CheckRow> {
         add(CheckRow.Permission(device.notificationsAllowed))
@@ -243,7 +256,7 @@ fun evaluateNotificationStatus(
         add(CheckRow.Background(device.backgroundRestricted, device.standbyBucket))
         add(CheckRow.GooglePlay(device.playServices, device.playServicesResolvable))
     }.let { rows -> if (rechecking) rows.map(CheckRow::Rechecking) else rows }
-    val flipcashRows = listOf(CheckRow.Registration(registration))
+    val flipcashRows = listOf(CheckRow.Registration(registration, previousRegistration))
     val rows = phoneRows + flipcashRows
 
     val fails = rows.count { it.status == CheckStatus.Fail }

@@ -44,6 +44,8 @@ internal class NotificationStatusViewModel @Inject constructor(
     data class State(
         val device: DeviceSnapshot? = null,
         val registration: RegistrationState = RegistrationState.Checking,
+        /** The page's last finished registration; its fix stays on the row while the next one runs. */
+        val lastFinished: RegistrationState.Finished? = null,
         val lastRegistration: PushRegistration? = null,
         val tokenSuffix: String? = null,
         val expanded: Boolean = false,
@@ -55,7 +57,8 @@ internal class NotificationStatusViewModel @Inject constructor(
         /** The first run has finished, so the summary can say when it last checked. */
         val checked: Boolean = false,
     ) {
-        val status: NotificationStatus get() = evaluateNotificationStatus(device, registration, rechecking)
+        val status: NotificationStatus
+            get() = evaluateNotificationStatus(device, registration, rechecking, lastFinished)
 
         /** Any check still running; "Check again" is disabled until it ends. */
         val running: Boolean
@@ -204,9 +207,11 @@ internal class NotificationStatusViewModel @Inject constructor(
                 is Event.RegistrationStarted -> { { copy(registration = RegistrationState.Checking) } }
                 is Event.RegistrationFinished -> { {
                     val attempt = event.attempt
+                    // The record from before the attempt, not the one it just wrote.
+                    val finished = RegistrationState.Finished(attempt.outcome, attempt.previous?.lastOkAt)
                     copy(
-                        // The record from before the attempt, not the one it just wrote.
-                        registration = RegistrationState.Finished(attempt.outcome, attempt.previous?.lastOkAt),
+                        registration = finished,
+                        lastFinished = finished,
                         lastRegistration = event.saved,
                         // The token this attempt sent; none when it couldn't fetch one.
                         tokenSuffix = attempt.tokenSuffix,

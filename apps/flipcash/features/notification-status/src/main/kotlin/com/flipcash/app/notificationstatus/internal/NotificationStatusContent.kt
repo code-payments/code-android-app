@@ -284,14 +284,13 @@ private fun FoldedRow(count: Int, checking: Boolean, expanded: Boolean, onClick:
                 StatusMark(if (it) CheckStatus.Checking else CheckStatus.Pass)
             }
             Spacer(Modifier.width(CodeTheme.dimens.grid.x3))
-            val text = if (checking) {
-                stringResource(R.string.title_notificationStatusChecking)
-            } else {
-                pluralStringResource(R.plurals.title_notificationStatusChecksPassed, count, count)
-            }
-            Crossfade(targetState = text, modifier = Modifier.weight(1f), label = "folded text") {
-                Text(it, style = CodeTheme.typography.textMedium, color = CodeTheme.colors.textMain)
-            }
+            // Only the mark shows Checking; the title stays, like any row's.
+            Text(
+                pluralStringResource(R.plurals.title_notificationStatusChecksPassed, count, count),
+                modifier = Modifier.weight(1f),
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+            )
             Icon(
                 modifier = Modifier.rotate(chevron),
                 imageVector = Icons.Rounded.KeyboardArrowDown,
@@ -366,13 +365,14 @@ private fun CheckRowItem(row: CheckRow, state: NotificationStatusViewModel.State
             transitionSpec = { fadeIn() togetherWith fadeOut() },
             label = "row fix",
         ) { fix ->
-            if (fix != null) FixButton(fix, onFix)
+            // A row checking again keeps its fix in place, disabled until the result is in.
+            if (fix != null) FixButton(fix, enabled = row.status != CheckStatus.Checking, onFix)
         }
     }
 }
 
 @Composable
-private fun FixButton(fix: Fix, onFix: (Fix) -> Unit) {
+private fun FixButton(fix: Fix, enabled: Boolean, onFix: (Fix) -> Unit) {
     CodeButton(
         modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2),
         text = stringResource(
@@ -383,6 +383,7 @@ private fun FixButton(fix: Fix, onFix: (Fix) -> Unit) {
             },
         ),
         buttonState = ButtonState.Filled,
+        enabled = enabled,
         shape = CircleShape,
         style = CodeTheme.typography.textSmall,
         overrideContentPadding = true,
