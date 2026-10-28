@@ -284,27 +284,36 @@ class LinkCardClassifierTest {
     }
 
     /**
-     * Decision 6 of the invite-link spec: an invite URL carries the group's key, so nothing unfurls
-     * it, not even as a plain web card. `link_detection.json` has no `/chat/invite` case; its
-     * `group-invite` vector is the plain join link, which still gets a card.
+     * Spec surface 6 and Decision 6: an invite URL gets the card drawn from GetInvite and never a
+     * web card, since its fragment is the group's key. `link_detection.json` has no `/chat/invite`
+     * case; its `group-invite` vector is the plain join link, which still gets a group card.
      */
     @Test
-    fun `an invite link gets no card of any kind`() {
+    fun `an invite link becomes an invite card, and one with no secret gets none`() {
         val classifier = LinkCardClassifier(router)
-        val secret = "A".repeat(43)
+        val invite = "https://app.flipcash.com/chat/invite#s=${"A".repeat(43)}"
         for (url in listOf(
-            "https://app.flipcash.com/chat/invite#s=$secret",
-            "https://app.flipcash.com/chat/invite",
-            "https://app.flipcash.com/chat/invite#s=",
-            "https://jump.flipcash.com/#source=" +
-                java.net.URLEncoder.encode("https://app.flipcash.com/chat/invite#s=$secret", "UTF-8"),
+            invite,
+            "https://jump.flipcash.com/#source=" + java.net.URLEncoder.encode(invite, "UTF-8"),
         )) {
+            val card = assertIs<LinkCard.InviteLink>(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))), url)
+            assertEquals(invite, card.url, url)
+            assertEquals(LinkCard.InviteLink.State.Loading, card.state, url)
+        }
+        for (url in listOf("https://app.flipcash.com/chat/invite")) {
             assertNull(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))), url)
         }
     }
 
     @Test
-    fun `an invite link beside an outside link leaves only the outside link a card`() {
+    fun `an invite card's toString leaves the secret out`() {
+        val url = "https://app.flipcash.com/chat/invite#s=${"A".repeat(43)}"
+        val card = LinkCard.InviteLink(url = url, start = 0, end = url.length, state = LinkCard.InviteLink.State.Loading)
+        assertFalse("A".repeat(43) in card.toString())
+    }
+
+    @Test
+    fun `an invite link beside an outside link is the card, not a web preview of either`() {
         val classifier = LinkCardClassifier(router)
         val invite = "https://app.flipcash.com/chat/invite#s=${"A".repeat(43)}"
         val outside = "https://example.com/post"
@@ -316,7 +325,7 @@ class LinkCardClassifierTest {
             )
         )
 
-        assertEquals(outside, (card as? LinkCard.Web)?.url)
+        assertEquals(invite, assertIs<LinkCard.InviteLink>(card).url)
     }
 
     /**
@@ -324,7 +333,7 @@ class LinkCardClassifierTest {
      * module that builds it), so a route the fake mis-states cannot hide an invite card.
      */
     @Test
-    fun `the real router gives an invite link no card on any host or wrapper`() {
+    fun `the real router gives an invite link its invite card on every host and wrapper`() {
         val classifier = LinkCardClassifier(
             com.flipcash.app.router.inject.RouterModule.providesRouter(io.mockk.mockk(relaxed = true)),
         )
@@ -335,11 +344,20 @@ class LinkCardClassifierTest {
             "https://flipcash.com$invite",
             "https://jump.flipcash.com/#source=" +
                 java.net.URLEncoder.encode("https://app.flipcash.com$invite", "UTF-8"),
+        )) {
+            assertIs<LinkCard.InviteLink>(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))), url)
+            assertEquals(32, classifier.inviteSecret(url)?.size, url)
+        }
+        // No secret: no card, and the website rule does not unfurl it either.
+        for (url in listOf(
             "https://app.flipcash.com/chat/invite",
+            "https://app.flipcash.com/chat/invite#s=",
             "https://flipcash.com/chat/invite",
         )) {
             assertNull(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))), url)
+            assertNull(classifier.inviteSecret(url), url)
         }
+        assertNull(classifier.inviteSecret("https://example.com$invite"))
     }
 
     /**

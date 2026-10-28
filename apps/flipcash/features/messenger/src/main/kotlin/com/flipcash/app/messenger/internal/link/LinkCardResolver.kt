@@ -54,6 +54,10 @@ internal class LinkCardResolver(
     private val message: suspend (card: LinkCard.Message) -> Result<LinkCard.Message.State> = {
         Result.failure(IllegalStateException("no message lookup"))
     },
+    /** An invite link's group and status, by its URL; see [InviteLinkLookup]. */
+    private val invite: suspend (url: String) -> Result<LinkCard.InviteLink.State.Resolved> = {
+        Result.failure(IllegalStateException("no invite lookup"))
+    },
     private val memory: LinkCardMemory = LinkCardMemory(),
     /** The entropy when a message's whole text is one cash link; see [LinkCardClassifier.wholeCashLink]. */
     private val wholeCashLink: (text: String) -> String? = { null },
@@ -77,6 +81,7 @@ internal class LinkCardResolver(
     private val groupQueries = mutableMapOf<ChatId, Deferred<LinkCard.GroupInvite.State>>()
     private val userQueries = mutableMapOf<LinkCard.User.Identity, Deferred<LinkCard.User.State>>()
     private val messageQueries = mutableMapOf<MessageKey, Deferred<LinkCard.Message.State>>()
+    private val inviteQueries = mutableMapOf<String, Deferred<LinkCard.InviteLink.State>>()
 
     /**
      * The answers that have landed, readable without the lock and without suspending — which is the
@@ -102,6 +107,12 @@ internal class LinkCardResolver(
      * membership and the group's rules, both of which a join or a purchase moves.
      */
     private val messageAnswers = ConcurrentHashMap<MessageKey, LinkCard.Message.State>()
+
+    /**
+     * Invite answers are held per visit and never in [memory], which is written to disk: the key is
+     * the link, whose fragment is the group's key.
+     */
+    private val inviteAnswers = ConcurrentHashMap<String, LinkCard.InviteLink.State.Resolved>()
     private val tokenAnswers get() = memory.tokens
     private val groupAnswers get() = memory.groups
     private val userAnswers get() = memory.users
@@ -132,6 +143,7 @@ internal class LinkCardResolver(
         // A web card is drawn from the preview its sender built, which arrives on the card itself.
         is LinkCard.Web -> null
         is LinkCard.Message -> messageAnswers[card.key]?.let { card.copy(state = it) }
+        is LinkCard.InviteLink -> inviteAnswers[card.url]?.let { card.copy(state = it) }
     }
 
     override suspend fun resolve(card: LinkCard): LinkCard = when (card) {
@@ -141,6 +153,7 @@ internal class LinkCardResolver(
         is LinkCard.User -> card.copy(state = userState(card.identity))
         is LinkCard.Web -> card
         is LinkCard.Message -> card.copy(state = messageState(card))
+        is LinkCard.InviteLink -> card.copy(state = inviteState(card.url))
     }
 
     /**
@@ -275,6 +288,18 @@ internal class LinkCardResolver(
                     } else {
                         groupAnswers[chatId] ?: LinkCard.GroupInvite.State.Unavailable
                     }
+                },
+            )
+        }
+
+    private suspend fun inviteState(url: String): LinkCard.InviteLink.State =
+        memoized(inviteQueries, url) {
+            invite(url).fold(
+                onSuccess = { resolved -> resolved.also { inviteAnswers[url] = it } },
+                onFailure = {
+                    forget(inviteQueries, url)
+                    inviteAnswers.remove(url)
+                    LinkCard.InviteLink.State.Unavailable
                 },
             )
         }

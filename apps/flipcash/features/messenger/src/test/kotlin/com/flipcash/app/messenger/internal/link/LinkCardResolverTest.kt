@@ -733,4 +733,52 @@ class LinkCardResolverTest {
 
         assertEquals(state, resolved)
     }
+
+    private val inviteCard = LinkCard.InviteLink(
+        url = "https://app.flipcash.com/chat/invite#s=${"A".repeat(43)}",
+        start = 0,
+        end = 0,
+        state = LinkCard.InviteLink.State.Loading,
+    )
+
+    private val inviteResolved = LinkCard.InviteLink.State.Resolved(
+        chatId = ChatId(ByteArray(16) { 7 }),
+        title = "Night Owls",
+        picture = null,
+        memberCount = 12,
+        status = LinkCard.InviteLink.Status.Active,
+    )
+
+    @Test
+    fun `an invite card resolves from its lookup and paints resolved on the next frame`() = runTest {
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("unused")) },
+            tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
+            invite = { Result.success(inviteResolved) },
+        )
+
+        assertEquals(inviteResolved, (resolver.resolve(inviteCard) as LinkCard.InviteLink).state)
+        assertEquals(inviteResolved, (resolver.peek(inviteCard) as LinkCard.InviteLink).state)
+    }
+
+    @Test
+    fun `a failed invite lookup draws unavailable and is asked again`() = runTest {
+        var calls = 0
+        val resolver = LinkCardResolver(
+            scope = backgroundScope,
+            giftCard = { Result.failure(IllegalStateException("unused")) },
+            tokenMetadata = { Result.failure(IllegalStateException("unused")) },
+            group = { Result.failure(IllegalStateException("unused")) },
+            user = { Result.failure(IllegalStateException("unused")) },
+            invite = { calls++; Result.failure(IllegalStateException("offline")) },
+        )
+
+        assertEquals(LinkCard.InviteLink.State.Unavailable, (resolver.resolve(inviteCard) as LinkCard.InviteLink).state)
+        assertNull(resolver.peek(inviteCard))
+        resolver.resolve(inviteCard)
+        assertEquals(2, calls)
+    }
 }

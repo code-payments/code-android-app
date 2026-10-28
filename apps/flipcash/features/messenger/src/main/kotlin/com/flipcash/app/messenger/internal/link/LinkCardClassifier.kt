@@ -116,6 +116,17 @@ internal class LinkCardClassifier @Inject constructor(
     }
 
     /**
+     * The secret of a `/chat/invite` link on our hosts, for its card's lookup, or null when the
+     * link is not one or its fragment carries no valid secret.
+     */
+    fun inviteSecret(url: String): ByteArray? {
+        val target = unwrapJumpTarget(url) ?: url
+        val host = runCatching { target.toUri().host }.getOrNull() ?: return null
+        if (host.lowercase() !in CARD_HOSTS) return null
+        return (router.classify(DeepLink(target)) as? DeeplinkType.GroupInvite)?.secret
+    }
+
+    /**
      * The entropy of [text] when the whole message is one cash link, or null. A message link's card
      * draws such a message as the payment it carries rather than as a raw URL; a link with any
      * other text around it is not one.
@@ -162,6 +173,15 @@ internal class LinkCardClassifier @Inject constructor(
                 chatId = type.chatId,
                 state = LinkCard.GroupInvite.State.Loading,
             ).takeIf { target.toUri().pathSegments.size == GROUP_INVITE_SEGMENTS }
+            // A private group's invite link. Its card is drawn from GetInvite, never from the web
+            // page (Decision 6). A link with no valid secret gets no card; a tap still opens the
+            // broken-link state.
+            is DeeplinkType.GroupInvite -> LinkCard.InviteLink(
+                url = target,
+                start = link.start,
+                end = link.end,
+                state = LinkCard.InviteLink.State.Loading,
+            )
             // A person's link by id, the legacy `/tip/<uuid>`. Whether anyone owns the id is the
             // lookup's question.
             is DeeplinkType.Tipcard -> LinkCard.User(

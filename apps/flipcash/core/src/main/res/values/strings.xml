@@ -1214,6 +1214,7 @@
     <string name="label_linkCard_untitledGroup">Group Chat</string>
     <string name="action_linkCard_view">View</string>
     <string name="label_linkCard_groupUnavailable">Group Unavailable</string>
+    <string name="label_linkCard_privateGroupInvite">Private group · Invite link</string>
     <string name="label_messageLink_kindPrivateGroup">Private group</string>
     <string name="label_messageLink_kindDirect">Direct message</string>
     <string name="label_messageLink_you">You</string>
