@@ -113,8 +113,10 @@ One flow per PR, each shippable on its own:
 1. Currency send. No nested host, and its `finishSend` (hide, then pop) maps directly onto
    "pop after the checkmark". Introduces the destination pattern, the result key and the
    `HostsBars` metadata with its test.
-2. Pay request. Moves `payTapped`, `confirmPay` and the `ready` share into the destination view
-   model; keeps `RequestDetailsViewModel` for the screen behind it.
+2. Pay request. Partly done: `payTapped`, `confirmPay` and the `ready` share now live in
+   `RequestPayFlow`, which `RequestDetailsViewModel` and the chat's `RequestPayViewModel` each own
+   (the deck's Pay opens the sheet over the chat, not Request details). What is left is hosting
+   that sheet in a destination instead of in each screen's content.
 3. Group send. Last because of the nested `FlowHost`; do it once 1 and 2 have settled the
    result and bar handling.
 4. Delete `InWindowBottomSheet` when nothing uses it.

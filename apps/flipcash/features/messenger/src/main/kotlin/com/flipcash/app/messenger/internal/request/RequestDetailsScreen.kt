@@ -87,12 +87,10 @@ internal fun RequestDetailsScreen(
     onBack: () -> Unit,
     onOpenScreen: (AppRoute) -> Unit,
     pushed: Boolean = false,
-    payOnOpen: Boolean = false,
 ) {
     val viewModel = hiltViewModel<RequestDetailsViewModel>()
     LaunchedEffect(chatId, requestId) {
         viewModel.open(chatId, requestId)
-        if (payOnOpen) viewModel.payOnOpen()
     }
 
     // Fetch on open and every 45 s while the screen is visible with the app in the foreground.
@@ -112,6 +110,7 @@ internal fun RequestDetailsScreen(
     val request by viewModel.request.collectAsStateWithLifecycle()
     val members by viewModel.members.collectAsStateWithLifecycle()
     val token by viewModel.token.collectAsStateWithLifecycle()
+    val pay by viewModel.pay.collectAsStateWithLifecycle()
     val now by viewModel.now.collectAsStateWithLifecycle()
     val viewerId = viewModel.viewerId
 
@@ -165,7 +164,7 @@ internal fun RequestDetailsScreen(
                         .testTag("request_details_send"),
                     text = stringResource(R.string.action_sendShare, share.amount.requestText()),
                     buttonState = ButtonState.Filled,
-                    isLoading = state.preparing,
+                    isLoading = pay.preparing,
                     onClick = viewModel::payTapped,
                 )
             }
@@ -184,24 +183,17 @@ internal fun RequestDetailsScreen(
 
     val unnamed = stringResource(R.string.title_unnamedUser)
     val name = { userId: ID -> memberName(members[userId], unnamed) }
+    RequestPaySheet(
+        pay = pay,
+        request = current,
+        members = members,
+        viewerId = viewerId,
+        now = now,
+        token = token,
+        actions = viewModel.swipePayActions,
+    )
     when (val sheet = state.sheet) {
         RequestDetailsViewModel.Sheet.None -> Unit
-        RequestDetailsViewModel.Sheet.Pay -> {
-            val share = current?.let { unpaidShareOf(it, viewerId, now) }
-            if (current != null && share != null) {
-                PayShareSheet(
-                    creator = members[current.creator],
-                    share = share,
-                    swipePay = SwipePayUiState(
-                        token = token,
-                        progress = state.payProgress,
-                        tokenPickable = true,
-                        swipeTestTag = "request_pay_swipe",
-                    ),
-                    actions = viewModel.swipePayActions,
-                )
-            }
-        }
         RequestDetailsViewModel.Sheet.Options -> ActionSheet(
             title = null,
             body = null,
@@ -370,49 +362,6 @@ private fun ShareRow(
     }
 }
 
-/**
- * Frame 10: who is being paid, the share, the token, and the swipe. The token pill swaps this
- * sheet's content for the currency list, as on the group send confirm sheet.
- */
-@Composable
-private fun PayShareSheet(
-    creator: ChatMember?,
-    share: Share,
-    swipePay: SwipePayUiState,
-    actions: SwipePayActions,
-) {
-    SwipePaySheet(
-        state = swipePay,
-        actions = actions,
-        sheetState = rememberSwipePaySheetState(locked = swipePay.locked),
-        header = {
-            MemberAvatar(creator, Modifier.requiredSize(CodeTheme.dimens.staticGrid.x10))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = memberName(creator),
-                    style = CodeTheme.typography.textLarge,
-                    color = CodeTheme.colors.textMain,
-                    textAlign = TextAlign.Center,
-                )
-                creator?.userProfile?.username?.takeIf { it.isNotBlank() }?.let { username ->
-                    Text(
-                        text = "@$username",
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
-                    )
-                }
-            }
-        },
-        amount = {
-            Text(
-                text = share.amount.requestText(),
-                style = CodeTheme.typography.displayMedium,
-                color = CodeTheme.colors.textMain,
-            )
-        },
-    )
-}
-
 /** Frames 28, 29, 33 and 34: an optional title and body, one action, and Cancel. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -467,7 +416,7 @@ private fun ActionSheet(
 }
 
 @Composable
-private fun memberName(member: ChatMember?): String =
+internal fun memberName(member: ChatMember?): String =
     memberName(member, stringResource(R.string.title_unnamedUser))
 
 private fun memberName(member: ChatMember?, fallback: String): String =
@@ -475,7 +424,7 @@ private fun memberName(member: ChatMember?, fallback: String): String =
 
 /** A member's avatar, or an empty circle of the same size while the roster loads. */
 @Composable
-private fun MemberAvatar(member: ChatMember?, modifier: Modifier) {
+internal fun MemberAvatar(member: ChatMember?, modifier: Modifier) {
     if (member != null) {
         ContactAvatar(userProfile = member.userProfile, modifier = modifier.clip(CircleShape))
     } else {

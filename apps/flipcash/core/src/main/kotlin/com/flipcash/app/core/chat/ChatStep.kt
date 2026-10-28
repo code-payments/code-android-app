@@ -207,7 +207,7 @@ sealed interface ChatStep : FlowStep, Parcelable {
      */
     @Parcelize
     @Serializable
-    data class RequestDetails(val chatId: ChatId, val requestId: String, val pay: Boolean = false) :
+    data class RequestDetails(val chatId: ChatId, val requestId: String) :
         ChatStep,
         Sheet,
         FullscreenSheet

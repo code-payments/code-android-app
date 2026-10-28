@@ -271,7 +271,6 @@ private fun chatEntryProvider(
         RequestDetailsScreen(
             chatId = step.chatId,
             requestId = step.requestId,
-            payOnOpen = step.pay,
             onBack = { dismissSheet() },
             onOpenScreen = { route -> navigator.navigate(route) },
         )

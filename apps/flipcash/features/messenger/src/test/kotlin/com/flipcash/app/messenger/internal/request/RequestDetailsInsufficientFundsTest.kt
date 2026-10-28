@@ -36,8 +36,9 @@ import org.junit.Test
 import kotlin.test.assertEquals
 
 /**
- * Paying a request over balance is stopped before the swipe sheet opens. Anything that fails after
- * the swipe leaves the sheet up: it is drawn in the route's window, so the modal lands over it.
+ * Request details' "Send" opens the swipe sheet with no balance check, since the token is picked
+ * in the sheet. Anything that fails after the swipe leaves the sheet up: it is drawn in the route,
+ * so the modal lands over it.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RequestDetailsInsufficientFundsTest {
@@ -111,7 +112,7 @@ class RequestDetailsInsufficientFundsTest {
 
         vm.payTapped()
 
-        assertEquals(RequestDetailsViewModel.Sheet.Pay, vm.state.value.sheet)
+        assertEquals(true, vm.pay.value.open)
         verify(exactly = 0) { payer.presentInsufficientBalance(any()) }
     }
 
@@ -121,7 +122,7 @@ class RequestDetailsInsufficientFundsTest {
 
         vm.payTapped()
 
-        assertEquals(RequestDetailsViewModel.Sheet.Pay, vm.state.value.sheet)
+        assertEquals(true, vm.pay.value.open)
         verify(exactly = 0) { payer.presentInsufficientBalance(any()) }
     }
 
@@ -130,12 +131,12 @@ class RequestDetailsInsufficientFundsTest {
         val vm = viewModel()
         collectToken(vm)
         vm.payTapped()
-        assertEquals(RequestDetailsViewModel.Sheet.Pay, vm.state.value.sheet)
+        assertEquals(true, vm.pay.value.open)
 
         balance = Fiat(10.0)
         vm.confirmPay()
 
-        assertEquals(RequestDetailsViewModel.Sheet.Pay, vm.state.value.sheet)
+        assertEquals(true, vm.pay.value.open)
         verify(exactly = 1) { payer.presentInsufficientBalance(any()) }
     }
 
@@ -150,7 +151,7 @@ class RequestDetailsInsufficientFundsTest {
 
         vm.confirmPay()
 
-        assertEquals(RequestDetailsViewModel.Sheet.Pay, vm.state.value.sheet)
+        assertEquals(true, vm.pay.value.open)
         assertEquals(1, BottomBarManager.messages.value.size)
     }
 }

@@ -114,6 +114,8 @@ import com.flipcash.shared.chat.ui.request.LocalPaymentRequestCards
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.utils.base58
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.flipcash.app.messenger.internal.request.RequestPaySheet
+import com.flipcash.app.messenger.internal.request.RequestPayViewModel
 
 @Composable
 internal fun MessengerScreen(viewModel: ChatViewModel) {
@@ -491,6 +493,12 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         }
     }
 
+    val requestPay = hiltViewModel<RequestPayViewModel>()
+    val requestPayState by requestPay.state.collectAsStateWithLifecycle()
+    val requestPayMembers by requestPay.members.collectAsStateWithLifecycle()
+    val requestPayToken by requestPay.token.collectAsStateWithLifecycle()
+    LaunchedEffect(requestPay) { requestPay.routes.collect { route -> navigator.navigate(route) } }
+
     // The collapsed pill's last bounds, where the expanded deck puts its close button.
     var deckPill by remember { mutableStateOf<Rect?>(null) }
 
@@ -541,11 +549,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         rest = deckHosts.rest.host,
                         onExpand = expandDeck,
                         onCycle = requestsViewModel::cycle,
+                        // Straight to the swipe sheet over the chat; the card body opens details.
                         onPay = { request ->
                             state.chatId?.let { chatId ->
-                                keyboard.hideIfVisible {
-                                    navigator.push(ChatStep.RequestDetails(chatId, request.id.base58, pay = true))
-                                }
+                                keyboard.hideIfVisible { requestPay.pay(chatId, request.id) }
                             }
                         },
                         onHeightChange = { deckHosts.stripPx = it.toFloat() },
@@ -678,6 +685,16 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         }
     }
 
+    // In-window, over the conversation and the deck, so the bottom bar draws above it.
+    RequestPaySheet(
+        pay = requestPayState,
+        request = deck.firstOrNull { it.id == requestPayState.requestId },
+        members = requestPayMembers,
+        viewerId = viewerId,
+        now = deckNow,
+        token = requestPayToken,
+        actions = requestPay.actions,
+    )
     ExpandedRequests(
         deck = drawnDeck,
         now = deckNow,
