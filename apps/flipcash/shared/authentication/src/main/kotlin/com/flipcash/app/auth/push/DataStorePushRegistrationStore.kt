@@ -17,7 +17,7 @@ import kotlin.time.Instant
 private val Context.pushRegistrationDataStore: DataStore<Preferences> by preferencesDataStore(name = "push_registration")
 
 /**
- * One entry per account, `<result>|<source>|<epoch millis>`. Per account because one device serves
+ * One entry per account, `<result>|<source>|<epoch millis>|<last ok epoch millis or empty>`. Per account because one device serves
  * several, and a registration belongs to the account that made it.
  */
 @Singleton
@@ -49,14 +49,17 @@ internal class DataStorePushRegistrationStore @Inject constructor(
 
     internal companion object {
         fun encode(registration: PushRegistration): String =
-            "${registration.result.key}|${registration.source.key}|${registration.at.toEpochMilliseconds()}"
+            "${registration.result.key}|${registration.source.key}|${registration.at.toEpochMilliseconds()}|" +
+                registration.lastOkAt?.toEpochMilliseconds()?.toString().orEmpty()
 
         fun decode(raw: String): PushRegistration? {
-            val parts = raw.split('|').takeIf { it.size == 3 } ?: return null
+            // Records written before lastOkAt have three parts.
+            val parts = raw.split('|').takeIf { it.size in 3..4 } ?: return null
             val result = PushRegistrationResult.entries.firstOrNull { it.key == parts[0] } ?: return null
             val source = PushRegistrationSource.entries.firstOrNull { it.key == parts[1] } ?: return null
             val millis = parts[2].toLongOrNull() ?: return null
-            return PushRegistration(Instant.fromEpochMilliseconds(millis), result, source)
+            val lastOk = parts.getOrNull(3)?.toLongOrNull()?.let(Instant::fromEpochMilliseconds)
+            return PushRegistration(Instant.fromEpochMilliseconds(millis), result, source, lastOk)
         }
     }
 }

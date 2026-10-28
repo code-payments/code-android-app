@@ -12,6 +12,9 @@ import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -46,7 +49,7 @@ class PushRegistrarTest {
         assertEquals(PushRegistrationOutcome.Ok, attempt.outcome)
         assertEquals("abc123", attempt.tokenSuffix)
         verify { userManager.set(pushToken = "token-abc123") }
-        assertEquals(PushRegistration(now, PushRegistrationResult.Ok, PushRegistrationSource.Login), store.saved)
+        assertEquals(PushRegistration(now, PushRegistrationResult.Ok, PushRegistrationSource.Login, lastOkAt = now), store.saved)
     }
 
     @Test
@@ -91,6 +94,48 @@ class PushRegistrarTest {
         assertEquals(PushRegistrationOutcome.Transport, attempt.outcome)
         assertEquals(10_000, currentTime)
         assertEquals(PushRegistrationResult.Transport, store.saved?.result)
+        // The report names the token this attempt sent, even though it never got an answer.
+        assertEquals("token", attempt.tokenSuffix)
+    }
+
+    @Test
+    fun `login and refresh get the same 10 s limit as the page`() = runTest {
+        coEvery { pushController.addToken(any()) } coAnswers { awaitCancellation() }
+
+        val attempt = registrar.register(PushRegistrationSource.Refresh, token = "fresh")
+
+        assertEquals(PushRegistrationOutcome.Transport, attempt.outcome)
+        assertEquals(10_000, currentTime)
+        assertEquals(PushRegistration(now, PushRegistrationResult.Transport, PushRegistrationSource.Refresh), store.saved)
+    }
+
+    @Test
+    fun `a failure keeps the last ok time and a newer ok replaces it`() = runTest {
+        val earlier = Instant.fromEpochSeconds(1_761_600_000)
+        store.saved = PushRegistration(earlier, PushRegistrationResult.Ok, PushRegistrationSource.Login, lastOkAt = earlier)
+        coEvery { tokenProvider.getToken() } returns "token"
+        coEvery { pushController.addToken(any()) } returns Result.failure(AddTokenError.Unrecognized())
+
+        registrar.register(PushRegistrationSource.StatusPage)
+        assertEquals(PushRegistrationResult.Unknown, store.saved?.result)
+        assertEquals(earlier, store.saved?.lastOkAt)
+
+        coEvery { pushController.addToken(any()) } returns Result.success(Unit)
+        registrar.register(PushRegistrationSource.Refresh)
+        assertEquals(now, store.saved?.lastOkAt)
+    }
+
+    @Test
+    fun `an attempt cancelled by its caller saves nothing`() = runTest {
+        coEvery { tokenProvider.getToken() } returns "token"
+        coEvery { pushController.addToken(any()) } coAnswers { awaitCancellation() }
+
+        val job = launch { registrar.register(PushRegistrationSource.StatusPage) }
+        advanceTimeBy(1_000)
+        job.cancel()
+        advanceUntilIdle()
+
+        assertNull(store.saved)
     }
 
     // Test case 11b: the saved ok is handed back so the page can soften the failure
@@ -141,12 +186,23 @@ class PushRegistrarTest {
 
     @Test
     fun `record round-trips through its stored form`() {
-        val record = PushRegistration(now, PushRegistrationResult.Transport, PushRegistrationSource.StatusPage)
+        val okAt = Instant.fromEpochMilliseconds(1_000)
+        val record = PushRegistration(now, PushRegistrationResult.Transport, PushRegistrationSource.StatusPage, okAt)
         val encoded = DataStorePushRegistrationStore.encode(record)
 
-        assertEquals("transport|statusPage|${now.toEpochMilliseconds()}", encoded)
+        assertEquals("transport|statusPage|${now.toEpochMilliseconds()}|1000", encoded)
         assertEquals(record, DataStorePushRegistrationStore.decode(encoded))
+        val neverOk = record.copy(lastOkAt = null)
+        assertEquals(neverOk, DataStorePushRegistrationStore.decode(DataStorePushRegistrationStore.encode(neverOk)))
         assertNull(DataStorePushRegistrationStore.decode("ok|nowhere|1"))
+    }
+
+    @Test
+    fun `a record saved before lastOkAt still reads`() {
+        assertEquals(
+            PushRegistration(Instant.fromEpochMilliseconds(5), PushRegistrationResult.Ok, PushRegistrationSource.Login),
+            DataStorePushRegistrationStore.decode("ok|login|5"),
+        )
     }
 
     private class FakeStore : PushRegistrationStore {

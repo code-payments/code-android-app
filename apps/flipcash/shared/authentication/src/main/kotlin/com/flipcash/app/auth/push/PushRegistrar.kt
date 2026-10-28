@@ -11,6 +11,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * The one path that sends the push token to Flipcash. Every call records its outcome in
@@ -36,35 +37,35 @@ class PushRegistrar internal constructor(
     /**
      * @param token the token to send; fetched from [PushTokenProvider] when null.
      * @param resetToken delete the local token first, so a rejected token is replaced.
-     * @param timeout give up after this long and record a transport failure; no limit when null.
+     * @param timeout give up after this long and record a transport failure. It covers the token
+     *   delete, the token fetch and `AddToken`.
      */
     suspend fun register(
         source: PushRegistrationSource,
         token: String? = null,
         resetToken: Boolean = false,
-        timeout: Duration? = null,
+        timeout: Duration = Timeout,
     ): PushRegistrationAttempt {
         val previous = store.read()
 
-        suspend fun attempt(): Pair<PushRegistrationOutcome, String?> {
+        // Kept outside the attempt so a timeout still reports the token it sent.
+        var sent: String? = null
+
+        suspend fun attempt(): PushRegistrationOutcome {
             if (resetToken) pushTokenProvider.deleteToken()
             val pushToken = token ?: pushTokenProvider.getToken()
-                ?: return PushRegistrationOutcome.NoToken to null
-            val outcome = pushController.addToken(pushToken).fold(
+                ?: return PushRegistrationOutcome.NoToken
+            sent = pushToken
+            return pushController.addToken(pushToken).fold(
                 onSuccess = {
                     userManager.set(pushToken = pushToken)
                     PushRegistrationOutcome.Ok
                 },
                 onFailure = ::classify,
             )
-            return outcome to pushToken
         }
 
-        val (outcome, pushToken) = if (timeout == null) {
-            attempt()
-        } else {
-            withTimeoutOrNull(timeout) { attempt() } ?: (PushRegistrationOutcome.Transport to null)
-        }
+        val outcome = withTimeoutOrNull(timeout) { attempt() } ?: PushRegistrationOutcome.Transport
 
         if (outcome == PushRegistrationOutcome.Ok) {
             trace("push token updated ($source)", type = TraceType.Silent)
@@ -73,13 +74,21 @@ class PushRegistrar internal constructor(
         }
 
         outcome.toResult()?.let { result ->
-            store.save(PushRegistration(at = clock.now(), result = result, source = source))
+            val now = clock.now()
+            store.save(
+                PushRegistration(
+                    at = now,
+                    result = result,
+                    source = source,
+                    lastOkAt = if (result == PushRegistrationResult.Ok) now else previous?.lastOkAt,
+                ),
+            )
         }
 
         return PushRegistrationAttempt(
             outcome = outcome,
             previous = previous,
-            tokenSuffix = pushToken?.takeLast(6),
+            tokenSuffix = sent?.takeLast(6),
         )
     }
 
@@ -87,6 +96,11 @@ class PushRegistrar internal constructor(
     suspend fun lastSaved(): PushRegistration? = store.read()
 
     suspend fun clear() = store.clear()
+
+    companion object {
+        /** One limit for every call site: login, token refresh and the status page. */
+        val Timeout = 10.seconds
+    }
 
     private fun classify(error: Throwable): PushRegistrationOutcome = when {
         error is AddTokenError.InvalidPushToken -> PushRegistrationOutcome.InvalidPushToken

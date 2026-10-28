@@ -11,6 +11,8 @@ data class PushRegistration(
     val at: Instant,
     val result: PushRegistrationResult,
     val source: PushRegistrationSource,
+    /** When any call site last got `ok`; only a newer `ok` replaces it. */
+    val lastOkAt: Instant? = null,
 )
 
 enum class PushRegistrationResult(val key: String) {
