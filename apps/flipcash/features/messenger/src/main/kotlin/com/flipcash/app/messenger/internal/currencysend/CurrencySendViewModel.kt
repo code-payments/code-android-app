@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.currencysend
 
+import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.getcode.view.PaymentSuccessHoldDuration
 import com.getcode.view.holdPaymentSuccess
 import androidx.lifecycle.ViewModel
@@ -22,6 +23,8 @@ import com.flipcash.shared.chat.chatListFeed
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.chat.ui.toConversationReference
 import com.flipcash.shared.payments.TipPaymentDelegate
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
@@ -73,7 +76,15 @@ internal class CurrencySendViewModel @Inject constructor(
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val tipPaymentDelegate: TipPaymentDelegate,
     private val analytics: FlipcashAnalytics,
+    private val payer: StartChattingPayer,
 ) : ViewModel() {
+
+    sealed interface Effect {
+        data class OpenScreen(val route: AppRoute) : Effect
+    }
+
+    private val effects = Channel<Effect>(Channel.BUFFERED)
+    val effectFlow: Flow<Effect> = effects.receiveAsFlow()
 
     enum class Stage { Amount, Recipients }
 
@@ -172,11 +183,41 @@ internal class CurrencySendViewModel @Inject constructor(
     fun onAmountConfirmed() {
         val entered = amountDelegate.state.value.enteredAmount
         if (entered <= 0) return
+        // Over balance (or the send limit) stops here rather than at the swipe.
+        if (blockedAtAmount(entered)) return
         _state.update {
             it.copy(
                 amount = Fiat(entered, exchange.preferredRate.currency),
                 stage = Stage.Recipients,
             )
+        }
+    }
+
+    private fun blockedAtAmount(entered: Double): Boolean {
+        val token = _state.value.token ?: return false
+        val rate = exchange.preferredRate
+        val amount = Fiat(entered, rate.currency)
+        val balance = tokenCoordinator.balanceForToken(token).convertingTo(rate)
+        if (amount.valueGreaterThan(balance)) {
+            payer.presentInsufficientBalance(onAddMoney = ::presentDeposit)
+            return true
+        }
+        val limit = transactionController.limits.value?.sendLimitFor(rate.currency)
+        if (limit != null && entered > limit.nextTransaction) {
+            BottomBarManager.showAlert(
+                resources.getString(R.string.error_title_sendLimitReached),
+                resources.getString(R.string.error_description_sendLimitReached),
+            )
+            return true
+        }
+        return false
+    }
+
+    /** "Add Money" from a modal: the swipe sheet closes, then the deposit screen opens. */
+    private fun presentDeposit() {
+        _state.update { if (it.sendProgress.isIdle) it.copy(selected = null) else it }
+        viewModelScope.launch {
+            payer.depositRoute()?.let { effects.send(Effect.OpenScreen(it)) }
         }
     }
 
@@ -193,6 +234,9 @@ internal class CurrencySendViewModel @Inject constructor(
     }
 
     /** Closes the swipe sheet, back to the list. A send in flight can't be backed out of. */
+    /** What the confirm sheet asks of this flow, in one place; see [SwipePayActions]. */
+    val swipePayActions = SwipePayActions(onConfirm = ::send, onDismiss = ::onConfirmDismissed)
+
     fun onConfirmDismissed() {
         if (!_state.value.sendProgress.isIdle) return
         _state.update { it.copy(selected = null) }

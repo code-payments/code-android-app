@@ -1,5 +1,10 @@
 package com.flipcash.app.messenger
 
+import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
+import com.flipcash.app.messenger.internal.swipepay.SwipePaySheet
+import com.flipcash.app.messenger.internal.swipepay.SwipePayUiState
+import com.flipcash.app.messenger.internal.swipepay.SwipePaySheetState
+import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -106,23 +111,22 @@ fun CurrencySendScreen(mint: Mint, resultStateRegistry: NavResultStateRegistry) 
 
     LaunchedEffect(viewModel, mint) { viewModel.start(mint) }
     val session = LocalSessionController.current
+    LaunchedEffect(viewModel) {
+        viewModel.effectFlow.collect { effect ->
+            when (effect) {
+                is CurrencySendViewModel.Effect.OpenScreen -> navigator.navigate(effect.route)
+            }
+        }
+    }
     LaunchedEffect(viewModel, session) {
         viewModel.bill.collect { session?.showBill(it) }
     }
-    // Raised once the checkmark has held: from then on the sheet may close, and only by our hand.
-    var hiding by remember { mutableStateOf(false) }
-    val locked by rememberUpdatedState(!state.sendProgress.isIdle && !hiding)
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { !locked },
-    )
+    // Locked from the swipe until the checkmark has held; then only our own hide() closes it.
+    val sheetState = rememberSwipePaySheetState(locked = !state.sendProgress.isIdle)
     LaunchedEffect(viewModel, sheetState) {
         viewModel.done.collect {
             finishSend(
-                hide = {
-                    hiding = true
-                    sheetState.hide()
-                },
+                hide = { sheetState.sheet.hide() },
                 navigateBack = { navigator.pop() },
             )
         }
@@ -205,12 +209,13 @@ fun CurrencySendScreen(mint: Mint, resultStateRegistry: NavResultStateRegistry) 
         SwipeToSendSheet(
             recipient = selected,
             amountText = amount.formatted(),
-            token = state.token,
-            sendProgress = state.sendProgress,
+            swipePay = SwipePayUiState(
+                token = state.token,
+                progress = state.sendProgress,
+                tokenPickable = false,
+            ),
+            actions = viewModel.swipePayActions,
             sheetState = sheetState,
-            locked = locked,
-            onConfirm = viewModel::send,
-            onDismiss = { if (!hiding) viewModel.onConfirmDismissed() },
         )
     }
 }
@@ -402,34 +407,19 @@ internal suspend fun finishSend(hide: suspend () -> Unit, navigateBack: () -> Un
  * The confirm sheet over Select Recipient: who is being paid, the amount, the currency with no
  * picker, and the swipe. Closed by a swipe down, a tap on the scrim or back, which returns to the list and sends nothing; locked once the send starts.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SwipeToSendSheet(
     recipient: ConversationReference,
     amountText: String,
-    token: com.getcode.opencode.model.financial.Token?,
-    sendProgress: com.getcode.view.LoadingSuccessState,
-    sheetState: SheetState,
-    locked: Boolean,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
+    swipePay: SwipePayUiState,
+    actions: SwipePayActions,
+    sheetState: SwipePaySheetState,
 ) {
-    ModalBottomSheet(
-        onDismissRequest = { if (!locked) onDismiss() },
+    SwipePaySheet(
+        state = swipePay,
+        actions = actions,
         sheetState = sheetState,
-        dragHandle = null,
-        containerColor = CodeTheme.colors.background,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = CodeTheme.dimens.inset)
-                .padding(top = CodeTheme.dimens.grid.x6, bottom = CodeTheme.dimens.grid.x4),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            // Section gap 40 (node 11622:2232).
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x8),
-        ) {
+        header = {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
@@ -459,43 +449,18 @@ private fun SwipeToSendSheet(
                     }
                 }
             }
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-            ) {
-                Text(
-                    text = amountText,
-                    // SemiBold 44, tracking -1 (node 11881:2467).
-                    style = CodeTheme.typography.displayMedium.copy(
-                        fontSize = 44.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = (-1).sp,
-                    ),
-                    color = CodeTheme.colors.textMain,
-                )
-                // Node 11881:2468: 36 tall, 20 coin, SemiBold 17, 5% fill. No chevron: the currency is locked.
-                TokenSelectionPill(
-                    modifier = Modifier.height(CodeTheme.dimens.grid.x7),
-                    token = token,
-                    background = White05,
-                    textStyle = CodeTheme.typography.textMedium.copy(fontSize = 17.sp),
-                    imageSize = CodeTheme.dimens.staticGrid.x4,
-                    contentPadding = PaddingValues(
-                        horizontal = CodeTheme.dimens.grid.x2,
-                        vertical = CodeTheme.dimens.grid.x1,
-                    ),
-                    showsPicker = false,
-                    onClick = {},
-                )
-            }
-            SlideToConfirm(
-                onConfirm = onConfirm,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = sendProgress.isIdle,
-                isLoading = sendProgress.loading,
-                isSuccess = sendProgress.success,
-                label = stringResource(R.string.action_swipeToSend),
+        },
+        amount = {
+            Text(
+                text = amountText,
+                // SemiBold 44, tracking -1 (node 11881:2467).
+                style = CodeTheme.typography.displayMedium.copy(
+                    fontSize = 44.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-1).sp,
+                ),
+                color = CodeTheme.colors.textMain,
             )
-        }
-    }
+        },
+    )
 }

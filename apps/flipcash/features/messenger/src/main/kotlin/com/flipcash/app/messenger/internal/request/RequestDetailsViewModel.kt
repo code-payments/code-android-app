@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.request
 
+import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.getcode.view.PaymentSuccessHoldDuration
 import com.getcode.view.holdPaymentSuccess
 import androidx.lifecycle.ViewModel
@@ -38,6 +39,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -183,8 +185,15 @@ internal class RequestDetailsViewModel @Inject constructor(
                     _state.update { it.copy(preparing = false) }
                     when (found) {
                         is ShareToPay.Ready -> {
-                            ready = found
-                            _state.update { it.copy(sheet = Sheet.Pay, payProgress = LoadingSuccessState()) }
+                            // Checked before the swipe sheet opens, so an empty wallet never reaches the swipe.
+                            val token = token.value ?: payer.observeSelectedToken().first()
+                            val blocked = payBlock(found.share.amount, token)
+                            if (blocked != null) {
+                                present(blocked)
+                            } else {
+                                ready = found
+                                _state.update { it.copy(sheet = Sheet.Pay, payProgress = LoadingSuccessState()) }
+                            }
                         }
                         is ShareToPay.NothingToPay -> _state.update { it.copy(hasPaymentIntent = false) }
                         is ShareToPay.Closed -> presentClosed()
@@ -197,13 +206,23 @@ internal class RequestDetailsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Everything the pay sheet asks of this flow, in one place: a later destination that owns the
+     * sheet can take this object, and the [SwipePayUiState] built from [state], as they are.
+     */
+    val swipePayActions = SwipePayActions(onConfirm = ::confirmPay, onDismiss = ::dismissSheet)
+
     /** The swipe on frame 10. A second swipe after a failure pays under the same intent id. */
     fun confirmPay() {
         val pending = ready ?: return
         val token = token.value ?: return
         val owner = userManager.accountCluster ?: return
         if (!_state.value.payProgress.isIdle) return
-        if (overBalance(pending.share.amount, token) || overSendLimit(pending.share.amount)) return
+        // The token or the balance can change while the sheet is up; the modal shows over it.
+        payBlock(pending.share.amount, token)?.let { blocked ->
+            present(blocked)
+            return
+        }
 
         _state.update { it.copy(payProgress = LoadingSuccessState(loading = true)) }
         viewModelScope.launch {
@@ -269,7 +288,9 @@ internal class RequestDetailsViewModel @Inject constructor(
         _state.update { it.copy(sheet = Sheet.None, payProgress = LoadingSuccessState()) }
     }
 
+    /** "Add Money" from a modal: the swipe sheet closes, then the deposit screen opens. */
     fun presentDeposit() {
+        dismissSheet()
         viewModelScope.launch {
             payer.depositRoute()?.let { effects.send(Effect.OpenScreen(it)) }
         }
@@ -296,24 +317,25 @@ internal class RequestDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun overBalance(amount: Fiat, token: Token): Boolean {
-        val rate = exchange.rateFor(amount.currencyCode) ?: return false
-        val balance = tokenCoordinator.balanceForToken(token).convertingTo(rate)
-        val over = amount.valueGreaterThan(balance)
-        if (over) payer.presentInsufficientBalance(onAddMoney = ::presentDeposit)
-        return over
+    private enum class PayBlock { OverBalance, OverSendLimit }
+
+    /** Why [amount] can't be paid from [token] right now, or null when it can. Presents nothing. */
+    private fun payBlock(amount: Fiat, token: Token): PayBlock? {
+        exchange.rateFor(amount.currencyCode)?.let { rate ->
+            val balance = tokenCoordinator.balanceForToken(token).convertingTo(rate)
+            if (amount.valueGreaterThan(balance)) return PayBlock.OverBalance
+        }
+        val limit = transactionController.limits.value?.sendLimitFor(amount.currencyCode)
+        if (limit != null && amount.toDouble() > limit.nextTransaction) return PayBlock.OverSendLimit
+        return null
     }
 
-    private fun overSendLimit(amount: Fiat): Boolean {
-        val limit = transactionController.limits.value?.sendLimitFor(amount.currencyCode) ?: return false
-        val over = amount.toDouble() > limit.nextTransaction
-        if (over) {
-            BottomBarManager.showAlert(
-                resources.getString(R.string.error_title_sendLimitReached),
-                resources.getString(R.string.error_description_sendLimitReached),
-            )
-        }
-        return over
+    private fun present(block: PayBlock) = when (block) {
+        PayBlock.OverBalance -> payer.presentInsufficientBalance(onAddMoney = ::presentDeposit)
+        PayBlock.OverSendLimit -> BottomBarManager.showAlert(
+            resources.getString(R.string.error_title_sendLimitReached),
+            resources.getString(R.string.error_description_sendLimitReached),
+        )
     }
 
     private fun presentClosed() {
