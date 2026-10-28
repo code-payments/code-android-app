@@ -1,10 +1,6 @@
 package com.flipcash.app.messenger
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -62,7 +58,14 @@ import com.flipcash.features.messenger.R
 import com.flipcash.shared.amountentry.AmountEntryScreen
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.common.ui.ContactAvatar
+import android.os.Parcelable
+import androidx.navigation3.runtime.entryProvider
+import com.getcode.navigation.annotatedEntry
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.results.NavResultStateRegistry
+import com.getcode.navigation.flow.FlowHost
+import com.getcode.navigation.flow.rememberFlowNavigator
+import com.flipcash.app.messenger.internal.currencysend.CurrencySendStep
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.ui.components.AppBarDefaults
@@ -81,7 +84,7 @@ import com.getcode.solana.keys.Mint
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CurrencySendScreen(mint: Mint) {
+fun CurrencySendScreen(mint: Mint, resultStateRegistry: NavResultStateRegistry) {
     val viewModel = hiltViewModel<CurrencySendViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
@@ -106,56 +109,70 @@ fun CurrencySendScreen(mint: Mint) {
         }
     }
 
-    BackHandler(enabled = state.stage == CurrencySendViewModel.Stage.Recipients && state.selected == null) {
-        viewModel.onBackToAmount()
-    }
+    // Select Recipient slides in over the amount, as Select People does in a group send: the sheet
+    // has its own nav host, and the view model's stage decides which step is on top.
+    val inRecipients = state.stage == CurrencySendViewModel.Stage.Recipients
 
-    AnimatedContent(
-        targetState = state.stage,
-        transitionSpec = { fadeIn() togetherWith fadeOut() },
-        label = "currencySendStage",
-    ) { stage ->
-        when (stage) {
-            CurrencySendViewModel.Stage.Amount -> AmountEntryScreen(
-                controller = viewModel.amountDelegate,
-                onConfirm = viewModel::onAmountConfirmed,
-                largeHeader = true,
-                appBar = {
-                    AppBarWithTitle(
-                        titleAlignment = Alignment.CenterHorizontally,
-                        titleContent = {
-                            // Locked to this currency: no dropdown mark, and nothing to tap.
-                            TokenSelectionPill(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .wrapContentHeight(),
-                                token = state.token,
-                                showsPicker = false,
-                            ) {}
-                        },
-                        onBackIconClicked = { navigator.pop() },
-                    )
-                },
-            )
-
-            CurrencySendViewModel.Stage.Recipients -> SelectRecipientContent(
-                recipients = state.visibleRecipients,
-                onQueryChanged = viewModel::onQueryChanged,
-                onBack = viewModel::onBackToAmount,
-                onPick = viewModel::onRecipientTapped,
-                onGiveAsCash = {
-                    val amount = state.amount ?: return@SelectRecipientContent
-                    navigator.push(
-                        AppRoute.Sheets.Give(
-                            mint = mint,
-                            fromTokenInfo = true,
-                            amount = amount.decimalValue,
+    FlowHost<CurrencySendStep, Parcelable>(
+        initialStack = listOf(CurrencySendStep.Amount),
+        resultStateRegistry = resultStateRegistry,
+        onExit = { _, _ -> navigator.pop() },
+        entryProvider = entryProvider {
+            annotatedEntry<CurrencySendStep.Amount> {
+                val flowNavigator = rememberFlowNavigator<CurrencySendStep, Parcelable>()
+                LaunchedEffect(inRecipients) {
+                    if (inRecipients) flowNavigator.navigateTo(CurrencySendStep.Recipients)
+                }
+                AmountEntryScreen(
+                    controller = viewModel.amountDelegate,
+                    onConfirm = viewModel::onAmountConfirmed,
+                    largeHeader = true,
+                    appBar = {
+                        AppBarWithTitle(
+                            titleAlignment = Alignment.CenterHorizontally,
+                            titleContent = {
+                                // Locked to this currency: no dropdown mark, and nothing to tap.
+                                TokenSelectionPill(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .wrapContentHeight(),
+                                    token = state.token,
+                                    showsPicker = false,
+                                ) {}
+                            },
+                            onBackIconClicked = { navigator.pop() },
                         )
-                    )
-                },
-            )
-        }
-    }
+                    },
+                )
+            }
+
+            annotatedEntry<CurrencySendStep.Recipients> {
+                val flowNavigator = rememberFlowNavigator<CurrencySendStep, Parcelable>()
+                LaunchedEffect(inRecipients) {
+                    if (!inRecipients) flowNavigator.back()
+                }
+                // Back goes through the view model, whose stage change pops this step above;
+                // the nav host popping it alone would leave the stage behind.
+                BackHandler(enabled = state.selected == null) { viewModel.onBackToAmount() }
+                SelectRecipientContent(
+                    recipients = state.visibleRecipients,
+                    onQueryChanged = viewModel::onQueryChanged,
+                    onBack = viewModel::onBackToAmount,
+                    onPick = viewModel::onRecipientTapped,
+                    onGiveAsCash = {
+                        val amount = state.amount ?: return@SelectRecipientContent
+                        navigator.push(
+                            AppRoute.Sheets.Give(
+                                mint = mint,
+                                fromTokenInfo = true,
+                                amount = amount.decimalValue,
+                            )
+                        )
+                    },
+                )
+            }
+        },
+    )
 
     val selected = state.selected
     val amount = state.amount
