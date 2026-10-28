@@ -27,7 +27,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
-/** Renders the in-chat invite states (nodes 12846:259, 12846:374, 12846:427, 12846:480). Not an assertion test. */
+/** Renders the in-chat invite states (nodes 12846:259, 12846:374, 12846:427 host, 12846:480 joiner). Not an assertion test. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [32], qualifiers = "w390dp-h400dp-xxhdpi")
@@ -73,7 +73,7 @@ class InviteChatScreenshotTest {
     }
 
     @Test
-    fun youJoinedWithInvite_5c() = render("invite_5c.png") {
+    fun youJoinedWithInvite_5d() = render("invite_5d.png") {
         SystemMessageRow(
             text = "You joined with Jeff Yanta’s invite link",
             userLinks = listOf(SystemUserLink(start = 16, end = 26, userId = listOf(1))),
@@ -81,7 +81,7 @@ class InviteChatScreenshotTest {
     }
 
     @Test
-    fun joinedWithYourInvite_5d() = render("invite_5d.png") {
+    fun joinedWithYourInvite_5c() = render("invite_5c.png") {
         SystemMessageRow(text = "Alex joined with your invite link")
     }
 }
