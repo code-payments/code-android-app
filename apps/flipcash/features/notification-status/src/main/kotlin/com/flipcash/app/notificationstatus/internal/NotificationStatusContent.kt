@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -62,6 +61,7 @@ import com.getcode.theme.White05
 import com.getcode.ui.components.BottomScrollEdge
 import com.getcode.ui.components.glass.floatingGlass
 import com.getcode.ui.components.text.SectionHeader
+import com.getcode.ui.components.toast.ToastBottomClearance
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import dev.chrisbanes.haze.HazeState
@@ -82,8 +82,11 @@ internal fun NotificationStatusContent(
     val status = state.status
     val inset = CodeTheme.dimens.inset
     val density = LocalDensity.current
+    // At accessibility text sizes the actions would cover most of the page, so they scroll with it.
+    val pinActions = density.fontScale < AccessibilityFontScale
     // The pinned actions float over the page, so the page leaves room for them.
     var actionsHeight by remember { mutableStateOf(0.dp) }
+    if (pinActions) ToastBottomClearance(actionsHeight)
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -135,63 +138,92 @@ internal fun NotificationStatusContent(
                     )
                 }
             }
-            Spacer(Modifier.height(actionsHeight + CodeTheme.dimens.grid.x4))
-        }
-
-        // Content fades out under the actions while there is more to scroll to.
-        BottomScrollEdge(
-            hazeState = hazeState,
-            scrollState = scrollState,
-            height = actionsHeight,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .onSizeChanged { actionsHeight = with(density) { it.height.toDp() } }
-                .navigationBarsPadding()
-                .padding(horizontal = inset)
-                .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x4),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            CodeButton(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // "Send again" is translucent; the glass keeps it legible over the page.
-                    .then(if (state.testSent) Modifier.floatingGlass(hazeState, CircleShape) else Modifier),
-                text = stringResource(
-                    if (state.testSent) R.string.action_sendTestNotificationAgain else R.string.action_sendTestNotification,
-                ),
-                buttonState = if (state.testSent) ButtonState.Filled10 else ButtonState.Filled,
-                shape = CircleShape,
-                enabled = status.canSendTest,
-                onClick = onSendTest,
-            )
-            CodeButton(
-                modifier = Modifier.fillMaxWidth(),
-                text = stringResource(R.string.action_shareReport),
-                buttonState = ButtonState.Subtle,
-                textColor = CodeTheme.colors.textMain,
-                onClick = onShareReport,
-            )
-            val (note, color) = when {
-                !status.canSendTest ->
-                    stringResource(R.string.description_notificationStatusTestDisabled) to CodeTheme.colors.textSecondary
-                state.testSent ->
-                    stringResource(R.string.description_notificationStatusTestSent) to CodeTheme.colors.successText
-                else ->
-                    stringResource(R.string.description_notificationStatusFooter) to CodeTheme.colors.textSecondary
+            if (pinActions) {
+                Spacer(Modifier.height(actionsHeight + CodeTheme.dimens.grid.x4))
+            } else {
+                Actions(
+                    state = state,
+                    hazeState = hazeState,
+                    onSendTest = onSendTest,
+                    onShareReport = onShareReport,
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(top = CodeTheme.dimens.grid.x6, bottom = CodeTheme.dimens.grid.x4),
+                )
             }
-            Text(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
-                text = note,
-                style = CodeTheme.typography.textSmall,
-                color = color,
-                textAlign = TextAlign.Center,
+        }
+
+        if (pinActions) {
+            // Content fades out under the actions while there is more to scroll to.
+            BottomScrollEdge(
+                hazeState = hazeState,
+                scrollState = scrollState,
+                height = actionsHeight,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+
+            Actions(
+                state = state,
+                hazeState = hazeState,
+                onSendTest = onSendTest,
+                onShareReport = onShareReport,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .onSizeChanged { actionsHeight = with(density) { it.height.toDp() } }
+                    .navigationBarsPadding()
+                    .padding(horizontal = inset)
+                    .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x4),
             )
         }
+    }
+}
+
+@Composable
+private fun Actions(
+    state: NotificationStatusViewModel.State,
+    hazeState: HazeState,
+    onSendTest: () -> Unit,
+    onShareReport: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val status = state.status
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        CodeButton(
+            modifier = Modifier
+                .fillMaxWidth()
+                // "Send again" is translucent; the glass keeps it legible over the page.
+                .then(if (state.testSent) Modifier.floatingGlass(hazeState, CircleShape) else Modifier),
+            text = stringResource(
+                if (state.testSent) R.string.action_sendTestNotificationAgain else R.string.action_sendTestNotification,
+            ),
+            buttonState = if (state.testSent) ButtonState.Filled10 else ButtonState.Filled,
+            shape = CircleShape,
+            enabled = status.canSendTest,
+            onClick = onSendTest,
+        )
+        CodeButton(
+            modifier = Modifier.fillMaxWidth(),
+            text = stringResource(R.string.action_shareReport),
+            buttonState = ButtonState.Subtle,
+            textColor = CodeTheme.colors.textMain,
+            onClick = onShareReport,
+        )
+        Text(
+            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
+            text = stringResource(
+                if (status.canSendTest) {
+                    R.string.description_notificationStatusFooter
+                } else {
+                    R.string.description_notificationStatusTestDisabled
+                },
+            ),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -274,7 +306,7 @@ private fun Group(
     state: NotificationStatusViewModel.State,
     onFix: (Fix) -> Unit,
 ) {
-    SectionHeader(title = title.uppercase())
+    SectionHeader(title = title)
     Spacer(Modifier.height(CodeTheme.dimens.grid.x1))
     Card {
         Column(modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2)) {
@@ -303,9 +335,6 @@ private fun CheckRowItem(row: CheckRow, state: NotificationStatusViewModel.State
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            // One height for the checking and settled states, so a result doesn't move the rows
-            // below it.
-            .heightIn(min = CodeTheme.dimens.grid.x15)
             .animateContentSize()
             .padding(horizontal = CodeTheme.dimens.grid.x4, vertical = CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.CenterVertically,
@@ -315,7 +344,14 @@ private fun CheckRowItem(row: CheckRow, state: NotificationStatusViewModel.State
         Crossfade(targetState = text, modifier = Modifier.weight(1f), label = "row text") { (title, detail) ->
             Column {
                 Text(title, style = CodeTheme.typography.textMedium, color = CodeTheme.colors.textMain)
-                Text(detail, style = CodeTheme.typography.textSmall, color = CodeTheme.colors.textSecondary)
+                // Two lines reserved, checking or settled, so a result that wraps doesn't move the
+                // rows below it.
+                Text(
+                    detail,
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                    minLines = 2,
+                )
             }
         }
         AnimatedContent(
@@ -517,3 +553,6 @@ private fun StatusMark(status: CheckStatus, width: Dp = 16.dp, height: Dp = 24.d
         )
     }
 }
+
+// The large-text threshold UserLinkCard uses.
+private const val AccessibilityFontScale = 1.5f

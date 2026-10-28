@@ -33,6 +33,7 @@ import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.TopScrollEdge
+import com.getcode.ui.components.toast.LocalFloatingToastHost
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
 import dev.chrisbanes.haze.rememberHazeState
@@ -42,17 +43,20 @@ import com.google.android.gms.common.GoogleApiAvailability
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 
 @Composable
 fun NotificationStatusScreen() {
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
+    val toasts = LocalFloatingToastHost.current
     val viewModel = hiltViewModel<NotificationStatusViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     val permission = rememberNotificationPermission { viewModel.dispatchEvent(Event.Refresh) }
 
-    // Covers coming back from system settings after a Fix.
+    // Covers coming back from system settings after a Fix. Only the phone's settings are read
+    // again; registration keeps its last result (Decision 2).
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.dispatchEvent(Event.Refresh)
     }
@@ -119,6 +123,15 @@ fun NotificationStatusScreen() {
         viewModel.eventFlow
             .filterIsInstance<Event.ShareReport>()
             .onEach { context.startActivity(IntentUtils.share(it.text)) }
+            .launchIn(this)
+    }
+
+    val testSent = stringResource(R.string.toast_notificationStatusTestSent)
+    LaunchedEffect(viewModel, toasts) {
+        if (toasts == null) return@LaunchedEffect
+        viewModel.eventFlow
+            .filterIsInstance<Event.TestScheduled>()
+            .onEach { launch { toasts.show(message = testSent) } }
             .launchIn(this)
     }
 }

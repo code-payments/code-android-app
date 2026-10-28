@@ -10,9 +10,11 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -87,6 +89,26 @@ class NotificationStatusViewModelTest {
         val after = viewModel.stateFlow.value
         assertEquals(Summary.Working, after.status.summary)
         assertFalse(after.running)
+    }
+
+    @Test
+    fun `returning to the foreground re-reads the phone without registering again`() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        assertTrue(viewModel.stateFlow.value.folded)
+        coVerify(exactly = 1) { pushController.addToken(any()) }
+
+        val folded = mutableListOf<Boolean>()
+        val watch = launch { viewModel.stateFlow.collect { folded += it.folded } }
+        viewModel.dispatchEvent(NotificationStatusViewModel.Event.Refresh)
+        advanceUntilIdle()
+        watch.cancel()
+
+        verify(exactly = 2) { reader.read() }
+        coVerify(exactly = 1) { pushController.addToken(any()) }
+        // Registration kept its result, so the page never unfolded.
+        assertTrue(folded.all { it })
+        assertFalse(viewModel.stateFlow.value.running)
     }
 
     @Test

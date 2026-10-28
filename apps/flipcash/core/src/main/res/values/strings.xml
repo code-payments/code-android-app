@@ -1969,7 +1969,7 @@
     <string name="title_recentChats">Recent Chats</string>
     <!-- Notification status (Settings › Advanced › Notifications) -->
     <string name="title_notificationStatus">Notifications</string>
-    <string name="header_notificationStatusPhone">On this phone</string>
+    <string name="header_notificationStatusPhone">On This Phone</string>
     <string name="header_notificationStatusFlipcash">With Flipcash</string>
     <string name="title_notificationStatusWorking">Notifications are working</string>
     <string name="title_notificationStatusOff">Notifications are off</string>
@@ -1987,16 +1987,16 @@
         <item quantity="one">%1$d check passed</item>
         <item quantity="other">%1$d checks passed</item>
     </plurals>
-    <string name="action_sendTestNotification">Send test notification</string>
-    <string name="action_sendTestNotificationAgain">Send again</string>
-    <string name="action_shareReport">Share report</string>
-    <string name="action_turnOn">Turn on</string>
+    <string name="action_sendTestNotification">Send Test Notification</string>
+    <string name="action_sendTestNotificationAgain">Send Again</string>
+    <string name="action_shareReport">Share Report</string>
+    <string name="action_turnOn">Turn On</string>
     <string name="action_fix">Fix</string>
-    <string name="action_tryAgain">Try again</string>
-    <string name="action_checkAgain">Check again</string>
+    <string name="action_tryAgain">Try Again</string>
+    <string name="action_checkAgain">Check Again</string>
     <string name="description_notificationStatusFooter">The test is posted by this phone. It shows that notifications can appear here, not that Flipcash\'s servers can reach you.</string>
     <string name="description_notificationStatusTestDisabled">Turn on notifications to send a test.</string>
-    <string name="description_notificationStatusTestSent">Sent. Lock your phone in the next 3 seconds to see it on the Lock Screen.</string>
+    <string name="toast_notificationStatusTestSent">Test notification sent</string>
 
     <string name="title_notificationCheckAllowed">Notifications allowed</string>
     <string name="subtitle_notificationCheckAllowed">Allowed in Android settings</string>
