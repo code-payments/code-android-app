@@ -198,6 +198,7 @@ private fun RequirementRow(label: String, value: String, compact: Boolean, onCli
             )
             if (onClick != null) {
                 Icon(
+                    modifier = Modifier.padding(start = 8.dp),
                     painter = painterResource(R.drawable.ic_chevron_right),
                     contentDescription = null,
                     tint = CodeTheme.colors.textSecondary,

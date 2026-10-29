@@ -24,7 +24,6 @@ import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.GroupBalanceRole
 import com.flipcash.shared.chat.isBalanceEditable
-import com.flipcash.shared.chat.speakerMinimum
 import com.flipcash.shared.common.ui.profile.BalanceRequirementsCard
 import com.flipcash.shared.common.ui.profile.CoverAndPhoto
 import com.flipcash.shared.common.ui.profile.FieldCard
@@ -39,8 +38,8 @@ import com.getcode.ui.theme.CodeScaffold
  *
  * The requirements' Join and Chat rows open [EditGroupBalanceRequirementScreen] only where
  * `EditChatRequest.rules` would be accepted: a public group created with a listener minimum
- * ([isBalanceEditable]). Anywhere else the card is shown and not editable. The Chat row reads the
- * group's own speaker rule, "None" without one.
+ * ([isBalanceEditable]). Anywhere else the card is shown and not editable. Without a speaker rule,
+ * the Chat row shows the Join minimum, as the profile does.
  *
  * Every field opens its own editor and saves on its own, so nothing is held here. The screen is
  * the door to those editors and leaves the moment the viewer stops being allowed through it: if
@@ -114,9 +113,7 @@ internal fun EditGroupScreen(chatViewModel: ChatViewModel) {
                 BalanceRequirementsCard(
                     modifier = Modifier.padding(top = grid.x6),
                     join = requirements.join?.let { holdingLabel(it, tokens) },
-                    // The group's own speaker rule, not the profile's fallback to Join: this row
-                    // edits that rule, so "None" has to mean there isn't one.
-                    chat = group?.rules?.speakerMinimum?.let { holdingLabel(it, tokens) },
+                    chat = requirements.chat?.let { holdingLabel(it, tokens) },
                     yourBalance = null,
                     compact = true,
                     footnote = stringResource(R.string.footer_groupBalanceRequirements),

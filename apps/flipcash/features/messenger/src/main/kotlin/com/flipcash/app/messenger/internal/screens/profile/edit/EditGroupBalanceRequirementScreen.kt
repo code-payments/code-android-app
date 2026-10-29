@@ -1,6 +1,8 @@
 package com.flipcash.app.messenger.internal.screens.profile.edit
 
 import android.os.Parcelable
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,7 +23,9 @@ import com.flipcash.shared.amountentry.AmountEntryScreen
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.core.unboundedClickable
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -82,16 +86,18 @@ internal fun EditGroupBalanceRequirementScreen(
                 onBackIconClicked = { flowNavigator.back() },
                 endContent = {
                     if (state.canRemove) {
-                        Text(
-                            modifier = Modifier
-                                .unboundedClickable(enabled = state.processingState.isIdle) {
-                                    viewModel.dispatchEvent(EditGroupBalanceRequirementViewModel.Event.RemoveClicked)
-                                }
-                                .padding(horizontal = CodeTheme.dimens.grid.x2),
+                        CodeButton(
+                            modifier = Modifier.padding(end = CodeTheme.dimens.grid.x2),
                             text = stringResource(R.string.action_remove),
-                            style = CodeTheme.typography.textMedium,
-                            color = CodeTheme.colors.textMain,
-                        )
+                            buttonState = ButtonState.Filled10,
+                            enabled = state.processingState.isIdle,
+                            shape = CircleShape,
+                            style = CodeTheme.typography.textSmall,
+                            contentPadding = PillPadding,
+                            overrideContentPadding = true,
+                        ) {
+                            viewModel.dispatchEvent(EditGroupBalanceRequirementViewModel.Event.RemoveClicked)
+                        }
                     }
                 },
             )
@@ -111,3 +117,5 @@ internal fun EditGroupBalanceRequirementScreen(
         },
     )
 }
+
+private val PillPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp)
