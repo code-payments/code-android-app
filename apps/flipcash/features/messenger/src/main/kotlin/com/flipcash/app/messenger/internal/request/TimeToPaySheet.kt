@@ -546,7 +546,7 @@ private fun TimeDialog(initial: LocalTime, onPicked: (LocalTime) -> Unit, onDism
     }
 }
 
-private val Deadline.Preset.label: Int
+internal val Deadline.Preset.label: Int
     get() = when (this) {
         Deadline.Preset.Day -> R.string.option_timeToPay_day
         Deadline.Preset.ThreeDays -> R.string.option_timeToPay_threeDays
