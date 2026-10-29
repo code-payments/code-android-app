@@ -35,7 +35,7 @@ fun buildNotificationReport(
     val status = evaluateNotificationStatus(device, registration)
     fun CheckStatus.label() = name.lowercase()
 
-    appendLine("Notifications allowed: ${CheckRow.Permission(device.notificationsAllowed).status.label()} (enabled ${device.notificationsAllowed})")
+    appendLine("Notifications Allowed: ${CheckRow.Permission(device.notificationsAllowed).status.label()} (enabled ${device.notificationsAllowed})")
     // Every channel, whether or not the page shows a row for it.
     StatusChannel.entries.forEach { channel ->
         val setting = device.channels.firstOrNull { it.channel == channel }
@@ -47,11 +47,11 @@ fun buildNotificationReport(
     status.rows.forEach { row ->
         when (row) {
             is CheckRow.Battery ->
-                appendLine("Battery optimization: ${row.status.label()} (ignoring ${device.ignoringBatteryOptimizations})")
+                appendLine("Battery Optimization: ${row.status.label()} (ignoring ${device.ignoringBatteryOptimizations})")
             is CheckRow.Background ->
-                appendLine("Background activity: ${row.status.label()} (restricted ${row.restricted}, bucket ${row.bucket})")
+                appendLine("Background Activity: ${row.status.label()} (restricted ${row.restricted}, bucket ${row.bucket})")
             is CheckRow.GooglePlay ->
-                appendLine("Google Play services: ${row.status.label()} (code ${device.playServicesCode})")
+                appendLine("Google Play Services: ${row.status.label()} (code ${device.playServicesCode})")
             is CheckRow.Registration -> {
                 // This page's latest run, never an older saved record.
                 val line = when (val state = row.state) {
@@ -69,7 +69,7 @@ fun buildNotificationReport(
                         "${row.status.label()} ($detail)"
                     }
                 }
-                appendLine("Registered for push: $line")
+                appendLine("Registered for Push: $line")
                 // From any call site, so it survives a run that saved nothing.
                 appendLine("Last ok: ${lastRecord?.lastOkAt?.let(formatTime) ?: "never"}")
             }

@@ -344,17 +344,17 @@ class NotificationStatusModelTest {
             2026-10-28 09:41 (UTC-4)
             App 3.4.1 (812) · Android 16 (API 36) · Google Pixel 9
 
-            Notifications allowed: pass (enabled true)
+            Notifications Allowed: pass (enabled true)
             Channel channel_chat: fail (importance 0, group blocked false)
             Channel channel_deposit_withdrawal: pass (importance 4, group blocked false)
             Channel channel_buy_sell: pass (importance 4, group blocked false)
             Channel channel_gain: pass (importance 4, group blocked false)
             Channel channel_contact_join: pass (importance 4, group blocked false)
             Channel fcm_fallback_notification_channel: pass (importance 4, group blocked false)
-            Battery optimization: pass (ignoring true)
-            Background activity: warning (restricted false, bucket rare)
-            Google Play services: pass (code 0)
-            Registered for push: pass (statusPage, 2026-10-28 09:41)
+            Battery Optimization: pass (ignoring true)
+            Background Activity: warning (restricted false, bucket rare)
+            Google Play Services: pass (code 0)
+            Registered for Push: pass (statusPage, 2026-10-28 09:41)
             Last ok: 2026-10-28 09:41
 
             Token: …a1b2c3 (last 6)
@@ -377,11 +377,11 @@ class NotificationStatusModelTest {
             lastRecord = record,
             tokenSuffix = tokenSuffix,
             formatTime = { if (it == olderOk) "2026-10-27 08:00" else "2026-10-28 09:41" },
-        ).lines().dropWhile { !it.startsWith("Registered for push") }.take(2)
+        ).lines().dropWhile { !it.startsWith("Registered for Push") }.take(2)
 
         // This run sent a token and saved a failure; the ok from earlier survives on its own line.
         assertEquals(
-            listOf("Registered for push: fail (invalidPushToken, statusPage, 2026-10-28 09:41)", "Last ok: 2026-10-27 08:00"),
+            listOf("Registered for Push: fail (invalidPushToken, statusPage, 2026-10-28 09:41)", "Last ok: 2026-10-27 08:00"),
             registrationLines(
                 RegistrationState.Finished(PushRegistrationOutcome.InvalidPushToken),
                 PushRegistration(Instant.fromEpochSeconds(0), PushRegistrationResult.InvalidPushToken, PushRegistrationSource.StatusPage, lastOkAt = olderOk),
@@ -390,7 +390,7 @@ class NotificationStatusModelTest {
         )
         // No token, so this run saved nothing: the older login record is not printed as its result.
         assertEquals(
-            listOf("Registered for push: fail (noToken)", "Last ok: 2026-10-27 08:00"),
+            listOf("Registered for Push: fail (noToken)", "Last ok: 2026-10-27 08:00"),
             registrationLines(
                 RegistrationState.Finished(PushRegistrationOutcome.NoToken),
                 PushRegistration(olderOk, PushRegistrationResult.Ok, PushRegistrationSource.Login, lastOkAt = olderOk),
@@ -398,12 +398,12 @@ class NotificationStatusModelTest {
             ),
         )
         assertEquals(
-            listOf("Registered for push: fail (noToken)", "Last ok: never"),
+            listOf("Registered for Push: fail (noToken)", "Last ok: never"),
             registrationLines(RegistrationState.Finished(PushRegistrationOutcome.NoToken), null, tokenSuffix = null),
         )
         // Still running.
         assertEquals(
-            listOf("Registered for push: checking", "Last ok: 2026-10-27 08:00"),
+            listOf("Registered for Push: checking", "Last ok: 2026-10-27 08:00"),
             registrationLines(
                 RegistrationState.Checking,
                 PushRegistration(olderOk, PushRegistrationResult.Ok, PushRegistrationSource.Login, lastOkAt = olderOk),

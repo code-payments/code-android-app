@@ -2001,7 +2001,7 @@
     <string name="toast_notificationStatusTestUnreachable">Couldn\'t reach Flipcash</string>
     <string name="toast_notificationStatusTestFailed">Couldn\'t send a test notification</string>
 
-    <string name="title_notificationCheckAllowed">Notifications allowed</string>
+    <string name="title_notificationCheckAllowed">Notifications Allowed</string>
     <string name="subtitle_notificationCheckAllowed">Allowed in Android settings</string>
     <string name="title_notificationCheckNotAllowed">Notifications are turned off</string>
     <string name="subtitle_notificationCheckNotAllowed">Turned off for Flipcash in Android settings</string>
@@ -2015,9 +2015,9 @@
     <string name="subtitle_notificationCheckGainOff">Price moves won\'t show</string>
     <string name="title_notificationCheckContactsOff">Contact notifications are off</string>
     <string name="subtitle_notificationCheckContactsOff">You won\'t hear when contacts join</string>
-    <string name="title_notificationCheckGeneralOff">General notifications are off</string>
+    <string name="title_notificationCheckGeneralOff">Misc. notifications are off</string>
     <string name="subtitle_notificationCheckGeneralOff">Other updates from Flipcash won\'t show</string>
-    <string name="title_notificationCheckOtherCategories">Other categories</string>
+    <string name="title_notificationCheckOtherCategories">Other Categories</string>
     <!-- %1$s is a list like "Payments, gains and contacts" -->
     <string name="subtitle_notificationCheckOtherCategories">%1$s are on</string>
     <string name="label_notificationCategoryChat">chat</string>
@@ -2027,22 +2027,22 @@
     <string name="label_notificationCategoryGeneral">general updates</string>
     <!-- Joins the last two items of a list -->
     <string name="label_listAnd">%1$s and %2$s</string>
-    <string name="title_notificationCheckBattery">Battery optimization</string>
+    <string name="title_notificationCheckBattery">Battery Optimization</string>
     <string name="subtitle_notificationCheckBattery">Flipcash is not optimized</string>
     <string name="title_notificationCheckBatteryOn">Battery optimization is on</string>
     <string name="subtitle_notificationCheckBatteryOn">Android may delay notifications</string>
-    <string name="title_notificationCheckBackground">Background activity</string>
+    <string name="title_notificationCheckBackground">Background Activity</string>
     <!-- %1$s is a standby bucket, e.g. "Active" -->
     <string name="subtitle_notificationCheckBackground">Not restricted · standby: %1$s</string>
     <string name="subtitle_notificationCheckBackgroundLimited">Android is limiting Flipcash in the background</string>
     <string name="title_notificationCheckBackgroundRestricted">Background activity is restricted</string>
     <string name="subtitle_notificationCheckBackgroundRestricted">Notifications may not arrive</string>
-    <string name="title_notificationCheckPlayServices">Google Play services</string>
+    <string name="title_notificationCheckPlayServices">Google Play Services</string>
     <string name="subtitle_notificationCheckPlayServices">Available</string>
     <string name="subtitle_notificationCheckPlayServicesUpdate">Google Play services needs an update</string>
     <string name="title_notificationCheckPlayServicesMissing">Google Play services isn\'t available</string>
     <string name="subtitle_notificationCheckPlayServicesMissing">Push notifications need it</string>
-    <string name="title_notificationCheckRegistered">Registered for push</string>
+    <string name="title_notificationCheckRegistered">Registered for Push</string>
     <string name="title_notificationCheckRegistering">Checking registration…</string>
     <string name="subtitle_notificationCheckRegistering">Contacting Flipcash</string>
     <string name="subtitle_notificationCheckRegistered">Confirmed just now</string>
