@@ -978,7 +978,7 @@ class ChatMessageDaoTest {
     fun `firstNotSentByAfter skips a senderless row`() = runTest {
         dao.upsert(listOf(from(SENDER_HEX, 1), text(2, "system").copy(senderIdHex = null), from(SENDER_HEX, 3)))
 
-        assertEquals(3L, firstNotOwn(pointer = 1))
+        assertEquals(3L, dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1))
     }
 
     @Test
@@ -1000,7 +1000,47 @@ class ChatMessageDaoTest {
     fun `the divider lands below a senderless row that follows the pointer`() = runTest {
         dao.upsert(listOf(from(SELF_HEX, 1), text(2, "system").copy(senderIdHex = null), from(SENDER_HEX, 3)))
 
-        assertEquals(3L, firstNotOwn(pointer = 1))
+        assertEquals(3L, dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1))
         assertEquals(1, unread(pointer = 1))
+    }
+
+    private fun cash(messageId: Long, paymentRequestId: String?) = from(SENDER_HEX, messageId).copy(
+        contentJson = listOf(
+            MessageContentSerialized.Cash(intentId = "intent", quarks = 5, paymentRequestId = paymentRequestId),
+        ),
+    )
+
+    private fun requestWidget(messageId: Long) = from(SENDER_HEX, messageId).copy(
+        contentJson = listOf(MessageContentSerialized.WidgetPaymentRequest(paymentRequestId = "req")),
+    )
+
+    @Test
+    fun `the preview falls back past a cash message that pays a request share`() = runTest {
+        dao.upsert(listOf(text(1, "one"), cash(2, paymentRequestId = "req")))
+
+        assertEquals(1L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+        assertEquals(listOf(1L), dao.getLatestVisibleForAllChats().map { it.messageId })
+        assertEquals(listOf(1L), dao.observeLatestVisibleForAllChats().first().map { it.messageId })
+        // The anchors that mark read still see it, so the pointer is never rewound.
+        assertEquals(2L, dao.getLatest(CHAT_HEX)?.messageId)
+    }
+
+    @Test
+    fun `a cash message without a request id and a request widget are still previewed`() = runTest {
+        dao.upsert(listOf(text(1, "one"), cash(2, paymentRequestId = null)))
+        assertEquals(2L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+
+        dao.upsert(listOf(requestWidget(3)))
+        assertEquals(3L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+    }
+
+    @Test
+    fun `a request share payment is not unread, an arrival or the divider's message`() = runTest {
+        dao.upsert(listOf(from(SELF_HEX, 1), cash(2, paymentRequestId = "req"), cash(3, paymentRequestId = null)))
+
+        assertEquals(1, unread(pointer = 1))
+        assertEquals(3L, dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1))
+        assertEquals(3L, dao.newestInboundId(CHAT_HEX, SELF_HEX))
+        assertEquals(1, dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, 1).first())
     }
 }
