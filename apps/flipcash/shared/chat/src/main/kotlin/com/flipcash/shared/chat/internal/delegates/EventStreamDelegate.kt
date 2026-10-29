@@ -30,6 +30,7 @@ import com.flipcash.shared.chat.alerts.ActorBoostTotals
 import com.flipcash.shared.chat.alerts.ReactionActorProfiles
 import com.flipcash.shared.chat.alerts.ReactionAlertEvent
 import com.flipcash.shared.chat.alerts.ReactionAlertPolicy
+import com.flipcash.shared.chat.PaymentRequestUpdateSink
 import com.flipcash.shared.chat.alerts.ReactionAlertSink
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.services.user.UserManager
@@ -101,6 +102,7 @@ class EventStreamDelegate @Inject constructor(
     private val mentionPool: MentionPoolUpdates = MentionPoolUpdates.None,
     private val reactionAlerts: ReactionAlertSink = ReactionAlertSink.None,
     private val actorProfiles: ReactionActorProfiles = ReactionActorProfiles.None,
+    private val paymentRequestUpdates: PaymentRequestUpdateSink = PaymentRequestUpdateSink.None,
 ) : EventStreamOperations {
 
 
@@ -476,10 +478,15 @@ class EventStreamDelegate @Inject constructor(
 
         // --- Lobby changes ---
 
-        // TODO(flipcash2 0.23.0): ChatUpdate.paymentRequestUpdates arrive here but nothing applies
-        //  them yet. Apply by version per PaymentRequestUpdate's docs (created: keep greater;
-        //  updates: ignore <= held, apply in order at held + 1, refetch beyond or on an unknown
-        //  change) once a payment request store consumes the stream.
+        // Best effort and unsequenced like the roster above: the store applies them by version, and
+        // refetches (off this path) any request whose update it missed or couldn't apply.
+        if (update.paymentRequestUpdates.isNotEmpty()) {
+            val stale = paymentRequestUpdates.onUpdates(update.paymentRequestUpdates)
+            if (stale.isNotEmpty()) {
+                scope?.launch { stale.forEach { paymentRequestUpdates.refetch(it) } }
+            }
+        }
+
         if (update.lobbyUpdates.isNotEmpty()) {
             _events.send(Event.LobbyChanged(chatId, update.lobbyUpdates))
         }
