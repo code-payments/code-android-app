@@ -295,8 +295,12 @@ private fun InvitePreview(
                             isPrivate = true,
                             anchorHeight = anchorHeight,
                             onDismiss = { menuOpen = false },
+                            onSilenced = {},
+                            onRemoved = {},
                             onItem = { item ->
                                 when (item) {
+                                    // A non-member is never offered moderation.
+                                    GroupProfileMenuAction.Moderation -> Unit
                                     GroupProfileMenuAction.Encryption -> onEncryption()
                                     GroupProfileMenuAction.Report -> group?.chatId?.let(onReport)
                                     // A non-member has no notification setting to change.
