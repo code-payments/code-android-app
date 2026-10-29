@@ -55,11 +55,7 @@ internal fun CommunityChatsHeader(
             .height(CodeTheme.dimens.grid.x6),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = stringResource(R.string.title_topCommunityChats),
-            style = CodeTheme.typography.textLarge.copy(fontSize = 19.sp),
-            color = CodeTheme.colors.textMain,
-        )
+        CommunitySectionTitle(text = stringResource(R.string.title_topCommunityChats))
         Icon(
             imageVector = Icons.Outlined.Info,
             contentDescription = stringResource(R.string.title_howChatsAreRanked),
@@ -83,6 +79,30 @@ internal fun CommunityChatsHeader(
     }
 }
 
+/** A Currency Info community heading: "Top Community Chats" or "Community Leader", 19 SemiBold. */
+@Composable
+internal fun CommunitySectionTitle(text: String, modifier: Modifier = Modifier) {
+    Text(
+        modifier = modifier,
+        text = text,
+        style = CodeTheme.typography.textLarge.copy(fontSize = 19.sp),
+        color = CodeTheme.colors.textMain,
+    )
+}
+
+/**
+ * The community card on Currency Info: full width, 67 tall, 12 radius, a 5% white fill. Clickable
+ * only when [onClick] is set.
+ */
+@Composable
+internal fun Modifier.communityCard(onClick: (() -> Unit)?): Modifier = this
+    .fillMaxWidth()
+    .height(CodeTheme.dimens.grid.x13)
+    .clip(CodeTheme.shapes.medium)
+    .background(White05)
+    .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+    .padding(horizontal = CodeTheme.dimens.grid.x3)
+
 /**
  * A chat card (node 11622:1622), on Currency Info and View All: 12 radius, a 5% white fill, a 42
  * photo, 16 SemiBold title over a 12 Regular subtitle, and a trailing 16 chevron, 67 tall.
@@ -97,13 +117,7 @@ internal fun CommunityChatRow(
     card: Boolean = false,
 ) {
     val rowModifier = if (card) {
-        modifier
-            .fillMaxWidth()
-            .height(CodeTheme.dimens.grid.x13)
-            .clip(CodeTheme.shapes.medium)
-            .background(White05)
-            .clickable(onClick = onClick)
-            .padding(horizontal = CodeTheme.dimens.grid.x3)
+        modifier.communityCard(onClick = onClick)
     } else {
         modifier
             .fillMaxWidth()

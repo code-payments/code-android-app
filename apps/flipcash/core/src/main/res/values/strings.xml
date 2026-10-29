@@ -1975,6 +1975,11 @@
     <string name="subtitle_moreWithdraw">Withdraw %1$s to a different Solana crypto wallet</string>
     <string name="subtitle_moreDeposit">Deposit %1$s from a different Solana crypto wallet</string>
     <string name="title_topCommunityChats">Top Community Chats</string>
+    <string name="title_communityLeader">Community Leader</string>
+    <!-- Community Leader row: display name, then @username when there is one. "Opens profile." only when tappable. -->
+    <string name="cd_communityLeader">Community Leader, %1$s</string>
+    <string name="cd_communityLeaderWithUsername">Community Leader, %1$s, %2$s</string>
+    <string name="cd_communityLeaderOpensProfile">%1$s. Opens profile.</string>
     <string name="action_viewAll">View All</string>
     <string name="title_howChatsAreRanked">How Chats Are Ranked</string>
     <string name="description_howChatsAreRanked">Chats are ranked by the total amount of %1$s held by their members. Chats with higher combined holdings appear higher</string>

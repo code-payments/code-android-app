@@ -17,6 +17,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.shared.tokens.R
 import com.flipcash.app.funding.bottomBarCardAction
 import com.flipcash.services.controllers.CommunityController
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatMetadata
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -79,6 +80,8 @@ class TokenInfoViewModel @Inject constructor(
         val transactions: List<TransactionListItem> = emptyList(),
         /** Public groups gated on this currency, ranked by the server. Empty hides the section. */
         val communityChats: List<CommunityChatEntry> = emptyList(),
+        /** Who launched this currency, from the same call as [communityChats]. Null hides the section. */
+        val communityLeader: UserProfile? = null,
     ) {
         /** True when the user holds a displayable balance in some token other than [mint], which could fund a buy of it. */
         val hasFundableBalance: Boolean
@@ -131,6 +134,7 @@ class TokenInfoViewModel @Inject constructor(
         data object OnMore : Event
         data object OnRankingInfo : Event
         data class OnCommunityChatsLoaded(val chats: List<CommunityChatEntry>) : Event
+        data class OnCommunityLeaderLoaded(val leader: UserProfile?) : Event
         data object PresentDepositOptions: Event
         data class OpenScreen(val screen: AppRoute) : Event
         data object Exit : Event
@@ -395,9 +399,12 @@ class TokenInfoViewModel @Inject constructor(
             .distinctUntilChanged()
             .flatMapLatest { mint ->
                 kotlinx.coroutines.flow.flow {
-                    // USDF has no community; a failed call and an empty list both hide the section.
-                    val chats = if (mint == Mint.usdf) emptyList()
-                    else communityController.getCommunity(mint).topCommunityChats()
+                    // USDF has no community; a failed call and an empty list both hide the sections.
+                    val community = if (mint == Mint.usdf) null
+                    else communityController.getCommunity(mint)
+                    // Every mint sets the leader, so the previous mint's never stays on screen.
+                    dispatchEvent(Event.OnCommunityLeaderLoaded(community?.communityLeader()))
+                    val chats = community?.topCommunityChats().orEmpty()
                     val token = tokenCoordinator.cachedToken(mint)
                     // Re-value when the viewer's currency or rates change.
                     emitAll(
@@ -526,6 +533,7 @@ class TokenInfoViewModel @Inject constructor(
 
                 is Event.OnMarketCapPeriodSelected -> { state -> state.copy(selectedPeriod = event.period) }
                 is Event.OnCommunityChatsLoaded -> { state -> state.copy(communityChats = event.chats) }
+                is Event.OnCommunityLeaderLoaded -> { state -> state.copy(communityLeader = event.leader) }
                 Event.OnMore -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
                 is Event.OnBuy -> { state -> state }

@@ -378,7 +378,10 @@ enum class ProfileOrigin {
     UsernameLookup,
 
     /** A transaction's counterparty. Blocking pops back to the transaction. */
-    Transaction;
+    Transaction,
+
+    /** The Community Leader row on Currency Info. Blocking pops back to the currency, like [Link]. */
+    CommunityLeader;
 
     /** Whether blocking from here leaves the stack to the chat list rather than popping one entry. */
     val resetsToChatsAfterBlock: Boolean

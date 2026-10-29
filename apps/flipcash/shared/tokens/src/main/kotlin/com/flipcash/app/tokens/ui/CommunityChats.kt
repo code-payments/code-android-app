@@ -2,6 +2,7 @@ package com.flipcash.app.tokens.ui
 
 import com.flipcash.app.core.ui.forViewer
 import com.flipcash.services.models.Community
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatMetadata
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -17,6 +18,14 @@ const val TopCommunityChatsPreviewCount = 3
  */
 fun Result<Community>.topCommunityChats(): List<ChatMetadata> =
     getOrNull()?.topHolderChats.orEmpty()
+
+/**
+ * The profile of the user who launched the currency, or null when there is none to show: a failed
+ * call, no leader, or a leader with a blank display name. The repository maps a leader without a
+ * profile to an empty one, so a blank name means there is no one to show.
+ */
+fun Result<Community>.communityLeader(): UserProfile? =
+    getOrNull()?.leader?.profile?.takeIf { it.displayName.isNotBlank() }
 
 /**
  * What a chat row's "<amount> of <name> held by N members" line shows: [amount] is the fiat value
