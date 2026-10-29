@@ -549,22 +549,41 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     },
                 )
                 if (state.chatType == ChatType.GROUP) {
-                    RequestDeckStrip(
-                        deck = drawnDeck,
-                        now = deckNow,
-                        viewerId = viewerId,
-                        transition = deckTransition,
-                        rest = deckHosts.rest.host,
-                        onExpand = expandDeck,
-                        onCycle = requestsViewModel::cycle,
-                        // Straight to the swipe sheet over the chat; the card body opens details.
-                        onPay = { request ->
-                            state.chatId?.let { chatId ->
-                                keyboard.hideIfVisible { requestPay.pay(chatId, request.id) }
-                            }
-                        },
-                        onHeightChange = { deckHosts.stripPx = it.toFloat() },
-                    )
+                    // Behind the backdrop whenever the rows are, since it sits over them: a raised
+                    // message or its reaction strip reads against a sharp stack otherwise. A tap on
+                    // it then dismisses the selection, as a tap on the rows does.
+                    val stripBehindBackdrop = state.selection != null || state.editing != null
+                    Box {
+                        Box(modifier = Modifier.chatBackdrop(behind = stripBehindBackdrop)) {
+                            RequestDeckStrip(
+                                deck = drawnDeck,
+                                now = deckNow,
+                                viewerId = viewerId,
+                                transition = deckTransition,
+                                rest = deckHosts.rest.host,
+                                onExpand = expandDeck,
+                                onCycle = requestsViewModel::cycle,
+                                // Straight to the swipe sheet over the chat; the card body opens details.
+                                onPay = { request ->
+                                    state.chatId?.let { chatId ->
+                                        keyboard.hideIfVisible { requestPay.pay(chatId, request.id) }
+                                    }
+                                },
+                                onHeightChange = { deckHosts.stripPx = it.toFloat() },
+                            )
+                        }
+                        if (stripBehindBackdrop) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .pointerInput(Unit) {
+                                        detectTapGestures {
+                                            viewModel.dispatchEvent(ChatViewModel.Event.ClearMessageSelection)
+                                        }
+                                    },
+                            )
+                        }
+                    }
                 }
                 // Hold the last list through the exit, so the card doesn't empty as it slides away.
                 var lastRequests by remember { mutableStateOf(state.joinRequests) }
