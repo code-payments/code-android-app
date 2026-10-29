@@ -2,6 +2,10 @@ package com.flipcash.app.messenger.internal.request
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import com.flipcash.shared.chat.ui.request.RequestMotion
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -546,11 +550,12 @@ private fun StripFront(
     val share = request.unpaidShareOf(viewerId, now)
     val standing = request.viewerStanding(viewerId, now)
     val ended = !request.isOpen(now)
+    val alpha by animateFloatAsState(if (ended) ENDED_ALPHA else 1f, RequestMotion.change(), label = "ended fade")
     Row(
         modifier = modifier
             .height(DeckStyle.Strip.height)
             .background(CodeTheme.colors.background, shape)
-            .alpha(if (ended) ENDED_ALPHA else 1f)
+            .alpha(alpha)
             .background(CodeTheme.colors.surfaceVariant, shape)
             .border(1.dp, if (share != null) CodeTheme.colors.success else CodeTheme.colors.border, shape)
             .padding(horizontal = CodeTheme.dimens.grid.x3),
@@ -649,10 +654,11 @@ private fun DeckFront(
     val ended = !request.isOpen(now)
     val split = request.split
     val standing = request.viewerStanding(viewerId, now)
+    val alpha by animateFloatAsState(if (ended) ENDED_ALPHA else 1f, RequestMotion.change(), label = "ended fade")
     Row(
         modifier = modifier
             .background(CodeTheme.colors.background, PILL_SHAPE)
-            .alpha(if (ended) ENDED_ALPHA else 1f)
+            .alpha(alpha)
             .background(CodeTheme.colors.surfaceVariant, PILL_SHAPE)
             .border(1.dp, CodeTheme.colors.border, PILL_SHAPE)
             .padding(
@@ -752,7 +758,12 @@ internal fun RequestRing(
     val status = request.resolvedStatus(now)
     val ended = status != PaymentRequestStatus.Open
     val fraction = if (status == PaymentRequestStatus.Completed) 1f else request.split?.paidFraction ?: 0f
-    val accent = if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success
+    val accent by animateColorAsState(
+        if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success,
+        RequestMotion.change(),
+        label = "ring accent",
+    )
+    val sweep by animateFloatAsState(fraction, RequestMotion.change(), label = "ring sweep")
     val track = CodeTheme.colors.divider
     val inset = size * (4f / 26f)
     Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
@@ -761,17 +772,19 @@ internal fun RequestRing(
             val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
             val topLeft = Offset(stroke / 2, stroke / 2)
             drawArc(track, 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
-            if (fraction > 0f) {
-                drawArc(accent, -90f, 360f * fraction.coerceIn(0f, 1f), false, topLeft, arcSize, style = Stroke(stroke))
+            if (sweep > 0f) {
+                drawArc(accent, -90f, 360f * sweep.coerceIn(0f, 1f), false, topLeft, arcSize, style = Stroke(stroke))
             }
             drawCircle(accent, radius = this.size.minDimension / 2 - inset.toPx())
         }
-        Text(
-            text = if (status == PaymentRequestStatus.Closed) "✓" else "$",
-            style = if (size > 30.dp) CodeTheme.typography.textMedium else CodeTheme.typography.caption,
-            color = Color.Black,
-        )
-        if (paid) PaidBadge(glyph = size, ended = ended)
+        Crossfade(targetState = status == PaymentRequestStatus.Closed, animationSpec = RequestMotion.change(), label = "ring glyph") { closed ->
+            Text(
+                text = if (closed) "✓" else "$",
+                style = if (size > 30.dp) CodeTheme.typography.textMedium else CodeTheme.typography.caption,
+                color = Color.Black,
+            )
+        }
+        PaidBadge(glyph = size, ended = ended, paid = paid)
     }
 }
 
@@ -865,6 +878,11 @@ internal fun ExpandedRequests(
         ) {
             itemsIndexed(deck, key = { _, request -> request.id.hashCode() }) { index, request ->
                 val title = request.deckTitle
+                val endedAlpha by animateFloatAsState(
+                    if (request.isOpen(now)) 1f else ENDED_ALPHA,
+                    RequestMotion.change(),
+                    label = "ended fade",
+                )
                 val card = Modifier
                     .fillMaxWidth()
                     .then(
@@ -880,12 +898,15 @@ internal fun ExpandedRequests(
                                 enter = slideInVertically { -it * (index + 1) } + fadeIn(),
                                 exit = slideOutVertically { -it * (index + 1) } + fadeOut(),
                             )
+                                // A reorder after a request ends slides into place on the deck's settle spring.
+                                .animateItem(fadeInSpec = null, fadeOutSpec = null, placementSpec = SETTLE_SPRING_OFFSET)
+
                         }
                     )
                     // surfaceVariant is translucent; the opaque base keeps the transcript from
                     // showing through, and sits outside the alpha so ended cards stay solid.
                     .background(CodeTheme.colors.background, CARD_SHAPE)
-                    .alpha(if (request.isOpen(now)) 1f else ENDED_ALPHA)
+                    .alpha(endedAlpha)
                     .background(CodeTheme.colors.surfaceVariant, CARD_SHAPE)
                     .clickable { onOpen(request) }
                     .padding(CodeTheme.dimens.grid.x3)
@@ -979,6 +1000,7 @@ private const val FLING_VELOCITY = 1_000f
 private const val DROP_SCALE = 0.06f
 // How far past one pill height the front card can be pulled, as a fraction of it.
 private const val RUBBER_BAND = 0.25f
+private val SETTLE_SPRING_OFFSET = spring<androidx.compose.ui.unit.IntOffset>(stiffness = SETTLE_STIFFNESS)
 private val DECK_SPRING = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
 
 

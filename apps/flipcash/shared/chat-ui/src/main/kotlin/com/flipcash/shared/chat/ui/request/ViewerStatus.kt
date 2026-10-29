@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -133,22 +135,44 @@ private object FirstThatFitsPolicy : MeasurePolicy {
 }
 
 /**
+ * How a live change to a request moves: the same ease-out over [CHANGE_MILLIS] for the ring and
+ * bar sweeping to a new value, the ended look fading in, and a share turning paid. Tweens follow
+ * the system animator duration scale, so they are instant with animations off. Every use starts
+ * at its current value, so nothing plays on first appearance.
+ */
+object RequestMotion {
+    const val CHANGE_MILLIS = 300
+
+    fun <T> change(): androidx.compose.animation.core.TweenSpec<T> =
+        androidx.compose.animation.core.tween(CHANGE_MILLIS, easing = androidx.compose.animation.core.LinearOutSlowInEasing)
+}
+
+/**
  * The paid badge at a glyph's bottom-right: a success circle with a black "✓", ringed in the card
  * surface so it reads apart from the glyph. 10dp on a 26dp glyph, scaled with [glyph]. Greys with
  * the glyph once the request has ended.
  */
 @Composable
-fun BoxScope.PaidBadge(glyph: Dp, ended: Boolean) {
+fun BoxScope.PaidBadge(glyph: Dp, ended: Boolean, paid: Boolean = true) {
+    // Fades in when the share turns paid; already paid when first drawn, it just shows.
+    val visibility by androidx.compose.animation.core.animateFloatAsState(if (paid) 1f else 0f, RequestMotion.change(), label = "paid badge")
+    val fill by androidx.compose.animation.animateColorAsState(
+        if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success,
+        RequestMotion.change(),
+        label = "paid badge fill",
+    )
+    if (visibility <= 0f) return
     val badge = glyph * (10f / 26f)
     val ring = glyph * (1.5f / 26f)
     val surface = CodeTheme.colors.surfaceVariant.compositeOver(CodeTheme.colors.background)
     Box(
         modifier = Modifier
             .align(Alignment.BottomEnd)
+            .alpha(visibility)
             .size(badge + ring * 2)
             .background(surface, CircleShape)
             .padding(ring)
-            .background(if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success, CircleShape),
+            .background(fill, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Text(

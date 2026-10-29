@@ -2,6 +2,9 @@ package com.flipcash.shared.chat.ui.request
 
 import androidx.compose.ui.platform.LocalContext
 import android.content.res.Resources
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -85,18 +88,24 @@ fun PaymentRequest.progressText(): String {
 @Composable
 fun RequestProgressBar(fraction: Float, ended: Boolean, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(1.5.dp)
+    val shown by animateFloatAsState(fraction, RequestMotion.change(), label = "request progress")
+    val fill by animateColorAsState(
+        if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success,
+        RequestMotion.change(),
+        label = "request progress fill",
+    )
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(3.dp)
             .background(CodeTheme.colors.divider, shape),
     ) {
-        if (fraction > 0f) {
+        if (shown > 0f) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(fraction.coerceIn(0f, 1f))
-                    .background(if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success, shape),
+                    .fillMaxWidth(shown.coerceIn(0f, 1f))
+                    .background(fill, shape),
             )
         }
     }
@@ -124,6 +133,11 @@ fun PaymentRequestCardContent(
 ) {
     val loading = request == null || title == null
     val ended = request != null && !request.isOpen(now)
+    val glyphFill by animateColorAsState(
+        if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success,
+        RequestMotion.change(),
+        label = "request glyph fill",
+    )
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
@@ -135,11 +149,11 @@ fun PaymentRequestCardContent(
             Box(
                 modifier = glyphModifier
                     .size(34.dp)
-                    .background(if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success, CircleShape),
+                    .background(glyphFill, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(text = "$", style = CodeTheme.typography.textLarge, color = Color.Black)
-                if (standing is ViewerStanding.Paid) PaidBadge(glyph = 34.dp, ended = ended)
+                PaidBadge(glyph = 34.dp, ended = ended, paid = standing is ViewerStanding.Paid)
             }
             Column {
                 Text(
@@ -179,16 +193,18 @@ fun PaymentRequestCardContent(
             val viewer = standing?.takeUnless { loading }?.text()
             if (viewer != null) {
                 Spacer(Modifier.weight(1f))
-                Text(
-                    text = viewer,
-                    style = CodeTheme.typography.caption,
-                    color = when (standing) {
-                        is ViewerStanding.Paid, is ViewerStanding.Owes -> CodeTheme.colors.success
-                        else -> CodeTheme.colors.textSecondary
-                    },
-                    maxLines = 1,
-                    modifier = detailModifier,
-                )
+                // The viewer's part cross-fades when it changes, as a share turns paid.
+                Crossfade(targetState = viewer, animationSpec = RequestMotion.change(), modifier = detailModifier, label = "viewer standing") { text ->
+                    Text(
+                        text = text,
+                        style = CodeTheme.typography.caption,
+                        color = when (standing) {
+                            is ViewerStanding.Paid, is ViewerStanding.Owes -> CodeTheme.colors.success
+                            else -> CodeTheme.colors.textSecondary
+                        },
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
