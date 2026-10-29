@@ -6,6 +6,10 @@ import com.getcode.solana.keys.Checksum
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
 import com.getcode.utils.UnreportedError
+import io.grpc.Status
+import io.grpc.StatusException
+import io.grpc.StatusRuntimeException
+import java.io.IOException
 
 sealed class LoginError(
     override val message: String? = null,
@@ -53,8 +57,29 @@ sealed class AddTokenError(
 ) : CodeServerError(message, cause) {
     class InvalidPushToken : AddTokenError("Invalid push token"), NotifiableError
     class Unrecognized : AddTokenError("Unrecognized"), NotifiableError
-    data class Other(override val cause: Throwable? = null) : AddTokenError(message = cause?.message, cause = cause), NotifiableError
+    data class Other(override val cause: Throwable? = null) : AddTokenError(message = cause?.message, cause = cause), NotifiableError {
+        /** The call never got an answer from the server: no network, or the channel gave up. */
+        val isTransportFailure: Boolean
+            get() = cause.hasTransportCause()
+    }
 }
+
+private fun Throwable?.hasTransportCause(codes: Set<Status.Code> = transportCodes): Boolean =
+    generateSequence(this) { it.cause }.take(8).any { it.isTransportCause(codes) }
+
+private fun Throwable.isTransportCause(codes: Set<Status.Code>): Boolean = when (this) {
+    is IOException -> true
+    is StatusException -> status.code in codes
+    is StatusRuntimeException -> status.code in codes
+    else -> false
+}
+
+private val transportCodes = setOf(Status.Code.UNAVAILABLE, Status.Code.DEADLINE_EXCEEDED)
+
+// A test push the call dropped never reached anyone, so it reads as unreachable. Registration
+// keeps CANCELLED out of transport. Coroutine cancellation never gets here: foldWithSuppression
+// rethrows it before the error is built.
+private val testPushTransportCodes = transportCodes + Status.Code.CANCELLED
 
 sealed class DeleteTokenError(
     override val message: String? = null,
@@ -69,7 +94,11 @@ sealed class SendTestPushError(
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
     class Unrecognized : SendTestPushError("Unrecognized"), NotifiableError
-    data class Other(override val cause: Throwable? = null) : SendTestPushError(message = cause?.message, cause = cause), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SendTestPushError(message = cause?.message, cause = cause), NotifiableError {
+        /** The call never got an answer from the server: no network, the channel gave up, or the call was cancelled. */
+        val isTransportFailure: Boolean
+            get() = cause.hasTransportCause(testPushTransportCodes)
+    }
 }
 
 sealed class GetActivityFeedMessagesError(

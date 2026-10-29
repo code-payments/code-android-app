@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.painter.Painter
@@ -72,6 +73,15 @@ internal data object DeviceLogs : FullMenuItem<SettingsViewModel.Event>() {
     override val name: String
         @Composable get() = stringResource(CoreR.string.title_deviceLogs)
     override val action: SettingsViewModel.Event = SettingsViewModel.Event.OpenScreen(AppRoute.Menu.DeviceLogs)
+}
+
+internal data object NotificationStatus : FullMenuItem<SettingsViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = rememberVectorPainter(Icons.Outlined.Notifications)
+    override val name: String
+        @Composable get() = stringResource(CoreR.string.title_notificationStatus)
+    override val action: SettingsViewModel.Event =
+        SettingsViewModel.Event.OpenScreen(AppRoute.Menu.NotificationStatus)
 }
 
 internal data object BetaFlags : FullMenuItem<SettingsViewModel.Event>() {

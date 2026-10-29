@@ -52,6 +52,7 @@ slf4j = "1.7.36"
 firebase-bom = "34.19.0"
 play-service-ml-barcode = "18.3.1"
 play-services-auth-api-phone = "18.3.1"
+play-services-base = "18.9.0"
 play-services-blockstore = "16.4.0"
 google-play-billing = "9.1.0"
 google-play-updates = "2.1.0"
@@ -240,6 +241,7 @@ firebase-perf = { module = "com.google.firebase:firebase-perf" }
 play-integrity = { module = "com.google.android.play:integrity", version = "1.6.0" }
 play-service-ml-barcode = { module = "com.google.android.gms:play-services-mlkit-barcode-scanning", version.ref = "play-service-ml-barcode" }
 play-services-auth-api-phone = { module = "com.google.android.gms:play-services-auth-api-phone", version.ref = "play-services-auth-api-phone" }
+play-services-base = { module = "com.google.android.gms:play-services-base", version.ref = "play-services-base" }
 play-services-blockstore = { module = "com.google.android.gms:play-services-auth-blockstore", version.ref = "play-services-blockstore" }
 play-services-wallet = { module = "com.google.android.gms:play-services-wallet", version = "20.0.0" }
 

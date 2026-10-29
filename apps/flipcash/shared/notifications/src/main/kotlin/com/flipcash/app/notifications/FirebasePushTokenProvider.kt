@@ -26,7 +26,12 @@ class FirebasePushTokenProvider @Inject constructor() : PushTokenProvider {
     }
 
     @Suppress("DEPRECATION")
-    override suspend fun deleteToken() {
+    override suspend fun deleteToken() = suspendCancellableCoroutine { cont ->
+        // Awaited, so a getToken() that follows can't hand back the token being deleted.
         FirebaseMessaging.getInstance().deleteToken()
+            .addOnCompleteListener { task ->
+                task.exception?.let(ErrorUtils::handleError)
+                cont.resume(Unit)
+            }
     }
 }

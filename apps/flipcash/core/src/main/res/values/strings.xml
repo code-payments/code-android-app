@@ -1989,4 +1989,91 @@
     <string name="title_selectRecipient">Select Recipient</string>
     <string name="title_shareCurrency">Share %1$s</string>
     <string name="title_recentChats">Recent Chats</string>
+    <!-- Notification status (Settings › Advanced › Notifications) -->
+    <string name="title_notificationStatus">Notifications</string>
+    <string name="header_notificationStatusPhone">On This Phone</string>
+    <string name="header_notificationStatusFlipcash">With Flipcash</string>
+    <string name="title_notificationStatusWorking">Notifications are working</string>
+    <string name="title_notificationStatusOff">Notifications are off</string>
+    <string name="title_notificationStatusChecking">Checking…</string>
+    <plurals name="title_notificationStatusThingsToCheck">
+        <item quantity="one">%1$d thing to check</item>
+        <item quantity="other">%1$d things to check</item>
+    </plurals>
+    <plurals name="title_notificationStatusThingsToFix">
+        <item quantity="one">%1$d thing to fix</item>
+        <item quantity="other">%1$d things to fix</item>
+    </plurals>
+    <string name="subtitle_notificationStatusCheckedJustNow">Checked just now</string>
+    <plurals name="title_notificationStatusChecksPassed">
+        <item quantity="one">%1$d check passed</item>
+        <item quantity="other">%1$d checks passed</item>
+    </plurals>
+    <string name="action_sendTestNotification">Send Test Notification</string>
+    <string name="action_sendTestNotificationAgain">Send Again</string>
+    <string name="action_shareReport">Share Report</string>
+    <string name="action_turnOn">Turn On</string>
+    <string name="action_fix">Fix</string>
+    <string name="action_tryAgain">Try Again</string>
+    <string name="action_checkAgain">Check Again</string>
+    <string name="description_notificationStatusFooter">Flipcash sends the test to every phone signed in to this account.</string>
+    <string name="description_notificationStatusTestDisabled">Turn on notifications to send a test.</string>
+    <string name="description_notificationStatusTestDisabledChannelOff">Turn on %1$s in Android settings to send a test.</string>
+    <string name="toast_notificationStatusTestSent">Test notification sent</string>
+    <string name="toast_notificationStatusTestUnreachable">Couldn\'t reach Flipcash</string>
+    <string name="toast_notificationStatusTestFailed">Couldn\'t send a test notification</string>
+
+    <string name="title_notificationCheckAllowed">Notifications Allowed</string>
+    <string name="subtitle_notificationCheckAllowed">Allowed in Android settings</string>
+    <string name="title_notificationCheckNotAllowed">Notifications are turned off</string>
+    <string name="subtitle_notificationCheckNotAllowed">Turned off for Flipcash in Android settings</string>
+    <string name="title_notificationCheckChatOff">Chat notifications are off</string>
+    <string name="subtitle_notificationCheckChatOff">Messages and replies won\'t show</string>
+    <string name="title_notificationCheckDepositsOff">Deposit notifications are off</string>
+    <string name="subtitle_notificationCheckDepositsOff">Deposits and withdrawals won\'t show</string>
+    <string name="title_notificationCheckBuySellOff">Buy and sell notifications are off</string>
+    <string name="subtitle_notificationCheckBuySellOff">Purchases and sales won\'t show</string>
+    <string name="title_notificationCheckGainOff">Price alerts are off</string>
+    <string name="subtitle_notificationCheckGainOff">Price moves won\'t show</string>
+    <string name="title_notificationCheckContactsOff">Contact notifications are off</string>
+    <string name="subtitle_notificationCheckContactsOff">You won\'t hear when contacts join</string>
+    <string name="title_notificationCheckGeneralOff">Misc. notifications are off</string>
+    <string name="subtitle_notificationCheckGeneralOff">Other updates from Flipcash won\'t show</string>
+    <string name="title_notificationCheckOtherCategories">Other Categories</string>
+    <!-- %1$s is a list like "Payments, gains and contacts" -->
+    <string name="subtitle_notificationCheckOtherCategories">%1$s are on</string>
+    <string name="label_notificationCategoryChat">chat</string>
+    <string name="label_notificationCategoryPayments">payments</string>
+    <string name="label_notificationCategoryGains">gains</string>
+    <string name="label_notificationCategoryContacts">contacts</string>
+    <string name="label_notificationCategoryGeneral">general updates</string>
+    <!-- Joins the last two items of a list -->
+    <string name="label_listAnd">%1$s and %2$s</string>
+    <string name="title_notificationCheckBattery">Battery Optimization</string>
+    <string name="subtitle_notificationCheckBattery">Flipcash is not optimized</string>
+    <string name="title_notificationCheckBatteryOn">Battery optimization is on</string>
+    <string name="subtitle_notificationCheckBatteryOn">Android may delay notifications</string>
+    <string name="title_notificationCheckBackground">Background Activity</string>
+    <!-- %1$s is a standby bucket, e.g. "Active" -->
+    <string name="subtitle_notificationCheckBackground">Not restricted · standby: %1$s</string>
+    <string name="subtitle_notificationCheckBackgroundLimited">Android is limiting Flipcash in the background</string>
+    <string name="title_notificationCheckBackgroundRestricted">Background activity is restricted</string>
+    <string name="subtitle_notificationCheckBackgroundRestricted">Notifications may not arrive</string>
+    <string name="title_notificationCheckPlayServices">Google Play Services</string>
+    <string name="subtitle_notificationCheckPlayServices">Available</string>
+    <string name="subtitle_notificationCheckPlayServicesUpdate">Google Play services needs an update</string>
+    <string name="title_notificationCheckPlayServicesMissing">Google Play services isn\'t available</string>
+    <string name="subtitle_notificationCheckPlayServicesMissing">Push notifications need it</string>
+    <string name="title_notificationCheckRegistered">Registered for Push</string>
+    <string name="title_notificationCheckRegistering">Checking registration…</string>
+    <string name="subtitle_notificationCheckRegistering">Contacting Flipcash</string>
+    <string name="subtitle_notificationCheckRegistered">Confirmed just now</string>
+    <string name="title_notificationCheckNoToken">Couldn\'t get a push token from Google</string>
+    <string name="title_notificationCheckTokenRejected">Flipcash rejected this phone\'s push token</string>
+    <string name="title_notificationCheckUnreachable">Couldn\'t reach Flipcash</string>
+    <string name="subtitle_notificationCheckUnreachable">Check your connection</string>
+    <!-- %1$s is a relative time, e.g. "2 hours ago" -->
+    <string name="subtitle_notificationCheckLastConfirmed">Last confirmed %1$s</string>
+    <string name="subtitle_notificationCheckLastConfirmedJustNow">Last confirmed just now</string>
+    <string name="title_notificationCheckFailed">Registration failed</string>
 </resources>

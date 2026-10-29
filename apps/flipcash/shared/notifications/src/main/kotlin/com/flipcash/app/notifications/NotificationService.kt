@@ -12,6 +12,7 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.media.RingtoneManager
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
@@ -26,6 +27,8 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.flipcash.app.core.media.MediaUrlResolver
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.auth.push.PushRegistrar
+import com.flipcash.app.auth.push.PushRegistrationSource
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
@@ -37,14 +40,12 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.services.controllers.ProfileController
-import com.flipcash.services.controllers.PushController
 import com.getcode.opencode.model.core.ID
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.handle
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.NavigationTrigger
-import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
 import com.flipcash.services.models.PushChatMetadata
 import com.flipcash.services.models.Substitution
@@ -107,7 +108,7 @@ class NotificationService : FirebaseMessagingService(),
     lateinit var userManager: UserManager
 
     @Inject
-    lateinit var pushController: PushController
+    lateinit var pushRegistrar: PushRegistrar
 
     @Inject
     lateinit var mediaUrlResolver: MediaUrlResolver
@@ -145,6 +146,9 @@ class NotificationService : FirebaseMessagingService(),
     @Inject
     lateinit var pushMessageClassifier: PushMessageClassifier
 
+    @Inject
+    lateinit var testPushMark: TestPushMark
+
     // TODO(firebase-messaging): 25.1.0 deprecated onNewToken in favor of FID-based onRegistered().
     //  Migrate once Firebase ships a stable guide and the backend accepts FID registration.
     //  Tracking: https://github.com/firebase/firebase-android-sdk/issues/8087
@@ -154,13 +158,7 @@ class NotificationService : FirebaseMessagingService(),
         authenticateIfNeeded {
             launch {
                 if (userManager.state.value.authState.canAccessAuthenticatedApis) {
-                    pushController.addToken(token)
-                        .onSuccess {
-                            userManager.set(pushToken = token)
-                            trace("push token updated onNewToken", type = TraceType.Silent)
-                        }.onFailure {
-                            trace(message = "Failure updating push token", error = it)
-                        }
+                    pushRegistrar.register(PushRegistrationSource.Refresh, token = token)
                 }
             }
         }
@@ -206,12 +204,21 @@ class NotificationService : FirebaseMessagingService(),
 
         if (actions.isEmpty()) return
 
-        execute(actions)
+        // Chosen on arrival rather than at post time, which can wait on authentication: the test
+        // push's mark has to be read before it lapses.
+        val channel = if (actions.any { it is PushAction.PostNotification }) {
+            NotificationChannels.channelForPush(this, payload, testPushMark)
+        } else {
+            null
+        }
+
+        execute(actions, channel)
     }
 
     /** Runs a planned action list. Sync work starts immediately; posting a
-     *  notification waits for authentication, as it always has. */
-    private fun execute(actions: List<PushAction>) {
+     *  notification waits for authentication, as it always has. [channel] is where the
+     *  notification posts, set when one is planned. */
+    private fun execute(actions: List<PushAction>, channel: NotificationChannelCompat?) {
         if (PushAction.UpdateTokens in actions) {
             launch { tokenCoordinator.update() }
         }
@@ -247,13 +254,13 @@ class NotificationService : FirebaseMessagingService(),
                 try {
                     if (syncContacts) launch { contactCoordinator.sync() }
                     val decided = post?.let { applyArchiveOrPost(it) }
-                    if (decided != null) {
+                    if (decided != null && channel != null) {
                         val resolvedTitle =
                             applySubstitutions(decided.title, decided.payload?.titleSubstitutions.orEmpty())
                         val resolvedBody = decided.body?.let {
                             applySubstitutions(it, decided.payload?.bodySubstitutions.orEmpty())
                         }
-                        postNotification(resolvedTitle, resolvedBody, decided.payload, decided.silent)
+                        postNotification(resolvedTitle, resolvedBody, decided.payload, channel, decided.silent)
                     }
                 } catch (e: Exception) {
                     trace(tag = "NotificationService", message = "Failed to handle push", error = e)
@@ -308,6 +315,7 @@ class NotificationService : FirebaseMessagingService(),
         title: String,
         body: String?,
         payload: NotificationPayload?,
+        channel: NotificationChannelCompat,
         silent: Boolean = false,
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -315,9 +323,7 @@ class NotificationService : FirebaseMessagingService(),
             != PackageManager.PERMISSION_GRANTED
         ) return
 
-        val category = payload?.category ?: NotificationCategory.DEFAULT
         NotificationChannels.ensureChannelGroups(this, notificationManager)
-        val channel = NotificationChannels.channelFor(this, category)
         notificationManager.createNotificationChannel(channel)
 
         val chatId = when (val trigger = payload?.navigation) {

@@ -2,6 +2,7 @@ package com.flipcash.app
 
 import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import coil3.ImageLoader
@@ -23,6 +24,7 @@ import com.getcode.utils.trace
 import dev.bmcreations.phantom.connect.PhantomSdk
 import dagger.Lazy
 import com.flipcash.app.messenger.LinkPreviewStartup
+import com.flipcash.app.notifications.NotificationChannels
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -85,6 +87,7 @@ class FlipcashApp : Application(), Configuration.Provider, SingletonImageLoader.
         super.onCreate()
         PhantomSdk.init(this)
         startupScope.launch {
+            NotificationChannels.createAll(this@FlipcashApp, NotificationManagerCompat.from(this@FlipcashApp))
             authManager.get().init()
             eventRepository.get()
             preferredCurrencyController.get()

@@ -110,6 +110,7 @@ private val colors = with(Flipcash2ColorSpec) {
         errorText = TextError,
         success = success,
         successText = successText,
+        warningText = warning,
         textMain = Color.White,
         textSecondary = secondaryText,
         textTertiary = White10,
