@@ -64,6 +64,8 @@ import com.getcode.opencode.model.financial.Token
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ProfileAddress
+import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.tokens.ui.CurrencyActionTile
 import com.flipcash.app.tokens.ui.TopCommunityChatsPreviewCount
 import com.flipcash.app.tokens.ui.currencyActionTiles
@@ -278,6 +280,32 @@ internal fun CurrencyInfoContentV2(
                                             )
                                         )
                                     )
+                                },
+                            )
+                        }
+                    }
+
+                    // 3b. Community leader (its own condition: shows without any ranked chats)
+                    state.communityLeader?.let { leader ->
+                        item {
+                            val userId = leader.userId
+                            CommunityLeaderSection(
+                                modifier = Modifier
+                                    .fillParentMaxWidth()
+                                    .padding(horizontal = inset)
+                                    .padding(top = grid.x5),
+                                leader = leader,
+                                onClick = userId?.let {
+                                    {
+                                        dispatch(
+                                            TokenInfoViewModel.Event.OpenScreen(
+                                                AppRoute.Messaging.Profile(
+                                                    ProfileAddress.ById(it),
+                                                    ProfileOrigin.CommunityLeader,
+                                                )
+                                            )
+                                        )
+                                    }
                                 },
                             )
                         }
