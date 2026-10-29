@@ -1,6 +1,9 @@
 package com.getcode.ui.components
 
-import androidx.activity.compose.BackHandler
+import android.os.Build
+import android.view.KeyEvent
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -24,8 +27,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,6 +45,7 @@ import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateMeasurement
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -78,10 +84,13 @@ fun SubmenuDropdownMenu(
         containerColor = CodeTheme.colors.brandLight,
         shape = CodeTheme.shapes.extraLarge,
         offset = offset,
-        // Back folds the submenu before it closes the menu, so the popup must not take it first.
-        properties = PopupProperties(focusable = true, dismissOnBackPress = openSubmenu == null),
+        // The popup reads dismissOnBackPress only when it opens, so it never sees the submenu open.
+        // Back is handled here instead: it folds the submenu first, then closes the menu.
+        properties = PopupProperties(focusable = true, dismissOnBackPress = false),
     ) {
-        BackHandler(enabled = openSubmenu != null) { openSubmenu = null }
+        PopupBackHandler {
+            if (openSubmenu != null) openSubmenu = null else onDismissRequest()
+        }
         // Folding rows stop counting toward the width at once, so width and height move together.
         Column(Modifier.then(AnimatedWidthElement)) {
             val scope = SubmenuDropdownMenuScope(
@@ -154,6 +163,31 @@ class SubmenuDropdownMenuScope internal constructor(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Takes system back in the popup's own window. The popup has focus, so back never reaches the
+ * activity's dispatcher, where `BackHandler` would listen.
+ */
+@Composable
+private fun PopupBackHandler(onBack: () -> Unit) {
+    val view = LocalView.current
+    val currentOnBack by rememberUpdatedState(onBack)
+    DisposableEffect(view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val dispatcher = view.findOnBackInvokedDispatcher()
+            val callback = OnBackInvokedCallback { currentOnBack() }
+            dispatcher?.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
+            onDispose { dispatcher?.unregisterOnBackInvokedCallback(callback) }
+        } else {
+            view.setOnKeyListener { _, keyCode, event ->
+                if (keyCode != KeyEvent.KEYCODE_BACK) return@setOnKeyListener false
+                if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) currentOnBack()
+                true
+            }
+            onDispose { view.setOnKeyListener(null) }
         }
     }
 }
