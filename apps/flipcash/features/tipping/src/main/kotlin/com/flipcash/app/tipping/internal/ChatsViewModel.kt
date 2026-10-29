@@ -170,13 +170,14 @@ internal class ChatsViewModel @Inject constructor(
 
         // One flow for both lists: two would let a new main list pair with a stale archived one,
         // and archiving the last main chat would flash the no-chats prompt before the Archived row.
-        // A payment preview reads at the display currency's rate, so a new currency or rate redraws the rows.
+        // A payment preview reads at the display currency's rate and the sent currency's, so a new
+        // currency or any rate arriving redraws the rows; the preferred rate alone misses a late sent-currency rate.
         combine(
             chatCoordinator.chatListFeeds(),
             tokenCoordinator.tokens,
             chatCoordinator.observeSenderProfiles(),
-            exchange.observePreferredRate(),
             // Paired so the combine stays at five typed flows.
+            combine(exchange.observePreferredRate(), exchange.observeRates(), ::Pair),
             combine(paymentRequests.state, hostLobbies.state, ::Pair),
         ) { feeds, tokens, senderProfiles, _, (requests, lobbies) ->
             content(feeds, tokens, senderProfiles, requests, lobbies)
