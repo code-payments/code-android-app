@@ -377,7 +377,7 @@ class NotificationService : FirebaseMessagingService(),
             builder.applyChatStyle(chatId, styling, groupKey, title, body, payload?.chatMetadata)
         } else {
             builder.setContentTitle(title).setContentText(body)
-            SecureRandom().nextInt(Int.MAX_VALUE)
+            planNotificationId(channel.id, randomId = { SecureRandom().nextInt(Int.MAX_VALUE) })
         }
 
         notificationManager.notify(notificationId, builder.build())

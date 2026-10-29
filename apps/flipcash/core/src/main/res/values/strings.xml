@@ -2025,19 +2025,25 @@
 
     <string name="title_notificationCheckAllowed">Notifications Allowed</string>
     <string name="subtitle_notificationCheckAllowed">Allowed in Android settings</string>
-    <string name="title_notificationCheckNotAllowed">Notifications are turned off</string>
+    <string name="subtitle_notificationCheckNotAllowedProblem">Notifications are turned off</string>
     <string name="subtitle_notificationCheckNotAllowed">Turned off for Flipcash in Android settings</string>
-    <string name="title_notificationCheckChatOff">Chat notifications are off</string>
+    <string name="title_notificationCheckChat">Chat Notifications</string>
+    <string name="title_notificationCheckDeposits">Deposit Notifications</string>
+    <string name="title_notificationCheckBuySell">Buy and Sell Notifications</string>
+    <string name="title_notificationCheckGain">Price Alerts</string>
+    <string name="title_notificationCheckContacts">Contact Notifications</string>
+    <string name="title_notificationCheckGeneral">Misc. Notifications</string>
+    <string name="subtitle_notificationCheckChatOffProblem">Chat notifications are off</string>
     <string name="subtitle_notificationCheckChatOff">Messages and replies won\'t show</string>
-    <string name="title_notificationCheckDepositsOff">Deposit notifications are off</string>
+    <string name="subtitle_notificationCheckDepositsOffProblem">Deposit notifications are off</string>
     <string name="subtitle_notificationCheckDepositsOff">Deposits and withdrawals won\'t show</string>
-    <string name="title_notificationCheckBuySellOff">Buy and sell notifications are off</string>
+    <string name="subtitle_notificationCheckBuySellOffProblem">Buy and sell notifications are off</string>
     <string name="subtitle_notificationCheckBuySellOff">Purchases and sales won\'t show</string>
-    <string name="title_notificationCheckGainOff">Price alerts are off</string>
+    <string name="subtitle_notificationCheckGainOffProblem">Price alerts are off</string>
     <string name="subtitle_notificationCheckGainOff">Price moves won\'t show</string>
-    <string name="title_notificationCheckContactsOff">Contact notifications are off</string>
+    <string name="subtitle_notificationCheckContactsOffProblem">Contact notifications are off</string>
     <string name="subtitle_notificationCheckContactsOff">You won\'t hear when contacts join</string>
-    <string name="title_notificationCheckGeneralOff">Misc. notifications are off</string>
+    <string name="subtitle_notificationCheckGeneralOffProblem">Misc. notifications are off</string>
     <string name="subtitle_notificationCheckGeneralOff">Other updates from Flipcash won\'t show</string>
     <string name="title_notificationCheckOtherCategories">Other Categories</string>
     <!-- %1$s is a list like "Payments, gains and contacts" -->
@@ -2051,29 +2057,28 @@
     <string name="label_listAnd">%1$s and %2$s</string>
     <string name="title_notificationCheckBattery">Battery Optimization</string>
     <string name="subtitle_notificationCheckBattery">Flipcash is not optimized</string>
-    <string name="title_notificationCheckBatteryOn">Battery optimization is on</string>
+    <string name="subtitle_notificationCheckBatteryOnProblem">Battery optimization is on</string>
     <string name="subtitle_notificationCheckBatteryOn">Android may delay notifications</string>
     <string name="title_notificationCheckBackground">Background Activity</string>
     <!-- %1$s is a standby bucket, e.g. "Active" -->
     <string name="subtitle_notificationCheckBackground">Not restricted · standby: %1$s</string>
     <string name="subtitle_notificationCheckBackgroundLimited">Android is limiting Flipcash in the background</string>
-    <string name="title_notificationCheckBackgroundRestricted">Background activity is restricted</string>
+    <string name="subtitle_notificationCheckBackgroundRestrictedProblem">Background activity is restricted</string>
     <string name="subtitle_notificationCheckBackgroundRestricted">Notifications may not arrive</string>
     <string name="title_notificationCheckPlayServices">Google Play Services</string>
     <string name="subtitle_notificationCheckPlayServices">Available</string>
     <string name="subtitle_notificationCheckPlayServicesUpdate">Google Play services needs an update</string>
-    <string name="title_notificationCheckPlayServicesMissing">Google Play services isn\'t available</string>
+    <string name="subtitle_notificationCheckPlayServicesMissingProblem">Google Play services isn\'t available</string>
     <string name="subtitle_notificationCheckPlayServicesMissing">Push notifications need it</string>
     <string name="title_notificationCheckRegistered">Registered for Push</string>
-    <string name="title_notificationCheckRegistering">Checking registration…</string>
     <string name="subtitle_notificationCheckRegistering">Contacting Flipcash</string>
     <string name="subtitle_notificationCheckRegistered">Confirmed just now</string>
-    <string name="title_notificationCheckNoToken">Couldn\'t get a push token from Google</string>
-    <string name="title_notificationCheckTokenRejected">Flipcash rejected this phone\'s push token</string>
-    <string name="title_notificationCheckUnreachable">Couldn\'t reach Flipcash</string>
+    <string name="subtitle_notificationCheckNoTokenProblem">Couldn\'t get a push token from Google</string>
+    <string name="subtitle_notificationCheckTokenRejectedProblem">Flipcash rejected this phone\'s push token</string>
+    <string name="subtitle_notificationCheckUnreachableProblem">Couldn\'t reach Flipcash</string>
     <string name="subtitle_notificationCheckUnreachable">Check your connection</string>
     <!-- %1$s is a relative time, e.g. "2 hours ago" -->
     <string name="subtitle_notificationCheckLastConfirmed">Last confirmed %1$s</string>
     <string name="subtitle_notificationCheckLastConfirmedJustNow">Last confirmed just now</string>
-    <string name="title_notificationCheckFailed">Registration failed</string>
+    <string name="subtitle_notificationCheckFailedProblem">Registration failed</string>
 </resources>

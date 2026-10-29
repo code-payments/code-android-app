@@ -332,7 +332,7 @@ private fun Group(
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically(),
                 ) {
-                    last.row?.let { CheckRowItem(it, state, onFix) }
+                    last.row?.let { CheckRowItem(it, onFix) }
                 }
             }
         }
@@ -340,8 +340,8 @@ private fun Group(
 }
 
 @Composable
-private fun CheckRowItem(row: CheckRow, state: NotificationStatusViewModel.State, onFix: (Fix) -> Unit) {
-    val text = row.text(state)
+private fun CheckRowItem(row: CheckRow, onFix: (Fix) -> Unit) {
+    val text = row.text()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -399,91 +399,79 @@ private fun FixButton(fix: Fix, enabled: Boolean, onFix: (Fix) -> Unit) {
     )
 }
 
+// The title is the check name in every state. The detail leads with the problem, if there is one,
+// and puts the explanation on the second line: the two lines the row reserves.
 @Composable
-private fun CheckRow.text(state: NotificationStatusViewModel.State): Pair<String, String> = when (this) {
-    is CheckRow.Pending -> stringResource(
-        when (key) {
-            PermissionKey -> R.string.title_notificationCheckAllowed
-            OtherChannelsKey -> R.string.title_notificationCheckOtherCategories
-            BatteryKey -> R.string.title_notificationCheckBattery
-            BackgroundKey -> R.string.title_notificationCheckBackground
-            else -> R.string.title_notificationCheckPlayServices
-        },
-    ) to stringResource(R.string.title_notificationStatusChecking)
-
-    is CheckRow.Rechecking -> previous.text(state).first to stringResource(R.string.title_notificationStatusChecking)
-
-    is CheckRow.Permission -> if (allowed) {
-        stringResource(R.string.title_notificationCheckAllowed) to stringResource(R.string.subtitle_notificationCheckAllowed)
-    } else {
-        stringResource(R.string.title_notificationCheckNotAllowed) to stringResource(R.string.subtitle_notificationCheckNotAllowed)
+private fun CheckRow.text(): Pair<String, String> {
+    val title = stringResource(checkTitle(key))
+    if (this is CheckRow.Pending || this is CheckRow.Rechecking) {
+        return title to stringResource(R.string.title_notificationStatusChecking)
     }
+    val problem = problemLine(this)?.let { stringResource(it) }
+    val detail = listOfNotNull(problem, explanation()?.takeIf { it.isNotEmpty() }).joinToString("\n")
+    return title to detail
+}
+
+// The detail's line below the problem, or a passing row's only line. Null when there is none.
+@Composable
+private fun CheckRow.explanation(): String? = when (this) {
+    is CheckRow.Pending, is CheckRow.Rechecking -> null
+
+    is CheckRow.Permission -> stringResource(
+        if (allowed) R.string.subtitle_notificationCheckAllowed else R.string.subtitle_notificationCheckNotAllowed,
+    )
 
     is CheckRow.BlockedChannel -> when (channel) {
-        StatusChannel.Chat -> R.string.title_notificationCheckChatOff to R.string.subtitle_notificationCheckChatOff
-        StatusChannel.DepositWithdrawal -> R.string.title_notificationCheckDepositsOff to R.string.subtitle_notificationCheckDepositsOff
-        StatusChannel.BuySell -> R.string.title_notificationCheckBuySellOff to R.string.subtitle_notificationCheckBuySellOff
-        StatusChannel.Gain -> R.string.title_notificationCheckGainOff to R.string.subtitle_notificationCheckGainOff
-        StatusChannel.ContactJoin -> R.string.title_notificationCheckContactsOff to R.string.subtitle_notificationCheckContactsOff
-        StatusChannel.General -> R.string.title_notificationCheckGeneralOff to R.string.subtitle_notificationCheckGeneralOff
+        StatusChannel.Chat -> R.string.subtitle_notificationCheckChatOff
+        StatusChannel.DepositWithdrawal -> R.string.subtitle_notificationCheckDepositsOff
+        StatusChannel.BuySell -> R.string.subtitle_notificationCheckBuySellOff
+        StatusChannel.Gain -> R.string.subtitle_notificationCheckGainOff
+        StatusChannel.ContactJoin -> R.string.subtitle_notificationCheckContactsOff
+        StatusChannel.General -> R.string.subtitle_notificationCheckGeneralOff
         // evaluateNotificationStatus gives it no row: it only gates the test button.
         StatusChannel.TestPush -> error("${channel.id} has no row")
-    }.let { (title, detail) -> stringResource(title) to stringResource(detail) }
+    }.let { stringResource(it) }
 
     is CheckRow.OtherChannels ->
-        stringResource(R.string.title_notificationCheckOtherCategories) to
-            stringResource(R.string.subtitle_notificationCheckOtherCategories, categoryList(covered))
+        stringResource(R.string.subtitle_notificationCheckOtherCategories, categoryList(covered))
 
-    is CheckRow.Battery -> if (optimized) {
-        stringResource(R.string.title_notificationCheckBatteryOn) to stringResource(R.string.subtitle_notificationCheckBatteryOn)
-    } else {
-        stringResource(R.string.title_notificationCheckBattery) to stringResource(R.string.subtitle_notificationCheckBattery)
-    }
+    is CheckRow.Battery -> stringResource(
+        if (optimized) R.string.subtitle_notificationCheckBatteryOn else R.string.subtitle_notificationCheckBattery,
+    )
 
     is CheckRow.Background -> when (status) {
-        CheckStatus.Fail -> stringResource(R.string.title_notificationCheckBackgroundRestricted) to
-            stringResource(R.string.subtitle_notificationCheckBackgroundRestricted)
-        CheckStatus.Warning -> stringResource(R.string.title_notificationCheckBackground) to
-            stringResource(R.string.subtitle_notificationCheckBackgroundLimited)
-        else -> stringResource(R.string.title_notificationCheckBackground) to
-            stringResource(R.string.subtitle_notificationCheckBackground, bucketName(bucket))
+        CheckStatus.Fail -> stringResource(R.string.subtitle_notificationCheckBackgroundRestricted)
+        // The problem line says it all.
+        CheckStatus.Warning -> null
+        else -> stringResource(R.string.subtitle_notificationCheckBackground, bucketName(bucket))
     }
 
     is CheckRow.GooglePlay -> when (status) {
-        CheckStatus.Fail -> stringResource(R.string.title_notificationCheckPlayServicesMissing) to
-            stringResource(R.string.subtitle_notificationCheckPlayServicesMissing)
-        CheckStatus.Warning -> stringResource(R.string.title_notificationCheckPlayServices) to
-            stringResource(R.string.subtitle_notificationCheckPlayServicesUpdate)
-        else -> stringResource(R.string.title_notificationCheckPlayServices) to
-            stringResource(R.string.subtitle_notificationCheckPlayServices)
+        CheckStatus.Fail -> stringResource(R.string.subtitle_notificationCheckPlayServicesMissing)
+        CheckStatus.Warning -> null
+        else -> stringResource(R.string.subtitle_notificationCheckPlayServices)
     }
 
     is CheckRow.Registration -> when (val registration = this.state) {
-        RegistrationState.Checking -> stringResource(R.string.title_notificationCheckRegistering) to
-            stringResource(R.string.subtitle_notificationCheckRegistering)
+        RegistrationState.Checking -> stringResource(R.string.subtitle_notificationCheckRegistering)
         is RegistrationState.Finished -> when (registration.outcome) {
-            PushRegistrationOutcome.Ok ->
-                stringResource(R.string.title_notificationCheckRegistered) to
-                    stringResource(R.string.subtitle_notificationCheckRegistered)
-            // A failure says what went wrong in the title; these have nothing more to explain.
-            PushRegistrationOutcome.NoToken -> stringResource(R.string.title_notificationCheckNoToken) to ""
-            PushRegistrationOutcome.InvalidPushToken ->
-                stringResource(R.string.title_notificationCheckTokenRejected) to ""
-            PushRegistrationOutcome.Transport ->
-                stringResource(R.string.title_notificationCheckUnreachable) to
-                    (registration.lastConfirmedAt?.let {
-                        val confirmedAt = it.toEpochMilliseconds()
-                        // DateUtils says "0 minutes ago" under a minute.
-                        if (System.currentTimeMillis() - confirmedAt < DateUtils.MINUTE_IN_MILLIS) {
-                            stringResource(R.string.subtitle_notificationCheckLastConfirmedJustNow)
-                        } else {
-                            stringResource(
-                                R.string.subtitle_notificationCheckLastConfirmed,
-                                DateUtils.getRelativeTimeSpanString(confirmedAt).toString(),
-                            )
-                        }
-                    } ?: stringResource(R.string.subtitle_notificationCheckUnreachable))
-            PushRegistrationOutcome.Failed -> stringResource(R.string.title_notificationCheckFailed) to ""
+            PushRegistrationOutcome.Ok -> stringResource(R.string.subtitle_notificationCheckRegistered)
+            // The problem line says what went wrong; these have nothing more to explain.
+            PushRegistrationOutcome.NoToken,
+            PushRegistrationOutcome.InvalidPushToken,
+            PushRegistrationOutcome.Failed -> null
+            PushRegistrationOutcome.Transport -> registration.lastConfirmedAt?.let {
+                val confirmedAt = it.toEpochMilliseconds()
+                // DateUtils says "0 minutes ago" under a minute.
+                if (System.currentTimeMillis() - confirmedAt < DateUtils.MINUTE_IN_MILLIS) {
+                    stringResource(R.string.subtitle_notificationCheckLastConfirmedJustNow)
+                } else {
+                    stringResource(
+                        R.string.subtitle_notificationCheckLastConfirmed,
+                        DateUtils.getRelativeTimeSpanString(confirmedAt).toString(),
+                    )
+                }
+            } ?: stringResource(R.string.subtitle_notificationCheckUnreachable)
         }
     }
 }
