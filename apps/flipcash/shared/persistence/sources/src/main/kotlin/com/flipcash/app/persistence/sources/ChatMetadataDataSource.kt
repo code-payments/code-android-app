@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.ViewerState
@@ -212,6 +213,11 @@ class ChatMetadataDataSource @Inject constructor(
     /** Applies a `MetadataUpdate.CoverPictureChanged` for [chatId]. See ChatMetadataDao.updateCoverPicture. */
     suspend fun updateCoverPicture(chatId: ChatId, coverPicture: MediaItem) {
         db?.chatMetadataDao()?.updateCoverPicture(mapper.chatIdHex(chatId), coverPicture)
+    }
+
+    /** Applies a `MetadataUpdate.RulesChanged` for [chatId]. See ChatMetadataDao.updateRules. */
+    suspend fun updateRules(chatId: ChatId, rules: ChatRules) {
+        db?.chatMetadataDao()?.updateRules(mapper.chatIdHex(chatId), mapper.rulesSerialized(rules))
     }
 
     suspend fun getAnalyticsCountedThrough(chatId: ChatId): Long =
