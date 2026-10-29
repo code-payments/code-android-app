@@ -105,6 +105,7 @@ class ChatSilenceLiftedToastTest {
         identifier: ChatIdentifier? = null,
     ): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
+        wrongKeyChats = com.flipcash.services.chat.WrongKeyChats(),
         mediaUploads = noMediaUploads(),
         e2eePolicy = E2eePolicy(),
         contactCoordinator = contactCoordinator,
