@@ -990,6 +990,9 @@ internal class ChatViewModel @AssistedInject constructor(
         /** A timed silence reached its deadline; nothing else says so. */
         data object SilenceLapsed : Event
 
+        /** The viewer can send again; the screen shows it as a floating toast above the composer. */
+        data object SilenceLifted : Event
+
         data class OnEncryptionResolved(val isEncrypted: Boolean) : Event
 
         data class OnCurrencySymbolUpdated(val symbol: String): Event
@@ -2459,7 +2462,7 @@ internal class ChatViewModel @AssistedInject constructor(
             .distinctUntilChanged()
             .scan(false to false) { (_, was), isSilenced -> was to isSilenced }
             .filter { (was, isSilenced) -> was && !isSilenced }
-            .onEach { toastController.showToast(R.string.toast_silenceLifted, replacePrevious = true) }
+            .onEach { dispatchEvent(Event.SilenceLifted) }
             .launchIn(viewModelScope)
 
         // The profile footer's claim. Decided by the policy from the chat's metadata, so the
@@ -4327,6 +4330,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     state.copy(viewerState = event.viewerState, silenceClock = kotlin.time.Clock.System.now())
                 }
                 Event.SilenceLapsed -> { state -> state.copy(silenceClock = kotlin.time.Clock.System.now()) }
+                Event.SilenceLifted -> { state -> state }
                 Event.CopyInviteLink,
                 is Event.InviteSheetOpened,
                 Event.InviteLinkShared,

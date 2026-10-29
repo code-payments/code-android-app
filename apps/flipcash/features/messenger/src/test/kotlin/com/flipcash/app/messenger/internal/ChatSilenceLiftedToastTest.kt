@@ -1,6 +1,10 @@
 package com.flipcash.app.messenger.internal
 
 import android.content.ClipboardManager
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.test.TestScope
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.contacts.ContactCoordinator
@@ -29,7 +33,6 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.bytes
 import com.getcode.opencode.model.financial.Rate
 import io.mockk.coEvery
-import io.mockk.verify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -143,11 +146,19 @@ class ChatSilenceLiftedToastTest {
     private fun silenced(silence: SilenceState) =
         ChatViewModel.Event.OnViewerStateResolved(ViewerState(restrictions = ViewerState.Restrictions(silence)))
 
-    private fun lifts() = verify(exactly = 1) { toasts.showToast(R.string.toast_silenceLifted, replacePrevious = true) }
+    /** Collects the lift events the screen turns into a floating toast. */
+    private fun TestScope.liftsOf(viewModel: ChatViewModel): List<ChatViewModel.Event.SilenceLifted> {
+        val lifts = mutableListOf<ChatViewModel.Event.SilenceLifted>()
+        backgroundScope.launch(mainCoroutineRule.dispatcher) {
+            viewModel.eventFlow.filterIsInstance<ChatViewModel.Event.SilenceLifted>().toList(lifts)
+        }
+        return lifts
+    }
 
     @Test
-    fun `the host lifting the silence toasts once`() = runTest {
+    fun `the host lifting the silence toasts once`() = runTest(mainCoroutineRule.dispatcher) {
         val viewModel = createViewModel()
+        val lifts = liftsOf(viewModel)
         viewModel.dispatchEvent(openChat)
         viewModel.dispatchEvent(silenced(SilenceState.Forever))
         advanceUntilIdle()
@@ -155,23 +166,25 @@ class ChatSilenceLiftedToastTest {
         viewModel.dispatchEvent(ChatViewModel.Event.OnViewerStateResolved(ViewerState()))
         advanceUntilIdle()
 
-        lifts()
+        assertEquals(1, lifts.size)
     }
 
     @Test
-    fun `a chat that opens with no silence never toasts`() = runTest {
+    fun `a chat that opens with no silence never toasts`() = runTest(mainCoroutineRule.dispatcher) {
         val viewModel = createViewModel()
+        val lifts = liftsOf(viewModel)
         viewModel.dispatchEvent(openChat)
         viewModel.dispatchEvent(ChatViewModel.Event.OnViewerStateResolved(ViewerState()))
         viewModel.dispatchEvent(ChatViewModel.Event.OnViewerStateResolved(null))
         advanceUntilIdle()
 
-        verify(exactly = 0) { toasts.showToast(R.string.toast_silenceLifted, replacePrevious = true) }
+        assertEquals(0, lifts.size)
     }
 
     @Test
-    fun `a timed silence running out and the host's unsilence landing together toast once`() = runTest {
+    fun `a timed silence running out and the host's unsilence landing together toast once`() = runTest(mainCoroutineRule.dispatcher) {
         val viewModel = createViewModel()
+        val lifts = liftsOf(viewModel)
         viewModel.dispatchEvent(openChat)
         viewModel.dispatchEvent(silenced(SilenceState.Until(Clock.System.now() + 50.milliseconds)))
         advanceUntilIdle()
@@ -182,12 +195,13 @@ class ChatSilenceLiftedToastTest {
         viewModel.dispatchEvent(ChatViewModel.Event.OnViewerStateResolved(ViewerState()))
         advanceUntilIdle()
 
-        lifts()
+        assertEquals(1, lifts.size)
     }
 
     @Test
-    fun `a second silence and lift toasts again`() = runTest {
+    fun `a second silence and lift toasts again`() = runTest(mainCoroutineRule.dispatcher) {
         val viewModel = createViewModel()
+        val lifts = liftsOf(viewModel)
         viewModel.dispatchEvent(openChat)
         repeat(2) {
             viewModel.dispatchEvent(silenced(SilenceState.Forever))
@@ -196,6 +210,6 @@ class ChatSilenceLiftedToastTest {
             advanceUntilIdle()
         }
 
-        verify(exactly = 2) { toasts.showToast(R.string.toast_silenceLifted, replacePrevious = true) }
+        assertEquals(2, lifts.size)
     }
 }

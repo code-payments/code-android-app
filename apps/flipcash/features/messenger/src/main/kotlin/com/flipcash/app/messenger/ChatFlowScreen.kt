@@ -1,6 +1,9 @@
 package com.flipcash.app.messenger
 
 import com.flipcash.app.messenger.internal.swipepay.SwipePayUiState
+import com.getcode.ui.components.toast.LocalFloatingToastHost
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.Text
@@ -369,6 +372,18 @@ private fun FlowConversationScreen(
                     }
                 }
             }
+    }
+
+    // In-app floating toast, like the chat's other notices. Its own scope, so a second lift
+    // replaces the first rather than queueing behind it.
+    val floatingToasts = LocalFloatingToastHost.current
+    val liftedMessage = stringResource(R.string.toast_silenceLifted)
+    val toastScope = rememberCoroutineScope()
+    LaunchedEffect(viewModel, floatingToasts) {
+        val toasts = floatingToasts ?: return@LaunchedEffect
+        viewModel.eventFlow
+            .filterIsInstance<ChatViewModel.Event.SilenceLifted>()
+            .collect { toastScope.launch { toasts.show(liftedMessage) } }
     }
 
     LaunchedEffect(viewModel) {
