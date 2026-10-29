@@ -16,6 +16,10 @@ data class EditChatParameters(
     val coverPicture: BlobId? = null,
     // Null leaves the description unchanged; see [DescriptionEdit] for set vs clear.
     val description: DescriptionEdit? = null,
+    // The full replacement rules, not a patch. Only valid on a public group that has a listener
+    // minimum balance; the editable parts are that listener amount and the speaker minimum
+    // balance requirements. Null leaves the rules unchanged.
+    val rules: ChatRules? = null,
 )
 
 /**

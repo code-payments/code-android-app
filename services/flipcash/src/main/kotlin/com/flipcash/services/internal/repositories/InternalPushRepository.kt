@@ -15,6 +15,10 @@ internal class InternalPushRepository(
     ): Result<Unit> = service.addToken(owner, token, installationId)
         .onFailure { ErrorUtils.handleError(it) }
 
+    override suspend fun sendTestPush(owner: Ed25519.KeyPair): Result<Unit> =
+        service.sendTestPush(owner)
+            .onFailure { ErrorUtils.handleError(it) }
+
     override suspend fun deleteTokens(
         owner: Ed25519.KeyPair,
         installationId: String?

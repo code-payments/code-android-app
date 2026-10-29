@@ -316,6 +316,8 @@ internal class ChatService @Inject constructor(
                         Result.failure(EditChatError.DescriptionModerated(response.flaggedCategory.toFlaggedCategory()))
                     RpcChatService.EditChatResponse.Result.PROFILE_PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(EditChatError.PictureBlobNotAccepted())
                     RpcChatService.EditChatResponse.Result.COVER_PICTURE_BLOB_NOT_ACCEPTED -> Result.failure(EditChatError.CoverPictureBlobNotAccepted())
+                    RpcChatService.EditChatResponse.Result.INVALID_RULES -> Result.failure(EditChatError.InvalidRules())
+                    RpcChatService.EditChatResponse.Result.RULES_NOT_SATISFIED -> Result.failure(EditChatError.RulesNotSatisfied())
                     RpcChatService.EditChatResponse.Result.UNRECOGNIZED -> Result.failure(EditChatError.Unrecognized())
                     else -> Result.failure(EditChatError.Other())
                 }

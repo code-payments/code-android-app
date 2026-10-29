@@ -308,6 +308,7 @@ internal class ChatApi @Inject constructor(
                             )
                     )
                 }
+                parameters.rules?.let { setRules(it.asProtoRules()) }
                 parameters.coverPicture?.let {
                     setCoverPicture(
                         RpcChatService.EditChatRequest.CoverPicture.newBuilder()
