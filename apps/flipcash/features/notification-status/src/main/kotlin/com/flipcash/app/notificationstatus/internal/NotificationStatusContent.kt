@@ -99,7 +99,7 @@ internal fun NotificationStatusContent(
         ) {
             // Settings' gap below its bar: the first section header's top padding.
             Spacer(Modifier.height(topPadding + CodeTheme.dimens.grid.x4))
-            SummaryCard(status.summary, checked = state.checked)
+            SummaryCard(state.summary, checked = state.checked)
 
             // All passing folds into one row; it stays as the toggle once expanded.
             AnimatedVisibility(

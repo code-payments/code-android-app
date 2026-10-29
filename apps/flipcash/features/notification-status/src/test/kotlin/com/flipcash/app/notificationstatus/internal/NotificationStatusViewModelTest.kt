@@ -187,6 +187,28 @@ class NotificationStatusViewModelTest {
     }
 
     @Test
+    fun `check again keeps the last summary until the run finishes, then shows the new one`() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        // The first run has nothing earlier to show.
+        assertEquals(Summary.Checking, viewModel.stateFlow.value.summary)
+        advanceUntilIdle()
+        assertEquals(Summary.Working, viewModel.stateFlow.value.summary)
+
+        // Battery optimization came back on; the re-run finds it.
+        every { reader.read() } returns healthy.copy(ignoringBatteryOptimizations = false)
+        val summaries = mutableListOf<Summary>()
+        val watch = launch { viewModel.stateFlow.collect { summaries += it.summary } }
+        viewModel.dispatchEvent(NotificationStatusViewModel.Event.CheckAgain)
+        assertTrue(viewModel.stateFlow.value.running)
+        assertEquals(Summary.Working, viewModel.stateFlow.value.summary)
+        advanceUntilIdle()
+        watch.cancel()
+
+        // Never Checking in between.
+        assertEquals(listOf(Summary.Working, Summary.ThingsToCheck(1)), summaries.distinct())
+    }
+
+    @Test
     fun `granting the permission runs every check, registration included`() = runTest(dispatcher) {
         val viewModel = viewModel()
         advanceUntilIdle()

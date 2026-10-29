@@ -62,6 +62,8 @@ internal class NotificationStatusViewModel @Inject constructor(
         val foldedAtRecheck: Boolean = false,
         /** The first run has finished, so the summary can say when it last checked. */
         val checked: Boolean = false,
+        /** The summary when the last run finished; the card keeps it while the next one runs. */
+        val settledSummary: Summary? = null,
     ) {
         val status: NotificationStatus
             get() = evaluateNotificationStatus(device, registration, rechecking, lastFinished)
@@ -71,6 +73,10 @@ internal class NotificationStatusViewModel @Inject constructor(
             get() = device == null || rechecking || registration == RegistrationState.Checking
 
         val folded: Boolean get() = status.allPassing || (running && foldedAtRecheck)
+
+        /** "Checking…" only before the first run finishes; after that, the last finished summary. */
+        val summary: Summary
+            get() = settledSummary?.takeIf { running } ?: status.summary
     }
 
     sealed interface Event {
@@ -256,7 +262,7 @@ internal class NotificationStatusViewModel @Inject constructor(
                 is Event.ShareReport -> { { this } }
             }
             // "Checked just now" shows once the first run ends and stays through later runs.
-            { update().let { if (!it.checked && !it.running) it.copy(checked = true) else it } }
+            { update().let { if (it.running) it else it.copy(checked = true, settledSummary = it.status.summary) } }
         }
     }
 }
