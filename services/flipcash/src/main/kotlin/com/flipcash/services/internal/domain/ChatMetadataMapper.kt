@@ -10,6 +10,7 @@ import com.flipcash.services.internal.network.extensions.toHoldingsSummary
 import com.flipcash.services.internal.network.extensions.toId
 import com.flipcash.services.internal.network.extensions.toMediaItem
 import com.flipcash.services.internal.network.extensions.toPointer
+import com.flipcash.services.internal.network.extensions.toPinSummary
 import com.flipcash.services.internal.network.extensions.toRosterSummary
 import com.flipcash.services.internal.network.extensions.toViewerState
 import com.flipcash.services.models.chat.ChatMember
@@ -59,6 +60,7 @@ class ChatMetadataMapper @Inject constructor(
             isPrivate = from.isPrivate,
             inLobby = from.inLobby,
             holdingsSummary = if (from.hasHoldingsSummary()) from.holdingsSummary.toHoldingsSummary() else null,
+            pinSummary = if (from.hasPinSummary()) from.pinSummary.toPinSummary() else null,
         )
     }
 }

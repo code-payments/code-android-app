@@ -22,6 +22,8 @@ import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.Lobby
 import com.flipcash.services.models.chat.LobbyPage
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.PinSummary
+import com.flipcash.services.models.chat.PinsPage
 import com.flipcash.services.models.chat.RestrictedUsersPage
 import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.MentionSuggestion
@@ -222,6 +224,23 @@ interface ChatRepository {
         chatId: ChatId,
         queryOptions: QueryOptions = QueryOptions(),
     ): Result<RestrictedUsersPage>
+
+    /**
+     * Pins [messageId] in [chatId]. Requires `ViewerState.Permissions.canPin`. Returns the chat's
+     * updated summary. The pin cap is server-defined: [PinMessageError.TooManyPins] reports it.
+     */
+    suspend fun pinMessage(owner: KeyPair, chatId: ChatId, messageId: Long): Result<PinSummary>
+
+    /** Unpins [messageId] in [chatId]. Unpinning a message that is not pinned succeeds. */
+    suspend fun unpinMessage(owner: KeyPair, chatId: ChatId, messageId: Long): Result<PinSummary>
+
+    /** One page of [chatId]'s pins, most recently pinned first. */
+    suspend fun getPinnedMessages(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+        viewMode: ViewMode = ViewMode.FULL,
+    ): Result<PinsPage>
 
     /**
      * Stores the caller's own key envelope for [chatId]. [SetKeyEnvelopeError.AlreadySet] means a

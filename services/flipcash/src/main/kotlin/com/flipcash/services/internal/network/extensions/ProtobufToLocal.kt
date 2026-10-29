@@ -52,6 +52,9 @@ import com.flipcash.services.models.chat.isSystemBlank
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MetadataUpdate
+import com.flipcash.services.models.chat.Pin
+import com.flipcash.services.models.chat.PinChange
+import com.flipcash.services.models.chat.PinSummary
 import com.flipcash.services.models.paymentrequest.PaymentRequestUpdate
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.BanState
@@ -461,6 +464,16 @@ internal fun ChatModel.MetadataUpdate.toMetadataUpdate(
             MetadataUpdate.CoverPictureChanged(coverPictureChanged.newCoverPicture.toMediaItem())
         ChatModel.MetadataUpdate.KindCase.RULES_CHANGED ->
             MetadataUpdate.RulesChanged(rulesChanged.newRules.toChatRules())
+        ChatModel.MetadataUpdate.KindCase.PINS_CHANGED -> MetadataUpdate.PinsChanged(
+            change = when (pinsChanged.changeCase) {
+                ChatModel.MetadataUpdate.PinsChanged.ChangeCase.PINNED ->
+                    PinChange.Pinned(pinsChanged.pinned.toPin())
+                ChatModel.MetadataUpdate.PinsChanged.ChangeCase.UNPINNED ->
+                    PinChange.Unpinned(pinsChanged.unpinned.value)
+                else -> null
+            },
+            summary = pinsChanged.summary.toPinSummary(),
+        )
         else -> MetadataUpdate.LastActivityChanged(Instant.fromEpochSeconds(0))
     }
 }
@@ -500,8 +513,24 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
         isPrivate = isPrivate,
         inLobby = inLobby,
         holdingsSummary = if (hasHoldingsSummary()) holdingsSummary.toHoldingsSummary() else null,
+        pinSummary = if (hasPinSummary()) pinSummary.toPinSummary() else null,
     )
 }
+
+// -- Pins --
+
+internal fun ChatModel.Pin.toPin(): Pin = Pin(
+    messageId = messageId.value,
+    pinnedBy = pinnedBy.toId(),
+    pinnedAt = Instant.fromEpochSeconds(pinnedAt.seconds, pinnedAt.nanos),
+    message = message.toChatMessage(),
+)
+
+internal fun ChatModel.PinSummary.toPinSummary(): PinSummary = PinSummary(
+    latest = if (hasLatest()) latest.toPin() else null,
+    count = count,
+    version = version,
+)
 
 internal fun ChatModel.HoldingsSummary.toHoldingsSummary(): HoldingsSummary {
     return HoldingsSummary(
@@ -522,6 +551,7 @@ internal fun ChatModel.ViewerState.toViewerState(): ViewerState {
             ViewerState.Permissions(
                 canEdit = permissions.canEdit,
                 canInvite = permissions.canInvite,
+                canPin = permissions.canPin,
                 moderation = if (permissions.hasModeration()) {
                     ViewerState.ModerationPermissions(
                         canSilence = permissions.moderation.canSilence,

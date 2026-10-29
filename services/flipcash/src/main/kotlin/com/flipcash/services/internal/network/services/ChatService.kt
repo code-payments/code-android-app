@@ -6,7 +6,10 @@ import com.flipcash.services.internal.network.api.ChatApi
 import com.flipcash.services.internal.network.extensions.toFlaggedCategory
 import com.flipcash.services.models.AdmitLobbyMemberError
 import com.flipcash.services.models.BanUserError
+import com.flipcash.services.models.GetPinnedMessagesError
 import com.flipcash.services.models.GetRestrictedUsersError
+import com.flipcash.services.models.PinMessageError
+import com.flipcash.services.models.UnpinMessageError
 import com.flipcash.services.models.SilenceUserError
 import com.flipcash.services.models.UnbanUserError
 import com.flipcash.services.models.UnsilenceUserError
@@ -605,6 +608,79 @@ internal class ChatService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { GetRestrictedUsersError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun pinMessage(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageId: Long,
+    ): Result<RpcChatService.PinMessageResponse> {
+        return runCatching {
+            api.pinMessage(owner, chatId, messageId)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.PinMessageResponse.Result.OK -> Result.success(response)
+                    RpcChatService.PinMessageResponse.Result.DENIED -> Result.failure(PinMessageError.Denied())
+                    RpcChatService.PinMessageResponse.Result.NOT_FOUND -> Result.failure(PinMessageError.NotFound())
+                    RpcChatService.PinMessageResponse.Result.MESSAGE_NOT_FOUND -> Result.failure(PinMessageError.MessageNotFound())
+                    RpcChatService.PinMessageResponse.Result.TOO_MANY_PINS -> Result.failure(PinMessageError.TooManyPins())
+                    RpcChatService.PinMessageResponse.Result.MESSAGE_NOT_ALLOWED -> Result.failure(PinMessageError.MessageNotAllowed())
+                    RpcChatService.PinMessageResponse.Result.UNRECOGNIZED -> Result.failure(PinMessageError.Unrecognized())
+                    else -> Result.failure(PinMessageError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { PinMessageError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun unpinMessage(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageId: Long,
+    ): Result<RpcChatService.UnpinMessageResponse> {
+        return runCatching {
+            api.unpinMessage(owner, chatId, messageId)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.UnpinMessageResponse.Result.OK -> Result.success(response)
+                    RpcChatService.UnpinMessageResponse.Result.DENIED -> Result.failure(UnpinMessageError.Denied())
+                    RpcChatService.UnpinMessageResponse.Result.NOT_FOUND -> Result.failure(UnpinMessageError.NotFound())
+                    RpcChatService.UnpinMessageResponse.Result.UNRECOGNIZED -> Result.failure(UnpinMessageError.Unrecognized())
+                    else -> Result.failure(UnpinMessageError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { UnpinMessageError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun getPinnedMessages(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions,
+        viewMode: ViewMode,
+    ): Result<RpcChatService.GetPinnedMessagesResponse> {
+        return runCatching {
+            api.getPinnedMessages(owner, chatId, queryOptions, viewMode)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.GetPinnedMessagesResponse.Result.OK -> Result.success(response)
+                    RpcChatService.GetPinnedMessagesResponse.Result.DENIED -> Result.failure(GetPinnedMessagesError.Denied())
+                    RpcChatService.GetPinnedMessagesResponse.Result.NOT_FOUND -> Result.failure(GetPinnedMessagesError.NotFound())
+                    RpcChatService.GetPinnedMessagesResponse.Result.UNRECOGNIZED -> Result.failure(GetPinnedMessagesError.Unrecognized())
+                    else -> Result.failure(GetPinnedMessagesError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { GetPinnedMessagesError.Other(cause = it) })
             }
         )
     }

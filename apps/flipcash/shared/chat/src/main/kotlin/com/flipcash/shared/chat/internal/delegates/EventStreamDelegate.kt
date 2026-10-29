@@ -458,6 +458,10 @@ class EventStreamDelegate @Inject constructor(
                     // replacement rules, so they overwrite the cached ones.
                     metadataDataSource.updateRules(chatId, metaUpdate.newRules)
                 }
+                is MetadataUpdate.PinsChanged -> {
+                    // Contract scaffolding only: pins are not persisted yet. When they are, apply
+                    // by PinSummary.version (keep the greater), like the viewer-state overlay.
+                }
             }
         }
 

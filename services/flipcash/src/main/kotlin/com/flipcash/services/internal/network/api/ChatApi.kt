@@ -20,6 +20,7 @@ import com.flipcash.services.internal.network.extensions.asProtoInviteToken
 import com.flipcash.services.internal.network.extensions.asTimestamp
 import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.asUsername
+import com.flipcash.services.internal.network.extensions.asMessageId
 import com.flipcash.services.internal.network.extensions.asViewMode
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.QueryOptions
@@ -574,6 +575,62 @@ internal class ChatApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.getRestrictedUsers(request)
+        }
+    }
+
+    suspend fun pinMessage(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageId: Long,
+    ): RpcChatService.PinMessageResponse {
+        val request = RpcChatService.PinMessageRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setMessageId(messageId.asMessageId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.pinMessage(request)
+        }
+    }
+
+    suspend fun unpinMessage(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageId: Long,
+    ): RpcChatService.UnpinMessageResponse {
+        val request = RpcChatService.UnpinMessageRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setMessageId(messageId.asMessageId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.unpinMessage(request)
+        }
+    }
+
+    suspend fun getPinnedMessages(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+        viewMode: ViewMode = ViewMode.FULL,
+    ): RpcChatService.GetPinnedMessagesResponse {
+        val request = RpcChatService.GetPinnedMessagesRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setQueryOptions(queryOptions.asQueryOptions())
+            .setViewMode(viewMode.asViewMode())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getPinnedMessages(request)
         }
     }
 
