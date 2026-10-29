@@ -2350,6 +2350,15 @@ internal class ChatViewModel @AssistedInject constructor(
             .onEach { dispatchEvent(Event.OnGroupResolved(it)) }
             .launchIn(viewModelScope)
 
+        // RulesChanged reaches members only, so a stored group the viewer is outside of, as after
+        // a leave, can hold rules older than the ones a join is judged against. Fetched once each
+        // time the viewer is found outside, so the gate shows the current minimum before Join.
+        stateFlow.map { state -> (state.subject as? ChatSubject.Group)?.takeIf { it.isMember == false }?.chatId }
+            .distinctUntilChanged()
+            .filterNotNull()
+            .onEach { chatCoordinator.refreshRules(it) }
+            .launchIn(viewModelScope)
+
         // The same metadata, minus the type filter: every chat has viewer state and every chat can
         // be muted, so this one is not the group chrome's business. Observed rather than read with
         // the chat because a mute made on another device arrives on the stream, and because leaving
@@ -2480,11 +2489,13 @@ internal class ChatViewModel @AssistedInject constructor(
         }.launchIn(viewModelScope)
 
         // A row that came from the feed can lack the cover the profile shows; GetChat has it. The
-        // stored metadata updates and OnGroupResolved carries it into the subject.
+        // stored metadata updates and OnGroupResolved carries it into the subject. A viewer outside
+        // the group gets no RulesChanged, so opening the profile is also when its gate catches up.
         eventFlow.filterIsInstance<Event.GroupProfileOpened>()
             .onEach {
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
+                if (group.isMember == false) chatCoordinator.refreshRules(chatId)
                 if (group.coverPicture == null) chatCoordinator.refreshCover(chatId)
             }
             .launchIn(viewModelScope)
@@ -3023,6 +3034,9 @@ internal class ChatViewModel @AssistedInject constructor(
                             ),
                         )
                         dispatchEvent(Event.JoinStateUpdated())
+                        // The server judged the join against rules this device may not hold yet;
+                        // storing them moves the gate to the minimum that actually refused it.
+                        if (cause is JoinChatError.RulesNotSatisfied) chatCoordinator.refreshRules(chatId)
                     }
             }
             .launchIn(viewModelScope)

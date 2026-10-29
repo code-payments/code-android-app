@@ -215,6 +215,11 @@ class GroupFeedDelegate @Inject constructor(
         metadataDataSource.updateCoverPicture(chatId, cover)
     }
 
+    override suspend fun refreshRules(chatId: ChatId) {
+        val rules = chatController.getChat(chatId).getOrNull()?.rules ?: return
+        metadataDataSource.updateRules(chatId, rules)
+    }
+
     /**
      * Handles the list-level meaning of [changes], then hands them to [RosterStateHolder] for the
      * roster itself.

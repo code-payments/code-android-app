@@ -75,6 +75,7 @@ import com.flipcash.app.messenger.internal.screens.profile.JoinRequestsScreen
 import com.flipcash.app.messenger.internal.screens.profile.MembersScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupCoverScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupDescriptionScreen
+import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupBalanceRequirementScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupNameScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupPictureScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupScreen
@@ -83,6 +84,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.amountentry.AmountEntryScreen
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.annotatedEntry
+import com.flipcash.services.models.chat.GroupBalanceRole
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowHost
 import com.getcode.navigation.flow.flowSharedViewModel
@@ -295,6 +297,10 @@ private fun chatEntryProvider(
             onBack = { dismissSheet() },
             onOpenScreen = { route -> navigator.navigate(route) },
         )
+    }
+
+    annotatedEntry<ChatStep.EditGroupBalanceRequirement> { step ->
+        FlowEditGroupBalanceRequirementScreen(step.role)
     }
 
     annotatedEntry<ChatStep.ReactionPicker> { step ->
@@ -729,7 +735,7 @@ private fun FlowGroupProfileScreen() {
 
 // The edit steps read the chat they are editing off the flow's shared ChatViewModel, the same way
 // the profile above them does, and keep the edit itself in their own nav-entry-scoped view model.
-// The list itself holds no edit, but reads the group and its permissions the same way.
+// The list itself holds no edit, but reads the group, its permissions and its rules the same way.
 @Composable
 private fun FlowEditGroupScreen() {
     EditGroupScreen(flowSharedViewModel<ChatViewModel>())
@@ -753,6 +759,11 @@ private fun FlowEditGroupNameScreen() {
 @Composable
 private fun FlowEditGroupPictureScreen() {
     EditGroupPictureScreen(flowSharedViewModel<ChatViewModel>())
+}
+
+@Composable
+private fun FlowEditGroupBalanceRequirementScreen(role: GroupBalanceRole) {
+    EditGroupBalanceRequirementScreen(flowSharedViewModel<ChatViewModel>(), role)
 }
 
 /**

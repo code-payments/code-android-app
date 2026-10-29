@@ -73,3 +73,12 @@ val ChatRuleRequirement.blocksReactions: Boolean
         ChatRuleRequirement.Creator,
         ChatRuleRequirement.UnsupportedSpeakerRule -> false
     }
+
+/**
+ * Which of a group's minimum balances an edit replaces: the listener rule for [Join], the speaker
+ * rule for [Chat]. Mirrors iOS's `GroupBalanceRole`.
+ */
+enum class GroupBalanceRole {
+    Join,
+    Chat,
+}

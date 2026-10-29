@@ -4,11 +4,14 @@ import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.services.controllers.ChatController
+import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.RosterChange
@@ -17,6 +20,7 @@ import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.internal.RosterStateHolder
 import com.flipcash.shared.chat.internal.delegates.GroupFeedDelegate
+import com.getcode.opencode.model.financial.Fiat
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -252,6 +256,29 @@ class GroupFeedDelegateTest {
         assertTrue(result.isFailure)
         coVerify { metadataDataSource.setMembership(chatId, isMember = false) }
         coVerify { metadataDataSource.setMembership(chatId, isMember = true) }
+    }
+
+    /** A viewer outside the group gets no `RulesChanged`, so its rules are fetched to stand in. */
+    @Test
+    fun `refreshing the rules stores the ones GetChat holds`() = runTest {
+        val rules = ChatRules(
+            listener = listOf(ChatRuleRequirement.MinimumBalance(Fiat(25.0), emptyList())),
+            speaker = emptyList(),
+        )
+        coEvery { controller.getChat(chatId) } returns Result.success(group().copy(rules = rules))
+
+        subject.refreshRules(chatId)
+
+        coVerify(exactly = 1) { metadataDataSource.updateRules(chatId, rules) }
+    }
+
+    @Test
+    fun `a failed rules refresh leaves the stored rules alone`() = runTest {
+        coEvery { controller.getChat(chatId) } returns Result.failure(GetChatError.Denied())
+
+        subject.refreshRules(chatId)
+
+        coVerify(exactly = 0) { metadataDataSource.updateRules(any(), any()) }
     }
 
     /** `metadata` is set only on your own join, and is the whole chat to put in the list. */

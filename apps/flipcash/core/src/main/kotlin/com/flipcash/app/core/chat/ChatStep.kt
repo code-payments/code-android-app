@@ -2,6 +2,7 @@ package com.flipcash.app.core.chat
 
 import android.os.Parcelable
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.GroupBalanceRole
 import com.getcode.solana.keys.Mint
 import com.getcode.navigation.FullscreenSheet
 import com.getcode.navigation.HalfSheet
@@ -192,7 +193,7 @@ sealed interface ChatStep : FlowStep, Parcelable {
      * view model.
      *
      * Name, description, picture and cover each open their own editor and save on their own;
-     * the balance requirements are shown read-only, since nothing on `EditChatRequest` writes them.
+     * the Balance Requirements card's rows open [EditGroupBalanceRequirement].
      */
     @Parcelize
     @Serializable
@@ -234,6 +235,15 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data object EditGroupDescription : ChatStep
+
+    /**
+     * One of the group's minimum balances, on the shared amount keypad — pushed from a row of
+     * [EditGroup]'s Balance Requirements card. [role] picks the listener (Join) or speaker (Chat)
+     * rule.
+     */
+    @Parcelize
+    @Serializable
+    data class EditGroupBalanceRequirement(val role: GroupBalanceRole) : ChatStep
 
     /**
      * The full emoji picker for a message's reaction, opened from the pill row's "+" or the

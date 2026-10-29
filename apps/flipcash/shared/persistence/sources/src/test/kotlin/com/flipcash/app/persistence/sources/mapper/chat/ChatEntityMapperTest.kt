@@ -21,6 +21,7 @@ import com.flipcash.services.models.chat.RosterSummary
 import com.flipcash.services.models.chat.ViewerState
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.PublicKey
 import com.flipcash.app.persistence.entities.EncryptionState
 import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.services.chat.UndecryptableReason
@@ -389,6 +390,29 @@ class ChatEntityMapperTest {
             ),
             restored.rules?.speaker,
         )
+    }
+
+    /**
+     * The write `MetadataUpdate.RulesChanged` and a rules edit make: [ChatEntityMapper.rulesSerialized]
+     * into `rules_json`, read back with the row. A speaker minimum added and then removed has to
+     * come back each time as it was sent, with the rules around it untouched.
+     */
+    @Test
+    fun `a speaker minimum added and removed through a rules change survives the round trip`() {
+        val mint = PublicKey(ByteArray(32) { 4 }.toList())
+        val join = ChatRuleRequirement.MinimumBalance(Fiat(quarks = 1_000_000_000, currencyCode = CurrencyCode.JPY), listOf(mint))
+        val chat = ChatRuleRequirement.MinimumBalance(Fiat(quarks = 2_500_000_000, currencyCode = CurrencyCode.JPY), listOf(mint))
+        val withSpeaker = ChatRules(
+            listener = listOf(join, ChatRuleRequirement.Staff),
+            speaker = listOf(chat, ChatRuleRequirement.Creator),
+        )
+        val withoutSpeaker = withSpeaker.copy(speaker = listOf(ChatRuleRequirement.Creator))
+        val entity = mapper.toEntity(groupMetadata())
+
+        for (rules in listOf(withSpeaker, withoutSpeaker)) {
+            val stored = entity.copy(rulesJson = mapper.rulesSerialized(rules))
+            assertEquals(rules, mapper.toMetadata(stored, members = emptyList(), lastMessage = null).rules)
+        }
     }
 
     @Test
