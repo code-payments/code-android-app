@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.Dp
+import com.getcode.util.resources.icons.SpeakerSlash
 import dev.chrisbanes.haze.HazeState
 import androidx.compose.ui.text.style.TextAlign
 import kotlin.time.Duration.Companion.minutes
@@ -63,8 +64,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.DpOffset
-import androidx.compose.material.icons.automirrored.outlined.VolumeOff
-import androidx.compose.material.icons.outlined.PersonOff
+import androidx.compose.material.icons.outlined.PersonRemove
 import com.getcode.ui.components.SubmenuDropdownMenu
 import com.getcode.ui.components.SubmenuRow
 import androidx.compose.ui.unit.dp
@@ -599,11 +599,11 @@ internal fun GroupProfileMenu(
             }
         },
         submenu = {
-            ModerationEntry(R.string.title_silencedMembers, Icons.AutoMirrored.Outlined.VolumeOff) {
+            ModerationEntry(R.string.title_silencedMembers, SpeakerSlash) {
                 onDismiss()
                 onSilenced()
             }
-            ModerationEntry(R.string.title_removedMembers, Icons.Outlined.PersonOff) {
+            ModerationEntry(R.string.title_removedMembers, Icons.Outlined.PersonRemove) {
                 onDismiss()
                 onRemoved()
             }

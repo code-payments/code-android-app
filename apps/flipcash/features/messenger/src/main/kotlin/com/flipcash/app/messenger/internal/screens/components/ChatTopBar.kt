@@ -30,7 +30,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.core.ID
-import androidx.compose.material.icons.automirrored.outlined.VolumeOff
 import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -77,6 +76,7 @@ import com.getcode.ui.core.measured
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.utils.KeyboardController
 import com.getcode.ui.utils.rememberKeyboardController
+import com.getcode.util.resources.icons.SpeakerSlash
 
 @Composable
 internal fun ChatTopBar(
@@ -416,7 +416,7 @@ private fun MessageSelectionBar(
             add(
                 MessageAction(
                     label = stringResource(R.string.action_silenceMember, firstName),
-                    icon = Icons.AutoMirrored.Outlined.VolumeOff,
+                    icon = SpeakerSlash,
                     testTag = "action_silence_member",
                     onClick = onSilence,
                 )

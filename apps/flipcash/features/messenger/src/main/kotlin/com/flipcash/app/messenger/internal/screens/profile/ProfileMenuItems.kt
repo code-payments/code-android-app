@@ -6,7 +6,6 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.PersonRemove
-import androidx.compose.material.icons.automirrored.outlined.VolumeOff
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -25,6 +24,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.core.ID
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
+import com.getcode.util.resources.icons.SpeakerSlash
 
 /**
  * What a DM counterparty's profile can act on.
@@ -74,7 +74,7 @@ internal fun ChatProfileAction.icon(): ImageVector = when (this) {
     ChatProfileAction.Report -> Icons.Outlined.Feedback
     ChatProfileAction.Block -> Icons.Outlined.Block
     ChatProfileAction.Unblock -> Icons.Outlined.CheckCircle
-    ChatProfileAction.Silence -> Icons.AutoMirrored.Outlined.VolumeOff
+    ChatProfileAction.Silence -> SpeakerSlash
     ChatProfileAction.Remove -> Icons.Outlined.PersonRemove
 }
 
