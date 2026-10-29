@@ -975,7 +975,7 @@
     <string name="error_title_failedToSilence">Something Went Wrong</string>
     <string name="error_description_failedToSilence">We were unable to restrict this member. Please try again</string>
     <string name="action_silenceMember">Restrict %1$s</string>
-    <string name="action_removeMemberNamed">Remove %1$s…</string>
+    <string name="action_removeMemberNamed">Remove %1$s</string>
     <string name="action_removeMember">Remove</string>
     <string name="title_moderation">Moderation</string>
     <string name="title_silencedMembers">Restricted</string>
