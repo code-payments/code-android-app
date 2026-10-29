@@ -4,6 +4,7 @@ import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageSubstitution
 import com.flipcash.services.models.BoostedReaction
+import com.flipcash.services.models.RequestedPayment
 import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.transactionhistory.R
 import com.flipcash.shared.transactionhistory.TransactionAvatar
@@ -121,6 +122,12 @@ internal fun boostTitle(
 internal fun boostedReactionOf(meta: MessageMetadata?): BoostedReaction? = when (meta) {
     is MessageMetadata.DirectlySentCrypto -> meta.boostedReaction
     is MessageMetadata.ReceivedCrypto -> meta.boostedReaction
+    else -> null
+}
+
+internal fun requestedPaymentOf(meta: MessageMetadata?): RequestedPayment? = when (meta) {
+    is MessageMetadata.DirectlySentCrypto -> meta.requestedPayment
+    is MessageMetadata.ReceivedCrypto -> meta.requestedPayment
     else -> null
 }
 

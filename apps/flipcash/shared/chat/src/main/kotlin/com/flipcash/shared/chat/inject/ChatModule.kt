@@ -14,6 +14,8 @@ import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.internal.DataStoreLobbyRequestStore
 import com.flipcash.shared.chat.internal.DmOutgoingEncryption
 import com.flipcash.shared.chat.alerts.ReactionAlertController
+import com.flipcash.shared.chat.PaymentRequestUpdateSink
+import com.flipcash.shared.chat.PaymentRequests
 import com.flipcash.shared.chat.alerts.ReactionAlertSink
 import com.flipcash.shared.chat.alerts.ReactionActorProfiles
 import com.flipcash.shared.chat.alerts.StoredReactionActorProfiles
@@ -101,6 +103,11 @@ abstract class ChatModule {
     internal abstract fun bindReactionActorProfiles(
         impl: StoredReactionActorProfiles
     ): ReactionActorProfiles
+
+    @Binds
+    internal abstract fun bindPaymentRequestUpdateSink(
+        impl: PaymentRequests
+    ): PaymentRequestUpdateSink
 
     @Binds
     internal abstract fun bindReactionAlertSink(

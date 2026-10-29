@@ -12,7 +12,9 @@ import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
 import com.flipcash.services.models.paymentrequest.PaymentRequestPage
 import com.flipcash.services.models.paymentrequest.PaymentRequestSection
+import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
+import com.flipcash.services.models.paymentrequest.PaymentRequestUpdate
 import com.flipcash.services.models.paymentrequest.newerOf
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.Flow
@@ -28,15 +30,17 @@ import javax.inject.Singleton
 /**
  * The payment requests the viewer has seen, by id, each the newest copy fetched.
  *
- * No event carries a request change, so screens refetch (see the spec's refetch table) and every
- * fetched request goes through [ingest]: its text is opened once, then [merge] keeps the newer copy.
+ * Screens refetch (see the spec's refetch table) and every fetched request goes through [ingest]:
+ * its text is opened once, then [merge] keeps the newer copy. The chat's event stream also announces
+ * changes, best effort, which [onUpdates] applies by version (see [applyUpdate]); polling stays as
+ * reconciliation for whatever it misses.
  * A request's `payment_intent_id` never enters the store; [fetch] hands it to the caller.
  */
 @Singleton
 class PaymentRequests @Inject constructor(
     private val controller: PaymentRequestController,
     private val crypto: GroupContentCrypto,
-) {
+) : PaymentRequestUpdateSink {
     private val requests = MutableStateFlow<Map<ID, PaymentRequest>>(emptyMap())
 
     val state: StateFlow<Map<ID, PaymentRequest>> = requests.asStateFlow()
@@ -114,6 +118,43 @@ class PaymentRequests @Inject constructor(
         requests.update { held -> opened.fold(held, ::merge) }
     }
 
+    /**
+     * Applies the stream's request updates in order. A `created` goes through [ingest]; an
+     * `updates` is applied or ignored by [applyUpdate], which also says when the held copy cannot
+     * be trusted. Those requests are returned for [refetch] rather than fetched here, so the
+     * stream is not held up by the network.
+     */
+    override suspend fun onUpdates(updates: List<PaymentRequestUpdate>): List<ID> {
+        val refetch = LinkedHashSet<ID>()
+        for (update in updates) {
+            when (val kind = update.kind) {
+                is PaymentRequestUpdate.Kind.Created -> ingest(listOf(kind.paymentRequest))
+                is PaymentRequestUpdate.Kind.Updates, PaymentRequestUpdate.Kind.Unknown -> {
+                    var stale = false
+                    requests.update { held ->
+                        val outcome = applyUpdate(held, update)
+                        stale = outcome.refetch
+                        outcome.requests
+                    }
+                    if (stale) refetch += update.paymentRequestId
+                }
+            }
+        }
+        return refetch.toList()
+    }
+
+    /** Refetches [id] to reconcile a missed or unappliable update; one fetch at a time per request. */
+    override suspend fun refetch(id: ID) {
+        var claimed = false
+        inFlight.update { held -> claimed = id !in held; held.plusElement(id) }
+        if (!claimed) return
+        try {
+            fetch(id)
+        } finally {
+            inFlight.update { it.minusElement(id) }
+        }
+    }
+
     fun clear() {
         requests.value = emptyMap()
         _missing.value = emptySet()
@@ -133,6 +174,9 @@ class PaymentRequests @Inject constructor(
         return request.copy(kind = kind.copy(split = kind.split.copy(text = text)))
     }
 
+    /** [requests] after an update, and whether the request must be refetched to reconcile it. */
+    data class UpdateOutcome(val requests: Map<ID, PaymentRequest>, val refetch: Boolean)
+
     companion object {
         const val OPEN_PAGE = 100
         const val RESOLVED_PAGE = 20
@@ -149,6 +193,56 @@ class PaymentRequests @Inject constructor(
                 current.split?.text !is PaymentRequestText.Encrypted
             if (sealedOverOpened) return held
             return held + (incoming.id to newerOf(current, incoming))
+        }
+
+        /**
+         * Applies an [PaymentRequestUpdate.Kind.Updates] to the held copy of its request, by version
+         * (L is the held version, V the update's):
+         * - no held copy: ignored; the request is fetched when it is shown;
+         * - V <= L: already applied, ignored;
+         * - V > L + 1: an update was missed, so refetch;
+         * - V == L + 1: every change is applied in order and the version set to V, unless one
+         *   cannot be (unknown kind, or a share the copy lacks), in which case none is applied and
+         *   the request is refetched rather than taking V for a copy missing a change.
+         *
+         * A [PaymentRequestUpdate.Kind.Unknown] cannot be applied, so it refetches a request that is
+         * held. A `created` is not handled here: it merges like a fetched copy ([merge]).
+         */
+        fun applyUpdate(held: Map<ID, PaymentRequest>, update: PaymentRequestUpdate): UpdateOutcome {
+            val current = held[update.paymentRequestId] ?: return UpdateOutcome(held, refetch = false)
+            val kind = update.kind
+            if (kind !is PaymentRequestUpdate.Kind.Updates) {
+                return UpdateOutcome(held, refetch = kind is PaymentRequestUpdate.Kind.Unknown)
+            }
+            if (kind.version <= current.version) return UpdateOutcome(held, refetch = false)
+            if (kind.version > current.version + 1) return UpdateOutcome(held, refetch = true)
+            val applied = kind.changes.fold<PaymentRequestUpdate.Change, PaymentRequest?>(current) { copy, change ->
+                copy?.let { applyChange(it, change) }
+            } ?: return UpdateOutcome(held, refetch = true)
+            return UpdateOutcome(held + (current.id to applied.copy(version = kind.version)), refetch = false)
+        }
+
+        /** [request] with [change] applied, or null when it can't be. */
+        private fun applyChange(request: PaymentRequest, change: PaymentRequestUpdate.Change): PaymentRequest? = when (change) {
+            is PaymentRequestUpdate.Change.SharePaid -> {
+                val kind = request.kind as? PaymentRequest.Kind.GroupSplit
+                val share = kind?.split?.shareOf(change.userId)
+                if (kind == null || share == null || change.paid == null) null
+                else request.copy(
+                    kind = kind.copy(
+                        split = kind.split.copy(
+                            // The update carries no amount: keep the held share's.
+                            shares = kind.split.shares.map { if (it.userId == change.userId) it.copy(paid = change.paid) else it },
+                        ),
+                    ),
+                )
+            }
+            is PaymentRequestUpdate.Change.StatusChanged -> when (change.status) {
+                PaymentRequestStatus.Completed, PaymentRequestStatus.Closed ->
+                    request.copy(status = change.status, closedAt = change.closedAt ?: request.closedAt)
+                else -> null
+            }
+            PaymentRequestUpdate.Change.Unknown -> null
         }
     }
 }

@@ -134,7 +134,9 @@ internal class DeckHostState(owed: Set<ID>) {
     }
 }
 
-private val SETTLE_SPRING = spring<Float>(stiffness = Spring.StiffnessMediumLow)
+/** The deck's settle motion; a reorder after a request ends slides on it too. */
+internal const val SETTLE_STIFFNESS = Spring.StiffnessMediumLow
+private val SETTLE_SPRING = spring<Float>(stiffness = SETTLE_STIFFNESS)
 
 /** A [DeckHostState] for one visit to a chat; reopening the chat starts it over. */
 @Composable

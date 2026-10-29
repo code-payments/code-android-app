@@ -1149,6 +1149,7 @@
     <string name="error_description_requestCurrency">Requests aren\'t available in this currency yet.</string>
     <!-- Request details, group requests spec frames 09–11, 24, 28, 29 and 33–35. -->
     <string name="title_requestDetails">Request</string>
+    <string name="description_requestUnavailable">This request is no longer available.</string>
     <string name="label_requestedBy">Requested by %1$s</string>
     <string name="label_requestedByYou">Requested by you</string>
     <string name="label_sharePaid">✓ Paid</string>

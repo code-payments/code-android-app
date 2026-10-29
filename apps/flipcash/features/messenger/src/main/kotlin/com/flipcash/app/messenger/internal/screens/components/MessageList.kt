@@ -330,9 +330,9 @@ internal fun MessageList(
             // over an empty list has no append to hint. A quote tap is past this already.
             snapshotFlow { hasLoaded && listState.layoutInfo.visibleItemsInfo.isNotEmpty() }
                 .first { it }
-            messages.walkUntil(budget) { indexOf(messages, target) }?.let {
+            messages.walkUntil(budget) { indexOfOrNearestOlder(messages, target) }?.let {
                 listState.centerItem(it)
-                attentionId = target
+                attentionId = (messages.peek(it) as? ChatListItem.ContentBubble)?.messageId ?: target
                 attentionRequest++
             }
             // A visit opened at a message is positioned once this lands, found or not: reads are
@@ -1068,6 +1068,21 @@ private fun LazyListState.restsOn(key: Any, index: Int): Boolean =
 private fun indexOf(messages: LazyPagingItems<ChatListItem>, messageId: Long): Int? =
     (0 until messages.itemCount).firstOrNull { i ->
         (messages.peek(i) as? ChatListItem.ContentBubble)?.messageId == messageId
+    }
+
+/**
+ * [indexOf], or the newest loaded message older than [messageId] when it isn't drawn. A request
+ * share's cash message is stored and paged but has no row, and a link or quote to it (a payment
+ * push opens at its message) lands on its neighbour instead of walking the whole budget for nothing.
+ *
+ * Rows run newest first, so the first one at or below [messageId] is the nearest. Pending sends
+ * carry non-positive ids and say nothing about where [messageId] sits. A target that is simply not
+ * loaded yet has no such row, because every loaded message is newer than it.
+ */
+private fun indexOfOrNearestOlder(messages: LazyPagingItems<ChatListItem>, messageId: Long): Int? =
+    indexOf(messages, messageId) ?: (0 until messages.itemCount).firstOrNull { i ->
+        val id = (messages.peek(i) as? ChatListItem.ContentBubble)?.messageId
+        id != null && id > 0 && id <= messageId
     }
 
 /**

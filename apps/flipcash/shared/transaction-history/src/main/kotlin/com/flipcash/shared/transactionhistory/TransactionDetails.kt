@@ -2,6 +2,7 @@ package com.flipcash.shared.transactionhistory
 
 import androidx.annotation.StringRes
 import com.flipcash.services.models.BoostedReaction
+import com.flipcash.services.models.RequestedPayment
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
@@ -111,6 +112,9 @@ enum class TransactionStatus(@StringRes val labelRes: Int) {
  * @param boostedReaction The reaction this payment boosted, when it did. Its presence swaps the
  * chat button for "View Message", which opens the boosted message — and shows it even on a split
  * boost, which has no counterparty for [canViewInChat] to open.
+ * @param requestedPayment The payment request this payment paid a share of, when it did. Swaps the
+ * chat button for "View Request" the way [boostedReaction] does; a boost wins if both are set. A
+ * snapshot of what the payment was for, not kept current.
  */
 data class TransactionDetails(
     val id: String,
@@ -132,4 +136,5 @@ data class TransactionDetails(
     val canCancel: Boolean = false,
     val canViewInChat: Boolean = false,
     val boostedReaction: BoostedReaction? = null,
+    val requestedPayment: RequestedPayment? = null,
 )

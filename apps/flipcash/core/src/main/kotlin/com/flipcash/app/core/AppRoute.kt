@@ -414,11 +414,17 @@ sealed interface AppRoute : NavKey, Parcelable {
             // inside the app. The conversation offers a chip back to it; a link from outside the
             // app has nowhere to go back to and sets none.
             val returnToTitle: String? = null,
+            // Open with this request's details (its id in base58) over the transcript: where a
+            // payment of a share leads back to its request. Needs a [ChatIdentifier.ByChatId], since
+            // the details are keyed by chat.
+            val openRequestId: String? = null,
         ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
                 get() = when {
                     openOnJoinRequests -> listOf(ChatStep.JoinRequests)
                     openOnProfile -> listOf(ChatStep.GroupProfile)
+                    openRequestId != null && identifier is ChatIdentifier.ByChatId ->
+                        listOf(ChatStep.Conversation, ChatStep.RequestDetails(identifier.chatId, openRequestId))
                     else -> listOf(ChatStep.Conversation)
                 }
         }

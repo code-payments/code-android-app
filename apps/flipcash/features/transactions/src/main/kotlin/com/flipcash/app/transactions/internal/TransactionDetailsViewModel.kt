@@ -22,6 +22,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
+import com.getcode.utils.base58
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -90,6 +91,22 @@ class TransactionDetailsViewModel @Inject constructor(
             AppRoute.Messaging.Chat(
                 identifier = ChatIdentifier.ByChatId(boost.chatId),
                 jumpToMessageId = boost.messageId,
+            )
+        }
+
+        /**
+         * Where "View Request" goes when the entry paid a share of a request: the chat with that
+         * request's details open over it. Read off the stored snapshot and not validated, so a
+         * request that has since closed, or that the viewer can no longer read, is handled by
+         * Request details itself. A boost wins if both are set.
+         */
+        val requestedPaymentRoute: AppRoute? get() {
+            val details = transaction?.details ?: return null
+            if (details.boostedReaction != null) return null
+            val requested = details.requestedPayment ?: return null
+            return AppRoute.Messaging.Chat(
+                identifier = ChatIdentifier.ByChatId(requested.chatId),
+                openRequestId = requested.paymentRequestId.base58,
             )
         }
     }

@@ -133,6 +133,7 @@ import com.flipcash.shared.chat.canReact
 import com.flipcash.shared.chat.chatDraftOf
 import com.flipcash.shared.chat.groupAccess
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.paysRequestShare
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.PhotoMessageContext
@@ -1540,6 +1541,10 @@ internal class ChatViewModel @AssistedInject constructor(
                             ),
                         )
                     }
+
+                    // A request share's payment is shown by the request card, not by a bubble. The
+                    // message is still in the page: its key, and so the next page's, are unchanged.
+                    if (content.paysRequestShare) return@flatMapIndexed emptyList()
 
                     val enriched = if (content is MessageContent.Cash && content.tokenName.isBlank()) {
                         val token = tokenCoordinator.getTokenMetadata(content.mint).getOrNull()?.token

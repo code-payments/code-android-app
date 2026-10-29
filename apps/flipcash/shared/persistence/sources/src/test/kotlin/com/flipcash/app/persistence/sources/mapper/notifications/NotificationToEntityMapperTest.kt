@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.models.NotificationMetadata
 import com.flipcash.services.models.NotificationState
+import com.flipcash.services.models.RequestedPayment
 import com.flipcash.services.models.Substitution
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
@@ -158,5 +159,38 @@ class NotificationToEntityMapperTest {
         assertNull(sent.boostedReaction)
         assertEquals("+15551234567", received.phoneNumber)
         assertNull(received.boostedReaction)
+    }
+
+    // --- Requested payment persistence: rides the same `metadata` JSON column. ---
+
+    private val requested = RequestedPayment(
+        chatId = ChatId(ByteArray(32) { (it + 9).toByte() }),
+        paymentRequestId = List(16) { it.toByte() },
+    )
+
+    @Test
+    fun `a sent payment of a requested share reads back with its chat and request`() {
+        val read = roundTrip(
+            NotificationMetadata.DirectlySentCrypto(userId = listOf<Byte>(0x0A), requestedPayment = requested)
+        ) as MessageMetadata.DirectlySentCrypto
+
+        assertEquals(requested, read.requestedPayment)
+        assertNull(read.boostedReaction)
+    }
+
+    @Test
+    fun `a received payment of a requested share reads back with its chat and request`() {
+        val read = roundTrip(
+            NotificationMetadata.ReceivedCrypto(userId = listOf<Byte>(0x0A), requestedPayment = requested)
+        ) as MessageMetadata.ReceivedCrypto
+
+        assertEquals(requested, read.requestedPayment)
+    }
+
+    @Test
+    fun `a payment without a request reads back null`() {
+        val read = roundTrip(NotificationMetadata.DirectlySentCrypto(userId = listOf<Byte>(0x0A)))
+            as MessageMetadata.DirectlySentCrypto
+        assertNull(read.requestedPayment)
     }
 }

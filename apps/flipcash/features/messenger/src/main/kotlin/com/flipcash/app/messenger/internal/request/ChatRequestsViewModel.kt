@@ -6,16 +6,21 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.deckOrder
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.PaymentRequests
 import com.getcode.opencode.model.core.ID
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.flipcash.shared.chat.ui.request.RequestMotion
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,6 +36,7 @@ import kotlin.time.Instant
 @HiltViewModel
 internal class ChatRequestsViewModel @Inject constructor(
     private val requests: PaymentRequests,
+    private val chatCoordinator: ChatCoordinator,
     private val userManager: UserManager,
 ) : ViewModel() {
 
@@ -60,22 +66,54 @@ internal class ChatRequestsViewModel @Inject constructor(
     /** The deck, front card first. Empty hides it. */
     val deck: StateFlow<List<PaymentRequest>> = _deck.asStateFlow()
 
-    /** Requests refetched because a message about them arrived, so a re-shown row doesn't refetch. */
-    private val refreshed = mutableSetOf<ID>()
-
     init {
         viewModelScope.launch {
             combine(
                 chatId.flatMapLatest { id -> id?.let { requests.inChat(it) } ?: flowOf(emptyList()) },
                 _now,
                 cycled,
-            ) { inChat, now, cycled -> deckOrder(inChat, now, viewerId).rotated(cycled) }
-                .collect { _deck.value = it }
+            ) { inChat, now, cycled -> deckOrder(inChat, now, viewerId).rotated(cycled) to now }
+                .collect { (next, now) -> publish(next, now) }
+        }
+        viewModelScope.launch {
+            chatId.filterNotNull().flatMapLatest { id ->
+                val arrivals = PaymentArrivals(openedAt)
+                chatCoordinator.observeMessages(id).map(arrivals::newlyPaid)
+            }.collect { paid -> paid.forEach(::refetch) }
         }
         viewModelScope.launch {
             while (true) {
                 delay(1.minutes)
                 _now.value = Clock.System.now()
+            }
+        }
+    }
+
+    private var shownNow = _now.value
+    private var settle: Job? = null
+    private var settledDeck: List<PaymentRequest> = emptyList()
+
+    /**
+     * Puts [next] on the deck. A request ending moves it in the sort order; the deck keeps its
+     * order for the ended look's fade first, and only then lets the list slide it into place.
+     * Changes arriving meanwhile update the cards in place and join the pending settle.
+     */
+    private fun publish(next: List<PaymentRequest>, now: Instant) {
+        val shown = _deck.value
+        val holding = settle?.isActive == true
+        val held = if (holding) inShownOrder(shown, next) else holdForEndedFade(shown, shownNow, next, now)
+        shownNow = now
+        settledDeck = next
+        if (held == null) {
+            settle?.cancel()
+            _deck.value = next
+            return
+        }
+        _deck.value = held
+        if (!holding) {
+            settle = viewModelScope.launch {
+                delay(RequestMotion.CHANGE_MILLIS.toLong())
+                _deck.value = settledDeck
             }
         }
     }
@@ -108,9 +146,9 @@ internal class ChatRequestsViewModel @Inject constructor(
         viewModelScope.launch { requests.fetchIfAbsent(id) }
     }
 
-    fun refresh(id: ID) {
-        if (!refreshed.add(id)) return
-        viewModelScope.launch { requests.fetch(id) }
+    /** A failed refetch leaves the held copy as it was; the 45 s poll reconciles it. */
+    private fun refetch(id: ID) {
+        viewModelScope.launch { runCatching { requests.refetch(id) } }
     }
 
     /** Swipe down on the deck: the front card goes to the back. */

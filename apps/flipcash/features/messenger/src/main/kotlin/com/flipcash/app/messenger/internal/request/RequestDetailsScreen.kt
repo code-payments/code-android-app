@@ -4,7 +4,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
+import com.flipcash.shared.chat.ui.request.RequestMotion
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -112,6 +114,7 @@ internal fun RequestDetailsScreen(
     val token by viewModel.token.collectAsStateWithLifecycle()
     val pay by viewModel.pay.collectAsStateWithLifecycle()
     val now by viewModel.now.collectAsStateWithLifecycle()
+    val unavailable by viewModel.unavailable.collectAsStateWithLifecycle()
     val viewerId = viewModel.viewerId
 
     val current = request
@@ -170,7 +173,23 @@ internal fun RequestDetailsScreen(
             }
         },
     ) { padding ->
-        if (current == null) return@CodeScaffold
+        if (current == null) {
+            if (unavailable) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(padding).padding(CodeTheme.dimens.inset),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.description_requestUnavailable),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.testTag("request_details_unavailable"),
+                    )
+                }
+            }
+            return@CodeScaffold
+        }
         RequestDetailsContent(
             request = current,
             members = members,
@@ -344,15 +363,22 @@ private fun ShareRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = when {
-                    share.isPaid -> stringResource(R.string.label_sharePaid)
-                    requestOpen -> stringResource(R.string.label_shareUnpaid)
-                    else -> stringResource(R.string.label_shareUnpaidEnded)
-                },
-                style = CodeTheme.typography.textSmall,
-                color = if (share.isPaid) CodeTheme.colors.success else CodeTheme.colors.textSecondary,
-            )
+            // Fades to the paid state when the share turns paid while the screen is up.
+            Crossfade(
+                targetState = if (share.isPaid) 2 else if (requestOpen) 1 else 0,
+                animationSpec = RequestMotion.change(),
+                label = "share state",
+            ) { state ->
+                Text(
+                    text = when (state) {
+                        2 -> stringResource(R.string.label_sharePaid)
+                        1 -> stringResource(R.string.label_shareUnpaid)
+                        else -> stringResource(R.string.label_shareUnpaidEnded)
+                    },
+                    style = CodeTheme.typography.textSmall,
+                    color = if (state == 2) CodeTheme.colors.success else CodeTheme.colors.textSecondary,
+                )
+            }
         }
         Text(
             text = share.amount.requestText(),
