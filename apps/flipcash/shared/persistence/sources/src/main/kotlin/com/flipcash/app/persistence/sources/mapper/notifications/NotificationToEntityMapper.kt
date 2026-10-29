@@ -71,8 +71,8 @@ class MetadataMapper @Inject constructor(): Mapper<NotificationMetadata?, Messag
     override fun map(from: NotificationMetadata?): MessageMetadata? {
         from ?: return null
         return when (from) {
-            is NotificationMetadata.DirectlySentCrypto -> MessageMetadata.DirectlySentCrypto(from.phoneNumber, from.userId, from.boostedReaction)
-            is NotificationMetadata.ReceivedCrypto -> MessageMetadata.ReceivedCrypto(from.phoneNumber, from.userId, from.boostedReaction)
+            is NotificationMetadata.DirectlySentCrypto -> MessageMetadata.DirectlySentCrypto(from.phoneNumber, from.userId, from.boostedReaction, from.requestedPayment)
+            is NotificationMetadata.ReceivedCrypto -> MessageMetadata.ReceivedCrypto(from.phoneNumber, from.userId, from.boostedReaction, from.requestedPayment)
             is NotificationMetadata.IndirectlySentCrypto -> MessageMetadata.IndirectlySentCrypto(from.creator, from.canCancel)
             NotificationMetadata.Unknown -> MessageMetadata.Unknown
             is NotificationMetadata.WithdrewCrypto -> MessageMetadata.WithdrewCrypto(from.swapMetadata?.toMessage())

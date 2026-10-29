@@ -1,6 +1,7 @@
 package com.flipcash.app.core.feed
 
 import com.flipcash.services.models.BoostedReaction
+import com.flipcash.services.models.RequestedPayment
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -112,6 +113,8 @@ sealed interface MessageMetadata {
         val userId: ID? = null,
         // Defaulted so a row persisted before this field existed still decodes (as null).
         val boostedReaction: BoostedReaction? = null,
+        // Defaulted like [boostedReaction]. A oneof with it on the wire, so at most one is set.
+        val requestedPayment: RequestedPayment? = null,
     ) : MessageMetadata
 
     @Serializable
@@ -126,6 +129,8 @@ sealed interface MessageMetadata {
         val userId: ID? = null,
         // Defaulted so a row persisted before this field existed still decodes (as null).
         val boostedReaction: BoostedReaction? = null,
+        // Defaulted like [boostedReaction]. A oneof with it on the wire, so at most one is set.
+        val requestedPayment: RequestedPayment? = null,
     ) : MessageMetadata
 
     /**
