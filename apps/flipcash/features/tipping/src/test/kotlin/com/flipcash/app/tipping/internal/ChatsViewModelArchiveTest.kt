@@ -70,6 +70,7 @@ class ChatsViewModelArchiveTest {
             val vm = ChatsViewModel(
                 exchange = mockk<Exchange>(relaxed = true).also {
                     every { it.observePreferredRate() } returns flowOf(Rate.oneToOne)
+                    every { it.observeRates() } returns flowOf(emptyMap())
                 },
                 chatCoordinator = chatCoordinator,
                 userManager = mockk<UserManager>(relaxed = true),

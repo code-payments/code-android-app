@@ -77,7 +77,9 @@ internal class SearchViewModel @Inject constructor(
         chatCoordinator.chatListFeeds(),
         tokenCoordinator.tokens,
         chatCoordinator.observeSenderProfiles(),
-    ) { feeds, tokens, profiles ->
+        // Payment previews read at the display and sent currencies' rates, so a rate landing redraws them.
+        combine(exchange.observePreferredRate(), exchange.observeRates(), ::Pair),
+    ) { feeds, tokens, profiles, _ ->
         val tokensByMint = tokens.associateBy { it.address }
         val selfId = userManager.accountId
         Directory(

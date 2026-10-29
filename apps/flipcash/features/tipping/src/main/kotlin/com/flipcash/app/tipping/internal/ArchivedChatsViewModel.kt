@@ -57,9 +57,11 @@ internal class ArchivedChatsViewModel @Inject constructor(
             chatCoordinator.archivedChatListFeed(),
             tokenCoordinator.tokens,
             chatCoordinator.observeSenderProfiles(),
-            paymentRequests.state,
-            hostLobbies.state,
-        ) { summaries, tokens, senderProfiles, requests, lobbies ->
+            // A payment preview reads at the display currency's rate and the sent currency's, so
+            // either one landing redraws the rows. Paired to stay at five typed flows.
+            combine(exchange.observePreferredRate(), exchange.observeRates(), ::Pair),
+            combine(paymentRequests.state, hostLobbies.state, ::Pair),
+        ) { summaries, tokens, senderProfiles, _, (requests, lobbies) ->
             mapConversations(
                 summaries, tokens, senderProfiles, userManager.accountId, resources, chatCoordinator, exchange, requests,
                 requestPaymentRequest = { id -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id) } },
