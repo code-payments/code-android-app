@@ -44,10 +44,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -435,6 +437,12 @@ private fun MessageSelectionBar(
         }
     }
 
+    val time = messageFullTime(selection.timestamp)
+    val timeStyle = CodeTheme.typography.textMedium
+    val timeWidth = with(LocalDensity.current) {
+        rememberTextMeasurer().measure(time, timeStyle, maxLines = 1).size.width.toDp()
+    }
+
     AppBarWithTitle(
         leftIcon = {
             CircularIconButton(
@@ -454,14 +462,15 @@ private fun MessageSelectionBar(
         title = {
             Text(
                 modifier = Modifier.testTag("selected_message_time"),
-                text = messageFullTime(selection.timestamp),
-                style = CodeTheme.typography.textMedium,
+                text = time,
+                style = timeStyle,
                 color = Color.White,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        rightContents = { MessageActions(actions, moderationActions) },
+        // The time is never cut short: the icons get what it leaves, and the rest go under the overflow.
+        rightContents = { MessageActions(actions, moderationActions, reservedWidth = timeWidth + TitleChrome) },
     )
 }
 
@@ -491,17 +500,34 @@ private data class MessageAction(
 private const val ActionBudgetFraction = 0.5f
 
 /**
+ * What the bar spends besides the title and the actions, inside the actions' slot: the back
+ * button (40dp) in its 5dp-padded slot, and the app bar's content padding, which [TopAppBarBase]
+ * takes twice on each side (10dp × 4).
+ */
+private val TitleChrome = 50.dp + 40.dp
+
+/**
  * How many actions stay as icons in a [barWidth] slot. Extracted so the widths that decide it can
  * be tested without laying a bar out; see `MessageActionCapacityTest`.
  */
-internal fun inlineActionCapacity(barWidth: Dp, buttonSize: Dp, spacing: Dp): Int =
+internal fun inlineActionCapacity(
+    barWidth: Dp,
+    buttonSize: Dp,
+    spacing: Dp,
+    /** Width the title needs whole; the actions only get what is left after it. */
+    reservedWidth: Dp = 0.dp,
+): Int {
     // n buttons cost n widths and n-1 gaps, so adding one gap to both sides makes it a division.
-    ((barWidth * ActionBudgetFraction + spacing) / (buttonSize + spacing))
-        .toInt()
-        .coerceAtLeast(1)
+    fun fit(width: Dp) = ((width + spacing) / (buttonSize + spacing)).toInt()
+    return minOf(fit(barWidth * ActionBudgetFraction), fit(barWidth - reservedWidth)).coerceAtLeast(1)
+}
 
 @Composable
-private fun MessageActions(actions: List<MessageAction>, overflowOnly: List<MessageAction> = emptyList()) {
+private fun MessageActions(
+    actions: List<MessageAction>,
+    overflowOnly: List<MessageAction> = emptyList(),
+    reservedWidth: Dp = 0.dp,
+) {
     if (actions.isEmpty() && overflowOnly.isEmpty()) return
 
     // Both match what the app bar itself uses, so the budget is measured in the widths that will
@@ -510,7 +536,7 @@ private fun MessageActions(actions: List<MessageAction>, overflowOnly: List<Mess
     val spacing = CodeTheme.dimens.grid.x2
 
     BoxWithConstraints {
-        val capacity = inlineActionCapacity(maxWidth, buttonSize, spacing)
+        val capacity = inlineActionCapacity(maxWidth, buttonSize, spacing, reservedWidth)
         // The overflow needs a slot of its own, so it only pays for itself when it is holding
         // something — the last action is not displaced by a menu that would contain only it.
         // Actions that live only under the overflow take its slot whether or not the others fit.
