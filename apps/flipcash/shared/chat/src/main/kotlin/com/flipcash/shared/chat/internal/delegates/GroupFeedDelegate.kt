@@ -5,14 +5,11 @@ import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.services.controllers.ChatController
-import com.flipcash.services.models.SetGroupMinimumBalanceError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.InviteParameters
 import com.flipcash.services.models.chat.ChatMetadata
-import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.EditChatParameters
-import com.flipcash.services.models.chat.GroupBalanceRole
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.services.models.chat.StartChatParameters
@@ -169,15 +166,6 @@ class GroupFeedDelegate @Inject constructor(
                 trace(tag = TAG, message = "Edit failed for $chatId", type = TraceType.Error)
             }
     }
-
-    // Stubbed: flipcash2-client-protocol 0.18.0 has no RPC that changes a group's rules after
-    // `StartChat`, and `EditChatRequest` carries none. Replace this body with the ChatController
-    // call once the contract adds one, and persist the returned metadata the way [editChat] does.
-    override suspend fun setMinimumBalance(
-        chatId: ChatId,
-        role: GroupBalanceRole,
-        requirement: ChatRuleRequirement.MinimumBalance,
-    ): Result<ChatMetadata> = Result.failure(SetGroupMinimumBalanceError.Unavailable())
 
     /**
      * Joins [chatId], caching the chat the server returns so the list has it before any sync runs.

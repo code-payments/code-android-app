@@ -1507,9 +1507,13 @@
     <string name="prompt_title_changeGroupChatRequirement">Change Chat Requirement?</string>
     <string name="prompt_description_changeGroupChatRequirement">This will change who can send messages in the group</string>
     <string name="action_changeGroupChatRequirement">Change Chat Requirement</string>
-    <!-- No RPC changes a group's rules yet, so every save ends here. -->
-    <string name="error_title_groupRequirementUnavailable">Not Available Yet</string>
-    <string name="error_description_groupRequirementUnavailable">Balance requirements can\'t be changed yet</string>
+    <!-- Edit Group rules save: EditChat INVALID_RULES (also a Join at or above Chat), RULES_NOT_SATISFIED, and a Chat at or below Join. Match iOS. -->
+    <string name="error_title_groupRequirementInvalid">This Requirement Isn\'t Valid</string>
+    <string name="error_description_groupRequirementInvalid">Try a different minimum balance</string>
+    <string name="error_title_groupRequirementNotSatisfied">You Don\'t Meet This Requirement</string>
+    <string name="error_description_groupRequirementNotSatisfied">Lower the minimum balance or add funds</string>
+    <string name="error_title_groupChatMinimumTooLow">Chat Minimum Too Low</string>
+    <string name="error_description_groupChatMinimumTooLow">The chat minimum must be more than the join minimum of %1$s</string>
     <string name="error_title_groupRequirementFailed">Couldn\'t Save the Requirement</string>
     <string name="error_description_groupRequirementFailed">Try again</string>
 
