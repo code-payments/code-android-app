@@ -209,6 +209,48 @@ class NotificationStatusViewModelTest {
     }
 
     @Test
+    fun `try again keeps the last summary until the run finishes, then shows the new one`() = runTest(dispatcher) {
+        coEvery { tokenProvider.getToken() } returns null
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        val failed = viewModel.stateFlow.value.summary
+        assertTrue(failed is Summary.ThingsToFix)
+
+        coEvery { tokenProvider.getToken() } returns "token-abc123"
+        val summaries = mutableListOf<Summary>()
+        val watch = launch { viewModel.stateFlow.collect { summaries += it.summary } }
+        viewModel.dispatchEvent(NotificationStatusViewModel.Event.TryAgain)
+        assertTrue(viewModel.stateFlow.value.running)
+        advanceUntilIdle()
+        watch.cancel()
+
+        assertEquals(listOf(failed, Summary.Working), summaries.distinct())
+    }
+
+    @Test
+    fun `granting the permission keeps the last summary until the run finishes, then shows the new one`() = runTest(dispatcher) {
+        // Registration failed too, so the phone read landing before the new registration
+        // would show "1 thing to fix" in between.
+        every { reader.read() } returns healthy.copy(notificationsAllowed = false)
+        coEvery { tokenProvider.getToken() } returns null
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        assertEquals(Summary.NotificationsOff, viewModel.stateFlow.value.summary)
+
+        every { reader.read() } returns healthy
+        coEvery { tokenProvider.getToken() } returns "token-abc123"
+        val summaries = mutableListOf<Summary>()
+        val watch = launch { viewModel.stateFlow.collect { summaries += it.summary } }
+        viewModel.dispatchEvent(NotificationStatusViewModel.Event.PermissionGranted)
+        assertTrue(viewModel.stateFlow.value.running)
+        assertEquals(Summary.NotificationsOff, viewModel.stateFlow.value.summary)
+        advanceUntilIdle()
+        watch.cancel()
+
+        assertEquals(listOf(Summary.NotificationsOff, Summary.Working), summaries.distinct())
+    }
+
+    @Test
     fun `granting the permission runs every check, registration included`() = runTest(dispatcher) {
         val viewModel = viewModel()
         advanceUntilIdle()
