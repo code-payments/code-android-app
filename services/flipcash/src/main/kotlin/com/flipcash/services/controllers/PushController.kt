@@ -18,6 +18,12 @@ class PushController @Inject constructor(
         return repository.addToken(owner, token, installationId)
     }
 
+    suspend fun sendTestPush(): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+        return repository.sendTestPush(owner)
+    }
+
     suspend fun deleteTokens(): Result<Unit> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))

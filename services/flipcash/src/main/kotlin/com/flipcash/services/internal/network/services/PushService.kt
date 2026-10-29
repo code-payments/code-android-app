@@ -5,6 +5,7 @@ import com.getcode.opencode.utils.toValidationOrElse
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.flipcash.services.models.AddTokenError
 import com.flipcash.services.models.DeleteTokenError
+import com.flipcash.services.models.SendTestPushError
 import com.getcode.ed25519.Ed25519.KeyPair
 import javax.inject.Inject
 import com.codeinc.flipcash.gen.push.v1.PushService as RpcPushService
@@ -30,6 +31,23 @@ internal class PushService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { AddTokenError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun sendTestPush(owner: KeyPair): Result<Unit> {
+        return runCatching {
+            api.sendTestPush(owner)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcPushService.SendTestPushResponse.Result.OK -> Result.success(Unit)
+                    RpcPushService.SendTestPushResponse.Result.UNRECOGNIZED -> Result.failure(SendTestPushError.Unrecognized())
+                    else -> Result.failure(SendTestPushError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { SendTestPushError.Other(cause = it) })
             }
         )
     }

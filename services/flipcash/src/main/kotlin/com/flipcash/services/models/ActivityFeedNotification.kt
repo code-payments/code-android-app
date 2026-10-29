@@ -61,6 +61,8 @@ sealed interface NotificationMetadata {
         val phoneNumber: String? = null,
         val userId: ID? = null,
         val boostedReaction: BoostedReaction? = null,
+        // Mutually exclusive with [boostedReaction] (a oneof on the wire).
+        val requestedPayment: RequestedPayment? = null,
     ) : NotificationMetadata
 
     /**
@@ -81,6 +83,8 @@ sealed interface NotificationMetadata {
         val phoneNumber: String? = null,
         val userId: ID? = null,
         val boostedReaction: BoostedReaction? = null,
+        // Mutually exclusive with [boostedReaction] (a oneof on the wire).
+        val requestedPayment: RequestedPayment? = null,
     ) : NotificationMetadata
 
     /**
@@ -123,6 +127,17 @@ data class BoostedReaction(
     val chatId: ChatId,
     val messageId: Long,
     val emoji: Emoji,
+)
+
+/**
+ * Set on a sent/received payment notification when the payment paid a share of a payment request.
+ * On a directly-sent payment the payer paid their share to the request's creator; on a received
+ * one a debtor paid their share of the recipient's request.
+ */
+@Serializable
+data class RequestedPayment(
+    val chatId: ChatId,
+    val paymentRequestId: ID,
 )
 
 enum class SwapState {

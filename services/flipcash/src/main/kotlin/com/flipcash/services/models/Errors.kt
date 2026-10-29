@@ -64,6 +64,14 @@ sealed class DeleteTokenError(
     data class Other(override val cause: Throwable? = null) : DeleteTokenError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class SendTestPushError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Unrecognized : SendTestPushError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SendTestPushError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class GetActivityFeedMessagesError(
     override val message: String? = null,
     override val cause: Throwable? = null
@@ -520,6 +528,12 @@ sealed class EditChatError(
     class DescriptionModerated(val category: ModerationResult.FlaggedCategory) : EditChatError("Description flagged: $category")
     class PictureBlobNotAccepted : EditChatError("Picture blob not accepted")
     class CoverPictureBlobNotAccepted : EditChatError("Cover picture blob not accepted")
+    // The replacement rules are malformed, or the chat is not a public group with a listener
+    // minimum balance. A client bug rather than something the user can fix, so notifiable.
+    class InvalidRules : EditChatError("Invalid rules"), NotifiableError
+    // The caller does not meet the rules they are setting. Recoverable by the user, so
+    // deliberately not a NotifiableError, matching StartChatError.RulesNotSatisfied.
+    class RulesNotSatisfied : EditChatError("Rules not satisfied")
     class Unrecognized : EditChatError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : EditChatError(message = cause?.message, cause = cause), NotifiableError
 }

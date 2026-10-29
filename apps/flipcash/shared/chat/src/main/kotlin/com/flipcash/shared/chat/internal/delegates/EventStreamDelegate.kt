@@ -451,6 +451,11 @@ class EventStreamDelegate @Inject constructor(
                     // Same best-effort contract as TitleChanged above. Replaces the cached cover.
                     metadataDataSource.updateCoverPicture(chatId, metaUpdate.newCoverPicture)
                 }
+                is MetadataUpdate.RulesChanged -> {
+                    // Same best-effort contract as TitleChanged above. The wire carries the full
+                    // replacement rules, so they overwrite the cached ones.
+                    metadataDataSource.updateRules(chatId, metaUpdate.newRules)
+                }
             }
         }
 
@@ -471,6 +476,10 @@ class EventStreamDelegate @Inject constructor(
 
         // --- Lobby changes ---
 
+        // TODO(flipcash2 0.23.0): ChatUpdate.paymentRequestUpdates arrive here but nothing applies
+        //  them yet. Apply by version per PaymentRequestUpdate's docs (created: keep greater;
+        //  updates: ignore <= held, apply in order at held + 1, refetch beyond or on an unknown
+        //  change) once a payment request store consumes the stream.
         if (update.lobbyUpdates.isNotEmpty()) {
             _events.send(Event.LobbyChanged(chatId, update.lobbyUpdates))
         }

@@ -52,6 +52,7 @@ import com.flipcash.services.models.chat.isSystemBlank
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MetadataUpdate
+import com.flipcash.services.models.paymentrequest.PaymentRequestUpdate
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.BanState
 import com.flipcash.services.models.chat.RestrictedUser
@@ -458,6 +459,8 @@ internal fun ChatModel.MetadataUpdate.toMetadataUpdate(
             MetadataUpdate.PictureChanged(profilePictureChanged.newProfilePicture.toMediaItem())
         ChatModel.MetadataUpdate.KindCase.COVER_PICTURE_CHANGED ->
             MetadataUpdate.CoverPictureChanged(coverPictureChanged.newCoverPicture.toMediaItem())
+        ChatModel.MetadataUpdate.KindCase.RULES_CHANGED ->
+            MetadataUpdate.RulesChanged(rulesChanged.newRules.toChatRules())
         else -> MetadataUpdate.LastActivityChanged(Instant.fromEpochSeconds(0))
     }
 }
@@ -699,6 +702,9 @@ internal fun EventModel.ChatUpdate.toChatUpdate(
         lobbyUpdates = if (hasLobbyUpdates()) {
             lobbyUpdates.lobbyUpdatesList.mapNotNull { it.toLobbyUpdateOrNull() }
         } else emptyList(),
+        paymentRequestUpdates = if (hasPaymentRequestUpdates()) {
+            paymentRequestUpdates.paymentRequestUpdatesList.map { it.toPaymentRequestUpdate() }
+        } else emptyList(),
     )
 }
 
@@ -863,17 +869,55 @@ internal fun PaymentRequestModel.PaymentRequestMetadata.toPaymentRequest(): Paym
     id = paymentRequestId.value.toByteArray().toList(),
     creator = creator.toId(),
     createdAt = Instant.fromEpochSeconds(createdAt.seconds, createdAt.nanos),
-    status = when (status) {
-        PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_OPEN -> PaymentRequestStatus.Open
-        PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_COMPLETED -> PaymentRequestStatus.Completed
-        PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_CLOSED -> PaymentRequestStatus.Closed
-        PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_EXPIRED -> PaymentRequestStatus.Expired
-        else -> PaymentRequestStatus.Unknown
-    },
+    status = status.toDomain(),
     closedAt = if (hasClosedAt()) Instant.fromEpochSeconds(closedAt.seconds, closedAt.nanos) else null,
     version = version,
     kind = groupChat.takeIf { hasGroupChat() }?.toKind() ?: PaymentRequest.Kind.Unsupported,
 )
+
+private fun PaymentRequestModel.PaymentRequestStatus.toDomain(): PaymentRequestStatus = when (this) {
+    PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_OPEN -> PaymentRequestStatus.Open
+    PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_COMPLETED -> PaymentRequestStatus.Completed
+    PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_CLOSED -> PaymentRequestStatus.Closed
+    PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_EXPIRED -> PaymentRequestStatus.Expired
+    else -> PaymentRequestStatus.Unknown
+}
+
+internal fun PaymentRequestModel.PaymentRequestUpdate.toPaymentRequestUpdate(): PaymentRequestUpdate =
+    PaymentRequestUpdate(
+        paymentRequestId = paymentRequestId.value.toByteArray().toList(),
+        kind = when (kindCase) {
+            PaymentRequestModel.PaymentRequestUpdate.KindCase.CREATED ->
+                PaymentRequestUpdate.Kind.Created(created.toPaymentRequest())
+            PaymentRequestModel.PaymentRequestUpdate.KindCase.UPDATES ->
+                PaymentRequestUpdate.Kind.Updates(
+                    version = updates.version,
+                    changes = updates.updatesList.map { it.toChange() },
+                )
+            else -> PaymentRequestUpdate.Kind.Unknown
+        },
+    )
+
+// An unknown update kind, or a share update with no share, maps to Unknown so the store refetches
+// rather than applying a partial change.
+private fun PaymentRequestModel.PaymentRequestUpdate.Update.toChange(): PaymentRequestUpdate.Change =
+    when (kindCase) {
+        PaymentRequestModel.PaymentRequestUpdate.Update.KindCase.SHARE_PAYMENT_UPDATE ->
+            sharePaymentUpdate.takeIf { it.hasShare() }?.share?.let { share ->
+                PaymentRequestUpdate.Change.SharePaid(
+                    userId = share.userId.toId(),
+                    paid = if (share.hasPaid()) share.paid.toPaidShare() else null,
+                )
+            } ?: PaymentRequestUpdate.Change.Unknown
+        PaymentRequestModel.PaymentRequestUpdate.Update.KindCase.STATUS_UPDATE ->
+            PaymentRequestUpdate.Change.StatusChanged(
+                status = statusUpdate.status.toDomain(),
+                closedAt = if (statusUpdate.hasClosedAt()) {
+                    Instant.fromEpochSeconds(statusUpdate.closedAt.seconds, statusUpdate.closedAt.nanos)
+                } else null,
+            )
+        else -> PaymentRequestUpdate.Change.Unknown
+    }
 
 private fun PaymentRequestModel.GroupChatPaymentRequest.toKind(): PaymentRequest.Kind {
     if (!hasSplit()) return PaymentRequest.Kind.Unsupported

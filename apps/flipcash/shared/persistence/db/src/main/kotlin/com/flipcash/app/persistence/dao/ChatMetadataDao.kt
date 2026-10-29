@@ -341,6 +341,13 @@ interface ChatMetadataDao {
     @Query("UPDATE chat_metadata SET cover_picture_json = :coverPictureJson WHERE chat_id_hex = :chatIdHex")
     suspend fun updateCoverPicture(chatIdHex: String, coverPictureJson: MediaItem)
 
+    /**
+     * Unconditional, for the same reason as [updateTitle]: `MetadataUpdate.RulesChanged` carries no
+     * version. The wire carries the full replacement rules, so this overwrites the column.
+     */
+    @Query("UPDATE chat_metadata SET rules_json = :rulesJson WHERE chat_id_hex = :chatIdHex")
+    suspend fun updateRules(chatIdHex: String, rulesJson: ChatRulesSerialized?)
+
     @Query("DELETE FROM chat_metadata")
     suspend fun deleteAll()
 }

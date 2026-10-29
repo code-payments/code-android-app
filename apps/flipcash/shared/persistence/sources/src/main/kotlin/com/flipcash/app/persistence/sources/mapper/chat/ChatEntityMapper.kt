@@ -313,6 +313,8 @@ class ChatEntityMapper @Inject constructor() {
 
     // region Helpers
 
+    fun rulesSerialized(rules: ChatRules): ChatRulesSerialized = rules.toSerialized()
+
     fun chatIdHex(chatId: ChatId): String = chatId.bytes.toList().hexEncodedString()
 
     fun chatIdFromHex(hex: String): ChatId = ChatId(hex.hexToByteArray())
