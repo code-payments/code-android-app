@@ -2489,11 +2489,13 @@ internal class ChatViewModel @AssistedInject constructor(
         }.launchIn(viewModelScope)
 
         // A row that came from the feed can lack the cover the profile shows; GetChat has it. The
-        // stored metadata updates and OnGroupResolved carries it into the subject.
+        // stored metadata updates and OnGroupResolved carries it into the subject. A viewer outside
+        // the group gets no RulesChanged, so opening the profile is also when its gate catches up.
         eventFlow.filterIsInstance<Event.GroupProfileOpened>()
             .onEach {
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
+                if (group.isMember == false) chatCoordinator.refreshRules(chatId)
                 if (group.coverPicture == null) chatCoordinator.refreshCover(chatId)
             }
             .launchIn(viewModelScope)
