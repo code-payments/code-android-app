@@ -13,51 +13,56 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/** Moderation opens its rows in place, under itself, and keeps the rest of the menu. */
+/** Opening Moderation turns the menu into the submenu; its header turns it back. */
 @RunWith(RobolectricTestRunner::class)
-class ExpandableMenuRowTest {
+class SubmenuDropdownMenuTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
 
     private fun setMenu() = composeTestRule.setContent {
         DesignSystem {
-            androidx.compose.foundation.layout.Column {
-                DropdownMenuItem(text = { Text("Mute Notifications") }, onClick = {})
-                ExpandableMenuRow(label = "Moderation", icon = Icons.Outlined.Shield) {
+            SubmenuDropdownMenu(expanded = true, onDismissRequest = {}) {
+                Item { DropdownMenuItem(text = { Text("Mute Notifications") }, onClick = {}) }
+                Submenu(label = "Moderation", icon = Icons.Outlined.Shield) {
                     DropdownMenuItem(text = { Text("Restricted") }, onClick = {})
                     DropdownMenuItem(text = { Text("Removed") }, onClick = {})
                 }
+                Item { DropdownMenuItem(text = { Text("Report") }, onClick = {}) }
             }
         }
     }
 
     @Test
-    fun `the row starts collapsed`() {
+    fun `the first level shows its rows and not the submenu`() {
         setMenu()
 
-        composeTestRule.onNodeWithText("Moderation").assertExists()
+        composeTestRule.onNodeWithText("Mute Notifications").assertExists()
+        composeTestRule.onNodeWithText("Report").assertExists()
         composeTestRule.onNodeWithText("Restricted").assertDoesNotExist()
     }
 
     @Test
-    fun `tapping the row shows its rows and keeps the rest of the menu`() {
+    fun `opening the submenu leaves only its header and rows`() {
         setMenu()
 
         composeTestRule.onNodeWithText("Moderation").performClick()
 
+        composeTestRule.onNodeWithText("Moderation").assertExists()
         composeTestRule.onNodeWithText("Restricted").assertExists()
         composeTestRule.onNodeWithText("Removed").assertExists()
-        composeTestRule.onNodeWithText("Mute Notifications").assertExists()
+        composeTestRule.onNodeWithText("Mute Notifications").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Report").assertDoesNotExist()
     }
 
     @Test
-    fun `tapping the row again folds it`() {
+    fun `the header turns the menu back`() {
         setMenu()
         composeTestRule.onNodeWithText("Moderation").performClick()
 
         composeTestRule.onNodeWithText("Moderation").performClick()
 
+        composeTestRule.onNodeWithText("Mute Notifications").assertExists()
         composeTestRule.onNodeWithText("Restricted").assertDoesNotExist()
     }
 }

@@ -43,7 +43,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -65,8 +64,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.material.icons.outlined.PersonRemove
-import com.getcode.ui.components.ExpandableMenuRow
-import com.getcode.ui.components.ExpandableMenuRowDefaults
+import com.getcode.ui.components.SubmenuDropdownMenu
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -550,7 +548,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
 
 /**
  * The ⋯ button's menu: Encryption and Mute, the host's Moderation row, then a divider and the red
- * Report. Moderation opens Restricted and Removed in place, under itself; see [ExpandableMenuRow].
+ * Report. Moderation turns the menu into Restricted and Removed; see [SubmenuDropdownMenu].
  */
 @Composable
 internal fun GroupProfileMenu(
@@ -563,22 +561,17 @@ internal fun GroupProfileMenu(
     onSilenced: () -> Unit,
     onRemoved: () -> Unit,
 ) {
-    DropdownMenu(
+    SubmenuDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        containerColor = CodeTheme.colors.brandLight,
-        shape = CodeTheme.shapes.extraLarge,
         offset = DpOffset(x = 0.dp, y = -anchorHeight),
     ) {
         items.forEachIndexed { index, item ->
             if (index > 0 && items[index - 1].isDestructive != item.isDestructive) {
-                HorizontalDivider(color = CodeTheme.colors.divider)
+                Item { HorizontalDivider(color = CodeTheme.colors.divider) }
             }
             if (item == GroupProfileMenuAction.Moderation) {
-                ExpandableMenuRow(
-                    label = stringResource(item.labelRes()),
-                    icon = item.icon(isPrivate),
-                ) {
+                Submenu(label = stringResource(item.labelRes()), icon = item.icon(isPrivate)) {
                     ModerationEntry(R.string.title_silencedMembers, SpeakerSlash) {
                         onDismiss()
                         onSilenced()
@@ -591,20 +584,22 @@ internal fun GroupProfileMenu(
                 return@forEachIndexed
             }
             val tint = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
-            DropdownMenuItem(
-                leadingIcon = { Icon(imageVector = item.icon(isPrivate), contentDescription = null, tint = tint) },
-                text = {
-                    Text(
-                        text = stringResource(item.labelRes()),
-                        style = CodeTheme.typography.textSmall,
-                        color = tint,
-                    )
-                },
-                onClick = {
-                    onDismiss()
-                    onItem(item)
-                },
-            )
+            Item {
+                DropdownMenuItem(
+                    leadingIcon = { Icon(imageVector = item.icon(isPrivate), contentDescription = null, tint = tint) },
+                    text = {
+                        Text(
+                            text = stringResource(item.labelRes()),
+                            style = CodeTheme.typography.textSmall,
+                            color = tint,
+                        )
+                    },
+                    onClick = {
+                        onDismiss()
+                        onItem(item)
+                    },
+                )
+            }
         }
     }
 }
@@ -620,7 +615,6 @@ private fun ModerationEntry(@androidx.annotation.StringRes label: Int, icon: and
                 color = CodeTheme.colors.textMain,
             )
         },
-        contentPadding = ExpandableMenuRowDefaults.ChildContentPadding,
         onClick = onClick,
     )
 }
