@@ -644,6 +644,16 @@ interface GroupOperations {
      * or cover-less answer leaves whatever is stored alone.
      */
     suspend fun refreshCover(chatId: ChatId)
+
+    /**
+     * Stores the rules `GetChat` holds for [chatId].
+     *
+     * A member follows rules changes through `RulesChanged`, but a viewer outside the group, as
+     * after a leave, receives no events for it, so the stored rules can be older than the ones a
+     * join is judged against. Writes only rules that came back, so a failed answer leaves the
+     * stored ones alone.
+     */
+    suspend fun refreshRules(chatId: ChatId)
 }
 
 interface ChatCoordinator :

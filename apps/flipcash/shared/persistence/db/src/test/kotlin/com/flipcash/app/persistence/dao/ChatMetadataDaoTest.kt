@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.converters.ChatRuleRequirementSerialized
 import com.flipcash.app.persistence.converters.ChatRulesSerialized
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.services.models.chat.MediaItem
@@ -668,6 +669,32 @@ class ChatMetadataDaoTest {
             // an upsert deliberately leaves them alone, so this is the write a roster event makes.
             dao.updateRosterIfNewer(CHAT_HEX, memberCount = 3, rosterVersion = 2)
             assertEquals(3L, awaitItem()?.memberCount)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /**
+     * `MetadataUpdate.RulesChanged` writes through `updateRules`, and every gate reads the rules
+     * off this observation, so each change has to re-emit the row: a speaker minimum added, then
+     * removed, with the listener rule and the creator rule kept as they were.
+     */
+    @Test
+    fun `observeById re-emits each rules change`() = runTest {
+        val join = ChatRuleRequirementSerialized.MinimumBalance(quarks = 10_000_000, currencyCode = "USD", mints = listOf("mint"))
+        val chat = ChatRuleRequirementSerialized.MinimumBalance(quarks = 20_000_000, currencyCode = "USD", mints = listOf("mint"))
+        val joinOnly = ChatRulesSerialized(listener = listOf(join), speaker = listOf(ChatRuleRequirementSerialized.Creator))
+        val withChat = joinOnly.copy(speaker = listOf(chat, ChatRuleRequirementSerialized.Creator))
+        dao.upsert(entity(chatType = "GROUP", rulesJson = joinOnly))
+
+        dao.observeById(CHAT_HEX).test {
+            assertEquals(joinOnly, awaitItem()?.rulesJson)
+
+            dao.updateRules(CHAT_HEX, withChat)
+            assertEquals(withChat, awaitItem()?.rulesJson)
+
+            dao.updateRules(CHAT_HEX, joinOnly)
+            assertEquals(joinOnly, awaitItem()?.rulesJson)
 
             cancelAndIgnoreRemainingEvents()
         }
