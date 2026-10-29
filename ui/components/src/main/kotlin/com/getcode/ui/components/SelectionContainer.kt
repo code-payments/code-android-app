@@ -1,6 +1,10 @@
 package com.getcode.ui.components
 
 import android.widget.Toast
+import androidx.compose.material.SnackbarDuration
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import com.getcode.ui.components.toast.LocalFloatingToastHost
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -61,8 +65,16 @@ fun SelectionContainer(
     val vibrator = LocalVibrator.current
     val toolbar: TextToolbar = LocalTextToolbar.current
     val clipboard = LocalClipboardManager.current
+    // The floating toast where the app's host is up; screens outside it (login) fall back to a system toast.
+    val floatingToasts = LocalFloatingToastHost.current
+    val toastScope = rememberCoroutineScope()
     val copyAndToast = {
-        Toast.makeText(context, "Copied to clipboard.", Toast.LENGTH_LONG).show()
+        val message = "Copied to clipboard."
+        if (floatingToasts != null && !floatingToasts.isCovered) {
+            toastScope.launch { floatingToasts.show(message = message, duration = SnackbarDuration.Long) }
+        } else {
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
         clipboard.setText(AnnotatedString(state.words))
         state.shown = false
     }
