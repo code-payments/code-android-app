@@ -113,7 +113,7 @@ class RequestDetailsInsufficientFundsTest {
         vm.payTapped()
 
         assertEquals(true, vm.pay.value.open)
-        verify(exactly = 0) { payer.presentInsufficientBalance(any()) }
+        verify(exactly = 0) { payer.presentInsufficientBalance(any(), any()) }
     }
 
     @Test
@@ -123,7 +123,7 @@ class RequestDetailsInsufficientFundsTest {
         vm.payTapped()
 
         assertEquals(true, vm.pay.value.open)
-        verify(exactly = 0) { payer.presentInsufficientBalance(any()) }
+        verify(exactly = 0) { payer.presentInsufficientBalance(any(), any()) }
     }
 
     @Test
@@ -137,7 +137,7 @@ class RequestDetailsInsufficientFundsTest {
         vm.confirmPay()
 
         assertEquals(true, vm.pay.value.open)
-        verify(exactly = 1) { payer.presentInsufficientBalance(any()) }
+        verify(exactly = 1) { payer.presentInsufficientBalance(any(), any()) }
     }
 
     @Test

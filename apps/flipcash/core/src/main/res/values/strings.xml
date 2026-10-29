@@ -291,6 +291,7 @@
     <string name="title_insufficientBalance">Insufficient Balance</string>
     <string name="description_insufficientBalanceToCreate">Add more money to create a currency</string>
     <string name="description_insufficientBalanceToUse">Add more money, or enter a smaller amount</string>
+    <string name="description_insufficientBalanceToPayRequest">Add more money, or select a different Community Currency</string>
     <string name="description_noBalanceYetToGive">Add money to give cash</string>
     <string name="description_noBalanceYetToBuy">Add money to buy currencies</string>
     <string name="description_noBalanceYetToSend">Add money to send cash</string>

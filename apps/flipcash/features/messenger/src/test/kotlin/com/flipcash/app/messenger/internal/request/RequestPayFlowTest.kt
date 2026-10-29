@@ -102,7 +102,7 @@ class RequestPayFlowTest {
         f.start(listOf<Byte>(2))
 
         assertEquals(true, f.state.value.open)
-        verify(exactly = 0) { payer.presentInsufficientBalance(any()) }
+        verify(exactly = 0) { payer.presentInsufficientBalance(any(), any()) }
     }
 
     @Test
@@ -114,7 +114,7 @@ class RequestPayFlowTest {
         f.confirm()
 
         assertEquals(true, f.state.value.open)
-        verify(exactly = 1) { payer.presentInsufficientBalance(any()) }
+        verify(exactly = 1) { payer.presentInsufficientBalance(any(), any()) }
         coVerify(exactly = 0) { payments.pay(any(), any(), any()) }
     }
 

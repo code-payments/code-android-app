@@ -172,7 +172,11 @@ internal class RequestPayFlow(
     }
 
     private fun present(block: PayBlock) = when (block) {
-        PayBlock.OverBalance -> payer.presentInsufficientBalance(onAddMoney = ::presentDeposit)
+        PayBlock.OverBalance -> payer.presentInsufficientBalance(
+            onAddMoney = ::presentDeposit,
+            // A share is a fixed amount, so the way out is another currency, not a smaller amount.
+            message = R.string.description_insufficientBalanceToPayRequest,
+        )
         PayBlock.OverSendLimit -> BottomBarManager.showAlert(
             resources.getString(R.string.error_title_sendLimitReached),
             resources.getString(R.string.error_description_sendLimitReached),
