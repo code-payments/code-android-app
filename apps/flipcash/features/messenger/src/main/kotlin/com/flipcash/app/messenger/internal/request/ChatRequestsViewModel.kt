@@ -66,6 +66,12 @@ internal class ChatRequestsViewModel @Inject constructor(
     /** The deck, front card first. Empty hides it. */
     val deck: StateFlow<List<PaymentRequest>> = _deck.asStateFlow()
 
+    // Above init: viewModelScope runs on Main.immediate, so the deck collector publishes before
+    // the constructor returns, and fields declared after init would still be null.
+    private var shownNow = _now.value
+    private var settle: Job? = null
+    private var settledDeck: List<PaymentRequest> = emptyList()
+
     init {
         viewModelScope.launch {
             combine(
@@ -88,10 +94,6 @@ internal class ChatRequestsViewModel @Inject constructor(
             }
         }
     }
-
-    private var shownNow = _now.value
-    private var settle: Job? = null
-    private var settledDeck: List<PaymentRequest> = emptyList()
 
     /**
      * Puts [next] on the deck. A request ending moves it in the sort order; the deck keeps its
