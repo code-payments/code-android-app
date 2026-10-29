@@ -6,6 +6,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.deckOrder
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.PaymentRequests
 import com.getcode.opencode.model.core.ID
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,7 +18,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,6 +36,7 @@ import kotlin.time.Instant
 @HiltViewModel
 internal class ChatRequestsViewModel @Inject constructor(
     private val requests: PaymentRequests,
+    private val chatCoordinator: ChatCoordinator,
     private val userManager: UserManager,
 ) : ViewModel() {
 
@@ -62,9 +66,6 @@ internal class ChatRequestsViewModel @Inject constructor(
     /** The deck, front card first. Empty hides it. */
     val deck: StateFlow<List<PaymentRequest>> = _deck.asStateFlow()
 
-    /** Requests refetched because a message about them arrived, so a re-shown row doesn't refetch. */
-    private val refreshed = mutableSetOf<ID>()
-
     init {
         viewModelScope.launch {
             combine(
@@ -73,6 +74,12 @@ internal class ChatRequestsViewModel @Inject constructor(
                 cycled,
             ) { inChat, now, cycled -> deckOrder(inChat, now, viewerId).rotated(cycled) to now }
                 .collect { (next, now) -> publish(next, now) }
+        }
+        viewModelScope.launch {
+            chatId.filterNotNull().flatMapLatest { id ->
+                val arrivals = PaymentArrivals(openedAt)
+                chatCoordinator.observeMessages(id).map(arrivals::newlyPaid)
+            }.collect { paid -> paid.forEach(::refetch) }
         }
         viewModelScope.launch {
             while (true) {
@@ -139,9 +146,9 @@ internal class ChatRequestsViewModel @Inject constructor(
         viewModelScope.launch { requests.fetchIfAbsent(id) }
     }
 
-    fun refresh(id: ID) {
-        if (!refreshed.add(id)) return
-        viewModelScope.launch { requests.fetch(id) }
+    /** A failed refetch leaves the held copy as it was; the 45 s poll reconciles it. */
+    private fun refetch(id: ID) {
+        viewModelScope.launch { runCatching { requests.refetch(id) } }
     }
 
     /** Swipe down on the deck: the front card goes to the back. */

@@ -74,7 +74,6 @@ import com.flipcash.shared.chat.ui.request.FetchWhenAbsent
 import com.flipcash.shared.chat.ui.request.LocalPaymentRequestCards
 import com.flipcash.shared.chat.ui.request.PaymentRequestBubbleDefaults
 import com.flipcash.shared.chat.ui.request.PaymentRequestCardBody
-import com.flipcash.shared.chat.ui.request.RefreshOnArrival
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.LinkCard
@@ -216,9 +215,6 @@ fun ContentBubble(
                 )
                 return@Row
             }
-
-            // A share payment landing changes its request, and nothing else says so.
-            (item.content as? MessageContent.Cash)?.paymentRequestId?.let { RefreshOnArrival(it, item.timestamp) }
 
             when (val content = item.content) {
                 is MessageContent.Text -> TextBubble(

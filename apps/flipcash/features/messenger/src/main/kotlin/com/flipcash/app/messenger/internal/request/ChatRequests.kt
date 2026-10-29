@@ -41,9 +41,7 @@ internal fun rememberPaymentRequestCards(
             requests = held,
             missing = missing,
             now = now,
-            openedAt = viewModel.openedAt,
             onNeeded = viewModel::fetchIfAbsent,
-            onRefresh = viewModel::refresh,
             onOpen = { open(chatId, it) },
         )
     }
