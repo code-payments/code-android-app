@@ -31,6 +31,7 @@ import com.flipcash.app.notificationstatus.internal.Fix
 import com.flipcash.app.notificationstatus.internal.NotificationStatusContent
 import com.flipcash.app.notificationstatus.internal.NotificationStatusViewModel
 import com.flipcash.app.notificationstatus.internal.NotificationStatusViewModel.Event
+import com.flipcash.app.notificationstatus.internal.TestResult
 import com.flipcash.core.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarWithTitle
@@ -133,11 +134,21 @@ fun NotificationStatusScreen() {
 
     val testSent = stringResource(R.string.toast_notificationStatusTestSent)
     val testSentIcon = ImageVector.vectorResource(R.drawable.ic_check_circle)
+    val testUnreachable = stringResource(R.string.toast_notificationStatusTestUnreachable)
+    val testFailed = stringResource(R.string.toast_notificationStatusTestFailed)
     LaunchedEffect(viewModel, toasts) {
         if (toasts == null) return@LaunchedEffect
         viewModel.eventFlow
-            .filterIsInstance<Event.TestScheduled>()
-            .onEach { launch { toasts.show(message = testSent, icon = testSentIcon) } }
+            .filterIsInstance<Event.TestFinished>()
+            .onEach { event ->
+                launch {
+                    when (event.result) {
+                        TestResult.Sent -> toasts.show(message = testSent, icon = testSentIcon)
+                        TestResult.Unreachable -> toasts.show(message = testUnreachable)
+                        TestResult.Failed -> toasts.show(message = testFailed)
+                    }
+                }
+            }
             .launchIn(this)
     }
 }

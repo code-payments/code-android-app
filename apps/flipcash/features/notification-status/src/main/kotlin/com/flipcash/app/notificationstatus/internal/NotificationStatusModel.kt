@@ -186,8 +186,9 @@ data class NotificationStatus(
     val allPassing: Boolean get() = summary == Summary.Working
 
     /**
-     * Why the test button is disabled, or null when it isn't. A local test needs the permission and
-     * the chat channel it posts on, not a working registration.
+     * Why the test button is disabled, or null when it isn't. The server's test push needs the
+     * permission and the channel it lands on, not a working registration: the server may still
+     * hold an earlier token.
      */
     val testBlocked: TestBlocked?
         get() {
@@ -196,8 +197,8 @@ data class NotificationStatus(
             return when {
                 settled.none { it is CheckRow.Permission && it.status == CheckStatus.Pass } ->
                     TestBlocked.NotificationsOff
-                settled.any { it is CheckRow.BlockedChannel && it.channel == StatusChannel.Chat } ->
-                    TestBlocked.ChatOff
+                settled.any { it is CheckRow.BlockedChannel && it.channel == TestPushChannel } ->
+                    TestBlocked.ChannelOff
                 else -> null
             }
         }
@@ -205,7 +206,10 @@ data class NotificationStatus(
     val canSendTest: Boolean get() = testBlocked == null
 }
 
-enum class TestBlocked { NotificationsOff, ChatOff }
+enum class TestBlocked { NotificationsOff, ChannelOff }
+
+/** The test push has an empty payload, so it posts on the channel for a push with no category. */
+val TestPushChannel = StatusChannel.General
 
 const val PermissionKey = "permission"
 const val OtherChannelsKey = "channels"

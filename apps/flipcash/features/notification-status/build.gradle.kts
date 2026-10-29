@@ -10,6 +10,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:authentication"))
     implementation(project(":apps:flipcash:shared:notifications"))
     implementation(project(":libs:logging"))
+    implementation(project(":services:flipcash"))
     implementation(libs.play.services.base)
     implementation(libs.bundles.haze)
 
@@ -17,5 +18,4 @@ dependencies {
     testImplementation(libs.bundles.unit.testing)
     testImplementation(testFixtures(project(":libs:coroutines")))
     testImplementation(project(":apps:flipcash:shared:push"))
-    testImplementation(project(":services:flipcash"))
 }

@@ -31,6 +31,4 @@
     <string name="notification_request_amountAndTitle">Requested %1$s for %2$s</string>
     <string name="notification_request_amountOnly">Requested %1$s</string>
     <string name="notification_request_titleOnly">Sent request for %1$s</string>
-    <string name="notification_test_title">Test notification</string>
-    <string name="notification_test_body">If you can see this, notifications are working.</string>
 </resources>

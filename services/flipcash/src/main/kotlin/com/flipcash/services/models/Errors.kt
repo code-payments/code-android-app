@@ -60,9 +60,12 @@ sealed class AddTokenError(
     data class Other(override val cause: Throwable? = null) : AddTokenError(message = cause?.message, cause = cause), NotifiableError {
         /** The call never got an answer from the server: no network, or the channel gave up. */
         val isTransportFailure: Boolean
-            get() = generateSequence(cause) { it.cause }.take(8).any { it.isTransportCause() }
+            get() = cause.hasTransportCause()
     }
 }
+
+private fun Throwable?.hasTransportCause(): Boolean =
+    generateSequence(this) { it.cause }.take(8).any { it.isTransportCause() }
 
 private fun Throwable.isTransportCause(): Boolean = when (this) {
     is IOException -> true
@@ -86,7 +89,11 @@ sealed class SendTestPushError(
     override val cause: Throwable? = null
 ) : CodeServerError(message, cause) {
     class Unrecognized : SendTestPushError("Unrecognized"), NotifiableError
-    data class Other(override val cause: Throwable? = null) : SendTestPushError(message = cause?.message, cause = cause), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SendTestPushError(message = cause?.message, cause = cause), NotifiableError {
+        /** The call never got an answer from the server: no network, or the channel gave up. */
+        val isTransportFailure: Boolean
+            get() = cause.hasTransportCause()
+    }
 }
 
 sealed class GetActivityFeedMessagesError(

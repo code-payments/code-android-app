@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.auth.push.PushRegistrationOutcome
 import com.flipcash.core.R
+import com.flipcash.shared.notifications.R as NotificationsR
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.ui.components.BottomScrollEdge
@@ -205,7 +206,8 @@ private fun Actions(
             ),
             buttonState = if (state.testSent) ButtonState.Filled10 else ButtonState.Filled,
             shape = CircleShape,
-            enabled = status.canSendTest,
+            isLoading = state.sendingTest,
+            enabled = status.canSendTest && !state.sendingTest,
             onClick = onSendTest,
         )
         CodeButton(
@@ -217,13 +219,15 @@ private fun Actions(
         )
         Text(
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x2),
-            text = stringResource(
-                when (status.testBlocked) {
-                    null -> R.string.description_notificationStatusFooter
-                    TestBlocked.NotificationsOff -> R.string.description_notificationStatusTestDisabled
-                    TestBlocked.ChatOff -> R.string.description_notificationStatusTestDisabledChatOff
-                },
-            ),
+            text = when (status.testBlocked) {
+                null -> stringResource(R.string.description_notificationStatusFooter)
+                TestBlocked.NotificationsOff -> stringResource(R.string.description_notificationStatusTestDisabled)
+                TestBlocked.ChannelOff -> stringResource(
+                    R.string.description_notificationStatusTestDisabledChannelOff,
+                    // The name system settings shows for TestPushChannel (General).
+                    stringResource(NotificationsR.string.notification_channel_default),
+                )
+            },
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
             textAlign = TextAlign.Center,

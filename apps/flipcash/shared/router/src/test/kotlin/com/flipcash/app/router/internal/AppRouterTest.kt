@@ -230,27 +230,6 @@ class AppRouterTest {
 
     // endregion
 
-    // region NotificationStatus
-
-    @Test
-    fun `classify settings notifications as NotificationStatus`() {
-        val type = router.classify(DeepLink("https://app.flipcash.com/settings/notifications"))
-        assertEquals(DeeplinkType.NotificationStatus, type)
-    }
-
-    @Test
-    fun `dispatch opens the notification status page above Settings`() {
-        loggedIn()
-        val action = router.dispatch(DeepLink("https://app.flipcash.com/settings/notifications"))
-        assertIs<DeeplinkAction.Navigate>(action)
-        assertEquals(
-            listOf(AppRoute.Tabs.Menu, AppRoute.Menu.Settings, AppRoute.Menu.NotificationStatus),
-            action.routes,
-        )
-    }
-
-    // endregion
-
     // region dispatch — Logged in: EmailVerification
 
     private fun verifyUrl(originPlain: String): String {

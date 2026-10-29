@@ -129,7 +129,6 @@ val DeeplinkType.analytics: String
         is DeeplinkType.Tipcard -> "Tipcard"
         is DeeplinkType.Profile -> "Profile"
         is DeeplinkType.EmailVerification -> "EmailVerification"
-        is DeeplinkType.NotificationStatus -> "NotificationStatus"
     }
 
 /** The URL with its query and fragment removed, which can carry secrets. */

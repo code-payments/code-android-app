@@ -69,15 +69,24 @@ class NotificationStatusModelTest {
         val others = status.phoneRows.filterIsInstance<CheckRow.OtherChannels>().single()
         assertEquals(StatusChannel.entries - StatusChannel.Chat, others.covered)
         assertEquals(Summary.ThingsToFix(1), status.summary)
-        // The test posts on the chat channel, so it can't be sent while chat is off.
-        assertEquals(TestBlocked.ChatOff, status.testBlocked)
+        // The test push doesn't land on the chat channel, so chat being off doesn't block it.
+        assertTrue(status.canSendTest)
+    }
+
+    @Test
+    fun `general blocked - the test push's channel is off, so the test is disabled`() {
+        val status = evaluateNotificationStatus(healthy.blocking(StatusChannel.General), registered)
+
+        val general = status.phoneRows.filterIsInstance<CheckRow.BlockedChannel>().single()
+        assertEquals(Fix.ChannelSettings(StatusChannel.General), general.fix)
+        assertEquals(TestBlocked.ChannelOff, status.testBlocked)
         assertFalse(status.canSendTest)
     }
 
     @Test
-    fun `notifications off wins over chat off as the reason the test is disabled`() {
+    fun `notifications off wins over the test channel being off as the reason the test is disabled`() {
         val status = evaluateNotificationStatus(
-            healthy.copy(notificationsAllowed = false).blocking(StatusChannel.Chat),
+            healthy.copy(notificationsAllowed = false).blocking(StatusChannel.General),
             registered,
         )
 

@@ -9,8 +9,9 @@ import com.flipcash.app.auth.push.PushRegistration
 import com.flipcash.app.auth.push.PushRegistrationAttempt
 import com.flipcash.app.auth.push.PushRegistrationOutcome
 import com.flipcash.app.auth.push.PushRegistrationSource
-import com.flipcash.app.notifications.TestNotificationPoster
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.services.controllers.PushController
+import com.flipcash.services.models.SendTestPushError
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -21,11 +22,13 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaInstant
 
 @HiltViewModel
@@ -33,7 +36,7 @@ internal class NotificationStatusViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val reader: DeviceSnapshotReader,
     private val registrar: PushRegistrar,
-    private val testPoster: TestNotificationPoster,
+    private val pushController: PushController,
     private val dispatchers: DispatcherProvider,
 ) : BaseViewModel<NotificationStatusViewModel.State, NotificationStatusViewModel.Event>(
     initialState = State(),
@@ -49,7 +52,10 @@ internal class NotificationStatusViewModel @Inject constructor(
         val lastRegistration: PushRegistration? = null,
         val tokenSuffix: String? = null,
         val expanded: Boolean = false,
+        /** The server accepted a test push from this page. */
         val testSent: Boolean = false,
+        /** `SendTestPush` is in flight. */
+        val sendingTest: Boolean = false,
         /** "Check again" is waiting on the phone's settings; the last read shows as Checking. */
         val rechecking: Boolean = false,
         /** The page was folded when the re-run started; it stays folded while the run lasts. */
@@ -81,12 +87,14 @@ internal class NotificationStatusViewModel @Inject constructor(
         data object RecheckStarted : Event
         data object ToggleExpanded : Event
         data object SendTest : Event
-        data object TestScheduled : Event
+        data object TestStarted : Event
+        data class TestFinished(val result: TestResult) : Event
         data object ShareReportRequested : Event
         data class ShareReport(val text: String) : Event
     }
 
     private var registration: Job? = null
+    private var test: Job? = null
 
     init {
         eventFlow
@@ -122,15 +130,7 @@ internal class NotificationStatusViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.SendTest>()
-            .onEach {
-                // Permission may have gone while the page was open; re-check before scheduling.
-                val device = withContext(dispatchers.IO) { reader.read() }
-                dispatchEvent(Event.DeviceRead(device))
-                if (device.notificationsAllowed) {
-                    testPoster.schedule()
-                    dispatchEvent(Event.TestScheduled)
-                }
-            }
+            .onEach { sendTest() }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -159,6 +159,19 @@ internal class NotificationStatusViewModel @Inject constructor(
         }
     }
 
+    private fun sendTest() {
+        if (test?.isActive == true) return
+        test = viewModelScope.launch {
+            // Permission may have gone while the page was open; re-check before sending.
+            val device = withContext(dispatchers.IO) { reader.read() }
+            dispatchEvent(Event.DeviceRead(device))
+            if (!device.notificationsAllowed) return@launch
+            dispatchEvent(Event.TestStarted)
+            val result = withTimeoutOrNull(TestTimeout) { pushController.sendTestPush() }
+            dispatchEvent(Event.TestFinished(testResult(result)))
+        }
+    }
+
     private suspend fun report(): String {
         val state = stateFlow.value
         val device = state.device ?: withContext(dispatchers.IO) { reader.read() }
@@ -184,6 +197,18 @@ internal class NotificationStatusViewModel @Inject constructor(
 
     internal companion object {
         val MinimumRecheck = 600.milliseconds
+        val TestTimeout = 10.seconds
+
+        /** @param result null when [TestTimeout] fired first. */
+        private fun testResult(result: Result<Unit>?): TestResult {
+            val error = result?.exceptionOrNull()
+            return when {
+                result == null -> TestResult.Unreachable
+                error == null -> TestResult.Sent
+                error is SendTestPushError.Other && error.isTransportFailure -> TestResult.Unreachable
+                else -> TestResult.Failed
+            }
+        }
 
         private val ReportTimeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
@@ -218,7 +243,10 @@ internal class NotificationStatusViewModel @Inject constructor(
                     )
                 } }
                 is Event.ToggleExpanded -> { { copy(expanded = !expanded) } }
-                is Event.TestScheduled -> { { copy(testSent = true) } }
+                is Event.TestStarted -> { { copy(sendingTest = true) } }
+                is Event.TestFinished -> { {
+                    copy(sendingTest = false, testSent = testSent || event.result == TestResult.Sent)
+                } }
                 is Event.Refresh,
                 is Event.TryAgain,
                 is Event.PermissionGranted,
@@ -232,3 +260,5 @@ internal class NotificationStatusViewModel @Inject constructor(
         }
     }
 }
+
+enum class TestResult { Sent, Unreachable, Failed }

@@ -9,6 +9,7 @@ import com.flipcash.app.auth.push.PushRegistrationStore
 import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.controllers.PushController
+import com.flipcash.services.models.SendTestPushError
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -19,6 +20,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -26,6 +29,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import java.io.IOException
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -54,6 +58,10 @@ class NotificationStatusViewModelTest {
             delay(1_000)
             Result.success(Unit)
         }
+        coEvery { sendTestPush() } coAnswers {
+            delay(500)
+            Result.success(Unit)
+        }
     }
     private val tokenProvider: PushTokenProvider = mockk(relaxed = true) {
         coEvery { getToken() } returns "token-abc123"
@@ -71,7 +79,7 @@ class NotificationStatusViewModelTest {
         context = mockk(relaxed = true),
         reader = reader,
         registrar = PushRegistrar(pushController, tokenProvider, mockk(relaxed = true), store),
-        testPoster = mockk(relaxed = true),
+        pushController = pushController,
         dispatchers = TestDispatcherProvider(dispatcher),
     )
 
@@ -216,6 +224,103 @@ class NotificationStatusViewModelTest {
         advanceUntilIdle()
 
         assertEquals(null, viewModel.stateFlow.value.tokenSuffix)
+    }
+
+    private fun TestScope.sendTest(viewModel: NotificationStatusViewModel): List<TestResult> {
+        val results = mutableListOf<TestResult>()
+        backgroundScope.launch {
+            viewModel.eventFlow
+                .filterIsInstance<NotificationStatusViewModel.Event.TestFinished>()
+                .collect { results += it.result }
+        }
+        viewModel.dispatchEvent(NotificationStatusViewModel.Event.SendTest)
+        return results
+    }
+
+    @Test
+    fun `send test is loading while SendTestPush runs, then reads send again`() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val results = sendTest(viewModel)
+        assertTrue(viewModel.stateFlow.value.sendingTest)
+        assertFalse(viewModel.stateFlow.value.testSent)
+
+        advanceUntilIdle()
+        assertEquals(listOf(TestResult.Sent), results)
+        assertFalse(viewModel.stateFlow.value.sendingTest)
+        assertTrue(viewModel.stateFlow.value.testSent)
+        coVerify(exactly = 1) { pushController.sendTestPush() }
+    }
+
+    @Test
+    fun `send test while one is in flight is ignored`() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        sendTest(viewModel)
+        viewModel.dispatchEvent(NotificationStatusViewModel.Event.SendTest)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { pushController.sendTestPush() }
+    }
+
+    @Test
+    fun `a transport failure says it couldn't reach Flipcash`() = runTest(dispatcher) {
+        coEvery { pushController.sendTestPush() } returns Result.failure(
+            SendTestPushError.Other(cause = IOException("offline")),
+        )
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val results = sendTest(viewModel)
+        advanceUntilIdle()
+
+        assertEquals(listOf(TestResult.Unreachable), results)
+        assertFalse(viewModel.stateFlow.value.testSent)
+        assertFalse(viewModel.stateFlow.value.sendingTest)
+    }
+
+    @Test
+    fun `no answer within 10 seconds says it couldn't reach Flipcash`() = runTest(dispatcher) {
+        coEvery { pushController.sendTestPush() } coAnswers { awaitCancellation() }
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val results = sendTest(viewModel)
+        advanceTimeBy(9_999)
+        assertTrue(viewModel.stateFlow.value.sendingTest)
+        advanceUntilIdle()
+
+        assertEquals(listOf(TestResult.Unreachable), results)
+        assertFalse(viewModel.stateFlow.value.testSent)
+    }
+
+    @Test
+    fun `any other failure says it couldn't send a test`() = runTest(dispatcher) {
+        coEvery { pushController.sendTestPush() } returns Result.failure(SendTestPushError.Other())
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val results = sendTest(viewModel)
+        advanceUntilIdle()
+
+        assertEquals(listOf(TestResult.Failed), results)
+        assertFalse(viewModel.stateFlow.value.testSent)
+    }
+
+    @Test
+    fun `permission gone since the page opened sends nothing and shows notifications off`() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        every { reader.read() } returns healthy.copy(notificationsAllowed = false)
+        val results = sendTest(viewModel)
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { pushController.sendTestPush() }
+        assertEquals(emptyList(), results)
+        assertEquals(Summary.NotificationsOff, viewModel.stateFlow.value.status.summary)
     }
 
     private class FakeStore : PushRegistrationStore {
