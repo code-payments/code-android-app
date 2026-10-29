@@ -1,13 +1,14 @@
 package com.flipcash.app.messenger.internal.screens.profile.edit
 
 import android.os.Parcelable
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -23,9 +24,7 @@ import com.flipcash.shared.amountentry.AmountEntryScreen
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.theme.ButtonState
-import com.getcode.ui.theme.CodeButton
-import androidx.compose.ui.unit.dp
+import com.getcode.ui.components.CircularIconButton
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -86,17 +85,19 @@ internal fun EditGroupBalanceRequirementScreen(
                 onBackIconClicked = { flowNavigator.back() },
                 endContent = {
                     if (state.canRemove) {
-                        CodeButton(
-                            modifier = Modifier.padding(end = CodeTheme.dimens.grid.x2),
-                            text = stringResource(R.string.action_remove),
-                            buttonState = ButtonState.Filled10,
-                            enabled = state.processingState.isIdle,
-                            shape = CircleShape,
-                            style = CodeTheme.typography.textSmall,
-                            contentPadding = PillPadding,
-                            overrideContentPadding = true,
-                        ) {
-                            viewModel.dispatchEvent(EditGroupBalanceRequirementViewModel.Event.RemoveClicked)
+                        CircularIconButton(
+                            onClick = {
+                                if (state.processingState.isIdle) {
+                                    viewModel.dispatchEvent(EditGroupBalanceRequirementViewModel.Event.RemoveClicked)
+                                }
+                            },
+                        ) { size ->
+                            Icon(
+                                modifier = Modifier.requiredSize(size),
+                                painter = painterResource(com.getcode.util.resources.R.drawable.ic_delete),
+                                contentDescription = stringResource(R.string.action_remove),
+                                tint = Color.White,
+                            )
                         }
                     }
                 },
@@ -117,5 +118,3 @@ internal fun EditGroupBalanceRequirementScreen(
         },
     )
 }
-
-private val PillPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp)
