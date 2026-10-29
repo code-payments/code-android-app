@@ -1996,7 +1996,7 @@
     <string name="action_checkAgain">Check Again</string>
     <string name="description_notificationStatusFooter">Flipcash sends the test to every phone signed in to this account.</string>
     <string name="description_notificationStatusTestDisabled">Turn on notifications to send a test.</string>
-    <string name="description_notificationStatusTestDisabledChannelOff">Turn on %1$s notifications to send a test.</string>
+    <string name="description_notificationStatusTestDisabledChannelOff">Turn on %1$s notifications in Android settings to send a test.</string>
     <string name="toast_notificationStatusTestSent">Test notification sent</string>
     <string name="toast_notificationStatusTestUnreachable">Couldn\'t reach Flipcash</string>
     <string name="toast_notificationStatusTestFailed">Couldn\'t send a test notification</string>
