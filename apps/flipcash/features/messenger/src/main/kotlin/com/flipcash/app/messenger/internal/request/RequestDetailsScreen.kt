@@ -112,6 +112,7 @@ internal fun RequestDetailsScreen(
     val token by viewModel.token.collectAsStateWithLifecycle()
     val pay by viewModel.pay.collectAsStateWithLifecycle()
     val now by viewModel.now.collectAsStateWithLifecycle()
+    val unavailable by viewModel.unavailable.collectAsStateWithLifecycle()
     val viewerId = viewModel.viewerId
 
     val current = request
@@ -170,7 +171,23 @@ internal fun RequestDetailsScreen(
             }
         },
     ) { padding ->
-        if (current == null) return@CodeScaffold
+        if (current == null) {
+            if (unavailable) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(padding).padding(CodeTheme.dimens.inset),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.description_requestUnavailable),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.testTag("request_details_unavailable"),
+                    )
+                }
+            }
+            return@CodeScaffold
+        }
         RequestDetailsContent(
             request = current,
             members = members,

@@ -105,6 +105,7 @@ internal class TransactionDetailsMapper @Inject constructor(
             // open it with.
             canViewInChat = counterparty != null,
             boostedReaction = boost,
+            requestedPayment = requestedPaymentOf(meta),
         )
     }
 

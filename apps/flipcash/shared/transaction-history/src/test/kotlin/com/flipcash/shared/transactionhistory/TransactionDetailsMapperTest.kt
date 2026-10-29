@@ -7,6 +7,7 @@ import com.flipcash.app.core.feed.MessageState
 import com.flipcash.app.core.feed.SwapState
 import com.flipcash.app.core.feed.SwappedCryptoMetadata
 import com.flipcash.services.models.BoostedReaction
+import com.flipcash.services.models.RequestedPayment
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Emoji
@@ -394,5 +395,28 @@ class TransactionDetailsMapperTest {
         assertEquals("Sally The Streamer", d.heading)
         assertNull(d.subtitle)
         assertEquals(TransactionKind.Sent, d.kind)
+    }
+
+    private val requested = RequestedPayment(
+        chatId = ChatId(ByteArray(32) { 4 }),
+        paymentRequestId = List(16) { it.toByte() },
+    )
+
+    @Test
+    fun `a sent payment of a requested share carries the request`() {
+        val details = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId, requestedPayment = requested))
+        assertEquals(requested, details.requestedPayment)
+        assertNull(details.boostedReaction)
+    }
+
+    @Test
+    fun `a received payment of a requested share carries the request`() {
+        val details = map(MessageMetadata.ReceivedCrypto(userId = knownUserId, requestedPayment = requested))
+        assertEquals(requested, details.requestedPayment)
+    }
+
+    @Test
+    fun `a payment with no request carries none`() {
+        assertNull(map(MessageMetadata.DirectlySentCrypto(userId = knownUserId)).requestedPayment)
     }
 }

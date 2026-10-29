@@ -64,6 +64,7 @@
     <!-- Transaction details actions. -->
     <string name="action_txnDetails_viewInChat">View in Chat</string>
     <string name="action_txnDetails_viewMessage">View Message</string>
+    <string name="action_txnDetails_viewRequest">View Request</string>
     <string name="action_txnDetails_viewProfile">View Profile</string>
     <string name="action_txnDetails_copyId">Copy transaction ID</string>
     <string name="action_txnDetails_cancel">Cancel</string>

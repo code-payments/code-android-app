@@ -56,6 +56,9 @@ fun TransactionDetailsScreen(id: ID) {
         onViewMessage = {
             state.boostedMessageRoute?.let { navigator.push(it) }
         },
+        onViewRequest = {
+            state.requestedPaymentRoute?.let { navigator.push(it) }
+        },
         onCancel = { viewModel.dispatchEvent(TransactionDetailsViewModel.Event.OnCancelRequested) },
     )
 }

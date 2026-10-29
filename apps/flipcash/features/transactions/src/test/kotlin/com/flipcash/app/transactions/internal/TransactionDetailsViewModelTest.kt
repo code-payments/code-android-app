@@ -9,6 +9,8 @@ import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.models.BoostedReaction
+import com.flipcash.services.models.RequestedPayment
+import com.getcode.utils.base58
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.shared.transactionhistory.TransactionDetails
@@ -163,5 +165,42 @@ class TransactionDetailsViewModelTest {
         val state = stateWith(null, canViewInChat = true)
         assertNull(state.boostedMessageRoute)
         assertTrue(state.transaction!!.details.canViewInChat)
+    }
+
+    // --- "View Request": the route opens the request's details over its chat. ---
+
+    private val requested = RequestedPayment(chatId = dmChatId, paymentRequestId = List(16) { it.toByte() })
+
+    private fun stateWith(requested: RequestedPayment?, boost: BoostedReaction?): TransactionDetailsViewModel.State {
+        val details = mockk<TransactionDetails>(relaxed = true) {
+            every { requestedPayment } returns requested
+            every { boostedReaction } returns boost
+        }
+        val transaction = mockk<ResolvedTransaction>(relaxed = true) { every { this@mockk.details } returns details }
+        return TransactionDetailsViewModel.State(transaction = transaction)
+    }
+
+    @Test
+    fun `R1 a requested payment opens its request in its chat`() {
+        val route = stateWith(requested, boost = null).requestedPaymentRoute
+        assertEquals(
+            AppRoute.Messaging.Chat(
+                identifier = ChatIdentifier.ByChatId(dmChatId),
+                openRequestId = requested.paymentRequestId.base58,
+            ),
+            route,
+        )
+    }
+
+    @Test
+    fun `R2 a boost wins when both are set`() {
+        val state = stateWith(requested, boost)
+        assertNull(state.requestedPaymentRoute)
+        assertEquals(boostRoute, state.boostedMessageRoute)
+    }
+
+    @Test
+    fun `R3 a payment with no request has no request route`() {
+        assertNull(stateWith(null, null).requestedPaymentRoute)
     }
 }

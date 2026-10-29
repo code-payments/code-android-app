@@ -117,6 +117,14 @@ internal class RequestDetailsViewModel @Inject constructor(
         .flatMapLatest { s -> s.requestId?.let(requests::request) ?: flowOf(null) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /**
+     * Whether a fetch found the request DENIED or NOT_FOUND (the viewer left the group, say) and
+     * none is held to show. The screen says so instead of staying blank.
+     */
+    val unavailable: StateFlow<Boolean> = combine(_state, requests.missing, request) { s, missing, held ->
+        held == null && s.requestId in missing
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     /** The chat's members by id, for the creator's and each share's name and avatar. */
     val members: StateFlow<Map<ID, ChatMember>> = combine(_state, rosters.state) { s, all ->
         all[s.chatId].orEmpty().associateBy { it.userId }
