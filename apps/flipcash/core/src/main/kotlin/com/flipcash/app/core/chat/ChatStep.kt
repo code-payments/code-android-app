@@ -28,6 +28,19 @@ data object ChatSendResult : Parcelable
 @Serializable
 data class GroupInviteResult(val chatId: ChatId) : Parcelable
 
+/** What the host picked on Manage Invites' row sheet (frame 2b). */
+@Parcelize
+@Serializable
+enum class InviteLinkAction : Parcelable { Share, Revoke }
+
+/**
+ * What the host picked on New Invite Link (frame 2d): the preset names, not the presets, because
+ * this module cannot see `shared:chat`. Presets only; never a key or link.
+ */
+@Parcelize
+@Serializable
+data class NewInviteLinkChoice(val expiry: String, val uses: String) : Parcelable
+
 /** A custom paid-reaction amount, in whole US cents. */
 @Parcelize
 @Serializable
@@ -86,6 +99,55 @@ sealed interface ChatStep : FlowStep, Parcelable {
         NavigationRetVal<GroupInviteResult>,
         Sheet,
         com.getcode.navigation.FullscreenSheet
+
+    /**
+     * Frames 1b, 1f: a private group's invite link, in the share-to-chats sheet. [inviteIdHex] null
+     * is the sheet's current link, which the first Share or Copy tap makes when there is none;
+     * otherwise it is one invite from Manage Invites (2b's Share Link).
+     *
+     * Carries the invite's id and never its link: a step is logged and saved, and the link's
+     * fragment is the secret. The sheet rebuilds the link from the host's own invites.
+     */
+    @Parcelize
+    @Serializable
+    data class ShareInviteLink(val inviteIdHex: String? = null) :
+        ChatStep,
+        NavigationRetVal<GroupInviteResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
+
+    /**
+     * Frame 2b: Share Link and Revoke Link for one invite on Manage Invites. Returns the pick and
+     * leaves the work to Manage Invites, which is still on screen beneath it and owns the revoke
+     * confirm (2c).
+     *
+     * Carries the invite's id and never its link, as [ShareInviteLink] does.
+     */
+    @Parcelize
+    @Serializable
+    data class InviteLinkActions(val inviteIdHex: String) :
+        ChatStep,
+        NavigationRetVal<InviteLinkAction>,
+        Sheet,
+        WrapContentSheet
+
+    /**
+     * Frame 2d: expiry and use-limit presets for a new invite link. Returns the chosen
+     * [NewInviteLinkChoice] and closes; Manage Invites, still beneath it, makes the link and shows
+     * the creating state. The result is presets only, never a key or link.
+     */
+    @Parcelize
+    @Serializable
+    data object NewInviteLink :
+        ChatStep,
+        NavigationRetVal<NewInviteLinkChoice>,
+        Sheet,
+        WrapContentSheet
+
+    /** Frame 2a: the invite links this host has made, Active then Inactive. Pushed, like [EditGroup]. */
+    @Parcelize
+    @Serializable
+    data object ManageInvites : ChatStep
 
     /**
      * Sharing one message into the viewer's other chats — [InviteToGroup]'s sheet with the

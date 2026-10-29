@@ -67,6 +67,9 @@ sealed interface Shareable {
         val imageCacheKey: String? = null,
     ) : Shareable {
         override val pendingData: ShareablePendingData? = null
+
+        // A private group's invite link carries its secret in the fragment; never print the url.
+        override fun toString(): String = "GroupInvite(title=$title)"
     }
 
     /**

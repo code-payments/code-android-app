@@ -64,6 +64,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.AppRoute
@@ -77,7 +78,9 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.rememberMutedLabel
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
+import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.messenger.internal.screens.openGroupInvite
+import com.flipcash.app.messenger.internal.screens.openInviteLinkShare
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -124,6 +127,13 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val group = state.subject as? ChatSubject.Group
     val isMember = group?.isMember == true
+    val inviteHost = hiltViewModel<InviteHostViewModel>()
+    val canInviteByChat by inviteHost.canInvite.collectAsStateWithLifecycle()
+    val canInvite = state.chatId?.let { canInviteByChat[it] } == true
+    LaunchedEffect(state.chatId, group?.isPrivate) {
+        // Only a private group has invite links, and the answer is the server's, not the cached chat's.
+        if (group?.isPrivate == true && isMember) state.chatId?.let(inviteHost::refresh)
+    }
     // A private group's non-member has no chat to open: no envelope, no transcript. The profile is
     // where they ask in, and where they wait.
     val privateJoin = PrivateGroupJoin.resolve(
@@ -246,7 +256,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                                 viewModel.dispatchEvent(
                                     ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE)
                                 )
-                                navigator.openGroupInvite()
+                                // A host sees the three-way sheet (frame 1a); a member without
+                                // can_invite keeps the single join link.
+                                if (canInvite) {
+                                    inviteHost.presentHostSheet(
+                                        groupName = group?.groupTitle.orEmpty(),
+                                        onShareInviteLink = { navigator.openInviteLinkShare() },
+                                        onShareJoinLink = { navigator.openGroupInvite() },
+                                        onManageInvites = { flowNavigator.navigateTo(ChatStep.ManageInvites) },
+                                    )
+                                } else {
+                                    navigator.openGroupInvite()
+                                }
                             },
                         )
                     },
