@@ -322,12 +322,22 @@ internal fun MessageRow(
                 ) {
                     // A profile can arrive with no display name; drawing it would leave an empty
                     // line above the run. The avatar below still marks whose run it is.
-                    if (sender != null && runStart && sender.displayName.isNotBlank()) {
+                    val showsName = sender != null && runStart && sender.displayName.isNotBlank()
+                    // The name's top in the window, so the strip clears the name rather than
+                    // landing on it: the strip's gap is measured from the bubble otherwise.
+                    var nameTop by remember { mutableStateOf<Int?>(null) }
+                    if (sender != null && showsName) {
                         Text(
-                            modifier = Modifier.padding(
-                                start = senderNameInset(showsSenderGutter && !item.isFromSelf),
-                                bottom = CodeTheme.dimens.grid.x1,
-                            ),
+                            modifier = Modifier
+                                .addIf(onBubbleBounds != null) {
+                                    Modifier.onGloballyPositioned {
+                                        nameTop = it.boundsInWindow().roundToIntRect().top
+                                    }
+                                }
+                                .padding(
+                                    start = senderNameInset(showsSenderGutter && !item.isFromSelf),
+                                    bottom = CodeTheme.dimens.grid.x1,
+                                ),
                             text = sender.displayName,
                             style = CodeTheme.typography.caption,
                             color = CodeTheme.colors.textSecondary,
@@ -435,7 +445,11 @@ internal fun MessageRow(
                                 if (stripShown) {
                                     QuickReactionStripPopup(
                                         entries = quickReactionStrip,
-                                        bubbleBounds = stripAnchor,
+                                        bubbleBounds = stripAnchor?.let { anchor ->
+                                            nameTop?.takeIf { showsName }
+                                                ?.let { anchor.copy(top = minOf(anchor.top, it)) }
+                                                ?: anchor
+                                        },
                                         hugsTrailing = item.isFromSelf,
                                         onToggle = { emoji ->
                                             onAction(

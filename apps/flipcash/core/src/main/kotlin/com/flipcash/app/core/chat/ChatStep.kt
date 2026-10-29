@@ -209,6 +209,19 @@ sealed interface ChatStep : FlowStep, Parcelable {
     data object JoinRequests : ChatStep
 
     /**
+     * Android frame AC8a — the members a moderator has silenced, each with Unsilence. Host-only;
+     * carries nothing because the flow is open on the group.
+     */
+    @Parcelize
+    @Serializable
+    data object SilencedMembers : ChatStep
+
+    /** AC8b — the members a moderator has removed (banned), each with Unban. Host-only. */
+    @Parcelize
+    @Serializable
+    data object RemovedMembers : ChatStep
+
+    /**
      * Node 11210:70 — every member of a private group, the creator pinned first with a Host tag.
      * The roster comes from the shared roster store.
      */

@@ -165,7 +165,8 @@ interface ChatMetadataDao {
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = :muteUntilEpochMs, " +
             "mute_forever = :muteForever, viewer_state_version = :version, " +
-            "can_edit = :canEdit, can_invite = :canInvite " +
+            "can_edit = :canEdit, can_invite = :canInvite, can_silence = :canSilence, can_ban = :canBan, " +
+            "silence_until_epoch_ms = :silenceUntilEpochMs, silence_forever = :silenceForever " +
             "WHERE chat_id_hex = :chatIdHex AND (:version > viewer_state_version OR viewer_state_version = 0)"
     )
     suspend fun updateViewerStateIfNewer(
@@ -175,7 +176,22 @@ interface ChatMetadataDao {
         canEdit: Boolean,
         canInvite: Boolean,
         version: Long,
+        canSilence: Boolean = false,
+        canBan: Boolean = false,
+        silenceUntilEpochMs: Long? = null,
+        silenceForever: Boolean = false,
     )
+
+    /**
+     * Writes the moderation grants alone, whatever version the row holds.
+     *
+     * The grants are the server's answer to who the viewer is in this chat, not an event with an
+     * order to protect, and the columns arrive as 0 on a chat stored before they existed. Going
+     * through [updateViewerStateIfNewer] would drop a fresh read whose version the row already holds,
+     * which is every upgraded chat whose viewer state has not moved since.
+     */
+    @Query("UPDATE chat_metadata SET can_silence = :canSilence, can_ban = :canBan WHERE chat_id_hex = :chatIdHex")
+    suspend fun updateModerationGrants(chatIdHex: String, canSilence: Boolean, canBan: Boolean)
 
     /**
      * Drops the viewer state, version and all.
@@ -190,7 +206,8 @@ interface ChatMetadataDao {
      */
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = NULL, mute_forever = 0, " +
-            "viewer_state_version = 0, can_edit = 0, can_invite = 0 WHERE chat_id_hex = :chatIdHex"
+            "viewer_state_version = 0, can_edit = 0, can_invite = 0, can_silence = 0, can_ban = 0, " +
+            "silence_until_epoch_ms = NULL, silence_forever = 0 WHERE chat_id_hex = :chatIdHex"
     )
     suspend fun clearViewerState(chatIdHex: String)
 
@@ -235,6 +252,10 @@ interface ChatMetadataDao {
             canEdit = entity.canEdit,
             canInvite = entity.canInvite,
             version = entity.viewerStateVersion,
+            canSilence = entity.canSilence,
+            canBan = entity.canBan,
+            silenceUntilEpochMs = entity.silenceUntilEpochMs,
+            silenceForever = entity.silenceForever,
         )
     }
 

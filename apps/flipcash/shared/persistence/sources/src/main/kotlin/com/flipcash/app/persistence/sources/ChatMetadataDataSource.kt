@@ -112,7 +112,16 @@ class ChatMetadataDataSource @Inject constructor(
             canEdit = viewerState.permissions.canEdit,
             canInvite = viewerState.permissions.canInvite,
             version = viewerState.version,
+            canSilence = viewerState.permissions.moderation.canSilence,
+            canBan = viewerState.permissions.moderation.canBan,
+            silenceUntilEpochMs = mapper.silenceUntilEpochMs(viewerState.restrictions?.silence),
+            silenceForever = mapper.isSilenceForever(viewerState.restrictions?.silence),
         )
+    }
+
+    /** Stores the moderation grants a fresh read of [chatId] reported, ahead of any version gate. */
+    suspend fun updateModerationGrants(chatId: ChatId, canSilence: Boolean, canBan: Boolean) {
+        db?.chatMetadataDao()?.updateModerationGrants(mapper.chatIdHex(chatId), canSilence, canBan)
     }
 
     /** Forgets the viewer state for [chatId], version included. Leaving a chat clears its mute. */

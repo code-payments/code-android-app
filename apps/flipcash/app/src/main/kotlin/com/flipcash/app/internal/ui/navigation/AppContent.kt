@@ -1,6 +1,8 @@
 package com.flipcash.app.internal.ui.navigation
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.runtime.DisposableEffect
+import com.flipcash.app.internal.toast.LocalAndroidSystemToastController
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
@@ -147,6 +149,12 @@ internal fun AppContent(
         snapshotFlow { barVisibility.coversToast }.collect { toasts.isCovered = it }
     }
     UpdateAvailableToast(navigator = codeNavigator, barVisibility = barVisibility, toasts = toasts)
+    // Toasts raised from view models land on this host too, rather than as system toasts.
+    val systemToasts = LocalAndroidSystemToastController.current
+    DisposableEffect(systemToasts, toasts) {
+        systemToasts?.attach(toasts)
+        onDispose { systemToasts?.detach(toasts) }
+    }
 
     // A reaction pill tapped outside its chat opens the chat at the message. One tapped inside the
     // open chat is handled by the chat screen, which scrolls and pulses instead.

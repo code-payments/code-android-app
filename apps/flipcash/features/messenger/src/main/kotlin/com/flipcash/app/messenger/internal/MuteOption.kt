@@ -78,6 +78,15 @@ internal fun rememberMutedLabel(viewerState: ViewerState?): String? {
     val until = (viewerState?.mute as? MuteState.Until)?.until
         ?: return stringResource(R.string.label_muted)
 
+    return stringResource(R.string.label_mutedUntil, rememberSilenceDeadline(until))
+}
+
+/**
+ * [until] worded for the viewer: the time alone when it falls today, a weekday within the week,
+ * otherwise the date. The ladder a mute deadline climbs, shared with the silence pill.
+ */
+@Composable
+internal fun rememberSilenceDeadline(until: Instant): String {
     val is24Hour = DateFormat.is24HourFormat(LocalContext.current)
     val tz = TimeZone.currentSystemDefault()
     val time = until.formatLocalized("h:mm a", is24Hour = is24Hour, if24Hour = "H:mm")
@@ -91,5 +100,5 @@ internal fun rememberMutedLabel(viewerState: ViewerState?): String? {
         MuteDeadlineFormat.WeekdayAndTime -> "${until.formatLocalized("EEEE")} $time"
         MuteDeadlineFormat.DateAndTime -> "${until.formatLocalized("MMM d")} $time"
     }
-    return stringResource(R.string.label_mutedUntil, deadline)
+    return deadline
 }

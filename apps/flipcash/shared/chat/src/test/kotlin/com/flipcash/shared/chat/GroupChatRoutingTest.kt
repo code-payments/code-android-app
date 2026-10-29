@@ -16,6 +16,7 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.RosterChange
+import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.RosterSummary
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.internal.ChatIdGenerator
@@ -42,6 +43,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import kotlin.test.assertEquals
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
@@ -70,7 +72,7 @@ class GroupChatRoutingTest {
 
     private val testDispatchers = TestDispatchers(TestCoroutineScheduler())
 
-    private fun coordinator(): RealChatCoordinator {
+    private fun coordinator(rosterUpdates: RosterUpdateSink = RosterUpdateSink.None): RealChatCoordinator {
         val userManager = mockk<UserManager>(relaxed = true).also {
             every { it.accountId } returns selfId
         }
@@ -131,6 +133,7 @@ class GroupChatRoutingTest {
             userManager = userManager,
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
             dispatchers = testDispatchers,
+            rosterUpdates = rosterUpdates,
         )
     }
 
@@ -151,8 +154,11 @@ class GroupChatRoutingTest {
      * test scheduler, so a test that fails its assertion before reaching teardown hangs the run
      * advancing virtual time instead of reporting the failure.
      */
-    private suspend fun TestScope.loggedIn(block: suspend (RealChatCoordinator) -> Unit) {
-        val subject = coordinator()
+    private suspend fun TestScope.loggedIn(
+        rosterUpdates: RosterUpdateSink = RosterUpdateSink.None,
+        block: suspend (RealChatCoordinator) -> Unit,
+    ) {
+        val subject = coordinator(rosterUpdates)
         subject.onUserLoggedIn(mockk<AccountCluster>(relaxed = true))
         runCurrent()
         try {
@@ -169,6 +175,34 @@ class GroupChatRoutingTest {
             runCurrent()
 
             coVerify { groupFeedDelegate.applyRosterChanges(chatId, listOf(change)) }
+        }
+    }
+
+    @Test
+    fun `a removal on the stream drops the member from the held roster as the count moves`() = runTest(testDispatchers.dispatcher) {
+        val ada = ChatMember(
+            userId = listOf(9, 9, 9),
+            userProfile = UserProfile.Empty.copy(displayName = "Ada"),
+            pointers = emptyList(),
+        )
+        val rosters = GroupRosters(chatController)
+        coEvery { chatController.getRoster(chatId, any()) } returns
+            Result.success(RosterPage(listOf(ada), RosterSummary(2, 4), null, hasMore = false))
+        rosters.load(chatId)
+        assertEquals(1, rosters.state.value[chatId]?.size)
+        // After the ban the server's roster holds nobody else.
+        coEvery { chatController.getRoster(chatId, any()) } returns
+            Result.success(RosterPage(emptyList(), RosterSummary(1, 5), null, hasMore = false))
+
+        loggedIn(rosters) {
+            // What the members who stay are sent for a removal: the new count, naming no one.
+            chatUpdatesChannel.send(
+                ChatUpdate(chatId = chatId, rosterUpdates = listOf(RosterChange.MembershipChanged(RosterSummary(1, 5)))),
+            )
+            runCurrent()
+
+            coVerify { groupFeedDelegate.applyRosterChanges(chatId, any()) }
+            assertEquals(emptyList<ChatMember>(), rosters.state.value[chatId])
         }
     }
 

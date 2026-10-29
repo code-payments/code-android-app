@@ -275,4 +275,4 @@ internal fun NoJoinRequests(
     }
 }
 
-private val PillPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp)
+internal val PillPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp)

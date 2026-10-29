@@ -35,3 +35,22 @@ data class RestrictedUsersPage(
     val pagingToken: PagingToken?,
     val hasMore: Boolean,
 )
+
+/**
+ * Whether the silence is still in force at [now]. A [SilenceState.Until] lapses with no event, so
+ * the deadline is compared against the clock on every read, as [MuteState.isActiveAt] does.
+ */
+fun SilenceState?.isActiveAt(now: kotlin.time.Instant = kotlin.time.Clock.System.now()): Boolean = when (this) {
+    null -> false
+    SilenceState.Forever -> true
+    is SilenceState.Until -> until > now
+    // Unreachable for the sealed type; keeps relaxed test doubles from throwing.
+    else -> false
+}
+
+/** The viewer's own silence in this chat, or null when none is set. See [isActiveAt]. */
+val ViewerState?.silence: SilenceState? get() = this?.restrictions?.silence
+
+/** Whether a moderator has the viewer silenced at [now]. */
+fun ViewerState?.isSilencedAt(now: kotlin.time.Instant = kotlin.time.Clock.System.now()): Boolean =
+    silence.isActiveAt(now)

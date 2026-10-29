@@ -1,6 +1,9 @@
 package com.flipcash.app.messenger
 
 import com.flipcash.app.messenger.internal.swipepay.SwipePayUiState
+import com.getcode.ui.components.toast.LocalFloatingToastHost
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.Text
@@ -36,6 +39,7 @@ import com.flipcash.app.core.chat.ReactionBoostAmountResult
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.messenger.internal.ChatSubject
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.core.chat.InviteLinkAction
@@ -70,8 +74,11 @@ import com.flipcash.app.messenger.internal.screens.cash.GroupSendDetailsSheet
 import com.flipcash.app.messenger.internal.screens.cash.GroupSendConfirmSheet
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
+import com.flipcash.app.messenger.internal.screens.profile.ProfileGroup
 import com.flipcash.app.messenger.internal.screens.profile.GroupProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.JoinRequestsScreen
+import com.flipcash.app.messenger.internal.screens.profile.RestrictedMembersScreen
+import com.flipcash.app.messenger.internal.RestrictedKind
 import com.flipcash.app.messenger.internal.screens.profile.MembersScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupCoverScreen
 import com.flipcash.app.messenger.internal.screens.profile.edit.EditGroupDescriptionScreen
@@ -208,6 +215,12 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.JoinRequests> {
         JoinRequestsScreen(flowSharedViewModel<ChatViewModel>())
+    }
+    annotatedEntry<ChatStep.SilencedMembers> {
+        RestrictedMembersScreen(RestrictedKind.Silenced, flowSharedViewModel<ChatViewModel>())
+    }
+    annotatedEntry<ChatStep.RemovedMembers> {
+        RestrictedMembersScreen(RestrictedKind.Removed, flowSharedViewModel<ChatViewModel>())
     }
     annotatedEntry<ChatStep.Members> {
         MembersScreen(flowSharedViewModel<ChatViewModel>())
@@ -359,6 +372,18 @@ private fun FlowConversationScreen(
                     }
                 }
             }
+    }
+
+    // In-app floating toast, like the chat's other notices. Its own scope, so a second lift
+    // replaces the first rather than queueing behind it.
+    val floatingToasts = LocalFloatingToastHost.current
+    val liftedMessage = stringResource(R.string.toast_silenceLifted)
+    val toastScope = rememberCoroutineScope()
+    LaunchedEffect(viewModel, floatingToasts) {
+        val toasts = floatingToasts ?: return@LaunchedEffect
+        viewModel.eventFlow
+            .filterIsInstance<ChatViewModel.Event.SilenceLifted>()
+            .collect { toastScope.launch { toasts.show(liftedMessage) } }
     }
 
     LaunchedEffect(viewModel) {
@@ -698,8 +723,28 @@ private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileO
     // a group is ProfileOrigin.Chat too, but its DM is not the group.
     val chatUnderneath = chatState.chatId.takeIf { origin == ProfileOrigin.Chat }
 
+    // The profile belongs to a group when the flow's chat is one, whichever way it was opened: the
+    // members list says GroupMember and an avatar in the transcript says Chat. The viewer's grants
+    // are what show the host's actions, and the creator is left out by profileMenuItems.
+    val group = chatState.chatId?.let { chatId ->
+        val moderation = chatState.viewerState?.permissions?.moderation
+        val subject = chatState.subject as? ChatSubject.Group
+        if (chatState.chatType == ChatType.GROUP && subject != null) {
+            ProfileGroup(
+                chatId = chatId,
+                title = subject.title,
+                creatorId = subject.creator,
+                canSilence = moderation?.canSilence == true,
+                canBan = moderation?.canBan == true,
+            )
+        } else {
+            null
+        }
+    }
+
     ChatProfileScreen(
         viewModel = viewModel,
+        group = group,
         chatUnderneath = chatUnderneath,
         onOpenChat = { chatId ->
             if (chatUnderneath != null && chatUnderneath == chatId) {

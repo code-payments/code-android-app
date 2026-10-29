@@ -18,6 +18,7 @@ import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.RosterSummary
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.ViewerState
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -606,6 +607,73 @@ class ChatEntityMapperTest {
         val restored = mapper.toMetadata(entity, emptyList(), null)
 
         assertEquals(true, restored.viewerState?.permissions?.canInvite)
+    }
+
+    @Test
+    fun `moderation grants survive the round trip`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(
+                    version = 2,
+                    permissions = ViewerState.Permissions(
+                        moderation = ViewerState.ModerationPermissions(canSilence = true, canBan = true),
+                    ),
+                )
+            )
+        )
+        assertEquals(true, entity.canSilence)
+        assertEquals(true, entity.canBan)
+
+        val moderation = mapper.toMetadata(entity, emptyList(), null).viewerState?.permissions?.moderation
+
+        assertEquals(true, moderation?.canSilence)
+        assertEquals(true, moderation?.canBan)
+    }
+
+    @Test
+    fun `a timed silence survives the round trip as its deadline`() {
+        val until = Instant.fromEpochMilliseconds(9_000)
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(
+                    version = 4,
+                    restrictions = ViewerState.Restrictions(silence = SilenceState.Until(until)),
+                )
+            )
+        )
+        assertEquals(9_000L, entity.silenceUntilEpochMs)
+        assertEquals(false, entity.silenceForever)
+
+        val restored = mapper.toMetadata(entity, emptyList(), null)
+
+        assertEquals(SilenceState.Until(until), restored.viewerState?.restrictions?.silence)
+    }
+
+    @Test
+    fun `a forever silence survives the round trip`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(
+                    version = 4,
+                    restrictions = ViewerState.Restrictions(silence = SilenceState.Forever),
+                )
+            )
+        )
+        assertEquals(true, entity.silenceForever)
+        assertEquals(null, entity.silenceUntilEpochMs)
+
+        val restored = mapper.toMetadata(entity, emptyList(), null)
+
+        assertEquals(SilenceState.Forever, restored.viewerState?.restrictions?.silence)
+    }
+
+    @Test
+    fun `a chat with no silence reads back with no restrictions`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(viewerState = ViewerState(version = 4))
+        )
+
+        assertEquals(null, mapper.toMetadata(entity, emptyList(), null).viewerState?.restrictions)
     }
 
     // region Reactions

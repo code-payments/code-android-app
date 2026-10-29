@@ -21,6 +21,8 @@ import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatRuleRequirement
+import com.flipcash.services.models.chat.SilenceState
+import com.flipcash.app.messenger.internal.rememberSilenceDeadline
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.CodeTheme
 import dev.chrisbanes.haze.HazeInput
@@ -46,11 +48,13 @@ private val PillTint = Color(0xFF1E1E1E).copy(alpha = 0.46f)
 
 @Composable
 internal fun SpeakerGateBar(
-    /** The requirement standing in the viewer's way. */
-    requirement: ChatRuleRequirement,
+    /** The requirement standing in the viewer's way, or null when [silence] is what is. */
+    requirement: ChatRuleRequirement? = null,
     hazeState: HazeState,
     /** The token a balance rule names, or null to state the amount alone (the reserve, or unresolved). */
     currencyName: String?,
+    /** A moderator's silence on the viewer; when set it is what the pill says. */
+    silence: SilenceState? = null,
     modifier: Modifier = Modifier,
     /** Off only for a Robolectric render, whose native runtime cannot compile the blur shader. */
     blurEnabled: Boolean = true,
@@ -60,6 +64,10 @@ internal fun SpeakerGateBar(
     val shape = CodeTheme.shapes.medium
     val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
     val text = textOverride ?: when (requirement) {
+        null -> when (silence) {
+            is SilenceState.Until -> stringResource(R.string.subtitle_chatGate_silencedUntil, rememberSilenceDeadline(silence.until))
+            else -> stringResource(R.string.subtitle_chatGate_silencedForever)
+        }
         ChatRuleRequirement.Never -> stringResource(R.string.label_chatGate_speakerNever)
         ChatRuleRequirement.Staff -> stringResource(R.string.subtitle_chatGate_speakerStaffOnly)
         ChatRuleRequirement.Creator -> stringResource(R.string.subtitle_chatGate_speakerCreatorOnly)

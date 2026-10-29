@@ -5,6 +5,7 @@ import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.RosterChange
+import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,13 +15,13 @@ import javax.inject.Singleton
 
 /** Where the event stream hands a group's roster changes, beside the list-level handling. */
 fun interface RosterUpdateSink {
-    fun apply(chatId: ChatId, changes: List<RosterChange>)
+    suspend fun apply(chatId: ChatId, changes: List<RosterChange>)
 
     /** Drops everything held. For logout: the rosters belong to the account. */
     fun clear() = Unit
 
     object None : RosterUpdateSink {
-        override fun apply(chatId: ChatId, changes: List<RosterChange>) = Unit
+        override suspend fun apply(chatId: ChatId, changes: List<RosterChange>) = Unit
     }
 }
 
@@ -56,8 +57,32 @@ class GroupRosters @Inject constructor(
         rosters.update { it + (chatId to members) }
     }
 
-    /** Applies changes only to a roster already loaded: a partial one would read as complete. */
-    override fun apply(chatId: ChatId, changes: List<RosterChange>) {
+    /**
+     * Applies changes only to a roster already loaded: a partial one would read as complete.
+     *
+     * A removal reaches the members who stay as [RosterChange.MembershipChanged], which names no one
+     * (see its contract), so it moves the count and cannot say who to drop. The held list is then
+     * read again, which is what keeps it matching the count.
+     */
+    override suspend fun apply(chatId: ChatId, changes: List<RosterChange>) {
+        applyEdits(chatId, changes)
+        if (chatId in rosters.value && changes.any { it is RosterChange.MembershipChanged }) {
+            load(chatId)
+        }
+    }
+
+    /**
+     * Drops [userId] from a loaded roster now. The host's own Remove uses it so the list does not
+     * wait on the event that follows; that event's reread then confirms it.
+     */
+    fun remove(chatId: ChatId, userId: ID) {
+        rosters.update { all ->
+            val current = all[chatId] ?: return@update all
+            all + (chatId to current.filterNot { it.userId == userId })
+        }
+    }
+
+    private fun applyEdits(chatId: ChatId, changes: List<RosterChange>) {
         rosters.update { all ->
             val current = all[chatId] ?: return@update all
             val next = changes.fold(current) { members, change ->

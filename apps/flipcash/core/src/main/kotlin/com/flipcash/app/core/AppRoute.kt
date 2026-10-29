@@ -565,6 +565,22 @@ sealed interface AppRoute : NavKey, Parcelable {
             com.getcode.navigation.WrapContentSheet
 
         /**
+         * How long to silence [userId] in the group [chatId]. Carries the words the sheet shows
+         * ([firstName], [groupTitle]) so it needs no lookup before it can draw. Presented like
+         * [MuteChat], for the same reason.
+         */
+        @Serializable
+        @Parcelize
+        data class SilenceUser(
+            val chatId: ChatId,
+            val userId: ID,
+            val firstName: String,
+            val groupTitle: String,
+        ) : Messaging,
+            com.getcode.navigation.Sheet,
+            com.getcode.navigation.WrapContentSheet
+
+        /**
          * Where a share from another app picks the conversation it goes to. Opened by the app
          * itself when a share is waiting in `PendingChatShares`, and sends the share from there
          * to the chats picked. Carries nothing: what was shared is held there, not on a route a back stack
