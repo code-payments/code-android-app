@@ -224,8 +224,8 @@ private fun Actions(
                 TestBlocked.NotificationsOff -> stringResource(R.string.description_notificationStatusTestDisabled)
                 TestBlocked.ChannelOff -> stringResource(
                     R.string.description_notificationStatusTestDisabledChannelOff,
-                    // The name system settings shows for TestPushChannel, fcm_fallback_notification_channel ("Misc.").
-                    stringResource(NotificationsR.string.notification_channel_default),
+                    // The name system settings shows for TestPushChannel, channel_test_push ("Test Notifications").
+                    stringResource(NotificationsR.string.notification_channel_test_push),
                 )
             },
             style = CodeTheme.typography.textSmall,
@@ -426,6 +426,8 @@ private fun CheckRow.text(state: NotificationStatusViewModel.State): Pair<String
         StatusChannel.Gain -> R.string.title_notificationCheckGainOff to R.string.subtitle_notificationCheckGainOff
         StatusChannel.ContactJoin -> R.string.title_notificationCheckContactsOff to R.string.subtitle_notificationCheckContactsOff
         StatusChannel.General -> R.string.title_notificationCheckGeneralOff to R.string.subtitle_notificationCheckGeneralOff
+        // evaluateNotificationStatus gives it no row: it only gates the test button.
+        StatusChannel.TestPush -> error("${channel.id} has no row")
     }.let { (title, detail) -> stringResource(title) to stringResource(detail) }
 
     is CheckRow.OtherChannels ->
@@ -492,13 +494,14 @@ private fun CheckRow.text(state: NotificationStatusViewModel.State): Pair<String
 private fun categoryList(covered: List<StatusChannel>): String {
     val labels = covered
         .filter { it != StatusChannel.General || covered.size == 1 }
-        .map {
+        .mapNotNull {
             when (it) {
                 StatusChannel.Chat -> R.string.label_notificationCategoryChat
                 StatusChannel.DepositWithdrawal, StatusChannel.BuySell -> R.string.label_notificationCategoryPayments
                 StatusChannel.Gain -> R.string.label_notificationCategoryGains
                 StatusChannel.ContactJoin -> R.string.label_notificationCategoryContacts
                 StatusChannel.General -> R.string.label_notificationCategoryGeneral
+                StatusChannel.TestPush -> null
             }
         }
         .distinct()

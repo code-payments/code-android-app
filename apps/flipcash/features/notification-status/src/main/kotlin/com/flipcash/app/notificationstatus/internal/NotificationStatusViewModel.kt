@@ -9,6 +9,7 @@ import com.flipcash.app.auth.push.PushRegistration
 import com.flipcash.app.auth.push.PushRegistrationAttempt
 import com.flipcash.app.auth.push.PushRegistrationOutcome
 import com.flipcash.app.auth.push.PushRegistrationSource
+import com.flipcash.app.notifications.TestPushMark
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.SendTestPushError
@@ -37,6 +38,7 @@ internal class NotificationStatusViewModel @Inject constructor(
     private val reader: DeviceSnapshotReader,
     private val registrar: PushRegistrar,
     private val pushController: PushController,
+    private val testPushMark: TestPushMark,
     private val dispatchers: DispatcherProvider,
 ) : BaseViewModel<NotificationStatusViewModel.State, NotificationStatusViewModel.Event>(
     initialState = State(),
@@ -173,7 +175,12 @@ internal class NotificationStatusViewModel @Inject constructor(
             dispatchEvent(Event.DeviceRead(device))
             if (!device.notificationsAllowed) return@launch
             dispatchEvent(Event.TestStarted)
+            // Before the call: the push can arrive before the response.
+            testPushMark.mark()
             val result = withTimeoutOrNull(TestTimeout) { pushController.sendTestPush() }
+            // A send the server refused brings no push. A timeout may still bring one, so its mark
+            // is left to lapse.
+            if (result?.isFailure == true) testPushMark.clear()
             dispatchEvent(Event.TestFinished(testResult(result)))
         }
     }

@@ -67,26 +67,47 @@ class NotificationStatusModelTest {
         assertEquals(CheckStatus.Fail, chat.status)
         assertEquals(Fix.ChannelSettings(StatusChannel.Chat), chat.fix)
         val others = status.phoneRows.filterIsInstance<CheckRow.OtherChannels>().single()
-        assertEquals(StatusChannel.entries - StatusChannel.Chat, others.covered)
+        assertEquals(StatusChannel.withRows - StatusChannel.Chat, others.covered)
         assertEquals(Summary.ThingsToFix(1), status.summary)
         // The test push doesn't land on the chat channel, so chat being off doesn't block it.
         assertTrue(status.canSendTest)
     }
 
     @Test
-    fun `general blocked - the test push's channel is off, so the test is disabled`() {
+    fun `test channel blocked - the test is disabled, with no row of its own and not in a3`() {
+        val status = evaluateNotificationStatus(healthy.blocking(StatusChannel.TestPush), registered)
+
+        assertTrue(status.phoneRows.none { it is CheckRow.BlockedChannel })
+        val others = status.phoneRows.filterIsInstance<CheckRow.OtherChannels>().single()
+        assertFalse(StatusChannel.TestPush in others.covered)
+        assertEquals(TestBlocked.ChannelOff, status.testBlocked)
+        assertFalse(status.canSendTest)
+        // Nothing the user misses: the page reads as working, only the test waits on it.
+        assertEquals(Summary.Working, status.summary)
+    }
+
+    @Test
+    fun `a3 never lists the test channel`() {
+        val others = evaluateNotificationStatus(healthy, registered)
+            .phoneRows.filterIsInstance<CheckRow.OtherChannels>().single()
+
+        assertEquals(StatusChannel.withRows, others.covered)
+        assertFalse(StatusChannel.TestPush in others.covered)
+    }
+
+    @Test
+    fun `general blocked - its own row, and the test stays enabled on its own channel`() {
         val status = evaluateNotificationStatus(healthy.blocking(StatusChannel.General), registered)
 
         val general = status.phoneRows.filterIsInstance<CheckRow.BlockedChannel>().single()
         assertEquals(Fix.ChannelSettings(StatusChannel.General), general.fix)
-        assertEquals(TestBlocked.ChannelOff, status.testBlocked)
-        assertFalse(status.canSendTest)
+        assertEquals(null, status.testBlocked)
     }
 
     @Test
     fun `notifications off wins over the test channel being off as the reason the test is disabled`() {
         val status = evaluateNotificationStatus(
-            healthy.copy(notificationsAllowed = false).blocking(StatusChannel.General),
+            healthy.copy(notificationsAllowed = false).blocking(StatusChannel.TestPush),
             registered,
         )
 
@@ -351,6 +372,7 @@ class NotificationStatusModelTest {
             Channel channel_gain: pass (importance 4, group blocked false)
             Channel channel_contact_join: pass (importance 4, group blocked false)
             Channel fcm_fallback_notification_channel: pass (importance 4, group blocked false)
+            Channel channel_test_push: pass (importance 4, group blocked false)
             Battery Optimization: pass (ignoring true)
             Background Activity: warning (restricted false, bucket rare)
             Google Play Services: pass (code 0)

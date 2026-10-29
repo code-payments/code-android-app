@@ -6,6 +6,7 @@ import com.flipcash.app.auth.push.PushRegistrationOutcome
 import com.flipcash.app.auth.push.PushRegistrationResult
 import com.flipcash.app.auth.push.PushRegistrationSource
 import com.flipcash.app.auth.push.PushRegistrationStore
+import com.flipcash.app.notifications.TestPushMark
 import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.controllers.PushController
@@ -77,12 +78,14 @@ class NotificationStatusViewModelTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private val store = FakeStore()
+    private val testPushMark = TestPushMark()
 
     private fun viewModel() = NotificationStatusViewModel(
         context = mockk(relaxed = true),
         reader = reader,
         registrar = PushRegistrar(pushController, tokenProvider, mockk(relaxed = true), store),
         pushController = pushController,
+        testPushMark = testPushMark,
         dispatchers = TestDispatcherProvider(dispatcher),
     )
 
@@ -318,6 +321,31 @@ class NotificationStatusViewModelTest {
         assertFalse(viewModel.stateFlow.value.sendingTest)
         assertTrue(viewModel.stateFlow.value.testSent)
         coVerify(exactly = 1) { pushController.sendTestPush() }
+    }
+
+    @Test
+    fun `send test marks a test in flight before SendTestPush returns, and leaves it for the push`() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        sendTest(viewModel)
+        // The push can arrive before the response.
+        assertTrue(testPushMark.isMarked)
+
+        advanceUntilIdle()
+        assertTrue(testPushMark.isMarked)
+    }
+
+    @Test
+    fun `a failed send clears the test mark`() = runTest(dispatcher) {
+        coEvery { pushController.sendTestPush() } returns Result.failure(SendTestPushError.Other())
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        sendTest(viewModel)
+        advanceUntilIdle()
+
+        assertFalse(testPushMark.isMarked)
     }
 
     @Test

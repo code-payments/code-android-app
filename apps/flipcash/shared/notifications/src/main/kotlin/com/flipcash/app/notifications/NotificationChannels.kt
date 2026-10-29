@@ -6,6 +6,7 @@ import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationChannelGroupCompat
 import androidx.core.app.NotificationManagerCompat
 import com.flipcash.services.models.NotificationCategory
+import com.flipcash.services.models.NotificationPayload
 import com.flipcash.shared.notifications.R
 
 object NotificationChannels {
@@ -15,6 +16,13 @@ object NotificationChannels {
     const val CHANNEL_GAIN = "channel_gain"
     const val CHANNEL_CHAT = "channel_chat"
     const val CHANNEL_CONTACT_JOIN = "channel_contact_join"
+
+    /**
+     * The server's test push from the notification status page. It carries no payload, so it would
+     * land on [CHANNEL_DEFAULT], which is not high importance and so never pops up; an existing
+     * channel's importance can't be raised, hence a channel of its own. See [TestPushMark].
+     */
+    const val CHANNEL_TEST_PUSH = "channel_test_push"
 
     const val GROUP_TRANSACTIONS = "group_transactions"
     const val GROUP_SOCIAL = "group_social"
@@ -50,7 +58,36 @@ object NotificationChannels {
         NotificationCategory.entries.forEach { category ->
             manager.createNotificationChannel(channelFor(context, category))
         }
+        manager.createNotificationChannel(testPushChannel(context))
     }
+
+    /**
+     * The channel a received push posts on: [CHANNEL_TEST_PUSH] for the test push this phone is
+     * waiting on (a push with no payload while [testPushMark] is set, which this consumes), otherwise
+     * the channel for the payload's category.
+     */
+    fun channelForPush(
+        context: Context,
+        payload: NotificationPayload?,
+        testPushMark: TestPushMark,
+    ): NotificationChannelCompat =
+        if (testPushMark.consume(payload)) {
+            testPushChannel(context)
+        } else {
+            channelFor(context, payload?.category ?: NotificationCategory.DEFAULT)
+        }
+
+    // Ungrouped, like CHANNEL_DEFAULT: it is neither a transaction nor social.
+    fun testPushChannel(context: Context): NotificationChannelCompat = build(
+        context,
+        ChannelDef(
+            id = CHANNEL_TEST_PUSH,
+            nameRes = R.string.notification_channel_test_push,
+            descriptionRes = R.string.notification_channel_test_push_description,
+            importance = NotificationManagerCompat.IMPORTANCE_HIGH,
+            showBadge = false,
+        ),
+    )
 
     fun channelFor(context: Context, category: NotificationCategory): NotificationChannelCompat {
         val def = when (category) {
@@ -98,12 +135,14 @@ object NotificationChannels {
                 showBadge = false,
             )
         }
+        return build(context, def)
+    }
 
-        return NotificationChannelCompat.Builder(def.id, def.importance)
+    private fun build(context: Context, def: ChannelDef): NotificationChannelCompat =
+        NotificationChannelCompat.Builder(def.id, def.importance)
             .setName(context.getString(def.nameRes))
             .setDescription(context.getString(def.descriptionRes))
             .setShowBadge(def.showBadge)
             .apply { def.groupId?.let { setGroup(it) } }
             .build()
-    }
 }

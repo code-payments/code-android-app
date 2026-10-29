@@ -13,14 +13,24 @@ enum class CheckStatus { Pass, Warning, Fail, Checking }
  * The channels the page checks, in the order their rows show. A blocked channel is a Fail or a
  * Warning by what the user misses, not by the channel's importance: a missed contact-join alert
  * costs little, so it is only a Warning.
+ *
+ * [hasRow] is false for a channel that only gates the test button: it gets no row of its own and
+ * isn't listed among the other categories, but the report still covers it.
  */
-enum class StatusChannel(val id: String, val whenBlocked: CheckStatus) {
+enum class StatusChannel(val id: String, val whenBlocked: CheckStatus, val hasRow: Boolean = true) {
     Chat(NotificationChannels.CHANNEL_CHAT, CheckStatus.Fail),
     DepositWithdrawal(NotificationChannels.CHANNEL_DEPOSIT_WITHDRAWAL, CheckStatus.Fail),
     BuySell(NotificationChannels.CHANNEL_BUY_SELL, CheckStatus.Fail),
     Gain(NotificationChannels.CHANNEL_GAIN, CheckStatus.Fail),
     ContactJoin(NotificationChannels.CHANNEL_CONTACT_JOIN, CheckStatus.Warning),
     General(NotificationChannels.CHANNEL_DEFAULT, CheckStatus.Warning),
+    TestPush(NotificationChannels.CHANNEL_TEST_PUSH, CheckStatus.Warning, hasRow = false),
+    ;
+
+    companion object {
+        /** The channels with a row of their own, or a place in the other-categories list. */
+        val withRows: List<StatusChannel> = entries.filter { it.hasRow }
+    }
 }
 
 /** @param importance the channel's raw importance; [IMPORTANCE_NONE] means the user turned it off. */
@@ -179,6 +189,8 @@ data class NotificationStatus(
     val phoneRows: List<CheckRow>,
     /** "WITH FLIPCASH" */
     val flipcashRows: List<CheckRow>,
+    /** [TestPushChannel] is turned off. It has no row, so this is read off the phone's settings. */
+    val testChannelOff: Boolean = false,
 ) {
     val rows: List<CheckRow> get() = phoneRows + flipcashRows
 
@@ -197,8 +209,7 @@ data class NotificationStatus(
             return when {
                 settled.none { it is CheckRow.Permission && it.status == CheckStatus.Pass } ->
                     TestBlocked.NotificationsOff
-                settled.any { it is CheckRow.BlockedChannel && it.channel == TestPushChannel } ->
-                    TestBlocked.ChannelOff
+                testChannelOff -> TestBlocked.ChannelOff
                 else -> null
             }
         }
@@ -208,8 +219,8 @@ data class NotificationStatus(
 
 enum class TestBlocked { NotificationsOff, ChannelOff }
 
-/** The test push has an empty payload, so it posts on the channel for a push with no category. */
-val TestPushChannel = StatusChannel.General
+/** The page marks its test as in flight, so the push posts on a channel of its own that pops up. */
+val TestPushChannel = StatusChannel.TestPush
 
 const val PermissionKey = "permission"
 const val OtherChannelsKey = "channels"
@@ -225,7 +236,7 @@ fun channelKey(channel: StatusChannel): String = "channel:${channel.id}"
  * channel rows; the order stays put, so rows animate in and out rather than reshuffling.
  */
 val PhoneRowKeys: List<String> =
-    listOf(PermissionKey) + StatusChannel.entries.map(::channelKey) +
+    listOf(PermissionKey) + StatusChannel.withRows.map(::channelKey) +
         listOf(OtherChannelsKey, BatteryKey, BackgroundKey, GooglePlayKey)
 
 // The rows a phone with nothing blocked shows: the likely final set, laid out while the read runs.
@@ -251,9 +262,9 @@ fun evaluateNotificationStatus(
         // Channel rows mean nothing while notifications are off app-wide.
         if (device.notificationsAllowed) {
             val byChannel = device.channels.associateBy { it.channel }
-            val blocked = StatusChannel.entries.filter { byChannel[it]?.isBlocked == true }
+            val blocked = StatusChannel.withRows.filter { byChannel[it]?.isBlocked == true }
             blocked.forEach { add(CheckRow.BlockedChannel(it)) }
-            val covered = StatusChannel.entries - blocked.toSet()
+            val covered = StatusChannel.withRows - blocked.toSet()
             if (covered.isNotEmpty()) add(CheckRow.OtherChannels(covered))
         }
         add(CheckRow.Battery(optimized = !device.ignoringBatteryOptimizations))
@@ -274,5 +285,7 @@ fun evaluateNotificationStatus(
         else -> Summary.Working
     }
 
-    return NotificationStatus(summary, phoneRows, flipcashRows)
+    val testChannelOff = device?.channels?.firstOrNull { it.channel == TestPushChannel }?.isBlocked == true
+
+    return NotificationStatus(summary, phoneRows, flipcashRows, testChannelOff)
 }
