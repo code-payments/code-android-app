@@ -1,10 +1,18 @@
 package com.flipcash.app.persistence.sources
 
 import androidx.paging.PagingSource
+import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.dao.ChatMetadataDao
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.ViewerState
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -38,5 +46,32 @@ class ChatMetadataDataSourceTest {
     @Test
     fun `a chat id renders as the hex the tables are keyed by`() {
         assertEquals("ab", dataSource.chatIdHex(ChatId(listOf(0xAB.toByte()))))
+    }
+
+    @Test
+    fun `the invite grant is stored with the rest of the viewer state`() = runTest {
+        val dao = mockk<ChatMetadataDao>(relaxed = true)
+        mockkObject(FlipcashDatabase.Companion)
+        try {
+            every { FlipcashDatabase.getInstance() } returns mockk { every { chatMetadataDao() } returns dao }
+
+            dataSource.updateViewerState(
+                ChatId(listOf(0xAB.toByte())),
+                ViewerState(version = 3, permissions = ViewerState.Permissions(canInvite = true)),
+            )
+
+            coVerify {
+                dao.updateViewerStateIfNewer(
+                    chatIdHex = "ab",
+                    muteUntilEpochMs = any(),
+                    muteForever = false,
+                    canEdit = false,
+                    canInvite = true,
+                    version = 3,
+                )
+            }
+        } finally {
+            unmockkObject(FlipcashDatabase.Companion)
+        }
     }
 }

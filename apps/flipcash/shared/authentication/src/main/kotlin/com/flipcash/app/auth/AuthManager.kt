@@ -14,6 +14,7 @@ import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.shared.profile.ProfileCoordinator
+import com.flipcash.services.chat.WrongKeyChats
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
@@ -60,6 +61,7 @@ class AuthManager @Inject constructor(
     private val profileCoordinator: ProfileCoordinator,
     private val contactCoordinator: ContactCoordinator,
     private val chatCoordinator: ChatCoordinator,
+    private val wrongKeyChats: WrongKeyChats,
     private val networkObserver: NetworkConnectivityListener,
     private val dispatchers: DispatcherProvider,
 //    private val analytics: AnalyticsService,
@@ -440,6 +442,7 @@ class AuthManager @Inject constructor(
         userFlags.clearAll()
         profileCoordinator.reset()
         userFlags.resetCache()
+        wrongKeyChats.reset()
 
         if (!BuildConfig.DEBUG) TraceManager.userId = null
     }
