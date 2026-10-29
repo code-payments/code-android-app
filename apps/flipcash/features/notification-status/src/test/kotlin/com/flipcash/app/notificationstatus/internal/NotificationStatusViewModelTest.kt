@@ -10,11 +10,14 @@ import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.controllers.PushController
 import com.flipcash.services.models.SendTestPushError
+import io.grpc.Status
+import io.grpc.StatusException
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
@@ -342,6 +345,53 @@ class NotificationStatusViewModelTest {
 
         assertEquals(listOf(TestResult.Unreachable), results)
         assertFalse(viewModel.stateFlow.value.testSent)
+        assertFalse(viewModel.stateFlow.value.sendingTest)
+    }
+
+    @Test
+    fun `a cancelled call says it couldn't reach Flipcash`() = runTest(dispatcher) {
+        coEvery { pushController.sendTestPush() } returns Result.failure(
+            SendTestPushError.Other(cause = StatusException(Status.CANCELLED)),
+        )
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val results = sendTest(viewModel)
+        advanceUntilIdle()
+
+        assertEquals(listOf(TestResult.Unreachable), results)
+        assertFalse(viewModel.stateFlow.value.testSent)
+    }
+
+    @Test
+    fun `cancelling the send itself shows no result`() = runTest(dispatcher) {
+        // Leaving the page cancels the coroutine; that is not a failed send and gets no toast.
+        coEvery { pushController.sendTestPush() } throws CancellationException("left the page")
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val results = sendTest(viewModel)
+        advanceUntilIdle()
+
+        assertEquals(emptyList(), results)
+    }
+
+    @Test
+    fun `a failed send after one that worked still reads send again`() = runTest(dispatcher) {
+        coEvery { pushController.sendTestPush() } returns Result.success(Unit) andThen
+            Result.failure(SendTestPushError.Other())
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val results = sendTest(viewModel)
+        advanceUntilIdle()
+        assertTrue(viewModel.stateFlow.value.testSent)
+
+        viewModel.dispatchEvent(NotificationStatusViewModel.Event.SendTest)
+        advanceUntilIdle()
+
+        assertEquals(listOf(TestResult.Sent, TestResult.Failed), results)
+        assertTrue(viewModel.stateFlow.value.testSent)
         assertFalse(viewModel.stateFlow.value.sendingTest)
     }
 

@@ -16,6 +16,7 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.grpc.stub)
     testImplementation(testFixtures(project(":libs:coroutines")))
     testImplementation(project(":apps:flipcash:shared:push"))
 }

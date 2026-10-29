@@ -64,17 +64,22 @@ sealed class AddTokenError(
     }
 }
 
-private fun Throwable?.hasTransportCause(): Boolean =
-    generateSequence(this) { it.cause }.take(8).any { it.isTransportCause() }
+private fun Throwable?.hasTransportCause(codes: Set<Status.Code> = transportCodes): Boolean =
+    generateSequence(this) { it.cause }.take(8).any { it.isTransportCause(codes) }
 
-private fun Throwable.isTransportCause(): Boolean = when (this) {
+private fun Throwable.isTransportCause(codes: Set<Status.Code>): Boolean = when (this) {
     is IOException -> true
-    is StatusException -> status.code in transportCodes
-    is StatusRuntimeException -> status.code in transportCodes
+    is StatusException -> status.code in codes
+    is StatusRuntimeException -> status.code in codes
     else -> false
 }
 
 private val transportCodes = setOf(Status.Code.UNAVAILABLE, Status.Code.DEADLINE_EXCEEDED)
+
+// A test push the call dropped never reached anyone, so it reads as unreachable. Registration
+// keeps CANCELLED out of transport. Coroutine cancellation never gets here: foldWithSuppression
+// rethrows it before the error is built.
+private val testPushTransportCodes = transportCodes + Status.Code.CANCELLED
 
 sealed class DeleteTokenError(
     override val message: String? = null,
@@ -90,9 +95,9 @@ sealed class SendTestPushError(
 ) : CodeServerError(message, cause) {
     class Unrecognized : SendTestPushError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : SendTestPushError(message = cause?.message, cause = cause), NotifiableError {
-        /** The call never got an answer from the server: no network, or the channel gave up. */
+        /** The call never got an answer from the server: no network, the channel gave up, or the call was cancelled. */
         val isTransportFailure: Boolean
-            get() = cause.hasTransportCause()
+            get() = cause.hasTransportCause(testPushTransportCodes)
     }
 }
 

@@ -224,7 +224,7 @@ private fun Actions(
                 TestBlocked.NotificationsOff -> stringResource(R.string.description_notificationStatusTestDisabled)
                 TestBlocked.ChannelOff -> stringResource(
                     R.string.description_notificationStatusTestDisabledChannelOff,
-                    // The name system settings shows for TestPushChannel (General).
+                    // The name system settings shows for TestPushChannel, fcm_fallback_notification_channel ("Misc.").
                     stringResource(NotificationsR.string.notification_channel_default),
                 )
             },
