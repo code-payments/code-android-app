@@ -1318,7 +1318,7 @@
     <string name="title_noCommunityCurrencies">No Community Currencies</string>
     <string name="description_noCommunityCurrencies">Buy a community currency to start or join community chats</string>
     <string name="action_exploreCurrencies">Explore Currencies</string>
-    <string name="title_newPrivateGroup">New Private Group</string>
+    <string name="title_newPrivateGroup">New Group</string>
     <string name="action_requestToJoin">Request to Join</string>
     <!-- Opening a group invite link (nodes 12846:59, 12846:126, 12846:148, 12846:160, 12846:220, 12846:259). -->
     <string name="subtitle_privateGroupInvited">Private group · You’ve been invited to join</string>
@@ -1422,7 +1422,7 @@
     <string name="action_findByUsername">Find Someone by Username</string>
 
     <!-- Creating a public group (node 10153:22901). -->
-    <string name="title_newPublicGroup">New Public Group</string>
+    <string name="title_newPublicGroup">New Community Chat</string>
     <string name="hint_groupName">Group Name (Required)</string>
     <!-- The section label before a token is picked; it names the rule the creator is about to set. -->
     <string name="title_minimumBalanceRequired">Minimum Balance Required</string>
@@ -1450,7 +1450,7 @@
     <string name="error_description_groupCreateFailed">We couldn\'t create this group. Please try again.</string>
 
     <!-- Editing a group. Titled "Edit Group" rather than the design's "Edit Community": the app
-         calls the same thing a Group everywhere else (see title_newPublicGroup, hint_groupName). -->
+         calls the same thing a Group everywhere else (see hint_groupName). -->
     <string name="title_editGroup">Edit Group</string>
     <string name="label_editGroupName">Group name</string>
     <string name="placeholder_editGroupName">Add a name</string>
