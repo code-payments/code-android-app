@@ -36,6 +36,7 @@ internal object LinkCardModule {
         group: GroupLinkLookup,
         user: UserLinkLookup,
         message: MessageLinkLookup,
+        invite: InviteLinkLookup,
         memory: LinkCardMemory,
         classifier: LinkCardClassifier,
     ): LinkCardResolver =
@@ -49,6 +50,10 @@ internal object LinkCardModule {
             group = { group(it) },
             user = { user(it) },
             message = message::invoke,
+            invite = { url ->
+                classifier.inviteSecret(url)?.let { invite(it) }
+                    ?: Result.failure(IllegalArgumentException("not an invite link"))
+            },
             memory = memory,
             wholeCashLink = classifier::wholeCashLink,
         )

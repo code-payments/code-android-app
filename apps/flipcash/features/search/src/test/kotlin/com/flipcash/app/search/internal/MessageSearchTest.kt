@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 class MessageSearchTest {
 
     private fun find(query: String, vararg messages: StoredMessage) =
-        searchMessages(messages.toList(), SearchMatching.query(query)!!).map { it.messageId }
+        searchMessages(messages.toList(), SearchMatching.query(query)!!, inviteLinkLabel = "Invite link").map { it.messageId }
 
     @Test
     fun `text, captions and replies are searched, newest first`() {

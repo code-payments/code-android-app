@@ -73,6 +73,8 @@ sealed interface ChatListItem {
         val contentIndex: Int,
         override val timestamp: Instant,
         val text: String,
+        /** Names in [text] that open a profile when tapped. */
+        val userLinks: List<SystemUserLink> = emptyList(),
     ) : TranscriptMessage {
         override val isFromSelf: Boolean = false
         override val itemKey: Any =
@@ -365,7 +367,7 @@ fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentB
 
 /** Whether this card may draw under a photo caption that has words around its link. */
 private fun LinkCard.drawsAroundCaption(): Boolean = when (this) {
-    is LinkCard.GroupInvite, is LinkCard.User, is LinkCard.Message -> true
+    is LinkCard.GroupInvite, is LinkCard.InviteLink, is LinkCard.User, is LinkCard.Message -> true
     is LinkCard.Cash, is LinkCard.TokenInfo, is LinkCard.Web -> false
 }
 

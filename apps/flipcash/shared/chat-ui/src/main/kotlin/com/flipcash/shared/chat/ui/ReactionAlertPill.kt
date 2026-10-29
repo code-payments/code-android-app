@@ -156,7 +156,7 @@ private fun AlertRow(content: ReactionAlertContent) {
             )
             if (content.quote.isNotEmpty()) {
                 Text(
-                    text = content.quote,
+                    text = labelInviteLinks(content.quote, stringResource(R.string.label_inviteLinkPreview)),
                     style = CodeTheme.typography.caption,
                     color = CodeTheme.colors.textSecondary,
                     maxLines = 1,

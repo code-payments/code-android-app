@@ -54,6 +54,9 @@ class LobbyRequests @Inject constructor(
             .recoverCatching { if (it !is LeaveLobbyError.NotFound) throw it }
             .onSuccess { store.remove(chatId) }
 
+    /** Drops the stored request for [chatId], for a viewer who left the lobby by other means. */
+    suspend fun clear(chatId: ChatId) = store.remove(chatId)
+
     /**
      * Asks GetChat about [chatIds], or every stored request when null, and drops each that is no
      * longer in the lobby. A failed GetChat keeps its request: an unanswered question is not a no.

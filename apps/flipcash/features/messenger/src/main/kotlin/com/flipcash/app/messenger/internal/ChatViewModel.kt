@@ -85,6 +85,7 @@ import com.flipcash.app.messenger.internal.screens.profile.privateGroupMembers
 import com.flipcash.services.models.TipAction
 import com.flipcash.services.models.TipOrigin
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.chat.WrongKeyChats
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.services.models.chat.ChatMember
@@ -275,6 +276,7 @@ internal class ChatViewModel @AssistedInject constructor(
      */
     @Assisted private val linkedAsGroup: Boolean = false,
     private val chatCoordinator: ChatCoordinator,
+    private val wrongKeyChats: WrongKeyChats,
     private val mediaUploads: ChatMediaUploads,
     private val e2eePolicy: E2eePolicy,
     private val contactCoordinator: ContactCoordinator,
@@ -355,6 +357,11 @@ internal class ChatViewModel @AssistedInject constructor(
     }
 
     data class State(
+        /**
+         * Whether the key this group's invite link handed the viewer failed its checks, so the
+         * transcript cannot be read. The only repair is to leave and be admitted from the lobby.
+         */
+        val wrongKey: Boolean = false,
         val separatorConfig: SeparatorConfig = SeparatorConfig.Continuous(),
         val chatId: ChatId? = null,
         val subject: ChatSubject? = null,
@@ -868,6 +875,9 @@ internal class ChatViewModel @AssistedInject constructor(
         /** The chat this screen is showing turned out to be a group, with this metadata. */
         data class OnGroupResolved(val membership: ChatMembership) : Event
 
+        /** The wrong-key mark for this chat changed (see `WrongKeyChats`). */
+        data class OnWrongKey(val wrongKey: Boolean) : Event
+
         /** The token cache learned the currency behind the group's balance requirement. */
         data class OnRuleCurrencyResolved(val currency: RuleCurrency?) : Event
 
@@ -1353,9 +1363,14 @@ internal class ChatViewModel @AssistedInject constructor(
     /**
      * Follows a tapped message link inside the app. True when [uri] was one: a message in this
      * chat is jumped to in place, and one in another chat is pushed over this one with a chip back
-     * here. False leaves [uri] to the ordinary link handling.
+     * here. An invite link opens its landing over this chat, so its secret stays in the app. False
+     * leaves [uri] to the ordinary link handling.
      */
     fun followMessageLink(uri: String): Boolean {
+        linkCardClassifier.inviteRoute(uri)?.let { route ->
+            dispatchEvent(Event.OpenScreen(route))
+            return true
+        }
         val link = linkCardClassifier.messageLink(uri) ?: return false
         val state = stateFlow.value
         if (link.chatId == state.chatId) {
@@ -1916,6 +1931,7 @@ internal class ChatViewModel @AssistedInject constructor(
         initMentionHandlers()
         initDraftHandlers()
         initGroupAnalytics()
+        initWrongKey()
 
         viewModelScope.launch {
             // Yield to let the first frame render before setting up remaining collectors
@@ -2706,6 +2722,14 @@ internal class ChatViewModel @AssistedInject constructor(
             }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.TypingEnabled(it)) }
+            .launchIn(viewModelScope)
+    }
+
+    /** Whether the key this account holds for the open chat is the wrong one (an invite join gone bad). */
+    private fun initWrongKey() {
+        stateFlow.map { it.chatId }.filterNotNull().distinctUntilChanged()
+            .flatMapLatest { wrongKeyChats.observe(it) }
+            .onEach { dispatchEvent(Event.OnWrongKey(it)) }
             .launchIn(viewModelScope)
     }
 
@@ -4140,6 +4164,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     if (state.subject is ChatSubject.Group) state
                     else state.copy(chatType = ChatType.TIP_DM)
                 }
+                is Event.OnWrongKey -> { state -> state.copy(wrongKey = event.wrongKey) }
                 is Event.OnGroupResolved -> { state ->
                     val metadata = event.membership.metadata
                     val previous = state.subject as? ChatSubject.Group

@@ -54,10 +54,12 @@ internal fun SpeakerGateBar(
     modifier: Modifier = Modifier,
     /** Off only for a Robolectric render, whose native runtime cannot compile the blur shader. */
     blurEnabled: Boolean = true,
+    /** Replaces the line a [requirement] would read, for a viewer blocked for another reason. */
+    textOverride: String? = null,
 ) {
     val shape = CodeTheme.shapes.medium
     val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
-    val text = when (requirement) {
+    val text = textOverride ?: when (requirement) {
         ChatRuleRequirement.Never -> stringResource(R.string.label_chatGate_speakerNever)
         ChatRuleRequirement.Staff -> stringResource(R.string.subtitle_chatGate_speakerStaffOnly)
         ChatRuleRequirement.Creator -> stringResource(R.string.subtitle_chatGate_speakerCreatorOnly)

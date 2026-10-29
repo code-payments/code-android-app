@@ -31,4 +31,6 @@ dependencies {
     // `ui:components` keeps haze to itself, but `CircularIconButton` takes a `HazeState`, so a
     // caller wanting the frosted fill has to be able to name the type.
     implementation(libs.bundles.haze)
+
+    testImplementation(kotlin("test"))
 }

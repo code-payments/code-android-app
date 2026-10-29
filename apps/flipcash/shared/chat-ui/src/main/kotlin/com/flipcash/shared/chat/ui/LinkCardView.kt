@@ -118,7 +118,7 @@ internal fun LinkCardView(
         return
     }
 
-    if (live is LinkCard.GroupInvite) {
+    if (live is LinkCard.GroupInvite || live is LinkCard.InviteLink) {
         // Only the button opens a group, so the card takes no tap of its own. The long press
         // still has to reach the transcript, or pressing the card would select nothing.
         BoxWithConstraints(
@@ -134,15 +134,16 @@ internal fun LinkCardView(
                     }
                 },
         ) {
-            GroupInviteLinkCard(
-                card = live,
-                minHeight = maxWidth * LinkCardDefaults.CARD_ASPECT,
-                onStart = onClick?.let { click -> { click(live) } },
-                // A transcript card opens the group named on it, so it says "View"; the group's
-                // own empty state draws this card with "Invite People".
-                ctaLabel = stringResource(R.string.action_linkCard_view),
-                shape = shape,
-            )
+            val minHeight = maxWidth * LinkCardDefaults.CARD_ASPECT
+            // A transcript card opens the group named on it, so it says "View"; the group's
+            // own empty state draws this card with "Invite People".
+            val ctaLabel = stringResource(R.string.action_linkCard_view)
+            val onStart = onClick?.let { click -> { click(live) } }
+            if (live is LinkCard.InviteLink) {
+                InviteLinkCard(card = live, minHeight = minHeight, ctaLabel = ctaLabel, onStart = onStart, shape = shape)
+            } else if (live is LinkCard.GroupInvite) {
+                GroupInviteLinkCard(card = live, minHeight = minHeight, ctaLabel = ctaLabel, onStart = onStart, shape = shape)
+            }
         }
         return
     }
@@ -205,7 +206,7 @@ internal fun LinkCardView(
             )
             is LinkCard.TokenInfo -> TokenLinkCard(card = live, height = height, shape = shape)
             // Drawn above; unreachable here.
-            is LinkCard.GroupInvite, is LinkCard.User, is LinkCard.Web, is LinkCard.Message -> Unit
+            is LinkCard.GroupInvite, is LinkCard.InviteLink, is LinkCard.User, is LinkCard.Web, is LinkCard.Message -> Unit
         }
     }
 }

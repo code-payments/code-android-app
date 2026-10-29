@@ -46,6 +46,7 @@ import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.messenger.ChatFlowScreen
 import com.flipcash.app.tokens.internal.CommunityChatsScreen
 import com.flipcash.app.messenger.CurrencySendScreen
+import com.flipcash.app.messenger.internal.screens.profile.GroupInviteScreen
 import com.flipcash.app.messenger.E2eeLearnMoreScreen
 import com.flipcash.app.messenger.MuteChatScreen
 import com.flipcash.app.messenger.ProfileScreen
@@ -145,6 +146,7 @@ internal fun appEntryProvider(
             ChatFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
         }
     }
+    annotatedEntry<AppRoute.Messaging.GroupInvite> { key -> GroupInviteScreen(key.secret) }
     annotatedEntry<AppRoute.Messaging.Profile> { key -> ProfileScreen(key.address, key.origin) }
     annotatedEntry<AppRoute.Messaging.NewChat> { NewChatScreen() }
     annotatedEntry<AppRoute.Messaging.ArchivedChats> { ArchivedChatsScreen() }

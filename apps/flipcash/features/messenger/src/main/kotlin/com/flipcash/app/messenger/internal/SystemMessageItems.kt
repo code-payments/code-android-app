@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.displayText
+import com.flipcash.shared.chat.models.userLinks
 import com.getcode.opencode.model.core.ID
 import com.getcode.util.resources.ResourceHelper
 import kotlin.time.Instant
@@ -27,5 +28,6 @@ internal fun systemMessageItem(
         contentIndex = contentIndex,
         timestamp = timestamp,
         text = text,
+        userLinks = content.userLinks(resources, text, selfId, nameOf),
     )
 }

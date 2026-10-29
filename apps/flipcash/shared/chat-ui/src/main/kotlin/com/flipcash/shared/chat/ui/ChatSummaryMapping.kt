@@ -148,6 +148,7 @@ private fun MessageContent.previewText(
 ): String? = when (this) {
     is MessageContent.Text -> {
         val message = text.takeIf { it.isNotEmpty() }
+            ?.let { labelInviteLinks(it) { resources.getString(R.string.label_inviteLinkPreview) } }
         when {
             message == null -> null
             sentBySelf -> resources.getString(R.string.label_chat_preview_sentMessage, message)
@@ -213,7 +214,8 @@ private fun MessageContent.previewText(
 
     // The caption, else "Photo", behind the camera emoji; prefixed like a typed message.
     is MessageContent.Media -> {
-        val message = ChatMediaText.preview(caption?.text, resources.getString(R.string.label_chat_media_photo))
+        val caption = caption?.text?.let { labelInviteLinks(it) { resources.getString(R.string.label_inviteLinkPreview) } }
+        val message = ChatMediaText.preview(caption, resources.getString(R.string.label_chat_media_photo))
         when {
             sentBySelf -> resources.getString(R.string.label_chat_preview_sentMessage, message)
             senderName != null ->

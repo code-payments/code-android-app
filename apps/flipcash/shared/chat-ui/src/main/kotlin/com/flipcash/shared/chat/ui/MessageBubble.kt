@@ -1011,6 +1011,10 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
             // The transcript's handler follows a message link in the app: a jump in place when it
             // points into this chat, a push with the way back otherwise.
             is LinkCard.Message -> uriHandler.openUri(card.url)
+            // The same handler opens the invite landing in the app, never the browser: the
+            // fragment is the group's key. The landing picks the preview, a dead-link or
+            // not-found screen, or the chat for a member.
+            is LinkCard.InviteLink -> uriHandler.openUri(card.url)
             // The chat opens it, because only the chat knows whether this reader may collect it.
             // A voucher already being claimed would only start the same claim again.
             is LinkCard.Cash -> if ((card.state as? LinkCard.Cash.State.Resolved)?.claim != LinkCard.Cash.Claim.Claiming) {

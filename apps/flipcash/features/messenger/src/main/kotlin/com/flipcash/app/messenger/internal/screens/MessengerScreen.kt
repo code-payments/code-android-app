@@ -55,6 +55,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.getcode.opencode.model.core.ID
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.chat.ChatStep
@@ -71,6 +72,7 @@ import com.flipcash.app.messenger.internal.reactionStripFor
 import com.flipcash.app.messenger.internal.withLiveSelfReactions
 import com.flipcash.app.messenger.internal.MentionDestination
 import com.flipcash.app.messenger.internal.link.CashCardTap
+import com.flipcash.app.messenger.internal.screens.components.WrongKeyBanner
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
 import com.flipcash.app.messenger.internal.screens.components.deckBackdropSpec
 import com.flipcash.app.messenger.internal.screens.components.chatBackdrop
@@ -197,6 +199,29 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         else UpdateAppAction(label = updateLabel, onClick = { scope.launch { updater.startOptionalUpdate() } })
     }
 
+    val openUser = { targetId: ID, targetIsOwn: Boolean ->
+        val counterpart = (state.participant as? ChatParticipant.TipUser)?.userId
+        when {
+            // Your own card lives on the You tab, where scanning it and its deep link
+            // already send you. There is no chat with yourself to open.
+            targetIsOwn -> keyboard.hideIfVisible {
+                navigator.rootNavigator.navigateAll(listOf(AppRoute.Tabs.Menu))
+            }
+            // A link to the person this DM is with has nowhere to go.
+            targetId == counterpart -> Unit
+            else -> keyboard.hideIfVisible {
+                viewModel.dispatchEvent(
+                    ChatViewModel.Event.OpenScreen(
+                        // The profile their flipcash.com link opens, pushed as the group
+                        // card pushes its chat, so Back returns here. Its Message shortcut
+                        // goes on to the DM.
+                        AppRoute.Messaging.Profile(ProfileAddress.ById(targetId))
+                    )
+                )
+            }
+        }
+    }
+
     val chatActionHandler = { action: ChatAction ->
         when (action) {
             is ChatAction.AdvanceReadPointer -> {
@@ -304,28 +329,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 }
             }
 
-            is ChatAction.OpenUser -> {
-                val counterpart = (state.participant as? ChatParticipant.TipUser)?.userId
-                when {
-                    // Your own card lives on the You tab, where scanning it and its deep link
-                    // already send you. There is no chat with yourself to open.
-                    action.isOwn -> keyboard.hideIfVisible {
-                        navigator.rootNavigator.navigateAll(listOf(AppRoute.Tabs.Menu))
-                    }
-                    // A link to the person this DM is with has nowhere to go.
-                    action.userId == counterpart -> Unit
-                    else -> keyboard.hideIfVisible {
-                        viewModel.dispatchEvent(
-                            ChatViewModel.Event.OpenScreen(
-                                // The profile their flipcash.com link opens, pushed as the group
-                                // card pushes its chat, so Back returns here. Its Message shortcut
-                                // goes on to the DM.
-                                AppRoute.Messaging.Profile(ProfileAddress.ById(action.userId))
-                            )
-                        )
-                    }
-                }
-            }
+            is ChatAction.OpenUser -> openUser(action.userId, action.isOwn)
+            is ChatAction.OpenUserById -> openUser(action.userId, action.isOwn)
 
             is ChatAction.OpenMention -> {
                 viewModel.dispatchEvent(ChatViewModel.Event.MentionTapped(action.username))
@@ -570,6 +575,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         requests = lastRequests,
                         onReview = { keyboard.hideIfVisible { navigator.push(ChatStep.JoinRequests) } },
                         hazeState = hazeState,
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.grid.x2),
+                    )
+                }
+                if (state.wrongKey) {
+                    WrongKeyBanner(
+                        onLeave = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(top = CodeTheme.dimens.grid.x2),

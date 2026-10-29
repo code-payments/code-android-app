@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.link
 
 import android.net.Uri
 import androidx.core.net.toUri
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.links.FIRST_PARTY_HOSTS
 import com.flipcash.app.core.navigation.DeeplinkType
@@ -77,7 +78,14 @@ internal class LinkCardClassifier @Inject constructor(
     private fun HttpUrl.isWebsitePage(): Boolean =
         host in WEBSITE_HOSTS &&
             fragment == null &&
-            pathSegments.first().lowercase() !in SECRET_SEGMENTS
+            pathSegments.first().lowercase() !in SECRET_SEGMENTS &&
+            !isInvitePath()
+
+    /** `/chat/invite` in any case: an invite URL is never unfurled, with its fragment or without. */
+    private fun HttpUrl.isInvitePath(): Boolean =
+        pathSegments.size >= 2 &&
+            pathSegments[0].equals("chat", ignoreCase = true) &&
+            pathSegments[1].equals("invite", ignoreCase = true)
 
     /**
      * The message a tapped link points at, when it is a message link on our hosts (wrapped in a
@@ -89,6 +97,33 @@ internal class LinkCardClassifier @Inject constructor(
         val host = runCatching { target.toUri().host }.getOrNull() ?: return null
         if (host.lowercase() !in CARD_HOSTS) return null
         return router.classify(DeepLink(target)) as? DeeplinkType.ChatMessage
+    }
+
+    /**
+     * The invite landing a tapped `/chat/invite` link on our hosts opens, or null for any other link.
+     * The transcript opens it in the app rather than handing the URL to the system, so the secret in
+     * the fragment never reaches a browser. A link with no valid secret opens the broken-link state.
+     */
+    fun inviteRoute(url: String): AppRoute? {
+        val target = unwrapJumpTarget(url) ?: url
+        val host = runCatching { target.toUri().host }.getOrNull() ?: return null
+        if (host.lowercase() !in CARD_HOSTS) return null
+        return when (val type = router.classify(DeepLink(target))) {
+            is DeeplinkType.GroupInvite -> AppRoute.Messaging.GroupInvite(type.secret)
+            is DeeplinkType.InvalidGroupInvite -> AppRoute.Messaging.GroupInvite(null)
+            else -> null
+        }
+    }
+
+    /**
+     * The secret of a `/chat/invite` link on our hosts, for its card's lookup, or null when the
+     * link is not one or its fragment carries no valid secret.
+     */
+    fun inviteSecret(url: String): ByteArray? {
+        val target = unwrapJumpTarget(url) ?: url
+        val host = runCatching { target.toUri().host }.getOrNull() ?: return null
+        if (host.lowercase() !in CARD_HOSTS) return null
+        return (router.classify(DeepLink(target)) as? DeeplinkType.GroupInvite)?.secret
     }
 
     /**
@@ -138,6 +173,15 @@ internal class LinkCardClassifier @Inject constructor(
                 chatId = type.chatId,
                 state = LinkCard.GroupInvite.State.Loading,
             ).takeIf { target.toUri().pathSegments.size == GROUP_INVITE_SEGMENTS }
+            // A private group's invite link. Its card is drawn from GetInvite, never from the web
+            // page (Decision 6). A link with no valid secret gets no card; a tap still opens the
+            // broken-link state.
+            is DeeplinkType.GroupInvite -> LinkCard.InviteLink(
+                url = target,
+                start = link.start,
+                end = link.end,
+                state = LinkCard.InviteLink.State.Loading,
+            )
             // A person's link by id, the legacy `/tip/<uuid>`. Whether anyone owns the id is the
             // lookup's question.
             is DeeplinkType.Tipcard -> LinkCard.User(

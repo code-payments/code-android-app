@@ -7,6 +7,7 @@ import androidx.paging.PagingData
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.InviteParameters
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
@@ -614,6 +615,13 @@ interface GroupOperations {
 
     /** Joins [chatId], caching the chat so it is in the list before the next sync. */
     suspend fun join(chatId: ChatId): Result<Unit>
+
+    /**
+     * Joins private group [chatId] with an invite link, caching the chat as [join] does. The
+     * failures are `JoinChatError`'s, including the three dead-invite ones; the caller decides
+     * what each looks like.
+     */
+    suspend fun joinWithInvite(chatId: ChatId, invite: InviteParameters): Result<Unit>
 
     /**
      * Leaves [chatId]. The chat drops out of the list immediately and comes back if the call

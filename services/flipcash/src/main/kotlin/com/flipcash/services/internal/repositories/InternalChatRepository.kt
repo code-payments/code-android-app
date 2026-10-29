@@ -18,6 +18,7 @@ import com.flipcash.services.internal.network.services.ChatService
 import com.flipcash.services.models.CreateInviteError
 import com.flipcash.services.models.GetChatInvitesError
 import com.flipcash.services.models.GetInviteError
+import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.GetKeyEnvelopeError
 import com.flipcash.services.models.RevokeInviteError
 import com.flipcash.services.models.LeaveChatError
@@ -185,7 +186,7 @@ internal class InternalChatRepository(
         chatId: ChatId,
         invite: InviteParameters?,
     ): Result<ChatMetadata> = service.joinChat(owner, chatId, invite)
-        .onFailure { ErrorUtils.handleError(it) }
+        .onFailure { if (!it.isExpectedInviteFailure()) ErrorUtils.handleError(it) }
         .map { mapper.map(it) }
 
     override suspend fun leaveChat(
@@ -351,11 +352,18 @@ internal class InternalChatRepository(
         service.revokeInvite(owner, chatId, inviteId)
             .onFailure { if (!it.isExpectedInviteFailure()) ErrorUtils.handleError(it) }
 
-    // Expected outcomes of a stale or bad link; not worth reporting.
-    private fun Throwable.isExpectedInviteFailure(): Boolean =
-        this is CreateInviteError.Denied || this is CreateInviteError.NotFound ||
+}
+
+// Expected outcomes of a stale or bad link; not worth reporting. JoinChat's results that the
+// joiner sees as a user outcome are here too: the three dead-invite states, a link that matches
+// nothing, a vanished group and a ban. DENIED and RULES_NOT_SATISFIED stay out: with an invite
+// they point to a client bug.
+internal fun Throwable.isExpectedInviteFailure(): Boolean =
+        this is JoinChatError.InviteExhausted || this is JoinChatError.InviteExpired ||
+            this is JoinChatError.InviteRevoked || this is JoinChatError.InviteNotFound ||
+            this is JoinChatError.NotFound || this is JoinChatError.Banned ||
+            this is CreateInviteError.Denied || this is CreateInviteError.NotFound ||
             this is CreateInviteError.InvalidExpiresAt || this is CreateInviteError.TooManyInvites ||
             this is GetInviteError.NotFound || this is GetInviteError.Banned ||
             this is GetChatInvitesError.Denied || this is GetChatInvitesError.NotFound ||
             this is RevokeInviteError.Denied || this is RevokeInviteError.NotFound
-}

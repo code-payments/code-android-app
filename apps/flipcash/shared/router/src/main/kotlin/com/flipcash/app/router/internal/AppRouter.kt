@@ -29,6 +29,8 @@ import com.getcode.solana.keys.Mint
 import com.getcode.utils.TraceType
 import com.getcode.utils.decodeBase64
 import com.getcode.utils.decodeBase64UrlSafe
+import com.getcode.chatcipher.InviteLink
+import com.getcode.chatcipher.InviteLinkRoute
 import com.getcode.utils.trace
 import dev.theolm.rinku.DeepLink
 import org.json.JSONObject
@@ -96,7 +98,11 @@ internal class AppRouter(
     }
 
     override fun dispatch(deepLink: DeepLink): DeeplinkAction {
-        val type = classify(deepLink) ?: return deepLink.unrouted()
+        // An invite-shaped link that no route claimed (`/chat/invite/extra#s=…`) is a broken
+        // invite, not a page for the browser: handing it on would send its fragment, the key,
+        // to whatever opens it.
+        val type = classify(deepLink)
+            ?: if (deepLink.mayCarryInviteSecret()) DeeplinkType.InvalidGroupInvite else return deepLink.unrouted()
 
         // Not logged in — redirect to login (or login deeplink itself)
         if (authStateProvider() !is AuthState.Ready) {
@@ -134,6 +140,14 @@ internal class AppRouter(
             // The same destination a group push tap resolves to (see ChatTapTargetPlanner): the
             // chat screen is the gated preview when the viewer is not a member, so an invite and
             // a push land on one screen rather than on two that would have to agree.
+            is DeeplinkType.GroupInvite -> DeeplinkAction.Navigate(
+                listOf(AppRoute.Tabs.Chats, AppRoute.Messaging.GroupInvite(type.secret))
+            )
+
+            is DeeplinkType.InvalidGroupInvite -> DeeplinkAction.Navigate(
+                listOf(AppRoute.Tabs.Chats, AppRoute.Messaging.GroupInvite(null))
+            )
+
             is DeeplinkType.GroupChatInvite -> DeeplinkAction.Navigate(
                 listOf(
                     AppRoute.Tabs.Chats,
@@ -205,14 +219,7 @@ internal class AppRouter(
         // and inside a LaunchedEffect (App). A parse failure must degrade to "no deeplink", loudly
         // in logs, never to a crash.
         return runCatching { classifyOrThrow(deepLink) }
-            .onFailure {
-                trace(
-                    tag = "AppRouter",
-                    message = "Failed to classify deeplink; ignoring it",
-                    error = it,
-                    type = TraceType.Error,
-                )
-            }
+            .onFailure { traceClassifyFailure(deepLink, it) }
             .getOrNull()
     }
 
@@ -248,6 +255,9 @@ internal class AppRouter(
             deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
             deepLink.isTipChat() -> deepLink.handleTipChat()
             deepLink.isTipCard() -> deepLink.handleTipCard()
+            // Ahead of every other `/chat/` route: `/chat/invite` has a secret in its fragment and
+            // must never fall through to a chat, whether or not the secret parses.
+            deepLink.isGroupInvite() -> deepLink.handleGroupInvite()
             // Before the invite, which matches any path under a group's `/chat/{uuid}` and would
             // otherwise open a group's message link as the bare group.
             deepLink.isChatMessage() -> deepLink.handleChatMessage()
@@ -518,4 +528,48 @@ private fun DeepLink.handleEmailVerification(): DeeplinkType.EmailVerification? 
     }
 
     return null
+}
+
+/** `app.flipcash.com/chat/invite`, with or without a usable fragment. */
+private fun DeepLink.isGroupInvite(): Boolean =
+    chat.contains(pathSegments.getOrNull(0)) &&
+        pathSegments.getOrNull(1).equals("invite", ignoreCase = true) &&
+        pathSegments.size == 2
+
+private fun DeepLink.handleGroupInvite(): DeeplinkType =
+    // InviteLink owns the fragment grammar; it only reads links on the app origin, so the host is
+    // pinned to it here the same way the other routes are matched on path alone.
+    when (val route = InviteLink.route(asAppOrigin())) {
+        is InviteLinkRoute.Invite -> DeeplinkType.GroupInvite(route.secret)
+        else -> DeeplinkType.InvalidGroupInvite
+    }
+
+private fun DeepLink.asAppOrigin(): String {
+    val tail = data.substringAfter(host, missingDelimiterValue = "")
+    return "https://app.flipcash.com$tail"
+}
+
+private fun DeepLink.mayCarryInviteSecret(): Boolean =
+    data.contains("chat/invite", ignoreCase = true) || data.contains("chat%2Finvite", ignoreCase = true)
+
+/**
+ * An invite link's fragment is its key, and an exception raised while parsing it may quote the URL.
+ * So for anything shaped like one the trace carries the exception type and nothing else: no
+ * message, no stack, and no hand-off to the error reporters.
+ */
+internal fun traceClassifyFailure(deepLink: DeepLink, error: Throwable) {
+    if (deepLink.mayCarryInviteSecret()) {
+        trace(
+            tag = "AppRouter",
+            message = "Failed to classify an invite-shaped deeplink; ignoring it (${error::class.simpleName})",
+            type = TraceType.Error,
+        )
+    } else {
+        trace(
+            tag = "AppRouter",
+            message = "Failed to classify deeplink; ignoring it",
+            error = error,
+            type = TraceType.Error,
+        )
+    }
 }
