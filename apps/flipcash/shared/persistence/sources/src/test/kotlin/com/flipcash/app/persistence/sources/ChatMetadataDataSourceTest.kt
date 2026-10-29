@@ -6,8 +6,11 @@ import com.flipcash.app.persistence.dao.ChatMetadataDao
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.PinSummary
 import com.flipcash.services.models.chat.ViewerState
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -16,6 +19,8 @@ import io.mockk.unmockkObject
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.time.Instant
 import kotlin.test.assertTrue
 
 /**
@@ -70,6 +75,94 @@ class ChatMetadataDataSourceTest {
                     version = 3,
                 )
             }
+        } finally {
+            unmockkObject(FlipcashDatabase.Companion)
+        }
+    }
+
+    private fun metadata(pins: PinSummary?) = ChatMetadata(
+        chatId = ChatId(listOf(0xAB.toByte())),
+        type = ChatType.GROUP,
+        members = emptyList(),
+        lastMessage = null,
+        lastActivity = Instant.fromEpochSeconds(1),
+        pinSummary = pins,
+    )
+
+    private fun withDao(block: suspend (ChatMetadataDao) -> Unit) = runTest {
+        val dao = mockk<ChatMetadataDao>(relaxed = true)
+        mockkObject(FlipcashDatabase.Companion)
+        try {
+            every { FlipcashDatabase.getInstance() } returns mockk { every { chatMetadataDao() } returns dao }
+            block(dao)
+        } finally {
+            unmockkObject(FlipcashDatabase.Companion)
+        }
+    }
+
+    private val chatId = ChatId(listOf(0xAB.toByte()))
+
+    @Test
+    fun `a feed upsert without a pin summary keeps the held one`() = withDao {
+        val held = PinSummary(count = 1, version = 5)
+        dataSource.upsert(metadata(held))
+
+        dataSource.upsert(listOf(metadata(null)))
+        assertEquals(held, dataSource.getPinSummary(chatId))
+
+        dataSource.upsert(metadata(PinSummary(count = 0, version = 4)))
+        assertEquals(held, dataSource.getPinSummary(chatId))
+    }
+
+    @Test
+    fun `a GetChat write replaces the held summary with an equal or newer one`() = withDao { dao ->
+        coEvery { dao.getById("ab") } returns null
+        dataSource.upsert(metadata(PinSummary(count = 1, version = 5)))
+
+        val newer = PinSummary(count = 2, version = 6)
+        dataSource.upsertKeepingMembership(metadata(newer))
+
+        assertEquals(newer, dataSource.getPinSummary(chatId))
+    }
+
+    @Test
+    fun `metadata rebuilt from a row carries the held pin summary`() = withDao {
+        val held = PinSummary(count = 1, version = 5)
+        dataSource.upsert(metadata(held))
+        val entity = ChatMetadataEntity(
+            chatIdHex = "ab",
+            chatType = ChatType.GROUP.name,
+            lastActivityEpochMs = 1,
+            lastMessageId = null,
+        )
+
+        assertEquals(held, dataSource.toMetadata(entity, emptyList(), null).pinSummary)
+    }
+
+    @Test
+    fun `a pins event is dropped unless newer than what is held`() = withDao {
+        val held = PinSummary(count = 1, version = 5)
+        dataSource.upsert(metadata(held))
+
+        dataSource.updatePinSummary(chatId, PinSummary(count = 0, version = 5))
+        assertEquals(held, dataSource.getPinSummary(chatId))
+
+        val newer = PinSummary(count = 0, version = 6)
+        dataSource.updatePinSummary(chatId, newer)
+        assertEquals(newer, dataSource.getPinSummary(chatId))
+    }
+
+    @Test
+    fun `held pins do not carry over to another database`() = runTest {
+        val first = mockk<FlipcashDatabase> { every { chatMetadataDao() } returns mockk(relaxed = true) }
+        val second = mockk<FlipcashDatabase> { every { chatMetadataDao() } returns mockk(relaxed = true) }
+        mockkObject(FlipcashDatabase.Companion)
+        try {
+            every { FlipcashDatabase.getInstance() } returns first
+            dataSource.upsert(metadata(PinSummary(count = 1, version = 5)))
+
+            every { FlipcashDatabase.getInstance() } returns second
+            assertNull(dataSource.getPinSummary(chatId))
         } finally {
             unmockkObject(FlipcashDatabase.Companion)
         }

@@ -459,8 +459,9 @@ class EventStreamDelegate @Inject constructor(
                     metadataDataSource.updateRules(chatId, metaUpdate.newRules)
                 }
                 is MetadataUpdate.PinsChanged -> {
-                    // Contract scaffolding only: pins are not persisted yet. When they are, apply
-                    // by PinSummary.version (keep the greater), like the viewer-state overlay.
+                    // Convergent like the roster: applied only when strictly newer than the held
+                    // summary, so a replayed or reordered event cannot roll the pins back.
+                    metadataDataSource.updatePinSummary(chatId, metaUpdate.summary)
                 }
             }
         }

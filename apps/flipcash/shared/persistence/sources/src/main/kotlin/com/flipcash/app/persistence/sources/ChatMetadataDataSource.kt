@@ -11,6 +11,7 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.models.chat.PinSummary
 import com.flipcash.services.models.chat.ViewerState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
@@ -132,8 +133,37 @@ class ChatMetadataDataSource @Inject constructor(
     /** The hex a [chatId] is keyed by. Callers comparing against [getChatIdsOfType] need it. */
     fun chatIdHex(chatId: ChatId): String = mapper.chatIdHex(chatId)
 
+    // The pin summaries live in memory, per signed-in database: a different instance means a
+    // different user, whose held summaries must not carry over.
+    private var pinsOwner: FlipcashDatabase? = null
+    private val pins = PinSummaryHolder()
+
+    private fun pinHolder(): PinSummaryHolder = synchronized(pins) {
+        val current = db
+        if (current !== pinsOwner) {
+            pins.clear()
+            pinsOwner = current
+        }
+        pins
+    }
+
+    /** Folds the server's pin summary on [metadata] into the held one; see [PinSummaryHolder.merge]. */
+    private fun holdPins(metadata: ChatMetadata) {
+        pinHolder().merge(mapper.chatIdHex(metadata.chatId), metadata.pinSummary)
+    }
+
+    /** The pin summary held for [chatId], or null when none has been read this session. */
+    fun getPinSummary(chatId: ChatId): PinSummary? =
+        pinHolder().get(mapper.chatIdHex(chatId))
+
+    /** Applies a `PinsChanged` summary only if its version beats the held one (none held = 0). */
+    fun updatePinSummary(chatId: ChatId, summary: PinSummary): Boolean =
+        pinHolder().applyChanged(mapper.chatIdHex(chatId), summary)
+
     suspend fun upsert(metadata: ChatMetadata) {
-        db?.chatMetadataDao()?.upsert(mapper.toEntity(metadata))
+        val dao = db?.chatMetadataDao() ?: return
+        dao.upsert(mapper.toEntity(metadata))
+        holdPins(metadata)
     }
 
     /**
@@ -144,10 +174,13 @@ class ChatMetadataDataSource @Inject constructor(
         val dao = db?.chatMetadataDao() ?: return
         val isMember = dao.getById(mapper.chatIdHex(metadata.chatId))?.isMember ?: false
         dao.upsert(mapper.toEntity(metadata, isMember = isMember))
+        holdPins(metadata)
     }
 
     suspend fun upsert(metadatas: List<ChatMetadata>) {
-        db?.chatMetadataDao()?.upsert(metadatas.map { mapper.toEntity(it) })
+        val dao = db?.chatMetadataDao() ?: return
+        dao.upsert(metadatas.map { mapper.toEntity(it) })
+        metadatas.forEach(::holdPins)
     }
 
     suspend fun getLastActivity(chatId: ChatId): Long? =
@@ -249,8 +282,10 @@ class ChatMetadataDataSource @Inject constructor(
         members: List<ChatMember>,
         lastMessage: ChatMessage?,
     ): ChatMetadata = mapper.toMetadata(entity, members, lastMessage)
+        .copy(pinSummary = pinHolder().get(entity.chatIdHex))
 
     suspend fun clear() {
+        pinHolder().clear()
         db?.chatMetadataDao()?.deleteAll()
     }
 
