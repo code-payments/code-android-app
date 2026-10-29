@@ -16,6 +16,7 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.PinSummary
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.RosterSummary
 import com.flipcash.services.models.chat.SilenceState
@@ -48,6 +49,17 @@ class ChatEntityMapperTest {
         lastActivity = Instant.fromEpochSeconds(1_000),
         latestEventSequence = latestEventSequence,
     )
+
+    @Test
+    fun `a row that never had a pin maps to no pin summary, and one with a version maps to it`() {
+        val none = ChatMetadataEntity(
+            chatIdHex = "ab", chatType = "GROUP", lastActivityEpochMs = 1, lastMessageId = null,
+        )
+        assertNull(mapper.toMetadata(none, emptyList(), null).pinSummary)
+
+        val unpinned = mapper.toMetadata(none.copy(pinVersion = 3), emptyList(), null).pinSummary
+        assertEquals(PinSummary(count = 0, version = 3), unpinned)
+    }
 
     @Test
     fun `server head is not written as the applied cursor`() {

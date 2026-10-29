@@ -5,9 +5,12 @@ import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
 import com.flipcash.services.models.chat.MetadataUpdate
 import com.flipcash.services.models.chat.PinChange
+import com.flipcash.services.models.chat.PinSummary
+import com.flipcash.services.models.chat.fromStored
 import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
 import org.junit.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -52,6 +55,27 @@ class PinMappingTest {
         assertNull(result.latest)
         assertEquals(0, result.count)
         assertEquals(2L, result.version)
+    }
+
+    @Test
+    fun `a stored pin summary decodes to the summary it was encoded from`() {
+        val original = summary(latest = 9, count = 3, version = 11).toPinSummary()
+        val encoded = requireNotNull(original.latestEncoded)
+
+        val restored = PinSummary.fromStored(original.count, original.version, encoded)
+
+        assertEquals(original, restored)
+        assertEquals(9L, restored.latest?.messageId)
+        assertContentEquals(encoded, restored.latestEncoded)
+    }
+
+    @Test
+    fun `a stored summary with no latest pin, or unreadable bytes, has no latest`() {
+        assertNull(PinSummary.fromStored(0, 4, null).latest)
+        val garbage = PinSummary.fromStored(2, 4, byteArrayOf(0x0A, 0x7F, 0x01))
+        assertNull(garbage.latest)
+        assertNull(garbage.latestEncoded)
+        assertEquals(2, garbage.count)
     }
 
     @Test

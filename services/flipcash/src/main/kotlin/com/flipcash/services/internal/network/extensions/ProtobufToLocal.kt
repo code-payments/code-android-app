@@ -530,6 +530,7 @@ internal fun ChatModel.PinSummary.toPinSummary(): PinSummary = PinSummary(
     latest = if (hasLatest()) latest.toPin() else null,
     count = count,
     version = version,
+    latestEncoded = if (hasLatest()) latest.toByteArray() else null,
 )
 
 internal fun ChatModel.HoldingsSummary.toHoldingsSummary(): HoldingsSummary {

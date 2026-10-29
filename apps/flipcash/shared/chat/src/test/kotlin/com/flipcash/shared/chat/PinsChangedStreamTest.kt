@@ -20,7 +20,7 @@ import org.junit.Test
 
 /**
  * A `PinsChanged` event hands its summary to the data source, which applies it only when strictly
- * newer than the held one (see `PinSummaryHolderTest` for that rule).
+ * newer than the held one (see `ChatMetadataDaoTest` for that rule).
  */
 class PinsChangedStreamTest {
 
@@ -57,7 +57,7 @@ class PinsChangedStreamTest {
                 open()
             }
 
-            io.mockk.verify(timeout = 5_000) { metadata.updatePinSummary(chatId, summary) }
+            io.mockk.coVerify(timeout = 5_000) { metadata.updatePinSummary(chatId, summary) }
         } finally {
             scope.cancel()
         }

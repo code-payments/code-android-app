@@ -212,6 +212,31 @@ interface ChatMetadataDao {
     suspend fun clearViewerState(chatIdHex: String)
 
     /**
+     * Stores a pin summary read from the server unless the stored one is newer. Equal or higher
+     * [version] replaces; a lower one is dropped. A chat that has never had a pin reads as
+     * version 0, so any summary beats it, and a metadata carrying no summary (which maps to
+     * version 0, count 0, no latest) rewrites only that same empty state: a list RPC that omits
+     * the summary can never clear a held one. One statement, so the compare and the write are
+     * atomic.
+     */
+    @Query(
+        "UPDATE chat_metadata SET pin_count = :count, pin_version = :version, latest_pin = :latestPin " +
+            "WHERE chat_id_hex = :chatIdHex AND :version >= pin_version"
+    )
+    suspend fun mergePinSummary(chatIdHex: String, count: Int, version: Long, latestPin: ByteArray?)
+
+    /**
+     * Applies a `PinsChanged` summary only when [version] is strictly newer than the stored one,
+     * returning whether a row changed. False also covers a chat with no row yet; its next feed or
+     * `GetChat` read carries the summary.
+     */
+    @Query(
+        "UPDATE chat_metadata SET pin_count = :count, pin_version = :version, latest_pin = :latestPin " +
+            "WHERE chat_id_hex = :chatIdHex AND :version > pin_version"
+    )
+    suspend fun applyPinsChanged(chatIdHex: String, count: Int, version: Long, latestPin: ByteArray?): Int
+
+    /**
      * Inserts a new chat, or refreshes an existing one's server-owned columns in place.
      *
      * Deliberately not a whole-row REPLACE: `latest_event_sequence` is the cursor the
@@ -256,6 +281,12 @@ interface ChatMetadataDao {
             canBan = entity.canBan,
             silenceUntilEpochMs = entity.silenceUntilEpochMs,
             silenceForever = entity.silenceForever,
+        )
+        mergePinSummary(
+            chatIdHex = entity.chatIdHex,
+            count = entity.pinCount,
+            version = entity.pinVersion,
+            latestPin = entity.latestPin,
         )
     }
 
