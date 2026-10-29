@@ -451,6 +451,7 @@ class RealChatCoordinator @Inject constructor(
         // the same file — and account deletion is the one path that is meant to erase them.
         draftStore.clearAll()
         archiveStore.clearAll()
+        paymentRequests?.clearStored()
         trace(tag = TAG, message = "cache cleared", type = TraceType.Process)
     }
 
