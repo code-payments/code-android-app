@@ -10,6 +10,8 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.InviteParameters
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.Pin
+import com.flipcash.services.models.chat.PinSummary
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.ChatType
@@ -483,6 +485,25 @@ interface MessagingOperations {
      * transcript is withheld, where storing it would put it under the blur.
      */
     suspend fun peekMessage(chatId: ChatId, messageId: Long): Result<ChatMessage>
+
+    /**
+     * Every pin in [chatId], most recently pinned first. Each [Pin.message] is readable the way
+     * [readMessage] makes it: the stored copy when there is one, otherwise the server's copy,
+     * opened on this device if it is end-to-end encrypted. Nothing is stored; a pinned message can
+     * be far older than the stored transcript.
+     *
+     * Pins whose message was deleted come back as tombstones; callers hide them.
+     */
+    suspend fun getPinnedMessages(chatId: ChatId): Result<PinnedMessages>
+
+    /**
+     * Pins [messageId] in [chatId] and returns the chat's updated pin summary. Re-pinning a pinned
+     * message is a no-op on the server. Fails with `PinMessageError.TooManyPins` at the server's cap.
+     */
+    suspend fun pinMessage(chatId: ChatId, messageId: Long): Result<PinSummary>
+
+    /** Unpins [messageId] in [chatId] and returns the chat's updated pin summary. */
+    suspend fun unpinMessage(chatId: ChatId, messageId: Long): Result<PinSummary>
 
     /**
      * Sends a text message to [chatId]. Returns the server-confirmed [ChatMessage].

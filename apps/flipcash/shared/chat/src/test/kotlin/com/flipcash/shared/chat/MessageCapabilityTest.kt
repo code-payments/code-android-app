@@ -619,4 +619,51 @@ class MessageCapabilityTest {
         assertEquals(false, canBoost(text(isFromSelf = false), ChatType.GROUP, selfReactions = reacted, canSpeak = false))
         assertEquals(false, canBoost(text(isFromSelf = false, eventSequence = 0), ChatType.GROUP, selfReactions = reacted))
     }
+
+    // can_pin is the whole grant: who may pin is the server's call, read from the viewer state.
+    @Test
+    fun `pin is offered on a message with can_pin and withheld without it`() {
+        val incoming = text(isFromSelf = false)
+
+        assertEquals(true, MessageCapability.Pin in resolveCapabilities(incoming, now = sentAt, canPin = true))
+        assertEquals(false, MessageCapability.Pin in resolveCapabilities(incoming, now = sentAt, canPin = false))
+    }
+
+    @Test
+    fun `pin survives losing the right to post`() {
+        val resolved = resolveCapabilities(text(), now = sentAt, canPost = false, canPin = true)
+
+        assertEquals(true, MessageCapability.Pin in resolved)
+    }
+
+    @Test
+    fun `pin is offered on cash`() {
+        assertEquals(true, MessageCapability.Pin in resolveCapabilities(cash(), now = sentAt, canPin = true))
+    }
+
+    // The server refuses these with MESSAGE_NOT_ALLOWED; the menu shouldn't offer what fails.
+    @Test
+    fun `pin is hidden on system messages and tombstones`() {
+        val system = message(listOf(MessageContent.System("Anna joined")), isFromSelf = false)
+        val tombstone = message(listOf(MessageContent.Deleted(sentAt, otherId)), isFromSelf = false)
+
+        assertEquals(false, MessageCapability.Pin in resolveCapabilities(system, now = sentAt, canPin = true))
+        assertEquals(false, MessageCapability.Pin in resolveCapabilities(tombstone, now = sentAt, canPin = true))
+    }
+
+    // Client-only: the request strip and pill already keep requests at the top.
+    @Test
+    fun `pin is hidden on payment requests`() {
+        val request = message(listOf(MessageContent.Widget(WidgetContent.PaymentRequest(listOf<Byte>(7)))))
+
+        assertEquals(false, MessageCapability.Pin in resolveCapabilities(request, now = sentAt, canPin = true))
+    }
+
+    @Test
+    fun `pin is hidden on a message the server hasn't acknowledged`() {
+        assertEquals(
+            false,
+            MessageCapability.Pin in resolveCapabilities(text(eventSequence = 0), now = sentAt, canPin = true),
+        )
+    }
 }
