@@ -10,6 +10,8 @@ import com.flipcash.features.tipping.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.models.GetUserProfileError
+import com.flipcash.services.models.MaxUsernameLength
+import com.flipcash.services.models.MinUsernameLength
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
@@ -23,12 +25,12 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 /**
- * The server's handle bounds — `^[a-z0-9_]{2,15}$`, the same pattern the claim screen writes against.
- * Enforced as the field is typed so a lookup can't fail request validation, which surfaces only as a
- * generic error.
+ * The contract's handle bounds — `common.v1.Username`, `^[a-z0-9_]{2,30}$`. Wider than what the claim
+ * screen lets someone pick, since this looks up handles the server assigned. Enforced as the field is
+ * typed so a lookup can't fail request validation, which surfaces only as a generic error.
  */
-internal const val MinHandleLength = 2
-internal const val MaxHandleLength = 15
+internal const val MinHandleLength = MinUsernameLength
+internal const val MaxHandleLength = MaxUsernameLength
 
 /**
  * Turning a typed `@handle` into somewhere to go.

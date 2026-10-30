@@ -7,7 +7,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * The shape rule stands in for the server's `^[a-z0-9_]{2,15}$`, and three places rely on it without
+ * The shape rule stands in for the contract's `^[a-z0-9_]{2,30}$`, and three places rely on it without
  * being able to ask: the vanity deeplink, the tip card's link row, and the entry screen's own
  * pre-submit check. Mirrors iOS `UsernameValidatorTests`.
  */
@@ -33,6 +33,15 @@ class HandleTest {
     fun `both ends of the length range are accepted`() {
         assertTrue("a".repeat(MinUsernameLength).isUsernameShaped())
         assertTrue("a".repeat(MaxUsernameLength).isUsernameShaped())
+    }
+
+    @Test
+    fun `handles past the claim cap are still username shaped`() {
+        assertTrue("ted_livingston_2".isUsernameShaped())
+        assertTrue("@ted_livingston_2".isUsernameShaped())
+        assertTrue("a".repeat(MaxClaimableUsernameLength + 1).isUsernameShaped())
+        assertTrue("a".repeat(30).isUsernameShaped())
+        assertFalse("a".repeat(31).isUsernameShaped())
     }
 
     @Test

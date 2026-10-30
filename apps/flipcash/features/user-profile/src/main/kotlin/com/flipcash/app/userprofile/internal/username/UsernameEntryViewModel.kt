@@ -9,7 +9,7 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.userprofile.R
 import com.flipcash.services.controllers.ProfileController
-import com.flipcash.services.models.MaxUsernameLength
+import com.flipcash.services.models.MaxClaimableUsernameLength
 import com.flipcash.services.models.MinUsernameLength
 import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.SetUsernameError
@@ -188,7 +188,7 @@ class UsernameEntryViewModel @Inject constructor(
                 title = resources.getString(R.string.error_title_usernameTooLong),
                 message = resources.getString(
                     R.string.error_description_usernameTooLong,
-                    MaxUsernameLength,
+                    MaxClaimableUsernameLength,
                 ),
             )
 

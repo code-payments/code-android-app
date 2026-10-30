@@ -59,10 +59,16 @@ class MentionDetectionTest {
     }
 
     @Test
-    fun `handles outside 2 to 15 characters are not mentions`() {
+    fun `handles outside 2 to 30 characters are not mentions`() {
         assertEquals(emptyList(), handles("@a"))
-        assertEquals(emptyList(), handles("@abcdefghijklmnop"))
-        assertEquals(listOf("abcdefghijklmno"), handles("@abcdefghijklmno"))
+        assertEquals(emptyList(), handles("@" + "a".repeat(31)))
+        assertEquals(listOf("a".repeat(30)), handles("@" + "a".repeat(30)))
+    }
+
+    @Test
+    fun `a handle longer than 15 characters is a mention`() {
+        assertEquals(listOf("ted_livingston_2"), handles("hi @ted_livingston_2!"))
+        assertEquals(listOf("ted_livingston_2"), handles("hi @Ted_Livingston_2"))
     }
 
     @Test
