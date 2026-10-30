@@ -3849,7 +3849,7 @@ internal class ChatViewModel @AssistedInject constructor(
                         val sentAmount = verifiedFiat.localFiat.analytics
                         when {
                             isCashLink -> TransferEvents.sendCashLink(state, sentAmount, CashLinkChoice.GROUP_CHAT, null, error)
-                            else -> TransferEvents.sentCash(state, sentAmount, error, SendContext.DIRECT, null)
+                            else -> TransferEvents.sentCash(state, sentAmount, error, SendContext.DIRECT)
                         }
                     }
 

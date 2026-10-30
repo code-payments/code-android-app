@@ -157,7 +157,7 @@ internal class RequestPayFlow(
     }
 
     private fun sentCash(state: AnalyticsState, pending: ShareToPay.Ready, error: String?) =
-        TransferEvents.sentCash(state, pending.share.amount.analytics, error, SendContext.PAYMENT_REQUEST, null)
+        TransferEvents.sentCash(state, pending.share.amount.analytics, error, SendContext.PAYMENT_REQUEST)
 
     fun dismiss() {
         if (!_state.value.progress.isIdle && !_state.value.progress.success) return

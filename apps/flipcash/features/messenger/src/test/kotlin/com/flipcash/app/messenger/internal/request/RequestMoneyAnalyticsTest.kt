@@ -57,8 +57,8 @@ class RequestMoneyAnalyticsTest {
         every { exchange.preferredRate } returns Rate.oneToOne
         every { exchange.observePreferredRate() } returns emptyFlow()
         every { exchange.getCurrency(any()) } returns Currency(code = "USD", name = "US Dollar", symbol = "$")
-        every { resources.getString(any()) } returns "text"
-        every { resources.getString(any(), any()) } returns "text"
+        every { resources.getString(any<Int>()) } returns "text"
+        every { resources.getString(any<Int>(), *anyVararg()) } returns "text"
         every { rosters.state } returns MutableStateFlow(mapOf(chatId to listOf(member(1), member(2), member(3))))
         coEvery { requests.resolvedPage(any(), any()) } returns Result.failure(IllegalStateException("no history"))
         coEvery { crypto.sealPaymentRequestText(any(), any(), any(), any()) } returns Result.success(mockk(relaxed = true))

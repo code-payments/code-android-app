@@ -51,7 +51,7 @@ class TransferEventsTest {
         assertEquals(AnalyticsEvent("Give Bill", expected), TransferEvents.giveBill(State.FAILURE, amount, "e"))
         assertEquals(AnalyticsEvent("Withdrawal", expected), TransferEvents.withdrawal(State.FAILURE, amount, "e"))
         assertEquals(AnalyticsEvent("Receive Cash Link", expected), TransferEvents.receiveCashLink(State.FAILURE, amount, "e"))
-        assertEquals(AnalyticsEvent("Sent Cash", expected), TransferEvents.sentCash(State.FAILURE, amount, "e", null, null))
+        assertEquals(AnalyticsEvent("Sent Cash", expected), TransferEvents.sentCash(State.FAILURE, amount, "e"))
         assertEquals(AnalyticsEvent("Sent Tip", expected), TransferEvents.sentTip(State.FAILURE, amount, "e"))
     }
 
@@ -103,7 +103,7 @@ class TransferEventsTest {
     fun sentCashLeavesOutContextAndRecipientCountWhenAbsent() {
         assertEquals(
             AnalyticsEvent("Sent Cash", mapOf("State" to PropertyValue.Text("Success")) + amountProperties),
-            TransferEvents.sentCash(State.SUCCESS, amount, null, null, null),
+            TransferEvents.sentCash(State.SUCCESS, amount, null),
         )
     }
 
@@ -125,7 +125,7 @@ class TransferEventsTest {
     @Test
     fun sentCashContextValuesAreSentAsText() {
         fun context(value: SendContext) =
-            TransferEvents.sentCash(State.SUCCESS, null, null, value, null).properties["Context"]
+            TransferEvents.sentCash(State.SUCCESS, null, null, value).properties["Context"]
 
         assertEquals(PropertyValue.Text("Direct"), context(SendContext.DIRECT))
         assertEquals(PropertyValue.Text("Group Send"), context(SendContext.GROUP_SEND))

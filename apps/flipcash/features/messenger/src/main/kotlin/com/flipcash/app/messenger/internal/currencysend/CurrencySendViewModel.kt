@@ -320,7 +320,7 @@ internal class CurrencySendViewModel @Inject constructor(
                     show = { _state.update { it.copy(sendProgress = LoadingSuccessState(success = true)) } },
                     release = {
                         analytics.track(
-                            TransferEvents.sentCash(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null, SendContext.DIRECT, null)
+                            TransferEvents.sentCash(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null, SendContext.DIRECT)
                         )
                         _done.trySend(Unit)
                     },
@@ -333,7 +333,6 @@ internal class CurrencySendViewModel @Inject constructor(
                         verifiedFiat.localFiat.analytics,
                         cause.analytics,
                         SendContext.DIRECT,
-                        null,
                     )
                 )
                 BottomBarManager.showError(

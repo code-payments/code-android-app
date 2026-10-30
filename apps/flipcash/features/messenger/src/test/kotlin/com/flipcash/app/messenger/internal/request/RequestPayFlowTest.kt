@@ -141,7 +141,6 @@ class RequestPayFlowTest {
                     Fiat(50.0).analytics,
                     "boom",
                     SendContext.PAYMENT_REQUEST,
-                    null,
                 ),
             ),
             analytics.events,

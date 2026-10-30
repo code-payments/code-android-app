@@ -192,7 +192,7 @@ internal class DefaultStartChattingPayer @Inject constructor(
         val sent = { state: AnalyticsState, amount: Amount, error: String? ->
             when (action) {
                 TipAction.TIP -> TransferEvents.sentTip(state, amount, error)
-                TipAction.SEND -> TransferEvents.sentCash(state, amount, error, SendContext.DIRECT, null)
+                TipAction.SEND -> TransferEvents.sentCash(state, amount, error, SendContext.DIRECT)
             }
         }
         analytics.track(
