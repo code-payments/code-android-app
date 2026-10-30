@@ -294,12 +294,21 @@ include(
 // Only real modules, not the intermediate container projects that Gradle
 // auto-creates for nested paths (e.g. `:apps:flipcash:shared`) — those have no
 // build script and must not receive a `kover(project(...))` / test dependency.
+// Modules converted to Kotlin Multiplatform (src/commonMain or src/androidMain). They expose
+// `testAndroidHostTest`, not `testDebugUnitTest`, so a module converted in the desktop stack lands
+// here by its layout instead of by an entry in kmpUnitTestModules.
+val kmpLayoutModules = mutableSetOf<String>()
 val includedProjectPaths = buildList {
     fun collect(descriptor: ProjectDescriptor) {
         val hasBuildScript = descriptor.projectDir.resolve("build.gradle.kts").exists() ||
             descriptor.projectDir.resolve("build.gradle").exists()
         if (descriptor.path != ":" && hasBuildScript) {
             add(descriptor.path)
+            if (descriptor.projectDir.resolve("src/commonMain").exists() ||
+                descriptor.projectDir.resolve("src/androidMain").exists()
+            ) {
+                kmpLayoutModules.add(descriptor.path)
+            }
         }
         descriptor.children.forEach(::collect)
     }
@@ -357,8 +366,11 @@ val noUnitTestModules = setOf(
 val unitTestCandidates = includedProjectPaths.filter { path ->
     unitTestPaths.any { path == it || path.startsWith("$it:") } && path !in noUnitTestModules
 }
+val kmpHostTestModules = unitTestCandidates.filter {
+    it in kmpUnitTestModules || (it in kmpLayoutModules && it !in jvmUnitTestModules)
+}
 val androidUnitTestModules = unitTestCandidates.filter {
-    it !in jvmUnitTestModules && it !in kmpUnitTestModules
+    it !in jvmUnitTestModules && it !in kmpHostTestModules
 }
 
 // Forced dependency versions for the per-project configuration below. The
@@ -387,7 +399,7 @@ run {
     val koverModulesForRoot = koverModules.toList()
     val androidUnitTestForRoot = androidUnitTestModules.toList()
     val jvmUnitTestForRoot = jvmUnitTestModules.toList()
-    val kmpUnitTestForRoot = kmpUnitTestModules.toList()
+    val kmpUnitTestForRoot = kmpHostTestModules.toList()
     val forcedDependencies = listOf(
         "org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion",
         "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion",
