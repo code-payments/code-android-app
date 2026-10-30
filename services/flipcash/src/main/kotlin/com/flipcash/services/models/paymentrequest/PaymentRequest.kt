@@ -74,6 +74,9 @@ data class Split(
     val currency: CurrencyCode,
     val endsAt: Instant,
     val shares: List<Share>,
+    // The sealed form [text] was opened from, so persistence stores the text as the server sent it
+    // (see [encodePaymentRequest]). Null when the text was never sealed or is still sealed.
+    val sealedText: PaymentRequestText.Encrypted? = null,
 ) {
     val requested: Fiat get() = Fiat(quarks = shares.sumOf { it.amount.quarks }, currencyCode = currency)
     val paid: Fiat get() = Fiat(quarks = shares.filter { it.isPaid }.sumOf { it.amount.quarks }, currencyCode = currency)

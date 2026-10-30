@@ -1,5 +1,6 @@
 package com.flipcash.shared.chat
 
+import com.flipcash.app.persistence.sources.PaymentRequestDataSource
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.chat.GroupContentCrypto
 import com.flipcash.services.controllers.PaymentRequestController
@@ -17,11 +18,14 @@ import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.flipcash.services.models.paymentrequest.PaymentRequestUpdate
 import com.flipcash.services.models.paymentrequest.newerOf
 import com.getcode.opencode.model.core.ID
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
@@ -34,12 +38,17 @@ import javax.inject.Singleton
  * its text is opened once, then [merge] keeps the newer copy. The chat's event stream also announces
  * changes, best effort, which [onUpdates] applies by version (see [applyUpdate]); polling stays as
  * reconciliation for whatever it misses.
+ * Every change to the held map is also written to [store] (see [persist]), which keeps the newer copy
+ * by the contract's rule, and a chat's stored requests are loaded into the map before its first
+ * refetch ([hydrate]), so cards draw offline and after a restart. Only requests are stored:
+ * [missing] and the in-flight fetches are per-process and start empty.
  * A request's `payment_intent_id` never enters the store; [fetch] hands it to the caller.
  */
 @Singleton
 class PaymentRequests @Inject constructor(
     private val controller: PaymentRequestController,
     private val crypto: GroupContentCrypto,
+    private val store: PaymentRequestDataSource,
 ) : PaymentRequestUpdateSink {
     private val requests = MutableStateFlow<Map<ID, PaymentRequest>>(emptyMap())
 
@@ -52,14 +61,23 @@ class PaymentRequests @Inject constructor(
 
     private val inFlight = MutableStateFlow<Set<ID>>(emptySet())
 
-    /** The held requests made in [chatId], in no particular order. */
-    fun inChat(chatId: ChatId): Flow<List<PaymentRequest>> =
-        requests.map { all -> all.values.filter { it.chatId == chatId } }.distinctUntilChanged()
+    private val hydrated = MutableStateFlow<Set<ChatId>>(emptySet())
 
-    fun request(id: ID): Flow<PaymentRequest?> = requests.map { it[id] }.distinctUntilChanged()
+    /** The held requests made in [chatId], in no particular order; its stored ones are loaded first. */
+    fun inChat(chatId: ChatId): Flow<List<PaymentRequest>> = flow {
+        hydrate(chatId)
+        emitAll(requests.map { all -> all.values.filter { it.chatId == chatId } }.distinctUntilChanged())
+    }
+
+    /** The held request, loaded from storage first when the map has none. */
+    fun request(id: ID): Flow<PaymentRequest?> = flow {
+        if (id !in requests.value) hydrate(id)
+        emitAll(requests.map { it[id] }.distinctUntilChanged())
+    }
 
     /** Refetches [chatId]'s open requests (first 100) and recently resolved ones (first 20). */
     suspend fun loadChat(chatId: ChatId): Result<Unit> = runCatching {
+        hydrate(chatId)
         val open = controller.getChatPaymentRequests(chatId, PaymentRequestSection.OPEN, QueryOptions(limit = OPEN_PAGE))
             .getOrThrow()
         val resolved = controller.getChatPaymentRequests(chatId, PaymentRequestSection.RESOLVED, QueryOptions(limit = RESOLVED_PAGE))
@@ -116,6 +134,7 @@ class PaymentRequests @Inject constructor(
     suspend fun ingest(incoming: List<PaymentRequest>) {
         val opened = incoming.map { open(it) }
         requests.update { held -> opened.fold(held, ::merge) }
+        persist(opened)
     }
 
     /**
@@ -131,11 +150,16 @@ class PaymentRequests @Inject constructor(
                 is PaymentRequestUpdate.Kind.Created -> ingest(listOf(kind.paymentRequest))
                 is PaymentRequestUpdate.Kind.Updates, PaymentRequestUpdate.Kind.Unknown -> {
                     var stale = false
+                    var applied: PaymentRequest? = null
                     requests.update { held ->
                         val outcome = applyUpdate(held, update)
                         stale = outcome.refetch
+                        applied = outcome.requests[update.paymentRequestId]
+                            ?.takeIf { it !== held[update.paymentRequestId] }
                         outcome.requests
                     }
+                    // The whole request at its new version, which the store keeps if it is newer.
+                    applied?.let { persist(listOf(it)) }
                     if (stale) refetch += update.paymentRequestId
                 }
             }
@@ -155,9 +179,63 @@ class PaymentRequests @Inject constructor(
         }
     }
 
+    /** Drops what the session holds; the stored requests stay for the account's next session. */
     fun clear() {
         requests.value = emptyMap()
         _missing.value = emptySet()
+        hydrated.value = emptySet()
+    }
+
+    /**
+     * Drops [chatId]'s requests from what the session holds, for a chat the viewer has left. The
+     * stored rows go with the membership change (see `ChatMetadataDataSource.removeFromChat`); this
+     * is the in-memory half, and un-marks the chat as hydrated so a rejoin loads afresh.
+     */
+    fun forget(chatId: ChatId) {
+        val gone = requests.value.filterValues { it.chatId == chatId }.keys
+        requests.update { held -> held - gone }
+        _missing.update { it - gone }
+        hydrated.update { it - chatId }
+    }
+
+    /** Erases the stored requests, with the rest of the account's cache. */
+    suspend fun clearStored() = store.clear()
+
+    /**
+     * Loads [chatId]'s stored requests into the map, once per session. They merge like fetched
+     * copies, so a newer one already held stays, and they are not written back. A store that fails
+     * leaves the map as it was.
+     */
+    private suspend fun hydrate(chatId: ChatId) {
+        var first = false
+        hydrated.update { held -> first = chatId !in held; held.plusElement(chatId) }
+        if (!first) return
+        val stored = storeCatching { store.inChat(chatId) } ?: return
+        load(stored)
+    }
+
+    private suspend fun hydrate(id: ID) {
+        val stored = storeCatching { store.find(id) } ?: return
+        load(listOf(stored))
+    }
+
+    private suspend fun load(stored: List<PaymentRequest>) {
+        val opened = stored.map { open(it) }
+        requests.update { held -> opened.fold(held, ::merge) }
+    }
+
+    private suspend fun persist(written: List<PaymentRequest>) {
+        storeCatching { store.merge(written) }
+    }
+
+    // The store is a cache of what the network says: a failure to read or write it must not fail
+    // the fetch or the update it rode along with.
+    private suspend fun <T> storeCatching(block: suspend () -> T): T? = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null
     }
 
     private suspend fun ingestOne(request: PaymentRequest): PaymentRequest {
@@ -167,11 +245,12 @@ class PaymentRequests @Inject constructor(
 
     private suspend fun open(request: PaymentRequest): PaymentRequest {
         val kind = request.kind as? PaymentRequest.Kind.GroupSplit ?: return request
-        if (kind.split.text !is PaymentRequestText.Encrypted) return request
+        val sealed = kind.split.text as? PaymentRequestText.Encrypted ?: return request
         // A key that can't be fetched yet leaves the text sealed; a later fetch opens it.
-        val text = crypto.openPaymentRequestText(kind.chatId, request.creator, kind.split.text)
+        val text = crypto.openPaymentRequestText(kind.chatId, request.creator, sealed)
             .getOrElse { return request }
-        return request.copy(kind = kind.copy(split = kind.split.copy(text = text)))
+        // The sealed form rides along so storage keeps the text as received.
+        return request.copy(kind = kind.copy(split = kind.split.copy(text = text, sealedText = sealed)))
     }
 
     /** [requests] after an update, and whether the request must be refetched to reconcile it. */

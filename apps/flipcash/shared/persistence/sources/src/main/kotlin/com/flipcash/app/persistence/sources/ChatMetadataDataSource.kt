@@ -1,6 +1,7 @@
 package com.flipcash.app.persistence.sources
 
 import androidx.paging.PagingSource
+import androidx.room.withTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
@@ -82,6 +83,26 @@ class ChatMetadataDataSource @Inject constructor(
 
     suspend fun setMembership(chatIdHex: String, isMember: Boolean) {
         db?.chatMetadataDao()?.updateMembership(chatIdHex, isMember)
+    }
+
+    /**
+     * Records that the viewer is no longer in [chatId] and drops what was kept to read it offline:
+     * its group key envelopes (every own key) and its payment requests. The row itself stays, as a
+     * chat you have left is still one you can be shown, so this is the point where the chat's
+     * data goes rather than a row delete. One transaction, so a reader never sees the chat left
+     * with its key still stored.
+     */
+    suspend fun removeFromChat(chatId: ChatId) {
+        removeFromChat(mapper.chatIdHex(chatId))
+    }
+
+    suspend fun removeFromChat(chatIdHex: String) {
+        val database = db ?: return
+        database.withTransaction {
+            database.chatMetadataDao().updateMembership(chatIdHex, false)
+            database.groupKeyEnvelopeDao().deleteForChat(chatIdHex)
+            database.paymentRequestDao().deleteForChat(chatIdHex)
+        }
     }
 
     /** The roster version already applied to [chatId]; 0 when the chat is not stored yet. */

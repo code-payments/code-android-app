@@ -200,7 +200,12 @@ class GroupFeedDelegate @Inject constructor(
     override suspend fun leave(chatId: ChatId): Result<Unit> {
         metadataDataSource.setMembership(chatId, isMember = false)
         return chatController.leaveChat(chatId)
-            .onSuccess { metadataDataSource.clearViewerState(chatId) }
+            .onSuccess {
+                metadataDataSource.clearViewerState(chatId)
+                // On success only, like the viewer state: a failed leave keeps the user in the
+                // chat, which still needs its key and requests.
+                metadataDataSource.removeFromChat(chatId)
+            }
             .onFailure {
                 trace(tag = TAG, message = "Leave failed for $chatId", type = TraceType.Error)
                 metadataDataSource.setMembership(chatId, isMember = true)
@@ -247,7 +252,7 @@ class GroupFeedDelegate @Inject constructor(
 
                 is RosterChange.MemberLeft -> {
                     if (change.userId != selfId) continue
-                    metadataDataSource.setMembership(chatId, isMember = false)
+                    metadataDataSource.removeFromChat(chatId)
                     // Same reason as [leave]: the mute is gone server-side the moment you are out
                     // of the chat, whether you left from this device or another one.
                     metadataDataSource.clearViewerState(chatId)
