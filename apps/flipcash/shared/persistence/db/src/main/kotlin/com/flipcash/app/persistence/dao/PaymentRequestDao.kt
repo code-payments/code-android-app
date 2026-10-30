@@ -54,6 +54,9 @@ interface PaymentRequestDao {
     @Query("SELECT * FROM payment_requests WHERE chat_id_hex = :chatIdHex")
     suspend fun inChat(chatIdHex: String): List<PaymentRequestEntity>
 
+    @Query("DELETE FROM payment_requests WHERE chat_id_hex = :chatIdHex")
+    suspend fun deleteForChat(chatIdHex: String)
+
     @Query("DELETE FROM payment_requests")
     suspend fun deleteAll()
 }

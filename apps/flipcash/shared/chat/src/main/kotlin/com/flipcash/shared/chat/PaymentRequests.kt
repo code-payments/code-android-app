@@ -186,6 +186,18 @@ class PaymentRequests @Inject constructor(
         hydrated.value = emptySet()
     }
 
+    /**
+     * Drops [chatId]'s requests from what the session holds, for a chat the viewer has left. The
+     * stored rows go with the membership change (see `ChatMetadataDataSource.removeFromChat`); this
+     * is the in-memory half, and un-marks the chat as hydrated so a rejoin loads afresh.
+     */
+    fun forget(chatId: ChatId) {
+        val gone = requests.value.filterValues { it.chatId == chatId }.keys
+        requests.update { held -> held - gone }
+        _missing.update { it - gone }
+        hydrated.update { it - chatId }
+    }
+
     /** Erases the stored requests, with the rest of the account's cache. */
     suspend fun clearStored() = store.clear()
 

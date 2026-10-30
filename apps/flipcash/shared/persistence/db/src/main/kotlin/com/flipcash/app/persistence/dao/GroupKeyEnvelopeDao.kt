@@ -19,6 +19,10 @@ interface GroupKeyEnvelopeDao {
     @Query("DELETE FROM group_key_envelopes WHERE chat_id_hex = :chatIdHex AND own_pk_hex = :ownPkHex")
     suspend fun delete(chatIdHex: String, ownPkHex: String)
 
+    /** Removes every envelope stored for [chatIdHex], whichever own key it was wrapped for. */
+    @Query("DELETE FROM group_key_envelopes WHERE chat_id_hex = :chatIdHex")
+    suspend fun deleteForChat(chatIdHex: String)
+
     @Query("DELETE FROM group_key_envelopes")
     suspend fun deleteAll()
 }

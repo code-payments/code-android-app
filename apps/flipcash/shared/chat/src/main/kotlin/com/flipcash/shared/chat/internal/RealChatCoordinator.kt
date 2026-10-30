@@ -347,6 +347,9 @@ class RealChatCoordinator @Inject constructor(
             // record is left behind, harmlessly, because the chat is no longer a member chat and
             // so is in neither feed.
             archiveStore.unarchive(chatId)
+            // The stored requests went with the membership change; this is the in-memory copy.
+            // A removal or remote leave has no path here, and its cards stay until the session ends.
+            paymentRequests?.forget(chatId)
         }
 
     /**

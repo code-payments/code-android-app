@@ -122,6 +122,17 @@ class PaymentRequestDaoTest {
     }
 
     @Test
+    fun `deleteForChat drops that chat's requests and keeps another chat's`() = runTest {
+        dao.mergeIfNewer(entity(version = 1, id = "01", chat = "aa"))
+        dao.mergeIfNewer(entity(version = 1, id = "02", chat = "aa"))
+        dao.mergeIfNewer(entity(version = 1, id = "03", chat = "bb"))
+        dao.deleteForChat("aa")
+
+        assertEquals(emptyList(), dao.inChat("aa"))
+        assertEquals(listOf("03"), dao.inChat("bb").map { it.idHex })
+    }
+
+    @Test
     fun `deleteAll clears every request`() = runTest {
         dao.mergeIfNewer(entity(version = 1))
         dao.deleteAll()

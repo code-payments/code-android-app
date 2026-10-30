@@ -64,6 +64,18 @@ class GroupKeyEnvelopeDaoTest {
     }
 
     @Test
+    fun `deleteForChat drops every own key's row for that chat only`() = runTest {
+        dao.upsert(row(chat = "aa", pk = "01"))
+        dao.upsert(row(chat = "aa", pk = "02"))
+        dao.upsert(row(chat = "bb", pk = "01"))
+        dao.deleteForChat("aa")
+
+        assertNull(dao.find("aa", "01"))
+        assertNull(dao.find("aa", "02"))
+        assertEquals(row(chat = "bb", pk = "01"), dao.find("bb", "01"))
+    }
+
+    @Test
     fun `deleteAll empties the table`() = runTest {
         dao.upsert(row(chat = "aa"))
         dao.upsert(row(chat = "bb"))
