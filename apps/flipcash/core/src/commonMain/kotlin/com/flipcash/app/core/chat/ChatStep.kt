@@ -118,6 +118,18 @@ sealed interface ChatStep : FlowStep, Parcelable {
         com.getcode.navigation.FullscreenSheet
 
     /**
+     * Frames 1m to 1m″: a host's link card, Approve new members and Manage Invites, from the
+     * profile's share circle and Join Requests' empty state. Carries nothing: the card's link is
+     * the host's own, rebuilt from their invites, and is never on a step.
+     */
+    @Parcelize
+    @Serializable
+    data object InviteHost :
+        ChatStep,
+        Sheet,
+        WrapContentSheet
+
+    /**
      * Frame 2b: Share Link and Revoke Link for one invite on Manage Invites. Returns the pick and
      * leaves the work to Manage Invites, which is still on screen beneath it and owns the revoke
      * confirm (2c).

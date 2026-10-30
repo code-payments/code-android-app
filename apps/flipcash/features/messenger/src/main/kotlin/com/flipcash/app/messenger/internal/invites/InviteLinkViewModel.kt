@@ -8,6 +8,8 @@ import com.flipcash.app.core.extensions.setSensitiveText
 import com.flipcash.app.messenger.internal.trackInviteLinkCreated
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.shared.chat.ApproveNewMembersStore
+import com.flipcash.shared.chat.GroupCardLinks
 import com.flipcash.shared.chat.HostInvite
 import com.flipcash.shared.chat.HostInvites
 import com.flipcash.shared.chat.HostInvites.Companion.isLostInviteAccess
@@ -66,6 +68,8 @@ internal class InviteLinkViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val clipboardManager: ClipboardManager,
     private val analytics: FlipcashAnalytics,
+    private val cardLinks: GroupCardLinks,
+    private val approveStore: ApproveNewMembersStore,
 ) : ViewModel() {
 
     enum class Action { Share, Copy, Send }
@@ -105,6 +109,17 @@ internal class InviteLinkViewModel @Inject constructor(
     private var chatId: ChatId? = null
     private var specific: String? = null
     private var job: Job? = null
+
+    /**
+     * Hands the link showing to the group card about to open, in memory (the card's route is
+     * saved). False while there is no link yet, so the sheet opens no card.
+     */
+    fun handOverCard(): Boolean {
+        val chatId = chatId ?: return false
+        val link = _state.value.link as? InviteLinkState.Ready ?: return false
+        cardLinks.put(chatId, GroupCardLinks.Link(link.url, isInvite = true, expiresAt = link.expiresAt))
+        return true
+    }
 
     /**
      * Starts on [chatId]'s current link, or on the invite [inviteIdHex] when Manage Invites picked
@@ -183,7 +198,12 @@ internal class InviteLinkViewModel @Inject constructor(
                 _state.update { it.copy(link = InviteLinkState.None) }
                 showInviteLinksNotAvailable(
                     resources,
-                    onShareJoinLink = { _effects.trySend(Effect.OpenJoinLink) },
+                    onShareJoinLink = {
+                        // Open 10: the host who hits this turns Approve new members on, so the
+                        // host sheet shows the plain link next time rather than sending them back here.
+                        viewModelScope.launch { approveStore.set(chatId, true) }
+                        _effects.trySend(Effect.OpenJoinLink)
+                    },
                     onCancel = { _effects.trySend(Effect.Close) },
                 )
             }

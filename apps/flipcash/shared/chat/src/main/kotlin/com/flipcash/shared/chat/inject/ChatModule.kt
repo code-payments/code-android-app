@@ -11,6 +11,8 @@ import com.flipcash.shared.chat.LobbyUpdateSink
 import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.shared.chat.RosterUpdateSink
 import com.flipcash.shared.chat.RosterSearchSource
+import com.flipcash.shared.chat.ApproveNewMembersStore
+import com.flipcash.shared.chat.internal.DataStoreApproveNewMembersStore
 import com.flipcash.shared.chat.internal.DataStoreLobbyRequestStore
 import com.flipcash.shared.chat.internal.DmOutgoingEncryption
 import com.flipcash.shared.chat.alerts.ReactionAlertController
@@ -64,6 +66,11 @@ abstract class ChatModule {
     internal abstract fun bindLobbyRequestStore(
         impl: DataStoreLobbyRequestStore
     ): LobbyRequestStore
+
+    @Binds
+    internal abstract fun bindApproveNewMembersStore(
+        impl: DataStoreApproveNewMembersStore
+    ): ApproveNewMembersStore
 
     @Binds
     abstract fun bindLobbyUpdateSink(
