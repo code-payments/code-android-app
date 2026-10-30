@@ -1591,7 +1591,7 @@
     <string name="label_joinLinkAsksToJoin">People who open this link ask to join</string>
     <string name="label_approveNewMembers">Approve New Members</string>
     <string name="subtitle_approveNewMembersOff">Anyone with the link joins right away</string>
-    <string name="subtitle_approveNewMembersOn">You approve each person in Join Requests</string>
+    <string name="subtitle_approveNewMembersOn">You approve each person</string>
     <string name="subtitle_manageInvitesRow">Make more links with an expiry or a use limit</string>
     <string name="action_shareLink">Share Link</string>
     <string name="footnote_inviteLink">Anyone with this link can join and see who\'s in the group. Share it only with people you want in the group</string>
