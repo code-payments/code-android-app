@@ -81,8 +81,8 @@ class RequestMoneyAnalyticsTest {
         vm.requestConfirm()
     }
 
-    // $5 between the creator and two others: the largest share is $1.67.
-    private val largestShare = Fiat(quarks = 1_670_000L, currencyCode = CurrencyCode.USD)
+    // $5 between the creator and two others: Created reports the $5 total, not a $1.67 share.
+    private val total = Fiat(quarks = 5_000_000L, currencyCode = CurrencyCode.USD)
 
     @Test
     fun `a created request sends Created once, counting the people asked and not the creator`() {
@@ -92,7 +92,7 @@ class RequestMoneyAnalyticsTest {
         vm.send()
 
         assertEquals(
-            listOf(PaymentRequestEvents.created(2, AnalyticsState.SUCCESS, largestShare.analytics, null)),
+            listOf(PaymentRequestEvents.created(2, AnalyticsState.SUCCESS, total.analytics, null)),
             analytics.events,
         )
     }
@@ -105,7 +105,7 @@ class RequestMoneyAnalyticsTest {
         vm.send()
 
         assertEquals(
-            listOf(PaymentRequestEvents.created(2, AnalyticsState.FAILURE, largestShare.analytics, "denied")),
+            listOf(PaymentRequestEvents.created(2, AnalyticsState.FAILURE, total.analytics, "denied")),
             analytics.events,
         )
     }

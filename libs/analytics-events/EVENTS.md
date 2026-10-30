@@ -340,7 +340,7 @@ Group payment requests: one amount asked of several members of a group chat. Pay
 
 ### Payment Request: Created
 
-A group payment request was created, on success or failure. The amount is what each person is asked for. `Payer Count` is the number of people asked, not counting the creator.
+A group payment request was created, on success or failure. The amount is the request's total, split between everyone in it, the creator included when they are. `Payer Count` is the number of people asked, not counting the creator.
 
 | Property | Type | Optional | Values |
 |---|---|---|---|

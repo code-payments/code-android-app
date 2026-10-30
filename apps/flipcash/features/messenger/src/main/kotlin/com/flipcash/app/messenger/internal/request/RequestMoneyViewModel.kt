@@ -262,7 +262,7 @@ internal class RequestMoneyViewModel @Inject constructor(
                 val created = requests.create(split, key).getOrElse { return@launch failed(it, chatId, draft) }
                 // Once per confirm: a retry reuses createdRequestId and never reaches here.
                 analytics.track(
-                    PaymentRequestEvents.created(draft.requestedCount, AnalyticsState.SUCCESS, draft.largestShare?.analytics, null),
+                    PaymentRequestEvents.created(draft.requestedCount, AnalyticsState.SUCCESS, draft.total?.analytics, null),
                 )
                 created.id
             }
@@ -298,7 +298,7 @@ internal class RequestMoneyViewModel @Inject constructor(
             PaymentRequestEvents.created(
                 draft.requestedCount,
                 AnalyticsState.FAILURE,
-                draft.largestShare?.analytics,
+                draft.total?.analytics,
                 error.analytics,
             ),
         )
