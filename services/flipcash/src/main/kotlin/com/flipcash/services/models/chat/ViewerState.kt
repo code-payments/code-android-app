@@ -23,6 +23,8 @@ data class ViewerState(
         // Whether the viewer may create, list and revoke invite links. True today only for a
         // private group's creator while a member.
         val canInvite: Boolean = false,
+        // Whether the viewer may call PinMessage / UnpinMessage on this chat.
+        val canPin: Boolean = false,
         // Which moderation actions the viewer may take on other users.
         val moderation: ModerationPermissions = ModerationPermissions(),
     )

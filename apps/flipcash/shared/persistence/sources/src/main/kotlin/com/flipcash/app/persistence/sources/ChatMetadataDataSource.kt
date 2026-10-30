@@ -11,6 +11,7 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.models.chat.PinSummary
 import com.flipcash.services.models.chat.ViewerState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
@@ -132,8 +133,25 @@ class ChatMetadataDataSource @Inject constructor(
     /** The hex a [chatId] is keyed by. Callers comparing against [getChatIdsOfType] need it. */
     fun chatIdHex(chatId: ChatId): String = mapper.chatIdHex(chatId)
 
+    /** The pin summary stored for [chatId]; null when the chat is not stored or never had a pin. */
+    suspend fun getPinSummary(chatId: ChatId): PinSummary? =
+        db?.chatMetadataDao()?.getById(mapper.chatIdHex(chatId))?.let { mapper.toMetadata(it, emptyList(), null).pinSummary }
+
+    /**
+     * Applies a `PinsChanged` summary only if its version is strictly newer than the stored one
+     * (none stored = 0). False when it was stale, or the chat is not stored yet.
+     */
+    suspend fun updatePinSummary(chatId: ChatId, summary: PinSummary): Boolean =
+        db?.chatMetadataDao()?.applyPinsChanged(
+            chatIdHex = mapper.chatIdHex(chatId),
+            count = summary.count,
+            version = summary.version,
+            latestPin = summary.latestEncoded,
+        ).let { it != null && it > 0 }
+
     suspend fun upsert(metadata: ChatMetadata) {
-        db?.chatMetadataDao()?.upsert(mapper.toEntity(metadata))
+        val dao = db?.chatMetadataDao() ?: return
+        dao.upsert(mapper.toEntity(metadata))
     }
 
     /**
@@ -147,7 +165,8 @@ class ChatMetadataDataSource @Inject constructor(
     }
 
     suspend fun upsert(metadatas: List<ChatMetadata>) {
-        db?.chatMetadataDao()?.upsert(metadatas.map { mapper.toEntity(it) })
+        val dao = db?.chatMetadataDao() ?: return
+        dao.upsert(metadatas.map { mapper.toEntity(it) })
     }
 
     suspend fun getLastActivity(chatId: ChatId): Long? =

@@ -130,8 +130,10 @@ import com.getcode.utils.subByteArray
         // chat_metadata moderation: can_silence, can_ban (default 0), silence_until_epoch_ms
         // (nullable), silence_forever (default 0)
         AutoMigration(from = 46, to = 47),
+        // chat_metadata pin summary: pin_count, pin_version (default 0), latest_pin (nullable blob)
+        AutoMigration(from = 47, to = 48),
     ],
-    version = 47,
+    version = 48,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 abstract class FlipcashDatabase : RoomDatabase() {

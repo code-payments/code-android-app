@@ -16,6 +16,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
@@ -69,6 +70,9 @@ class ChatMetadataDaoTest {
         canInvite: Boolean = false,
         useE2ee: Boolean = false,
         isPrivate: Boolean = false,
+        pinCount: Int = 0,
+        pinVersion: Long = 0,
+        latestPin: ByteArray? = null,
     ) = ChatMetadataEntity(
         chatIdHex = chatIdHex,
         chatType = chatType,
@@ -93,6 +97,9 @@ class ChatMetadataDaoTest {
         canInvite = canInvite,
         useE2ee = useE2ee,
         isPrivate = isPrivate,
+        pinCount = pinCount,
+        pinVersion = pinVersion,
+        latestPin = latestPin,
     )
 
     @Test
@@ -740,6 +747,100 @@ class ChatMetadataDaoTest {
             dao.updateRules(CHAT_HEX, joinOnly)
             assertEquals(joinOnly, awaitItem()?.rulesJson)
 
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a new row starts with no pins`() = runTest {
+        dao.upsert(entity())
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(0, stored.pinCount)
+        assertEquals(0L, stored.pinVersion)
+        assertNull(stored.latestPin)
+    }
+
+    @Test
+    fun `the latest pin blob round-trips byte for byte`() = runTest {
+        val bytes = ByteArray(300) { (it * 7).toByte() }
+        dao.upsert(entity(pinCount = 2, pinVersion = 5, latestPin = bytes))
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(2, stored.pinCount)
+        assertEquals(5L, stored.pinVersion)
+        assertContentEquals(bytes, stored.latestPin)
+    }
+
+    @Test
+    fun `an upsert without a pin summary does not clear the stored one`() = runTest {
+        dao.upsert(entity(pinCount = 2, pinVersion = 5, latestPin = byteArrayOf(1, 2)))
+
+        // A list RPC omits the summary; the mapper writes the empty defaults.
+        dao.upsert(entity(lastActivityEpochMs = 2_000))
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(2, stored.pinCount)
+        assertEquals(5L, stored.pinVersion)
+        assertContentEquals(byteArrayOf(1, 2), stored.latestPin)
+    }
+
+    @Test
+    fun `an upsert with an older pin summary keeps the stored one`() = runTest {
+        dao.upsert(entity(pinCount = 2, pinVersion = 5, latestPin = byteArrayOf(1)))
+
+        dao.upsert(entity(pinCount = 1, pinVersion = 4, latestPin = byteArrayOf(9)))
+
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(5L, stored.pinVersion)
+        assertContentEquals(byteArrayOf(1), stored.latestPin)
+    }
+
+    @Test
+    fun `an upsert with an equal or newer pin summary replaces the stored one`() = runTest {
+        dao.upsert(entity(pinCount = 2, pinVersion = 5, latestPin = byteArrayOf(1)))
+
+        dao.upsert(entity(pinCount = 3, pinVersion = 5, latestPin = byteArrayOf(2)))
+        assertEquals(3, requireNotNull(dao.getById(CHAT_HEX)).pinCount)
+
+        dao.upsert(entity(pinCount = 0, pinVersion = 6, latestPin = null))
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(0, stored.pinCount)
+        assertEquals(6L, stored.pinVersion)
+        assertNull(stored.latestPin)
+    }
+
+    @Test
+    fun `a pins event applies only when strictly newer`() = runTest {
+        dao.upsert(entity(pinCount = 1, pinVersion = 5, latestPin = byteArrayOf(1)))
+
+        assertEquals(0, dao.applyPinsChanged(CHAT_HEX, 0, 5, null))
+        assertEquals(0, dao.applyPinsChanged(CHAT_HEX, 0, 4, null))
+        assertEquals(1, requireNotNull(dao.getById(CHAT_HEX)).pinCount)
+
+        assertEquals(1, dao.applyPinsChanged(CHAT_HEX, 4, 6, byteArrayOf(3)))
+        val stored = requireNotNull(dao.getById(CHAT_HEX))
+        assertEquals(4, stored.pinCount)
+        assertEquals(6L, stored.pinVersion)
+        assertContentEquals(byteArrayOf(3), stored.latestPin)
+    }
+
+    @Test
+    fun `a pins event on a chat that never had a pin applies, and on an unknown chat is dropped`() = runTest {
+        dao.upsert(entity())
+
+        assertEquals(1, dao.applyPinsChanged(CHAT_HEX, 1, 1, byteArrayOf(1)))
+        assertEquals(0, dao.applyPinsChanged(OTHER_HEX, 1, 1, byteArrayOf(1)))
+    }
+
+    @Test
+    fun `observeById carries the stored pin summary`() = runTest {
+        dao.upsert(entity(pinCount = 1, pinVersion = 2, latestPin = byteArrayOf(4)))
+
+        dao.observeById(CHAT_HEX).test {
+            val row = requireNotNull(awaitItem())
+            assertEquals(2L, row.pinVersion)
+            assertContentEquals(byteArrayOf(4), row.latestPin)
             cancelAndIgnoreRemainingEvents()
         }
     }

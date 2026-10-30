@@ -12,6 +12,8 @@ import com.flipcash.services.internal.network.extensions.toPublicKey
 import com.flipcash.services.internal.network.extensions.toLobbyMember
 import com.flipcash.services.internal.network.extensions.toRestrictedUser
 import com.flipcash.services.internal.network.extensions.toPagingToken
+import com.flipcash.services.internal.network.extensions.toPin
+import com.flipcash.services.internal.network.extensions.toPinSummary
 import com.flipcash.services.internal.network.extensions.toRosterSummary
 import com.flipcash.services.internal.network.extensions.toViewerState
 import com.flipcash.services.internal.network.services.ChatService
@@ -44,6 +46,8 @@ import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.Lobby
 import com.flipcash.services.models.chat.LobbyPage
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.PinSummary
+import com.flipcash.services.models.chat.PinsPage
 import com.flipcash.services.models.chat.RestrictedUsersPage
 import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.MentionSuggestion
@@ -281,6 +285,32 @@ internal class InternalChatRepository(
         .map { response ->
             RestrictedUsersPage(
                 users = response.usersList.map { it.toRestrictedUser() },
+                pagingToken = if (response.hasPagingToken()) response.pagingToken.toPagingToken() else null,
+                hasMore = response.hasMore,
+            )
+        }
+
+    override suspend fun pinMessage(owner: KeyPair, chatId: ChatId, messageId: Long): Result<PinSummary> =
+        service.pinMessage(owner, chatId, messageId)
+            .onFailure { ErrorUtils.handleError(it) }
+            .map { if (it.hasPinSummary()) it.pinSummary.toPinSummary() else PinSummary() }
+
+    override suspend fun unpinMessage(owner: KeyPair, chatId: ChatId, messageId: Long): Result<PinSummary> =
+        service.unpinMessage(owner, chatId, messageId)
+            .onFailure { ErrorUtils.handleError(it) }
+            .map { if (it.hasPinSummary()) it.pinSummary.toPinSummary() else PinSummary() }
+
+    override suspend fun getPinnedMessages(
+        owner: KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions,
+        viewMode: ViewMode,
+    ): Result<PinsPage> = service.getPinnedMessages(owner, chatId, queryOptions, viewMode)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { response ->
+            PinsPage(
+                pins = response.pinsList.map { it.toPin() },
+                pinSummary = if (response.hasPinSummary()) response.pinSummary.toPinSummary() else PinSummary(),
                 pagingToken = if (response.hasPagingToken()) response.pagingToken.toPagingToken() else null,
                 hasMore = response.hasMore,
             )

@@ -96,4 +96,15 @@ data class ChatMetadataEntity(
     // Group description, up to 160 characters; null when unset or on a DM.
     @ColumnInfo(name = "description")
     val description: String? = null,
+    // The chat's pin summary, three columns because the summary is compared and replaced as a
+    // unit. pin_version decides whether a write applies (see ChatMetadataDao.mergePinSummary);
+    // zero with no latest pin reads as "never had a pin". latest_pin is the serialized
+    // chat.v1.Pin, kept as the server sent it because the pinned message need not exist in the
+    // local messages table. Compared by identity in equals, like any array in a data class.
+    @ColumnInfo(name = "pin_count", defaultValue = "0")
+    val pinCount: Int = 0,
+    @ColumnInfo(name = "pin_version", defaultValue = "0")
+    val pinVersion: Long = 0,
+    @ColumnInfo(name = "latest_pin", typeAffinity = ColumnInfo.BLOB)
+    val latestPin: ByteArray? = null,
 )

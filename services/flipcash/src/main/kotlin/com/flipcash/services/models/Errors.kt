@@ -1181,3 +1181,38 @@ sealed class RevokeInviteError(
     class Unrecognized : RevokeInviteError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : RevokeInviteError(message = cause?.message, cause = cause), NotifiableError
 }
+
+sealed class PinMessageError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : PinMessageError("Denied")
+    class NotFound : PinMessageError("Not found")
+    class MessageNotFound : PinMessageError("Message not found")
+    // The chat is at the server's pin cap. The cap is server-defined; do not hardcode it.
+    class TooManyPins : PinMessageError("Too many pins")
+    // The message is of a kind that cannot be pinned.
+    class MessageNotAllowed : PinMessageError("Message not allowed")
+    class Unrecognized : PinMessageError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : PinMessageError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class UnpinMessageError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : UnpinMessageError("Denied")
+    class NotFound : UnpinMessageError("Not found")
+    class Unrecognized : UnpinMessageError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : UnpinMessageError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetPinnedMessagesError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetPinnedMessagesError("Denied")
+    class NotFound : GetPinnedMessagesError("Not found")
+    class Unrecognized : GetPinnedMessagesError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetPinnedMessagesError(message = cause?.message, cause = cause), NotifiableError
+}

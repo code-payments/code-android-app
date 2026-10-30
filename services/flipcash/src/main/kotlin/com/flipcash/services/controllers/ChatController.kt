@@ -20,6 +20,8 @@ import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.Lobby
 import com.flipcash.services.models.chat.LobbyPage
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.PinSummary
+import com.flipcash.services.models.chat.PinsPage
 import com.flipcash.services.models.chat.RestrictedUsersPage
 import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.MentionSuggestion
@@ -264,6 +266,34 @@ class ChatController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.getRestrictedUsers(owner, chatId, queryOptions)
+    }
+
+    /** Pins [messageId] in [chatId]; returns the chat's updated pin summary. */
+    suspend fun pinMessage(chatId: ChatId, messageId: Long): Result<PinSummary> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.pinMessage(owner, chatId, messageId)
+    }
+
+    /** Unpins [messageId] in [chatId]; returns the chat's updated pin summary. */
+    suspend fun unpinMessage(chatId: ChatId, messageId: Long): Result<PinSummary> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.unpinMessage(owner, chatId, messageId)
+    }
+
+    /** One page of [chatId]'s pins, most recently pinned first. */
+    suspend fun getPinnedMessages(
+        chatId: ChatId,
+        queryOptions: QueryOptions = QueryOptions(),
+        viewMode: ViewMode = ViewMode.FULL,
+    ): Result<PinsPage> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.getPinnedMessages(owner, chatId, queryOptions, viewMode)
     }
 
     /** Stores the caller's own key envelope for [chatId]. */

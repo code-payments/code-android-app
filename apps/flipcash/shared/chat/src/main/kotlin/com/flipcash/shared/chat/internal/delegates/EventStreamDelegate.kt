@@ -458,6 +458,11 @@ class EventStreamDelegate @Inject constructor(
                     // replacement rules, so they overwrite the cached ones.
                     metadataDataSource.updateRules(chatId, metaUpdate.newRules)
                 }
+                is MetadataUpdate.PinsChanged -> {
+                    // Convergent like the roster: applied only when strictly newer than the held
+                    // summary, so a replayed or reordered event cannot roll the pins back.
+                    metadataDataSource.updatePinSummary(chatId, metaUpdate.summary)
+                }
             }
         }
 
