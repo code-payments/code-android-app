@@ -10,8 +10,8 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
-    testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
-    testImplementation(testFixtures(project(":libs:coroutines")))
+    testImplementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
+    testImplementation(project(":libs:coroutines:test-fixtures"))
 
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode"))

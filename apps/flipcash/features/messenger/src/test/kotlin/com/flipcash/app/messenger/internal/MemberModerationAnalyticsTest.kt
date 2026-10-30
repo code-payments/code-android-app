@@ -29,8 +29,8 @@ class MemberModerationAnalyticsTest {
 
     private val chatController = mockk<ChatController>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true) {
-        every { getString(any()) } returns "text"
-        every { getString(any(), any()) } returns "text"
+        every { getString(any<Int>()) } returns "text"
+        every { getString(any<Int>(), *anyVararg()) } returns "text"
     }
     private val groupRosters = mockk<GroupRosters>(relaxed = true)
     private val analytics = RecordingAnalytics()

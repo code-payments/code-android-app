@@ -8,7 +8,7 @@ class GroupEventsTest {
 
     @Test
     fun newOpenedLeavesOutAnAbsentType() {
-        assertEquals(AnalyticsEvent("Group: New Opened", emptyMap()), GroupEvents.newOpened(null))
+        assertEquals(AnalyticsEvent("Group: New Opened", emptyMap()), GroupEvents.newOpened())
     }
 
     @Test
