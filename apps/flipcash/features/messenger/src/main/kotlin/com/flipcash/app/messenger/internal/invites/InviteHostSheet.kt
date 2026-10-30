@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
@@ -110,9 +110,12 @@ internal fun InviteHostSheetContent(
 // Figma 1m's pill sits darker than the card around it; no theme token is white at 0.06.
 private val LinkPillColor = Color(0x0FFFFFFF)
 
-// Figma 1m: the card's content sits 14 in, and its pill is one 30-high line.
-private val LinkCardPadding = 14.dp
-private val LinkPillHeight = 30.dp
+// iOS #1175's link card, which is the reference: content 20 in and 12 apart, and a 48-high capsule
+// pill with the link 16 in from its ends. Share Link stays the standard button.
+private val LinkCardPadding = 20.dp
+private val LinkCardSpacing = 12.dp
+private val LinkPillHeight = 48.dp
+private val LinkPillInset = 16.dp
 
 private const val ApproveFadeMillis = 220
 
@@ -166,9 +169,11 @@ private fun LinkCard(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         LinkPillFrame(
-            modifier = Modifier.heightIn(min = LinkPillHeight),
+            modifier = Modifier.height(LinkPillHeight),
             color = LinkPillColor,
-            verticalPadding = CodeTheme.dimens.grid.x1,
+            shape = CircleShape,
+            horizontalPadding = LinkPillInset,
+            verticalPadding = 0.dp,
         ) {
             ApproveCrossfade(
                 approve = state.approve,
@@ -177,7 +182,8 @@ private fun LinkCard(
             ) { approve ->
                 when {
                     approve -> state.plainUrl?.let { PillText(plainLinkText(it)) }
-                    invite is InviteLinkState.Ready -> PillText(elideInviteUrl(invite.url))
+                    // The whole link, left to PillText to cut in the middle so the token's end shows.
+                    invite is InviteLinkState.Ready -> PillText(plainLinkText(invite.url))
                     invite == InviteLinkState.Creating -> Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
@@ -196,7 +202,7 @@ private fun LinkCard(
                 }
             }
         }
-        Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
+        Spacer(Modifier.height(LinkCardSpacing))
         CodeButton(
             modifier = Modifier.fillMaxWidth().testTag(InviteHostShareTag),
             text = stringResource(R.string.action_shareLink),
@@ -218,7 +224,7 @@ private fun LinkCard(
             }
             if (caption != null) {
                 Text(
-                    modifier = Modifier.fillMaxWidth().padding(top = CodeTheme.dimens.grid.x3),
+                    modifier = Modifier.fillMaxWidth().padding(top = LinkCardSpacing),
                     text = caption,
                     style = cardNoteStyle(),
                     color = CardNoteColor,

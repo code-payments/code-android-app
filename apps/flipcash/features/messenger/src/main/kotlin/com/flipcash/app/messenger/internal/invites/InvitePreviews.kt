@@ -129,7 +129,7 @@ private fun InviteSheetFrame(subject: ShareToChatsSubject, selection: List<ChatI
 internal fun InviteFrame1mHostSheet() = HostSheetPreview(
     InviteHostSheetViewModel.State(
         invite = InviteLinkState.Ready(
-            url = "https://flipcash.com/i/7Kq2xYbPz9#s=preview",
+            url = "https://app.flipcash.com/chat/invite#s=kQ3vR8mZp4LwN2yTb7cXe1aFhJ6sDg0uVq5oIrKxT9a",
             expiresAt = null,
             useCount = 0,
             maxUses = 0,

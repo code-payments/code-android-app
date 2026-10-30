@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -639,15 +640,17 @@ internal fun PlainLinkPill(url: String, modifier: Modifier = Modifier) {
 internal fun LinkPillFrame(
     modifier: Modifier = Modifier,
     color: Color = White05,
+    shape: Shape = CodeTheme.shapes.extraSmall,
+    horizontalPadding: Dp = CodeTheme.dimens.grid.x3,
     verticalPadding: Dp = CodeTheme.dimens.grid.x3,
     content: @Composable RowScope.() -> Unit,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(CodeTheme.shapes.extraSmall)
+            .clip(shape)
             .background(color)
-            .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = verticalPadding),
+            .padding(horizontal = horizontalPadding, vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         content = content,
