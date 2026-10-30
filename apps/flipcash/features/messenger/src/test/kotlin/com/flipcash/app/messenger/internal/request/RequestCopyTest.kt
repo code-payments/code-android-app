@@ -16,7 +16,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
-/** The summary copy for the spec's cases 14–18, 49 and 52. */
+/** The summary copy for the spec's cases 14–18, 49, 52 and 53. */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class RequestCopyTest {
@@ -46,7 +46,7 @@ class RequestCopyTest {
 
         assertEquals("Everyone, Including You", peopleValue(draft.people, resources))
         assertEquals("You'll be marked as paid", peopleDetail(draft.people, resources))
-        assertEquals("Request $20 Each", requestButtonText(draft.largestShare!!.text(), resources))
+        assertEquals("Request $20 Each", requestButtonText(draft.smallestShare!!.text(), draft.isUnevenSplit, resources))
     }
 
     // 15
@@ -55,15 +55,23 @@ class RequestCopyTest {
         val draft = draft(26, total = Fiat(40.0, CurrencyCode.USD)).copy(selected = setOf(viewer, id(4)))
 
         assertEquals("1 Person, Including You", peopleValue(draft.people, resources))
-        assertEquals("Request $20 Each", requestButtonText(draft.largestShare!!.text(), resources))
+        assertEquals("Request $20 Each", requestButtonText(draft.smallestShare!!.text(), draft.isUnevenSplit, resources))
     }
 
     // 49
     @Test
-    fun `100 between three requests the largest share each`() {
+    fun `100 between three requests about the smaller share each`() {
         val draft = draft(26, total = Fiat(100.0, CurrencyCode.USD)).copy(selected = setOf(viewer, id(1), id(2)))
 
-        assertEquals("Request $33.34 Each", requestButtonText(draft.largestShare!!.text(), resources))
+        assertEquals("Request ~$33.33 Each", requestButtonText(draft.smallestShare!!.text(), draft.isUnevenSplit, resources))
+    }
+
+    // 53
+    @Test
+    fun `100_02 between three splits evenly and has no tilde`() {
+        val draft = draft(26, total = Fiat(100.02, CurrencyCode.USD)).copy(selected = setOf(viewer, id(1), id(2)))
+
+        assertEquals("Request $33.34 Each", requestButtonText(draft.smallestShare!!.text(), draft.isUnevenSplit, resources))
     }
 
     // 52
@@ -71,7 +79,7 @@ class RequestCopyTest {
     fun `40 to one other requests 40 each`() {
         val draft = draft(26, total = Fiat(40.0, CurrencyCode.USD)).copy(selected = setOf(id(2)))
 
-        assertEquals("Request $40 Each", requestButtonText(draft.largestShare!!.text(), resources))
+        assertEquals("Request $40 Each", requestButtonText(draft.smallestShare!!.text(), draft.isUnevenSplit, resources))
     }
 
     // 16

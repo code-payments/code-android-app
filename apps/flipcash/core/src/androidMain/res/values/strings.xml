@@ -1081,7 +1081,7 @@
     <string name="label_requestCompleted">✓ %1$s paid</string>
     <string name="title_totalAmount">Total Amount</string>
     <string name="title_newRequest">New Request</string>
-    <string name="label_requestTotal">total</string>
+    <string name="label_requestTotal">Total</string>
     <string name="label_requestName">Name</string>
     <string name="title_requestName">What is the request for?</string>
     <string name="label_requestPeople">People</string>
@@ -1156,8 +1156,10 @@
     <!-- %1$s is a medium date and short time in the device locale: "Until Nov 2, 6:00 PM". -->
     <string name="value_requestUntil">Until %1$s</string>
     <string name="subtitle_requestAutoCloses">Request automatically closes after</string>
-    <!-- %1$s is the largest share of the total: "Request $33.34 Each". -->
+    <!-- %1$s is the share when the total splits evenly: "Request $20 Each". -->
     <string name="action_requestEach">Request %1$s Each</string>
+    <!-- %1$s is the smallest share when some shares are a cent more: "Request ~$33.33 Each". -->
+    <string name="action_requestEachApprox">Request ~%1$s Each</string>
     <string name="title_splitBetween">Split Between</string>
     <string name="label_selectPeople_you">You</string>
     <string name="title_requestMaxPeople">100 People Max</string>

@@ -373,7 +373,7 @@ private fun RequestSummaryContent(
     onRequest: () -> Unit,
 ) {
     val amount = draft.total?.text().orEmpty()
-    val share = (draft.largestShare ?: draft.total)?.text().orEmpty()
+    val share = (draft.smallestShare ?: draft.total)?.text().orEmpty()
     val resources = LocalResources.current
     CodeScaffold(
         topBar = {
@@ -391,7 +391,7 @@ private fun RequestSummaryContent(
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(bottom = CodeTheme.dimens.grid.x2)
                     .testTag("request_summary_send"),
-                text = requestButtonText(share, resources),
+                text = requestButtonText(share, draft.isUnevenSplit, resources),
                 enabled = draft.canSend,
                 isLoading = sending,
                 onClick = onRequest,

@@ -53,8 +53,14 @@ internal data class NewRequestDraft(
     /** [total] split between [shares], or null with no total or a total too small to give everyone a unit. */
     val split: List<NewShare>? get() = total?.let { splitTotal(it, shares, viewerId) }
 
-    /** The largest share: the amount in "Request $33.34 Each". */
+    /** The largest share. */
     val largestShare: Fiat? get() = split?.maxByOrNull { it.amount.quarks }?.amount
+
+    /** The smallest share: the amount in "Request ~$33.33 Each". */
+    val smallestShare: Fiat? get() = split?.minByOrNull { it.amount.quarks }?.amount
+
+    /** Some shares are a unit more than others, so the button's amount is shown with "~". */
+    val isUnevenSplit: Boolean get() = largestShare != smallestShare
 
     val people: People
         get() {

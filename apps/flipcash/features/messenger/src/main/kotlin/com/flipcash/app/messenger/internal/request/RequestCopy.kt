@@ -20,9 +20,12 @@ internal fun peopleValue(people: NewRequestDraft.People, resources: ResourceHelp
 internal fun peopleDetail(people: NewRequestDraft.People, resources: ResourceHelper): String? =
     resources.getString(R.string.subtitle_requestMarkedPaid).takeIf { people.markedPaid }
 
-/** The summary's button, "Request <share> Each", [share] being the largest share formatted. */
-internal fun requestButtonText(share: String, resources: ResourceHelper): String =
-    resources.getString(R.string.action_requestEach, share)
+/**
+ * The summary's button, "Request <share> Each", [share] being the smallest share formatted. When
+ * [uneven], some shares are a unit more, so it reads "Request ~<share> Each".
+ */
+internal fun requestButtonText(share: String, uneven: Boolean, resources: ResourceHelper): String =
+    resources.getString(if (uneven) R.string.action_requestEachApprox else R.string.action_requestEach, share)
 
 /** The sheet for checking a 101st share: title and body. */
 internal fun maxPeopleNotice(resources: ResourceHelper): Pair<String, String> =

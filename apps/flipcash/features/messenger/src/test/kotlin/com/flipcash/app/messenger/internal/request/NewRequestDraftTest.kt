@@ -136,7 +136,19 @@ class NewRequestDraftTest {
         assertEquals(listOf(viewer, id(1), id(2)), draft.split!!.map { it.userId })
         assertEquals(listOf(usd(3_333), usd(3_334), usd(3_333)), draft.split!!.map { it.amount })
         assertEquals(usd(3_334), draft.largestShare)
+        assertEquals(usd(3_333), draft.smallestShare)
+        assertTrue(draft.isUnevenSplit)
         assertTrue(draft.canSend)
+    }
+
+    // 53
+    @Test
+    fun `100_02 between the creator and two others is three even shares`() {
+        val draft = draft(5, total = usd(10_002)).copy(selected = setOf(viewer, id(1), id(2)))
+
+        assertEquals(listOf(usd(3_334), usd(3_334), usd(3_334)), draft.split!!.map { it.amount })
+        assertEquals(usd(3_334), draft.smallestShare)
+        assertFalse(draft.isUnevenSplit)
     }
 
     // 50
