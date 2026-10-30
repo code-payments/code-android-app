@@ -1988,10 +1988,6 @@
     <!-- Group send, node 11293:6918 -->
     <string name="title_selectPeople">Select People</string>
     <string name="header_groupSendMembers">Members</string>
-    <plurals name="action_sendToPeople">
-        <item quantity="one">Send to %1$d Person</item>
-        <item quantity="other">Send to %1$d People</item>
-    </plurals>
     <string name="title_groupSendMaxPeople">10 People Max</string>
     <string name="description_groupSendMaxPeople">The maximum number of people you can send to at once is 10 people</string>
     <!-- Placeholder: the too-small-to-split alert has no design yet -->

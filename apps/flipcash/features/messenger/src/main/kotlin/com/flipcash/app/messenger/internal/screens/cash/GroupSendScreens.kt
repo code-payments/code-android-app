@@ -76,7 +76,7 @@ internal fun GroupSelectPeopleContent(
     onBack: () -> Unit,
     onToggle: (ChatMember) -> Unit,
     onSend: () -> Unit,
-    buttonText: String = pluralStringResource(R.plurals.action_sendToPeople, selected.size, selected.size),
+    buttonText: String = stringResource(R.string.action_next),
     buttonEnabled: Boolean = selected.isNotEmpty(),
     /** Shown as "You" rather than by name, for a list the viewer is on. */
     viewerId: ID? = null,

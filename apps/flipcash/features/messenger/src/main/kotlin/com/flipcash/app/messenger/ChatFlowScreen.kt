@@ -20,7 +20,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.text.style.TextAlign
@@ -495,8 +494,6 @@ private fun FlowGroupSelectPeople(viewModel: ChatViewModel, onSendComplete: () -
         onBack = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
         onToggle = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(it.userId)) },
         onSend = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed) },
-        // "Send to N People" counts who is paid: You is never one of them.
-        buttonText = pluralStringResource(R.plurals.action_sendToPeople, groupSend.selected.size, groupSend.selected.size),
         buttonEnabled = groupSend.selected.isNotEmpty(),
         viewerId = groupSend.viewerId,
     )
