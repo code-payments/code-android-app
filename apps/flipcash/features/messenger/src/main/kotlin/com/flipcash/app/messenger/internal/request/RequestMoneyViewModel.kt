@@ -2,6 +2,10 @@ package com.flipcash.app.messenger.internal.request
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.PaymentRequestEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.features.messenger.R
@@ -65,6 +69,7 @@ internal class RequestMoneyViewModel @Inject constructor(
     private val crypto: GroupContentCrypto,
     private val chatCoordinator: ChatCoordinator,
     private val userManager: UserManager,
+    private val analytics: FlipcashAnalytics,
 ) : ViewModel() {
 
     enum class Stage { History, Amount, Summary, People, Name }
@@ -251,10 +256,15 @@ internal class RequestMoneyViewModel @Inject constructor(
         viewModelScope.launch {
             val requestId = draft.createdRequestId ?: run {
                 val text = crypto.sealPaymentRequestText(chatId, viewerId, draft.title, "")
-                    .getOrElse { return@launch failed(it, chatId) }
+                    .getOrElse { return@launch failed(it, chatId, draft) }
                 val split = draft.toSplit(chatId, text, Clock.System.now())
-                    ?: return@launch failed(IllegalStateException("draft not sendable"), chatId)
-                requests.create(split, key).getOrElse { return@launch failed(it, chatId) }.id
+                    ?: return@launch failed(IllegalStateException("draft not sendable"), chatId, draft)
+                val created = requests.create(split, key).getOrElse { return@launch failed(it, chatId, draft) }
+                // Once per confirm: a retry reuses createdRequestId and never reaches here.
+                analytics.track(
+                    PaymentRequestEvents.created(draft.requestedCount, AnalyticsState.SUCCESS, draft.perPerson?.analytics, null),
+                )
+                created.id
             }
             _state.update { it.copy(draft = it.draft?.copy(createdRequestId = requestId)) }
             // The request is live, so the deck shows it whatever happens here. Only the message is
@@ -283,7 +293,15 @@ internal class RequestMoneyViewModel @Inject constructor(
         )
     }
 
-    private suspend fun failed(error: Throwable, chatId: ChatId) {
+    private suspend fun failed(error: Throwable, chatId: ChatId, draft: NewRequestDraft) {
+        analytics.track(
+            PaymentRequestEvents.created(
+                draft.requestedCount,
+                AnalyticsState.FAILURE,
+                draft.perPerson?.analytics,
+                error.analytics,
+            ),
+        )
         _state.update { it.copy(sheet = Sheet.None, sendProgress = LoadingSuccessState()) }
         val message = when (error) {
             is CreatePaymentRequestError.Denied -> R.string.error_description_requestDenied

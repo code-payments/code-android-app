@@ -98,4 +98,63 @@ class TransferEventsTest {
             TransferEvents.sendCashLink(State.FAILURE, null, CashLinkChoice.GROUP_CHAT, null, "offline"),
         )
     }
+
+    @Test
+    fun sentCashLeavesOutContextAndRecipientCountWhenAbsent() {
+        assertEquals(
+            AnalyticsEvent("Sent Cash", mapOf("State" to PropertyValue.Text("Success")) + amountProperties),
+            TransferEvents.sentCash(State.SUCCESS, amount, null),
+        )
+    }
+
+    @Test
+    fun sentCashToAGroupCarriesContextAndRecipientCount() {
+        assertEquals(
+            AnalyticsEvent(
+                "Sent Cash",
+                mapOf(
+                    "State" to PropertyValue.Text("Success"),
+                    "Context" to PropertyValue.Text("Group Send"),
+                    "Recipient Count" to PropertyValue.Number(3.0),
+                ) + amountProperties,
+            ),
+            TransferEvents.sentCash(State.SUCCESS, amount, null, SendContext.GROUP_SEND, 3),
+        )
+    }
+
+    @Test
+    fun sentCashContextValuesAreSentAsText() {
+        fun context(value: SendContext) =
+            TransferEvents.sentCash(State.SUCCESS, null, null, value).properties["Context"]
+
+        assertEquals(PropertyValue.Text("Direct"), context(SendContext.DIRECT))
+        assertEquals(PropertyValue.Text("Group Send"), context(SendContext.GROUP_SEND))
+        assertEquals(PropertyValue.Text("Payment Request"), context(SendContext.PAYMENT_REQUEST))
+    }
+
+    @Test
+    fun sentBoostCarriesChatTypeAndOutcome() {
+        assertEquals(
+            AnalyticsEvent(
+                "Sent Boost",
+                mapOf("Chat Type" to PropertyValue.Text("Group"), "State" to PropertyValue.Text("Success")) + amountProperties,
+            ),
+            TransferEvents.sentBoost(ChatType.GROUP, State.SUCCESS, amount, null),
+        )
+    }
+
+    @Test
+    fun sentBoostFailureCarriesTheError() {
+        assertEquals(
+            AnalyticsEvent(
+                "Sent Boost",
+                mapOf(
+                    "Chat Type" to PropertyValue.Text("Contact"),
+                    "State" to PropertyValue.Text("Failure"),
+                    "Error" to PropertyValue.Text("offline"),
+                ),
+            ),
+            TransferEvents.sentBoost(ChatType.CONTACT, State.FAILURE, null, "offline"),
+        )
+    }
 }

@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.flipcash.app.analytics.FlipcashAnalytics
 import javax.inject.Inject
 
 /**
@@ -42,6 +43,7 @@ internal class RequestPayViewModel @Inject constructor(
     exchange: Exchange,
     userManager: UserManager,
     resources: ResourceHelper,
+    analytics: FlipcashAnalytics,
 ) : ViewModel() {
 
     private val effects = Channel<AppRoute>(Channel.BUFFERED)
@@ -58,6 +60,7 @@ internal class RequestPayViewModel @Inject constructor(
         exchange = exchange,
         userManager = userManager,
         resources = resources,
+        analytics = analytics,
         openScreen = { route -> effects.trySend(route) },
     )
 

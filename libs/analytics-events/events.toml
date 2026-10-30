@@ -80,6 +80,13 @@ COPIED = "Copied to clipboard"
 SHARED = "Shared to app"
 GROUP_CHAT = "Posted to group chat"
 
+[lists.SendContext]
+description = "The `Context` property on Sent Cash: which send the payment came from."
+[lists.SendContext.values]
+DIRECT = "Direct"
+GROUP_SEND = "Group Send"
+PAYMENT_REQUEST = "Payment Request"
+
 [lists.AddMoneySource]
 description = "The `Source` property on Add Money: Opened: where the user opened Add Money from."
 [lists.AddMoneySource.values]
@@ -308,6 +315,7 @@ Search = "The Chats search screen."
 Swap = "Buying and selling a token."
 Scan = "The gallery scan path, and the tip card."
 Group = "Group chats. `Member Count` is the member count before the action, from what the screen already holds. `Gate Mint` is left out when the group has no token gate. `Error` is the RPC's result name as the proto spells it, such as RulesNotSatisfied, or Network for a transport failure."
+"Payment Request" = "Group payment requests: one amount asked of several members of a group chat. Paying a share is Sent Cash with `Context` set to Payment Request."
 Deeplink = "[url] arrives with its query and fragment already stripped. `type` is a string because the two apps' deeplink vocabularies differ."
 
 # ---------------------------------------------------------------------------------------
@@ -582,7 +590,12 @@ drift = "iOS sends Exchange Rate and no USDC (see Amount)."
 [[event]]
 domain = "Transfer"
 name = "Sent Cash"
-properties = [{ group = "outcome" }]
+properties = [
+  { group = "outcome" },
+  { name = "Context", type = "SendContext", optional = true },
+  { name = "Recipient Count", type = "count", optional = true },
+]
+description = "Cash was sent to a person or to several people, or a share of a payment request was paid. `Context` says which: Direct for a send to one person, Group Send for a send to several members of a group, Payment Request for paying a share. `Recipient Count` is the number of members paid and is sent for a Group Send only."
 drift = "iOS sends Exchange Rate and no USDC (see Amount)."
 
 [[event]]
@@ -590,6 +603,35 @@ domain = "Transfer"
 name = "Sent Tip"
 properties = [{ group = "outcome" }]
 drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[event]]
+domain = "Transfer"
+name = "Sent Boost"
+properties = [
+  { name = "Chat Type", type = "ChatType" },
+  { group = "outcome" },
+]
+description = "A paid reaction (boost) was confirmed, on success or failure. The amount is the whole boost, before it is split between the message's author and the group's creator. `Chat Type` is the chat the message is in."
+
+# Payment requests
+
+[[event]]
+domain = "Payment Request"
+name = "Payment Request: Created"
+properties = [
+  { name = "Payer Count", type = "count" },
+  { group = "outcome" },
+]
+description = "A group payment request was created, on success or failure. The amount is what each person is asked for. `Payer Count` is the number of people asked, not counting the creator."
+
+[[event]]
+domain = "Payment Request"
+name = "Payment Request: Closed"
+properties = [
+  { name = "State", type = "State" },
+  { name = "Error", type = "text", optional = true },
+]
+description = "The creator closed a payment request before its deadline, on success or failure. A request that reaches its deadline on its own doesn't fire this."
 
 # Add money
 

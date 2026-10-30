@@ -1,5 +1,10 @@
 package com.flipcash.app.messenger.internal.request
 
+import com.flipcash.analytics.SendContext
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.TransferEvents
+import com.flipcash.app.analytics.analytics
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.tokens.TokenCoordinator
@@ -53,6 +58,7 @@ class RequestPayFlowTest {
     private val token = mockk<Token>(relaxed = true)
     private val owner = mockk<AccountCluster>(relaxed = true)
     private val scope = CoroutineScope(Dispatchers.Unconfined)
+    private val analytics = RecordingAnalytics()
 
     private var balance = Fiat(100.0)
     private var nothingToPay = 0
@@ -90,6 +96,7 @@ class RequestPayFlowTest {
         exchange = exchange,
         userManager = userManager,
         resources = resources,
+        analytics = analytics,
         openScreen = {},
         onNothingToPay = { nothingToPay++ },
     ).also { f -> scope.launch { f.token.collect {} } }
@@ -116,6 +123,39 @@ class RequestPayFlowTest {
         assertEquals(true, f.state.value.open)
         verify(exactly = 1) { payer.presentInsufficientBalance(any(), any()) }
         coVerify(exactly = 0) { payments.pay(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a failed payment sends Sent Cash with the Payment Request context`() {
+        coEvery { payments.pay(any(), any(), any()) } returns Result.failure(IllegalStateException("boom"))
+        coEvery { payments.prepare(any(), any()) } returns Result.success(ready)
+        val f = flow()
+        f.start(listOf<Byte>(2))
+
+        f.confirm()
+
+        assertEquals(
+            listOf(
+                TransferEvents.sentCash(
+                    AnalyticsState.FAILURE,
+                    Fiat(50.0).analytics,
+                    "boom",
+                    SendContext.PAYMENT_REQUEST,
+                ),
+            ),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `a payment held back by the balance check sends nothing`() {
+        val f = flow()
+        f.start(listOf<Byte>(2))
+        balance = Fiat(10.0)
+
+        f.confirm()
+
+        assertEquals(emptyList(), analytics.events)
     }
 
     @Test

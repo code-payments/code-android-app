@@ -1,5 +1,10 @@
 package com.flipcash.app.messenger.internal.request
 
+import com.flipcash.analytics.SendContext
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.TransferEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
@@ -46,6 +51,7 @@ internal class RequestPayFlow(
     private val exchange: Exchange,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalytics,
     /** Where "Add Money" goes, once the sheet has closed. */
     private val openScreen: (AppRoute) -> Unit,
     /** The server has no payment intent for the viewer on this request any more. */
@@ -118,7 +124,10 @@ internal class RequestPayFlow(
                 .onSuccess {
                     holdPaymentSuccess(
                         show = { _state.update { it.copy(progress = LoadingSuccessState(success = true)) } },
-                        release = { dismiss() },
+                        release = {
+                            analytics.track(sentCash(AnalyticsState.SUCCESS, pending, null))
+                            dismiss()
+                        },
                     )
                 }
                 .onFailure { cause -> afterFailedPayment(pending, cause) }
@@ -130,6 +139,7 @@ internal class RequestPayFlow(
      * paid, and a request closed meanwhile is "Request Closed".
      */
     private suspend fun afterFailedPayment(pending: ShareToPay.Ready, cause: Throwable) {
+        analytics.track(sentCash(AnalyticsState.FAILURE, pending, cause.analytics))
         _state.update { it.copy(progress = LoadingSuccessState()) }
         val viewer = viewerId ?: return
         when (val found = payments.prepare(pending.request.id, viewer).getOrNull()) {
@@ -145,6 +155,9 @@ internal class RequestPayFlow(
             null -> presentPaymentError(cause)
         }
     }
+
+    private fun sentCash(state: AnalyticsState, pending: ShareToPay.Ready, error: String?) =
+        TransferEvents.sentCash(state, pending.share.amount.analytics, error, SendContext.PAYMENT_REQUEST)
 
     fun dismiss() {
         if (!_state.value.progress.isIdle && !_state.value.progress.success) return
