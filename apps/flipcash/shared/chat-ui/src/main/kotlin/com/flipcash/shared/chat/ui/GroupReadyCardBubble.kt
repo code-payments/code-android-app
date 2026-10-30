@@ -61,7 +61,7 @@ fun GroupReadyCardBubble(
                 Column(verticalArrangement = Arrangement.spacedBy(ShareProfileWidgetDefaults.LINE_GAP)) {
                     Text(
                         text = stringResource(R.string.title_groupReady),
-                        style = CodeTheme.typography.textLarge,
+                        style = CodeTheme.typography.textMedium,
                         color = CodeTheme.colors.textMain,
                     )
                     Text(
