@@ -104,7 +104,7 @@ fun MoneyPane(
             if (detail != null) detailPane(Modifier.fillMaxSize()) { detail = null }
             else wallet(Modifier.fillMaxSize())
         }
-        WidthClass.Expanded -> Row(modifier.fillMaxSize()) {
+        WidthClass.Expanded, WidthClass.Wide -> Row(modifier.fillMaxSize()) {
             wallet(Modifier.width(DesktopDimens.MoneyListExpanded).fillMaxHeight())
             PaneDivider()
             detailPane(Modifier.weight(1f).fillMaxHeight(), detail?.let { { detail = null } })

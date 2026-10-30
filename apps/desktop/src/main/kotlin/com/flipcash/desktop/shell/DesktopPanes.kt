@@ -123,9 +123,9 @@ fun ChatPane(widthClass: WidthClass, modifier: Modifier = Modifier) {
         WidthClass.Compact ->
             if (conversationOpen) conversation(modifier.fillMaxSize()) { conversationOpen = false }
             else list(modifier.fillMaxSize())
-        WidthClass.Medium, WidthClass.Expanded -> Row(modifier.fillMaxSize()) {
+        WidthClass.Medium, WidthClass.Expanded, WidthClass.Wide -> Row(modifier.fillMaxSize()) {
             val listWidth =
-                if (widthClass == WidthClass.Medium) DesktopDimens.ChatListMedium else DesktopDimens.ChatListExpanded
+                if (widthClass == WidthClass.Medium) DesktopDimens.SidebarMedium else DesktopDimens.SidebarExpanded
             list(Modifier.width(listWidth).fillMaxHeight())
             PaneDivider()
             conversation(Modifier.weight(1f).fillMaxHeight(), null)
