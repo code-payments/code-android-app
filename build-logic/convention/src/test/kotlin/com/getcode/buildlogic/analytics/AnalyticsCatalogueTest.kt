@@ -93,7 +93,7 @@ class AnalyticsCatalogueTest {
     }
 
     @Test
-    fun optionalPropertiesPassNullThroughSoTheBuilderOmitsThem() {
+    fun optionalPropertiesDefaultToNullAndPassItThroughSoTheBuilderOmitsThem() {
         val source = generate(
             """
             [lists.Kind.values]
@@ -110,7 +110,7 @@ class AnalyticsCatalogueTest {
             """.trimIndent(),
         ).getValue("com/example/events/ThingEvents.kt")
 
-        assertContains(source, "fun thingHappened(kind: Kind?, error: String?, tier: Int?): AnalyticsEvent =")
+        assertContains(source, "fun thingHappened(kind: Kind? = null, error: String? = null, tier: Int? = null): AnalyticsEvent =")
         assertContains(source, "text(\"Kind\", kind?.value)")
         assertContains(source, "text(\"Error\", error)")
         assertContains(source, "number(\"Tier\", tier?.toDouble())")
@@ -219,7 +219,7 @@ class AnalyticsCatalogueTest {
         assertContains(
             source,
             """
-                fun grabbed(grabTimeMillis: Long?, state: State, amount: Amount?, error: String?): AnalyticsEvent =
+                fun grabbed(grabTimeMillis: Long? = null, state: State, amount: Amount? = null, error: String? = null): AnalyticsEvent =
                     event("Grabbed") {
                         number("Grab Time", grabTimeMillis)
                         text("State", state.value)

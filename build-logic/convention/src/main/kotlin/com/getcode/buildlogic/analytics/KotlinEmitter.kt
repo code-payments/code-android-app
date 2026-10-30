@@ -87,7 +87,10 @@ internal object KotlinEmitter {
 
     private fun builder(builder: Builder) = buildString {
         append(kdoc(listOfNotNull(builder.doc, builder.drift?.let { "DRIFT: $it" }), INDENT))
-        val params = builder.params.joinToString { "${it.name}: ${it.kotlinType}" }
+        val params = builder.params.joinToString { param ->
+            // Optional means "omit when absent", so callers shouldn't have to pass null to say so.
+            "${param.name}: ${param.kotlinType}" + if (param.nullable) " = null" else ""
+        }
         val call = "event(${template(builder.event)})"
         if (builder.properties.isEmpty()) {
             appendLine("${INDENT}fun ${builder.name}($params): AnalyticsEvent = $call")

@@ -37,11 +37,13 @@ class AnalyticsCatalogueConventionPlugin : Plugin<Project> {
 
             val catalogueFile = layout.projectDirectory.file("events.toml")
             val pageFile = layout.projectDirectory.file("EVENTS.md")
-            tasks.register<WriteAnalyticsEventsPage>("writeAnalyticsEventsPage") {
+            val writePage = tasks.register<WriteAnalyticsEventsPage>("writeAnalyticsEventsPage") {
                 catalogue.set(catalogueFile)
                 page.set(pageFile)
             }
             tasks.register<CheckAnalyticsEventsPage>("checkAnalyticsEventsPage") {
+                // Both tasks touch EVENTS.md; without this, one invocation can check before it writes.
+                mustRunAfter(writePage)
                 catalogue.set(catalogueFile)
                 page.set(pageFile)
                 fixCommand.set("./gradlew ${path.substringBeforeLast(':')}:writeAnalyticsEventsPage")
