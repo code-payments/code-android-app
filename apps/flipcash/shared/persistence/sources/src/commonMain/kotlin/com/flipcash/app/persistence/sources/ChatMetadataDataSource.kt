@@ -1,7 +1,7 @@
 package com.flipcash.app.persistence.sources
 
 import androidx.paging.PagingSource
-import androidx.room.withTransaction
+import com.flipcash.app.persistence.inTransaction
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
@@ -98,7 +98,7 @@ class ChatMetadataDataSource @Inject constructor(
 
     suspend fun removeFromChat(chatIdHex: String) {
         val database = db ?: return
-        database.withTransaction {
+        database.inTransaction {
             database.chatMetadataDao().updateMembership(chatIdHex, false)
             database.groupKeyEnvelopeDao().deleteForChat(chatIdHex)
             database.paymentRequestDao().deleteForChat(chatIdHex)

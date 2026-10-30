@@ -3,6 +3,7 @@ package com.flipcash.shared.chat
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.init
 import com.flipcash.app.persistence.sources.PaymentRequestDataSource
 import com.flipcash.services.chat.GroupContentCrypto
 import com.flipcash.services.controllers.PaymentRequestController
