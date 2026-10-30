@@ -1,3 +1,4 @@
+import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.variant.BuildConfigField
 import com.bugsnag.gradle.dsl.debug
 import com.bugsnag.gradle.dsl.release
@@ -194,6 +195,28 @@ kotlin {
     }
 }
 
+// Fails when an asset the app can't start without is missing from the merged assets. A library on
+// the KMP android target drops its assets unless it sets `androidResources { enable = true }`, and
+// that build still succeeds: :libs:currency-math lost its curve tables that way in #1894, and every
+// launch crashed (Bugsnag 6aadeebd).
+abstract class CheckPackagedAssets : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val assetsDir: DirectoryProperty
+
+    @get:Input
+    abstract val required: ListProperty<String>
+
+    @TaskAction
+    fun check() {
+        val dir = assetsDir.get().asFile
+        val missing = required.get().filterNot { dir.resolve(it).isFile }
+        if (missing.isNotEmpty()) {
+            throw GradleException("Merged assets in $dir are missing: ${missing.joinToString()}")
+        }
+    }
+}
+
 // Expose Compose testTags as resource-ids (for UiAutomator/Maestro/baseline-profile
 // generation) on every variant EXCEPT the shipping `release` — keeps internal ids like
 // `seed_input_field` out of the production wallet build. Read in App.kt as
@@ -208,6 +231,17 @@ androidComponents {
                 "testTags exposed as resource-ids; false only for shipping release",
             ),
         )
+
+        val checkCurveAssets = tasks.register<CheckPackagedAssets>(
+            "check${variant.name.replaceFirstChar { it.uppercase() }}CurveAssets",
+        ) {
+            assetsDir.set(variant.artifacts.get(SingleArtifact.ASSETS))
+            required.set(listOf("discrete_pricing_table.bin", "discrete_cumulative_table.bin"))
+        }
+        if (variant.name == "release") {
+            tasks.matching { it.name == "bundleRelease" || it.name == "assembleRelease" }
+                .configureEach { dependsOn(checkCurveAssets) }
+        }
     }
 }
 
