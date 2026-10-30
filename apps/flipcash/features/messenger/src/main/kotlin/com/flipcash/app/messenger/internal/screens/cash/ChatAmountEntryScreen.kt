@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.screens.cash
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -15,6 +16,7 @@ import com.flipcash.shared.amountentry.AmountEntryScreen
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.opencode.model.financial.Token
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.util.resources.LocalResources
@@ -32,6 +34,8 @@ internal fun ChatAmountEntryContent(
     onExit: () -> Unit,
     onConfirm: () -> Unit,
     onSendComplete: (() -> Unit)? = null,
+    /** A fixed title in place of the currency pill, for a send whose currency is chosen later. */
+    title: String? = null,
 ) {
     val navigator = LocalCodeNavigator.current
     val resources = LocalResources.current
@@ -67,15 +71,19 @@ internal fun ChatAmountEntryContent(
                 // the leading slot's width to position a Start-aligned title.
                 titleAlignment = Alignment.CenterHorizontally,
                 title = {
-                    TokenSelectionPill(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .wrapContentHeight(),
-                        token = token
-                    ) {
-                        // A half sheet over this one, not the app's full-screen picker, so the
-                        // amount stays in view underneath.
-                        navigator.push(ChatStep.SendCurrency)
+                    if (title != null) {
+                        Text(text = title, style = CodeTheme.typography.screenTitle)
+                    } else {
+                        TokenSelectionPill(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight(),
+                            token = token
+                        ) {
+                            // A half sheet over this one, not the app's full-screen picker, so the
+                            // amount stays in view underneath.
+                            navigator.push(ChatStep.SendCurrency)
+                        }
                     }
                 },
                 // A close X, not an up arrow: this is a sheet over the conversation, and dismissing

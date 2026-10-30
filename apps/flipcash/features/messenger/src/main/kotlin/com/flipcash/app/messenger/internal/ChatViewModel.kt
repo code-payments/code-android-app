@@ -1936,13 +1936,17 @@ internal class ChatViewModel @AssistedInject constructor(
         )
     }
 
+    // A group send has no ceiling: its currency is picked on the confirm sheet, which is the only
+    // place the balance is checked, so the amount step shows no "Enter up to" hint and no limit.
     private val maxAmountFlow by lazy {
         combine(
             transactionController.limits,
             tokenCoordinator.observeSelectedTokenMint()
                 .flatMapLatest { mint -> tokenCoordinator.balanceForToken(mint) },
             exchange.observePreferredRate(),
-        ) { limits, balance, rate ->
+            stateFlow.map { it.groupSend != null }.distinctUntilChanged(),
+        ) { limits, balance, rate, isGroupSend ->
+            if (isGroupSend) return@combine null
             val balanceInLocal = balance.convertingTo(rate)
             val sendLimit = limits?.sendLimitFor(rate.currency) ?: SendLimit.Zero
             Fiat(min(sendLimit.nextTransaction, balanceInLocal.toDouble()), rate.currency)
@@ -4199,13 +4203,16 @@ internal class ChatViewModel @AssistedInject constructor(
         val enteredAmount = fixedAmount?.toDouble() ?: amountDelegate.state.value.enteredAmount
         val amount = fixedAmount ?: Fiat(enteredAmount, exchange.preferredRate.currency)
 
-        if (checkBalanceLimit(amount) || checkSendLimit(enteredAmount)) return
+        // A group send's balance check waits for the confirm sheet (sendToMembers), where the
+        // currency is picked; the amount here only has to be positive.
+        val groupSend = stateFlow.value.groupSend
+        val overBalance = groupSend == null && checkBalanceLimit(amount)
+        if (overBalance || checkSendLimit(enteredAmount)) return
 
         if (enteredAmount <= 0) return
 
         val token = stateFlow.value.token ?: return
 
-        val groupSend = stateFlow.value.groupSend
         if (groupSend != null && fixedAmount == null) {
             dispatchEvent(
                 Event.GroupSendUpdated(

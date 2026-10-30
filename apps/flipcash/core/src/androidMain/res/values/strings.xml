@@ -1987,6 +1987,8 @@
 
     <!-- Group send, node 11293:6918 -->
     <string name="title_selectPeople">Select People</string>
+    <string name="title_splitBetween">Split Between</string>
+    <string name="title_groupSendTotal">Total Amount To Send</string>
     <string name="header_groupSendMembers">Members</string>
     <plurals name="action_sendToPeople">
         <item quantity="one">Send to %1$d Person</item>

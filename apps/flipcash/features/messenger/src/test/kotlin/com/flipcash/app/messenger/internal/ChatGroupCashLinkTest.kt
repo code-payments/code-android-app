@@ -44,6 +44,7 @@ import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.verify
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -443,5 +444,39 @@ class ChatGroupCashLinkTest {
         }
         coVerify(exactly = 0) { chatCashLinks.sendToChat(any(), any(), any(), any()) }
         assertTrue(events.any { it is ChatViewModel.Event.SendComplete })
+    }
+
+    @Test
+    fun `a group send total above the balance passes the amount step and stops at confirm`() = runTest(mainCoroutineRule.dispatcher) {
+        every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(1.0)
+        val vm = createViewModel()
+        selectingPeople(vm, total = 5.0)
+
+        // The amount step does not check the balance: it moves on to Select People.
+        assertEquals(GroupSendState.Stage.People, vm.stateFlow.value.groupSend?.stage)
+        verify(exactly = 0) { startChattingPayer.presentInsufficientBalance(any()) }
+
+        vm.check(2)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
+        assertEquals(GroupSendState.Stage.Confirm, vm.stateFlow.value.groupSend?.stage)
+
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested)
+        advanceUntilIdle()
+
+        verify(exactly = 1) { startChattingPayer.presentInsufficientBalance(any()) }
+        coVerify(exactly = 0) { groupSendPayments.send(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a group send has no hint or ceiling on the amount step`() = runTest(mainCoroutineRule.dispatcher) {
+        every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(1.0)
+        val vm = createViewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.amountDelegate.config.collect { } }
+        vm.openGroup(isPrivate = true)
+        enterAmount(vm, 5.0)
+        advanceUntilIdle()
+        val hint = vm.amountDelegate.config.value.hint
+        assertEquals(com.flipcash.shared.amountentry.AmountEntryHint.None, hint)
+        assertTrue(vm.amountDelegate.config.value.canConfirm)
     }
 }

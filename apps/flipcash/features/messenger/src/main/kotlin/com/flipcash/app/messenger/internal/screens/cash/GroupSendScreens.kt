@@ -75,6 +75,7 @@ internal fun GroupSelectPeopleContent(
     onBack: () -> Unit,
     onToggle: (ChatMember) -> Unit,
     onSend: () -> Unit,
+    title: String = stringResource(R.string.title_selectPeople),
     buttonText: String = pluralStringResource(R.plurals.action_sendToPeople, selected.size, selected.size),
     buttonEnabled: Boolean = selected.isNotEmpty(),
     /** Shown as "You" rather than by name, for a list the viewer is on. */
@@ -84,7 +85,7 @@ internal fun GroupSelectPeopleContent(
     CodeScaffold(
         topBar = {
             AppBarWithTitle(
-                title = stringResource(R.string.title_selectPeople),
+                title = title,
                 titleAlignment = Alignment.CenterHorizontally,
                 onBackIconClicked = onBack,
             )
