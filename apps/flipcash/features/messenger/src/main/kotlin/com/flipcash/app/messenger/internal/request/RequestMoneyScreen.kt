@@ -134,7 +134,7 @@ internal fun RequestMoneyScreen(
                     largeHeader = true,
                     appBar = {
                         AppBarWithTitle(
-                            title = stringResource(R.string.title_amountPerPerson),
+                            title = stringResource(R.string.title_totalAmount),
                             titleAlignment = Alignment.CenterHorizontally,
                             onBackIconClicked = back,
                         )
@@ -166,6 +166,7 @@ internal fun RequestMoneyScreen(
                         onBack = back,
                         onToggle = { viewModel.toggle(it.userId) },
                         onSend = back,
+                        title = stringResource(R.string.title_splitBetween),
                         buttonText = stringResource(R.string.action_done),
                         buttonEnabled = draft.canContinue,
                         viewerId = viewModel.viewerId,
@@ -371,7 +372,8 @@ private fun RequestSummaryContent(
     onTiming: () -> Unit,
     onRequest: () -> Unit,
 ) {
-    val amount = draft.perPerson?.text().orEmpty()
+    val amount = draft.total?.text().orEmpty()
+    val share = (draft.largestShare ?: draft.total)?.text().orEmpty()
     val resources = LocalResources.current
     CodeScaffold(
         topBar = {
@@ -389,7 +391,7 @@ private fun RequestSummaryContent(
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(bottom = CodeTheme.dimens.grid.x2)
                     .testTag("request_summary_send"),
-                text = requestButtonText(draft, amount, resources),
+                text = requestButtonText(share, resources),
                 enabled = draft.canSend,
                 isLoading = sending,
                 onClick = onRequest,
@@ -409,7 +411,7 @@ private fun RequestSummaryContent(
                 color = CodeTheme.colors.textMain,
             )
             Text(
-                text = stringResource(R.string.label_perPerson),
+                text = stringResource(R.string.label_requestTotal),
                 style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.textSecondary,
             )
