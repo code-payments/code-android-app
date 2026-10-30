@@ -102,6 +102,11 @@ that uses it. Warn them before you agree to a rename, and offer to add a new one
 Change no app code: screens, view models, DI, Gradle. Wiring is the reviewer's job, and the
 person proposing can't review Kotlin or Swift.
 
+A property added to an existing event is always `optional = true`. The generated builder gives
+it a `null` default, so the app keeps compiling and existing sends leave the property out until an
+engineer wires it. If a build error points into app code after a change like this, the property
+isn't optional: fix the entry, never the app.
+
 ## 6. Check it
 
 Run these as two commands. In one command, Gradle may check before it writes:
