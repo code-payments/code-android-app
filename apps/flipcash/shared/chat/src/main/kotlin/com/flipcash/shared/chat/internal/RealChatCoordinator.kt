@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.services.chat.GroupKeyEnvelopeStore
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatArchiveStore
@@ -109,6 +110,7 @@ class RealChatCoordinator @Inject constructor(
     private val rosterUpdates: RosterUpdateSink = RosterUpdateSink.None,
     private val paymentRequests: PaymentRequests? = null,
     private val hostInvites: HostInvites? = null,
+    private val groupKeyEnvelopes: GroupKeyEnvelopeStore? = null,
 ) : ChatCoordinator,
     SessionListener,
     DefaultLifecycleObserver,
@@ -452,6 +454,8 @@ class RealChatCoordinator @Inject constructor(
         draftStore.clearAll()
         archiveStore.clearAll()
         paymentRequests?.clearStored()
+        // Wrapped chat keys, stored per account like the rows above.
+        groupKeyEnvelopes?.clear()
         trace(tag = TAG, message = "cache cleared", type = TraceType.Process)
     }
 
