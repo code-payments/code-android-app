@@ -102,7 +102,7 @@ desc "Build a new version of Flipcash"
     desc "Download store metadata for Flipcash"
     lane :download_from_playstore_flipcash do
         download_from_play_store(
-          package_name: "com.flipcash.android.app",
+          package_name: "com.flipcash.app.android",
           track: "production",
           metadata_path: "fastlane/metadata/flipcash"
         )
