@@ -41,7 +41,7 @@ class ManageInvitesViewModelTest {
     private val chatId = ChatId(ByteArray(32) { 5 })
     private val hostInvites = mockk<HostInvites>()
     private val resources = mockk<ResourceHelper>(relaxed = true) {
-        every { getString(any()) } returns "text"
+        every { getString(any<Int>()) } returns "text"
     }
     private val listed = MutableStateFlow<Map<ChatId, List<HostInvite>>>(emptyMap())
 

@@ -49,7 +49,7 @@ class OnboardingFlowScreenTest {
                 LocalCodeNavigator provides navigator,
                 LocalPermissionChecker provides allGranted,
             ) {
-                OnboardingFlowScreen(onboarding, rememberNavResultStateRegistry())
+                OnboardingFlowScreen(onboarding, rememberNavResultStateRegistry(), purchaseStep = {})
             }
         }
         composeTestRule.waitForIdle()

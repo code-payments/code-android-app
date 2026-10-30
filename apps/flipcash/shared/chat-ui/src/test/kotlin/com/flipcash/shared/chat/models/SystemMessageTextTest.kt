@@ -31,8 +31,8 @@ class SystemMessageTextTest {
     )
 
     private val resources = mockk<ResourceHelper> {
-        every { getString(any()) } answers { templates.getValue(firstArg()) }
-        every { getString(any(), *anyVararg()) } answers {
+        every { getString(any<Int>()) } answers { templates.getValue(firstArg()) }
+        every { getString(any<Int>(), *anyVararg()) } answers {
             templates.getValue(firstArg()).format(*(args[1] as Array<*>))
         }
     }

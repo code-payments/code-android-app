@@ -21,7 +21,7 @@ class GroupChangeDialogTest {
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val resources = mockk<ResourceHelper>().also {
-        every { it.getString(any()) } answers { context.getString(firstArg()) }
+        every { it.getString(any<Int>()) } answers { context.getString(firstArg()) }
     }
 
     @Before
