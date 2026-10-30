@@ -37,7 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -217,7 +216,6 @@ internal fun RequestDetailsScreen(
             title = null,
             body = null,
             action = stringResource(R.string.action_closeRequest),
-            destructive = true,
             working = false,
             onAction = viewModel::askClose,
             onDismiss = viewModel::dismissSheet,
@@ -226,7 +224,6 @@ internal fun RequestDetailsScreen(
             title = stringResource(R.string.title_closeRequestConfirm),
             body = stringResource(R.string.description_closeRequestConfirm),
             action = stringResource(R.string.action_closeRequest),
-            destructive = true,
             working = state.working,
             onAction = viewModel::close,
             onDismiss = viewModel::dismissSheet,
@@ -237,7 +234,6 @@ internal fun RequestDetailsScreen(
                 title = name(sheet.userId),
                 body = stringResource(R.string.label_shareUnpaidAmount, amount),
                 action = stringResource(R.string.action_markAsPaid),
-                destructive = false,
                 working = false,
                 onAction = { viewModel.askMarkPaid(sheet.userId) },
                 onDismiss = viewModel::dismissSheet,
@@ -249,7 +245,6 @@ internal fun RequestDetailsScreen(
                 title = stringResource(R.string.title_markPaidConfirm, first),
                 body = stringResource(R.string.description_markPaidConfirm, first),
                 action = stringResource(R.string.action_markAsPaid),
-                destructive = false,
                 working = state.working,
                 onAction = { viewModel.markPaid(sheet.userId) },
                 onDismiss = viewModel::dismissSheet,
@@ -395,7 +390,6 @@ private fun ActionSheet(
     title: String?,
     body: String?,
     action: String,
-    destructive: Boolean,
     working: Boolean,
     onAction: () -> Unit,
     onDismiss: () -> Unit,
@@ -426,7 +420,6 @@ private fun ActionSheet(
                 modifier = Modifier.fillMaxWidth().testTag("request_action_primary"),
                 text = action,
                 buttonState = ButtonState.Filled,
-                textColor = if (destructive) CodeTheme.colors.errorText else Color.Unspecified,
                 isLoading = working,
                 onClick = onAction,
             )
