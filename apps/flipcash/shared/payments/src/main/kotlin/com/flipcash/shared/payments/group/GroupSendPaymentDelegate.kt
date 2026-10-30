@@ -21,7 +21,9 @@ import javax.inject.Singleton
  * single payment, 2 to 10 are one multi-payment in selection order. Both carry group-payment app
  * metadata, so the server posts the message into the group.
  *
- * No UI. Balance and send-limit checks on the total are the caller's, before it calls [send].
+ * No UI. The caller checks the balance against the sum of [GroupSendPlan.Pay.parts] (what the sender
+ * pays, which is less than the entered total when the sender is in the split) and any send limit,
+ * before it calls [send].
  */
 @Singleton
 class GroupSendPaymentDelegate @Inject constructor(

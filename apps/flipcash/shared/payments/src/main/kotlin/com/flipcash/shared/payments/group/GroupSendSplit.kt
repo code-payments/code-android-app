@@ -54,6 +54,24 @@ object GroupSendSplit {
         return GroupSendPlan.Pay(List(recipients) { i -> if (i < leftover) base + 1 else base })
     }
 
+    /**
+     * A split that the sender is part of but is not paid: [totalUnits] is divided between the
+     * [paid] members and the sender, who is checked at 0-based position [viewerAt] in check order
+     * (null when not checked), then the sender's part is dropped. The result's parts are the paid
+     * members', in check order. The too-small and recipient-count rules apply to the split with the
+     * sender in it, which may be [MAX_RECIPIENTS] + 1.
+     */
+    fun splitWithViewer(totalUnits: Long, paid: Int, viewerAt: Int?): GroupSendPlan {
+        if (paid <= 0) return GroupSendPlan.NoRecipients
+        val split = split(
+            totalUnits,
+            paid + if (viewerAt != null) 1 else 0,
+            maxRecipients = MAX_RECIPIENTS + if (viewerAt != null) 1 else 0,
+        )
+        if (split !is GroupSendPlan.Pay || viewerAt == null) return split
+        return GroupSendPlan.Pay(split.parts.filterIndexed { i, _ -> i != viewerAt })
+    }
+
     /** [fiat] in its currency's minor unit, rounded half-up to that unit. */
     fun minorUnits(fiat: Fiat): Long =
         BigDecimal.valueOf(fiat.quarks)

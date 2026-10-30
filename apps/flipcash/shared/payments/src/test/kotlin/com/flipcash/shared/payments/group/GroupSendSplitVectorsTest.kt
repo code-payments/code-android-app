@@ -60,6 +60,43 @@ class GroupSendSplitVectorsTest {
     }
 
     @Test
+    fun `every You vector`() {
+        val vectors = fixture.getJSONArray("youVectors")
+        assertEquals(11, vectors.length())
+        for (i in 0 until vectors.length()) {
+            val v = vectors.getJSONObject(i)
+            val name = v.getString("name")
+            val total = cents(v.getString("total"))
+            val plan = GroupSendSplit.splitWithViewer(total, v.getInt("recipients"), v.getInt("youAt"))
+
+            if (v.has("expectedError")) {
+                val error = when (val rule = v.getString("expectedError")) {
+                    "part-below-minimum" -> GroupSendPlan.PartBelowMinimum
+                    "too-many-recipients" -> GroupSendPlan.TooManyRecipients
+                    "no-recipients" -> GroupSendPlan.NoRecipients
+                    else -> error("$name: unknown rule $rule")
+                }
+                assertEquals(error, plan, name)
+                continue
+            }
+
+            val pay = assertIs<GroupSendPlan.Pay>(plan, name)
+            val intent = if (pay.parts.size > 1) "SendPublicMultiPayment" else "SendPublicPayment"
+            assertEquals(v.getString("intent"), intent, name)
+
+            val parts = v.getJSONArray("parts")
+            assertEquals((0 until parts.length()).map { cents(parts.getString(it)) }, pay.parts, name)
+            assertEquals(cents(v.getString("paidTotal")), pay.parts.sum(), name)
+            assertEquals(cents(v.getString("youPart")), total - pay.parts.sum(), name)
+
+            if (v.has("eachLabel")) {
+                val each = "$" + BigDecimal.valueOf(pay.smallest, 2).toPlainString() + " Each"
+                assertEquals(v.getString("eachLabel"), if (pay.isEven) each else "~$each", name)
+            }
+        }
+    }
+
+    @Test
     fun `minor units round trip through Fiat`() {
         assertEquals(12345L, GroupSendSplit.minorUnits(Fiat("123.45", CurrencyCode.USD)))
         assertEquals(1L, GroupSendSplit.minorUnits(Fiat("0.01", CurrencyCode.USD)))

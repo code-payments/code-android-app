@@ -40,16 +40,8 @@ internal data class GroupSendState(
     val plan: GroupSendPlan
         get() {
             val total = total ?: return GroupSendPlan.NoRecipients
-            if (paid.isEmpty()) return GroupSendPlan.NoRecipients
-            val split = GroupSendSplit.split(
-                GroupSendSplit.minorUnits(total),
-                selected.size,
-                maxRecipients = GroupSendSplit.MAX_RECIPIENTS + if (includesViewer) 1 else 0,
-            )
-            if (split !is GroupSendPlan.Pay) return split
-            return GroupSendPlan.Pay(
-                split.parts.filterIndexed { i, _ -> selected[i] != viewerId }
-            )
+            val viewerAt = selected.indexOf(viewerId).takeIf { it >= 0 }
+            return GroupSendSplit.splitWithViewer(GroupSendSplit.minorUnits(total), paid.size, viewerAt)
         }
 
     /** Who Select People lists: the roster without the sender, who has a "You" row of their own. */
