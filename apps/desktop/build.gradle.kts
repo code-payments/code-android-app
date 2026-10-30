@@ -93,7 +93,7 @@ compose.desktop {
 
 tasks.register<JavaExec>("snapshot") {
     group = "application"
-    description = "Renders a screen off-screen to a PNG: -Pout=<file> -Pscreen=chat|money|you|link -Pwidth=<dp> -Pheight=<dp>."
+    description = "Renders a screen off-screen to a PNG: -Pout=<file> -Pscreen=chat|money|you|link -Pwidth=<dp> -Pheight=<dp>, or frames into a directory with -Pmotion=peek|info."
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("com.flipcash.desktop.SnapshotMainKt")
     args(
@@ -101,6 +101,7 @@ tasks.register<JavaExec>("snapshot") {
         providers.gradleProperty("screen").getOrElse("chat"),
         providers.gradleProperty("width").getOrElse("1040"),
         providers.gradleProperty("height").getOrElse("760"),
+        providers.gradleProperty("motion").getOrElse(""),
     )
 }
 

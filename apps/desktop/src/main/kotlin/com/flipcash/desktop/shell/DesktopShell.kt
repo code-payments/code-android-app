@@ -239,27 +239,38 @@ fun DesktopShell(
                 enter = slideInHorizontally(PaneMotion.offset()) { -it / 3 } + fadeIn(PaneMotion.fade()),
                 exit = slideOutHorizontally(PaneMotion.offset()) { -it / 3 } + fadeOut(PaneMotion.fade()),
             ) {
-                SidebarSlot(
-                    width = DesktopDimens.SidebarExpanded,
-                    modifier = Modifier
+                // Leaving is judged around the list and its toggle together; the toggle sits on top
+                // of the list, so the list alone would see the pointer leave on the way to it.
+                Box(
+                    Modifier
                         .onPointerEvent(PointerEventType.Exit) { nav.sidebarPeek = false }
                         .testTag("sidebar_peek"),
-                    elevated = true,
-                ) { m -> listColumn(m) }
+                ) {
+                    SidebarSlot(
+                        width = DesktopDimens.SidebarExpanded,
+                        elevated = true,
+                    ) { m -> listColumn(m) }
+                    // It covers the rail's toggle, so it brings the list's own, which travels with it.
+                    TitleRowToggle(chrome, nav::toggleSidebar)
+                }
             }
             // One toggle beside the traffic lights that stays put whether the list is shown or hidden,
             // as in Finder and Notes. The rail carries its own, under the lights.
-            if (sidebarMode != SidebarMode.Rail) {
-                Box(
-                    Modifier.padding(start = toggleStart(chrome)).height(DesktopDimens.TitleRowHeight),
-                    contentAlignment = Alignment.Center,
-                ) { SidebarToggle(nav::toggleSidebar) }
-            }
+            if (sidebarMode != SidebarMode.Rail) TitleRowToggle(chrome, nav::toggleSidebar)
         }
     }
 }
 
 private val ToggleSize = 32.dp
+
+/** The sidebar toggle in the title row, beside the traffic lights on macOS. */
+@Composable
+private fun TitleRowToggle(chrome: WindowChrome, onClick: () -> Unit) {
+    Box(
+        Modifier.padding(start = toggleStart(chrome)).height(DesktopDimens.TitleRowHeight),
+        contentAlignment = Alignment.Center,
+    ) { SidebarToggle(onClick) }
+}
 
 /** Where the toggle starts: after the traffic lights on macOS, or the window's edge elsewhere. */
 private fun toggleStart(chrome: WindowChrome) = if (chrome.controlsWidth > 0.dp) chrome.controlsWidth else 8.dp

@@ -1,5 +1,6 @@
 package com.flipcash.desktop.shell
 
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.requiredWidth
@@ -8,6 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -15,20 +18,43 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.click as mouseClick
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.pressKey
+import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashTheme
+import com.flipcash.desktop.input.DesktopCommand
+import com.flipcash.desktop.input.HostOs
+import com.flipcash.desktop.input.desktopKeyHandler
+import com.flipcash.desktop.input.perform
 import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-// The test window is 1024 x 768, so at the wide widths these tests use the trailing controls sit
-// outside it; the click goes through the node's action rather than a pointer.
-private fun SemanticsNodeInteraction.click() = performSemanticsAction(SemanticsActions.OnClick)
+// A real pointer moves and clicks, so hover and hit testing are part of every test. The test window
+// is 1024 x 768, and at the wide widths the trailing controls sit outside it; only those go through
+// the node's click action instead.
+private fun SemanticsNodeInteraction.click(): SemanticsNodeInteraction {
+    // positionInRoot, not the bounds, which are clipped to the window.
+    val node = fetchSemanticsNode()
+    val (x, y) = node.positionInRoot
+    val inWindow = x >= 0f && y >= 0f && x + node.size.width <= TestWindowWidth && y + node.size.height <= TestWindowHeight
+    return if (inWindow) performMouseInput { mouseClick(center) } else performSemanticsAction(SemanticsActions.OnClick)
+}
+
+private const val TestWindowWidth = 1024f
+private const val TestWindowHeight = 768f
 
 class DesktopShellTest {
     @get:Rule
@@ -36,12 +62,22 @@ class DesktopShellTest {
 
     private val nav = DesktopNavState()
     private var width by mutableStateOf(1280.dp)
+    private var os = HostOs.Linux
+
+    // The window's key handling, as Main wires it, so key presses here take the real path.
+    private fun run(command: DesktopCommand): Boolean =
+        nav.perform(command, nav.contextPaneModeAt(widthClassFor(width)))
 
     private fun shell(at: Dp, block: ComposeContentTestRule.() -> Unit) {
         width = at
         rule.setContent {
             FlipcashTheme {
-            Box(Modifier.requiredWidth(width).fillMaxHeight()) {
+            Box(
+                Modifier.requiredWidth(width).fillMaxHeight()
+                    .onPreviewKeyEvent(desktopKeyHandler(os, ::run))
+                    .testTag("window")
+                    .focusable(),
+            ) {
                 DesktopShell(
                     nav = nav,
                     sidebar = { m -> Box(m.testTag("fake_list")) },
@@ -122,6 +158,81 @@ class DesktopShellTest {
         }
         waitUntil(2_000) { !nav.sidebarPeek }
         onNodeWithTag("sidebar_peek").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    private fun ComposeContentTestRule.press(key: Key, ctrl: Boolean = false, meta: Boolean = false) {
+        onNodeWithTag("window").performSemanticsAction(SemanticsActions.RequestFocus)
+        onNodeWithTag("window").performKeyInput {
+            when {
+                ctrl -> withKeyDown(Key.CtrlLeft) { pressKey(key) }
+                meta -> withKeyDown(Key.MetaLeft) { pressKey(key) }
+                else -> pressKey(key)
+            }
+        }
+        waitForIdle()
+    }
+
+    @Test
+    fun `esc folds the floating list first, and leaves the pane in its column`() = shell(1000.dp) {
+        nav.openWallet()
+        waitForIdle()
+        onNodeWithTag("rail").performMouseInput { moveTo(center) }
+        waitUntil(2_000) { nav.sidebarPeek }
+        press(Key.Escape)
+        assertFalse(nav.sidebarPeek)
+        onNodeWithTag("sidebar_peek").assertDoesNotExist()
+        onNodeWithTag("context_pane").assertExists()
+        press(Key.Escape)
+        assertEquals(ContextContent.Wallet, nav.context)
+        onNodeWithTag("context_pane").assertExists()
+    }
+
+    @Test
+    fun `esc closes the pane floating over the chat`() = shell(700.dp) {
+        nav.openWallet()
+        waitForIdle()
+        onNodeWithTag("context_overlay").assertExists()
+        press(Key.Escape)
+        assertNull(nav.context)
+        onNodeWithTag("context_overlay").assertDoesNotExist()
+    }
+
+    @Test
+    fun `control I twice opens info and closes it again on windows and linux`() = shell(1280.dp) {
+        press(Key.I, ctrl = true)
+        assertEquals(ContextContent.Info, nav.context)
+        onNodeWithTag("fake_Info").assertExists()
+        press(Key.I, ctrl = true)
+        assertNull(nav.context)
+        onNodeWithTag("context_pane").assertDoesNotExist()
+    }
+
+    @Test
+    fun `command I is left to the menu bar on mac`() {
+        os = HostOs.Mac
+        shell(1280.dp) {
+            press(Key.I, meta = true)
+            assertNull(nav.context)
+        }
+    }
+
+    @Test
+    fun `the floating list brings the toggle, which hides the sidebar`() = shell(1000.dp) {
+        nav.openWallet()
+        waitForIdle()
+        onNodeWithTag("rail").performMouseInput { moveTo(center) }
+        waitUntil(2_000) { nav.sidebarPeek }
+        val toggle = onNode(hasTestTag("sidebar_toggle") and hasAnyAncestor(hasTestTag("sidebar_peek")))
+        // A real pointer: moving onto the toggle must not count as leaving the list.
+        toggle.performMouseInput { moveTo(center) }
+        waitForIdle()
+        assertTrue(nav.sidebarPeek)
+        toggle.click()
+        waitForIdle()
+        assertTrue(nav.sidebarHidden)
+        onNodeWithTag("sidebar_peek").assertDoesNotExist()
+        onNodeWithTag("rail").assertDoesNotExist()
     }
 
     @Test
