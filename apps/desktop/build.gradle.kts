@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.metro)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -23,6 +24,7 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.jetbrains.compose.material3)
     implementation(libs.jetbrains.compose.material.icons.extended)
+    implementation(libs.kotlinx.serialization.json)
     implementation(project(":services:opencode"))
     implementation(project(":apps:flipcash:features:balance"))
     implementation(project(":apps:flipcash:core"))

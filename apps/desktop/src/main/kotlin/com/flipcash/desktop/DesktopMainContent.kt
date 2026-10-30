@@ -39,8 +39,8 @@ fun DesktopMainContent(
     graph: DesktopGraph,
     initialContext: ContextContent? = null,
     onSettings: () -> Unit = {},
+    nav: DesktopNavState = remember { DesktopNavState().apply { context = initialContext } },
 ) {
-    val nav = remember { DesktopNavState().apply { context = initialContext } }
     val walletViewModel = remember { graph.walletViewModel }
     val tokenViewModel = remember { graph.selectTokenViewModel }
     LaunchedEffect(tokenViewModel) {

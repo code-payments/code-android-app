@@ -14,16 +14,17 @@ import androidx.compose.ui.Modifier
 import com.flipcash.app.devicelink.DesktopLinkHost
 import com.flipcash.app.devicelink.ui.DesktopLinkScreen
 import com.flipcash.app.theme.FlipcashTheme
+import com.flipcash.desktop.shell.DesktopNavState
 import com.getcode.theme.CodeTheme
 import java.net.Inet4Address
 import java.net.NetworkInterface
 
 /** The main window when signed in; otherwise the link screen, which stores the phone's seed and signs in. */
 @Composable
-fun DesktopApp(graph: DesktopGraph, signedIn: Boolean) {
+fun DesktopApp(graph: DesktopGraph, signedIn: Boolean, nav: DesktopNavState = remember { DesktopNavState() }) {
     var linked by remember { mutableStateOf(signedIn) }
     if (linked) {
-        DesktopMainContent(graph)
+        DesktopMainContent(graph, nav = nav)
     } else {
         DesktopLinkContent(graph, onSignedIn = { linked = true })
     }
