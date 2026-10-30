@@ -73,9 +73,8 @@ internal fun InviteHostSheetContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.inset)
-                // The top keeps the link card clear of the header and its close button.
-                .padding(vertical = CodeTheme.dimens.grid.x4),
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+                .padding(top = HeaderToCardGap, bottom = SheetBottomPadding),
+            verticalArrangement = Arrangement.spacedBy(CardGap),
         ) {
             LinkCard(state = state, onShare = onShare)
             SheetRow(
@@ -106,6 +105,12 @@ internal fun InviteHostSheetContent(
         }
     }
 }
+
+// iOS #1175's host sheet: the cards 12 apart, 20 from the header to the link card (8 under the
+// header plus the 12 between items) and 20 under the last card.
+private val CardGap = 12.dp
+private val HeaderToCardGap = 20.dp
+private val SheetBottomPadding = 20.dp
 
 // Figma 1m's pill sits darker than the card around it; no theme token is white at 0.06.
 private val LinkPillColor = Color(0x0FFFFFFF)
