@@ -126,9 +126,23 @@ and say in the PR that it wasn't run locally. CI's Unit tests job runs the same 
 
 ## 7. Open a draft PR
 
-Commit as `feat(analytics): <what it measures>` and use the same line as the PR title. Then run
-`git push -u origin HEAD` and
-`gh pr create --draft --base code/cash --assignee @me --reviewer bmc08gt --title "<title>" --body-file <file>`.
+Commit as `feat(analytics): <what it measures>` and use the same line as the PR title. Then check
+whether the person can push to the repo:
+`gh repo view code-payments/code-android-app --json viewerPermission --jq .viewerPermission`.
+
+- `WRITE`, `MAINTAIN` or `ADMIN`: run `git push -u origin HEAD` and
+  `gh pr create --draft --base code/cash --assignee @me --reviewer bmc08gt --title "<title>" --body-file <file>`.
+- Anything else: push to a fork. Run
+  `gh repo fork --remote --remote-name fork` from inside the checkout. That forks `origin`,
+  reuses their fork if they already have one, and leaves `origin` alone. Then `git push -u fork HEAD` and
+  `gh pr create --repo code-payments/code-android-app --head <their-login>:<branch> --draft --base code/cash --title "<title>" --body-file <file>`,
+  with their login from `gh api user --jq .login`. Leave out `--assignee` and `--reviewer`;
+  GitHub refuses both from someone without write access. End the body with
+  `cc @bmc08gt` so the review request still reaches the reviewer.
+
+Don't ask the person to choose between these, and don't mention forks unless something fails.
+If `gh` isn't signed in, tell them to run `gh auth login` and stop there.
+
 Draft status matters: the catalogue says both apps send every event in it, and that stays
 untrue until an engineer wires the event up.
 
@@ -146,7 +160,12 @@ The PR body has these sections:
   with one line on why.
 
 Then run `gh pr checks --watch`. If a check fails, read the log with `gh run view --log-failed`,
-fix the catalogue, and push again.
+fix the catalogue, and push again. Push to the same remote as before.
+
+On a fork PR, CI may not start until a maintainer approves the run. If `gh pr checks` reports no
+checks, tell the person that's expected for a first contribution and that the reviewer will start
+them; don't wait in a loop. If a check fails for a reason unrelated to the catalogue, such as a
+missing secret, leave it for the reviewer and say so in a PR comment.
 
 ## 8. Close out with the person
 
