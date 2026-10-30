@@ -644,9 +644,8 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?) {
 }
 
 /**
- * [ChatStep.InviteHost]: frames 1m to 1m″ on the app's sheet scene. Share Link and Manage Invites
- * return the pick and close it, and the screen beneath opens the next sheet, as 2b does; Show
- * Group Card draws the card over it, as the Invite People sheet does.
+ * [ChatStep.InviteHost]: frame 1m on the app's sheet scene. Share Link and Manage Invites return
+ * the pick and close it, and the screen beneath opens the next sheet, as 2b does.
  */
 @Composable
 private fun FlowInviteHostSheet() {
@@ -656,7 +655,6 @@ private fun FlowInviteHostSheet() {
     val hostState by hostViewModel.state.collectAsStateWithLifecycle()
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val resultBack = resultBackNavigator<InviteHostAction>(exit = dismissSheet)
-    val navigator = LocalCodeNavigator.current
     val group = state.subject as? ChatSubject.Group
 
     LaunchedEffect(hostViewModel, state.chatId) {
@@ -667,11 +665,8 @@ private fun FlowInviteHostSheet() {
             when (effect) {
                 InviteHostSheetViewModel.Effect.ShareInvite -> resultBack.returnValue(InviteHostAction.ShareInvite)
                 InviteHostSheetViewModel.Effect.ShareJoin -> resultBack.returnValue(InviteHostAction.ShareJoin)
-                InviteHostSheetViewModel.Effect.ShowCard -> group?.let { navigator.push(it.cardRoute()) }
                 InviteHostSheetViewModel.Effect.OpenManageInvites ->
                     resultBack.returnValue(InviteHostAction.ManageInvites)
-                InviteHostSheetViewModel.Effect.CopyJoin ->
-                    viewModel.dispatchEvent(ChatViewModel.Event.CopyInviteLink)
                 InviteHostSheetViewModel.Effect.Close -> dismissSheet()
             }
         }
@@ -681,9 +676,6 @@ private fun FlowInviteHostSheet() {
         groupName = group?.groupTitle.orEmpty(),
         state = hostState,
         onShare = hostViewModel::onShare,
-        onCopy = hostViewModel::onCopy,
-        onShowCard = hostViewModel::onShowCard,
-        onRevoke = hostViewModel::onRevoke,
         onApproveChanged = hostViewModel::onApproveChanged,
         onManageInvites = hostViewModel::onManageInvites,
         onDismiss = dismissSheet,

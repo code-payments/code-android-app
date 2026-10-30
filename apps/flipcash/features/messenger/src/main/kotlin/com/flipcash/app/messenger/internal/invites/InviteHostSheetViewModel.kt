@@ -1,21 +1,17 @@
 package com.flipcash.app.messenger.internal.invites
 
-import android.content.ClipboardManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.FlipcashAnalytics
-import com.flipcash.app.core.extensions.setSensitiveText
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.messenger.internal.trackInviteLinkCreated
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ApproveNewMembersStore
-import com.flipcash.shared.chat.GroupCardLinks
 import com.flipcash.shared.chat.HostInvite
 import com.flipcash.shared.chat.HostInvites
 import com.flipcash.shared.chat.HostInvites.Companion.isLostInviteAccess
 import com.flipcash.shared.chat.InviteCreation
-import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -30,11 +26,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Frames 1m to 1m″: the host's link card, Approve new members and Manage Invites (spec surface 1).
+ * Frame 1m: the host's link card, Approve New Members and Manage Invites (spec surface 1).
  *
- * Off, the card is the current invite link, made on the first Share Link, Copy Link or Show Group
- * Card rather than on open. On, it is the plain `/chat/{uuid}` link. The switch only picks which
- * one the card shows; it revokes nothing.
+ * Off, the card is the current invite link, made on the first Share Link rather than on open. On,
+ * it is the plain `/chat/{uuid}` link. The switch only picks which one the card shows; it revokes
+ * nothing.
  *
  * What needs navigation is an [Effect] for the sheet, which has the navigators.
  */
@@ -42,9 +38,7 @@ import javax.inject.Inject
 internal class InviteHostSheetViewModel @Inject constructor(
     private val hostInvites: HostInvites,
     private val approveStore: ApproveNewMembersStore,
-    private val cardLinks: GroupCardLinks,
     private val resources: ResourceHelper,
-    private val clipboardManager: ClipboardManager,
     private val analytics: FlipcashAnalytics,
 ) : ViewModel() {
 
@@ -60,9 +54,6 @@ internal class InviteHostSheetViewModel @Inject constructor(
         val plainUrl: String? = null,
     ) {
         val creating: Boolean get() = !approve && invite == InviteLinkState.Creating
-
-        /** Revoke and Make New Link is there only for an invite link that exists. */
-        val canRevoke: Boolean get() = !approve && invite is InviteLinkState.Ready
     }
 
     sealed interface Effect {
@@ -72,18 +63,10 @@ internal class InviteHostSheetViewModel @Inject constructor(
         /** The Invite People sheet on the plain link, as a member gets it. */
         data object ShareJoin : Effect
 
-        /** The group card, whose link [GroupCardLinks] now holds. */
-        data object ShowCard : Effect
-
         data object OpenManageInvites : Effect
-
-        /** The plain link is on the clipboard; the conversation copies it, with its toast. */
-        data object CopyJoin : Effect
 
         data object Close : Effect
     }
-
-    private enum class Action { Share, Copy, Card }
 
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
@@ -92,17 +75,15 @@ internal class InviteHostSheetViewModel @Inject constructor(
     val effects: Flow<Effect> = _effects.receiveAsFlow()
 
     private var chatId: ChatId? = null
-    private var current: HostInvite? = null
     private var pending: Job? = null
 
     fun open(chatId: ChatId) {
         if (this.chatId == chatId) return
         this.chatId = chatId
-        current = hostInvites.current(chatId)
         _state.update {
             State(
                 approve = it.approve,
-                invite = current?.toState() ?: InviteLinkState.Loading,
+                invite = hostInvites.current(chatId)?.toState() ?: InviteLinkState.Loading,
                 plainUrl = Linkify.groupChatInvite(chatId),
             )
         }
@@ -122,8 +103,7 @@ internal class InviteHostSheetViewModel @Inject constructor(
         }
         // A pending tap owns the card until it lands.
         if (pending?.isActive == true) return
-        current = hostInvites.current(chatId)
-        _state.update { it.copy(invite = current?.toState() ?: InviteLinkState.None) }
+        _state.update { it.copy(invite = hostInvites.current(chatId)?.toState() ?: InviteLinkState.None) }
     }
 
     fun onApproveChanged(on: Boolean) {
@@ -132,49 +112,20 @@ internal class InviteHostSheetViewModel @Inject constructor(
         viewModelScope.launch { approveStore.set(chatId, on) }
     }
 
-    fun onShare() = act(Action.Share)
-
-    fun onCopy() = act(Action.Copy)
-
-    fun onShowCard() = act(Action.Card)
-
     fun onManageInvites() {
         _effects.trySend(Effect.OpenManageInvites)
     }
 
-    private fun act(action: Action) {
+    fun onShare() {
         val chatId = chatId ?: return
         if (pending?.isActive == true) return
         if (_state.value.approve) {
-            plain(chatId, action)
+            _effects.trySend(Effect.ShareJoin)
             return
         }
         pending = viewModelScope.launch {
-            val url = ensureInvite(chatId) ?: return@launch
-            when (action) {
-                Action.Share -> _effects.send(Effect.ShareInvite)
-                Action.Copy -> clipboardManager.setSensitiveText(
-                    text = url,
-                    label = resources.getString(R.string.title_clipboardLabelGroupInviteLink),
-                )
-                Action.Card -> {
-                    val ready = _state.value.invite as? InviteLinkState.Ready ?: return@launch
-                    cardLinks.put(chatId, GroupCardLinks.Link(url, isInvite = true, expiresAt = ready.expiresAt))
-                    _effects.send(Effect.ShowCard)
-                }
-            }
-        }
-    }
-
-    private fun plain(chatId: ChatId, action: Action) {
-        val url = _state.value.plainUrl ?: return
-        when (action) {
-            Action.Share -> _effects.trySend(Effect.ShareJoin)
-            Action.Copy -> _effects.trySend(Effect.CopyJoin)
-            Action.Card -> {
-                cardLinks.put(chatId, GroupCardLinks.Link(url, isInvite = false))
-                _effects.trySend(Effect.ShowCard)
-            }
+            ensureInvite(chatId) ?: return@launch
+            _effects.send(Effect.ShareInvite)
         }
     }
 
@@ -197,15 +148,9 @@ internal class InviteHostSheetViewModel @Inject constructor(
             }
             return null
         }
-        hostInvites.current(chatId)?.let { found ->
-            current = found
-            return settle(found)
-        }
+        hostInvites.current(chatId)?.let { return settle(it) }
         return when (val result = hostInvites.currentOrCreate(chatId).also { analytics.trackInviteLinkCreated(it) }) {
-            is InviteCreation.Created -> {
-                current = result.invite
-                settle(result.invite) ?: run { failed(); null }
-            }
+            is InviteCreation.Created -> settle(result.invite) ?: run { failed(); null }
             InviteCreation.TooMany -> {
                 _state.update { it.copy(invite = InviteLinkState.None) }
                 showTooManyInviteLinks(
@@ -243,35 +188,6 @@ internal class InviteHostSheetViewModel @Inject constructor(
     private fun failed() {
         _state.update { it.copy(invite = InviteLinkState.None) }
         showInviteLinkNotCreated(resources)
-    }
-
-    /**
-     * Revoke and Make New Link: surface 2's revoke confirmation, then an empty card until the next
-     * tap makes a new current link.
-     */
-    fun onRevoke() {
-        val chatId = chatId ?: return
-        val invite = current ?: return
-        showRevokeInviteLink(resources) {
-            viewModelScope.launch {
-                hostInvites.revoke(chatId, invite.invite.id)
-                    .onSuccess {
-                        current = null
-                        _state.update { it.copy(invite = InviteLinkState.None) }
-                    }
-                    .onFailure { error ->
-                        if (error.isLostInviteAccess()) {
-                            hostInvites.revokeAccess(chatId)
-                            _effects.send(Effect.Close)
-                        } else {
-                            BottomBarManager.showError(
-                                title = resources.getString(R.string.title_inviteLinkNotRevoked),
-                                message = resources.getString(R.string.description_inviteLinkNotCreated),
-                            )
-                        }
-                    }
-            }
-        }
     }
 
     private fun HostInvite.toState(): InviteLinkState =

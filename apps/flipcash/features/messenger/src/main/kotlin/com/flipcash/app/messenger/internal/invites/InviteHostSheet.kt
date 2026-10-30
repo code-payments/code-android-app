@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,16 +15,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,10 +24,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.flipcash.app.messenger.internal.screens.LinkPillFrame
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.extraLarge
 import com.getcode.theme.White08
 import com.getcode.theme.White50
 import com.getcode.ui.components.AppBarDefaults
@@ -45,26 +37,22 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeToggleSwitch
 
-internal const val InviteHostMoreTag = "invite-host-more"
 internal const val InviteHostApproveTag = "invite-host-approve"
 internal const val InviteHostShareTag = "invite-host-share"
 
 /**
- * Frames 1m to 1m″ (spec surface 1): the link card, Approve new members and Manage Invites, with
- * no navigation or view model so previews and tests can draw it.
+ * Frame 1m (spec surface 1): the link card, Approve New Members and Manage Invites, with no
+ * navigation or view model so previews and tests can draw it. Copy Link and Show Group Card are on
+ * the Invite People sheet that Share Link opens; revoking is in Manage Invites.
  */
 @Composable
 internal fun InviteHostSheetContent(
     groupName: String,
     state: InviteHostSheetViewModel.State,
     onShare: () -> Unit,
-    onCopy: () -> Unit,
-    onShowCard: () -> Unit,
-    onRevoke: () -> Unit,
     onApproveChanged: (Boolean) -> Unit,
     onManageInvites: () -> Unit,
     onDismiss: () -> Unit,
-    initiallyExpanded: Boolean = false,
 ) {
     Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
         AppBarWithTitle(
@@ -76,17 +64,11 @@ internal fun InviteHostSheetContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.inset)
-                .padding(bottom = CodeTheme.dimens.grid.x4),
+                // The top keeps the link card clear of the header and its close button.
+                .padding(vertical = CodeTheme.dimens.grid.x4),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
-            LinkCard(
-                state = state,
-                onShare = onShare,
-                onCopy = onCopy,
-                onShowCard = onShowCard,
-                onRevoke = onRevoke,
-                initiallyExpanded = initiallyExpanded,
-            )
+            LinkCard(state = state, onShare = onShare)
             SheetRow(
                 modifier = Modifier.testTag(InviteHostApproveTag),
                 title = stringResource(R.string.label_approveNewMembers),
@@ -111,15 +93,15 @@ internal fun InviteHostSheetContent(
 // Figma 1m's pill sits darker than the card around it; no theme token is white at 0.06.
 private val LinkPillColor = Color(0x0FFFFFFF)
 
-/** The pill with ⋯, Share Link, and the caption: how many joined and when it ends, or that people ask. */
+// Figma 1m: the card's content sits 14 in, and its pill is one 30-high line.
+private val LinkCardPadding = 14.dp
+private val LinkPillHeight = 30.dp
+
+/** The pill, Share Link, and the caption: how many joined and when it ends, or that people ask. */
 @Composable
 private fun LinkCard(
     state: InviteHostSheetViewModel.State,
     onShare: () -> Unit,
-    onCopy: () -> Unit,
-    onShowCard: () -> Unit,
-    onRevoke: () -> Unit,
-    initiallyExpanded: Boolean,
 ) {
     val invite = state.invite
     Column(
@@ -127,11 +109,15 @@ private fun LinkCard(
             .fillMaxWidth()
             .clip(CodeTheme.shapes.medium)
             .background(White08)
-            .padding(CodeTheme.dimens.grid.x3),
+            .padding(LinkCardPadding),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        LinkPillFrame(color = LinkPillColor) {
+        LinkPillFrame(
+            modifier = Modifier.heightIn(min = LinkPillHeight),
+            color = LinkPillColor,
+            verticalPadding = CodeTheme.dimens.grid.x1,
+        ) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 when {
                     state.approve -> state.plainUrl?.let { PillText(plainLinkText(it)) }
@@ -153,14 +139,6 @@ private fun LinkCard(
                     else -> Unit
                 }
             }
-            MoreMenu(
-                canRevoke = state.canRevoke,
-                enabled = !state.creating,
-                onCopy = onCopy,
-                onShowCard = onShowCard,
-                onRevoke = onRevoke,
-                initiallyExpanded = initiallyExpanded,
-            )
         }
         CodeButton(
             modifier = Modifier.fillMaxWidth().testTag(InviteHostShareTag),
@@ -189,61 +167,6 @@ private fun LinkCard(
             )
         }
     }
-}
-
-/** Frame 1m″: the platform's own menu off the pill's ⋯. */
-@Composable
-private fun MoreMenu(
-    canRevoke: Boolean,
-    enabled: Boolean,
-    onCopy: () -> Unit,
-    onShowCard: () -> Unit,
-    onRevoke: () -> Unit,
-    initiallyExpanded: Boolean,
-) {
-    var expanded by remember { mutableStateOf(initiallyExpanded) }
-    Box {
-        IconButton(
-            modifier = Modifier.testTag(InviteHostMoreTag),
-            enabled = enabled,
-            onClick = { expanded = true },
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.MoreHoriz,
-                contentDescription = stringResource(R.string.action_moreLinkOptions),
-                tint = CodeTheme.colors.textMain,
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            // The profile's ⋯ menu surface.
-            containerColor = CodeTheme.colors.brandLight,
-            shape = CodeTheme.shapes.extraLarge,
-        ) {
-            MenuItem(stringResource(R.string.action_copyLink)) { expanded = false; onCopy() }
-            MenuItem(stringResource(R.string.action_showGroupCard)) { expanded = false; onShowCard() }
-            if (canRevoke) {
-                HorizontalDivider(color = CodeTheme.colors.divider)
-                MenuItem(
-                    text = stringResource(R.string.action_revokeAndMakeNewLink),
-                    color = CodeTheme.colors.errorText,
-                ) { expanded = false; onRevoke() }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MenuItem(
-    text: String,
-    color: Color = CodeTheme.colors.textMain,
-    onClick: () -> Unit,
-) {
-    DropdownMenuItem(
-        text = { Text(text = text, style = CodeTheme.typography.textSmall, color = color) },
-        onClick = onClick,
-    )
 }
 
 @Composable

@@ -1585,16 +1585,14 @@
     <string name="action_shareInviteLinkLong">Share Invite Link</string>
     <string name="action_manageInvites">Manage Invites</string>
     <string name="label_creatingInviteLink">Creating link…</string>
-    <!-- The host sheet's link card and rows (spec group-invites.md surface 1, frames 1m to 1m''). -->
+    <!-- The host sheet's link card and rows (spec group-invites.md surface 1, frame 1m). -->
     <!-- The card's caption, joined with " · ": how many joined, then when the link ends. -->
     <string name="label_inviteJoinedThenEnds">%1$s · %2$s</string>
     <string name="label_joinLinkAsksToJoin">People who open this link ask to join</string>
-    <string name="label_approveNewMembers">Approve new members</string>
-    <string name="subtitle_approveNewMembersOff">Off: anyone with the link joins right away</string>
-    <string name="subtitle_approveNewMembersOn">On: you approve each person in Join Requests</string>
+    <string name="label_approveNewMembers">Approve New Members</string>
+    <string name="subtitle_approveNewMembersOff">Anyone with the link joins right away</string>
+    <string name="subtitle_approveNewMembersOn">You approve each person in Join Requests</string>
     <string name="subtitle_manageInvitesRow">Make more links with an expiry or a use limit</string>
-    <string name="action_revokeAndMakeNewLink">Revoke and Make New Link</string>
-    <string name="action_moreLinkOptions">More link options</string>
     <string name="action_shareLink">Share Link</string>
     <string name="footnote_inviteLink">Anyone with this link can join and see who\'s in the group. Share it only with people you want in the group</string>
     <!-- A link's lines, joined with " · ". %1$s is a date such as "Nov 3". -->

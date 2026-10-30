@@ -639,6 +639,7 @@ internal fun PlainLinkPill(url: String, modifier: Modifier = Modifier) {
 internal fun LinkPillFrame(
     modifier: Modifier = Modifier,
     color: Color = White05,
+    verticalPadding: Dp = CodeTheme.dimens.grid.x3,
     content: @Composable RowScope.() -> Unit,
 ) {
     Row(
@@ -646,7 +647,7 @@ internal fun LinkPillFrame(
             .fillMaxWidth()
             .clip(CodeTheme.shapes.extraSmall)
             .background(color)
-            .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x3),
+            .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         content = content,
