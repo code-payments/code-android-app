@@ -22,6 +22,8 @@ class ButtonEventsTest {
                 "Button: Buy With Coinbase",
                 "Button: Buy With Other Wallet",
                 "Button: Share Token Info",
+                "Button: Buy With Currency",
+                "Button: Give",
             ).map { AnalyticsEvent(it, emptyMap()) },
             Button.entries.map(ButtonEvents::tapped),
         )

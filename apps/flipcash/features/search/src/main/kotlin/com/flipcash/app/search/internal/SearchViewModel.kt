@@ -6,6 +6,9 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.SearchResultType
+import com.flipcash.analytics.events.SearchEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -56,6 +59,7 @@ internal class SearchViewModel @Inject constructor(
     messageDataSource: ChatMessageDataSource,
     private val currencySearch: CurrencySearch,
     private val recentStore: RecentSearchStore,
+    private val analytics: FlipcashAnalytics,
 ) : ViewModel() {
 
     private val inviteLinkLabel = resources.getString(R.string.label_inviteLinkPreview)
@@ -139,6 +143,7 @@ internal class SearchViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
+        analytics.track(SearchEvents.opened())
         // A cleared query starts the next search from All, whichever chip the last one ended on.
         viewModelScope.launch {
             snapshotFlow { query.text.toString() }
@@ -160,6 +165,11 @@ internal class SearchViewModel @Inject constructor(
     }
 
     fun selectChip(chip: SearchChip) = _chip.update { chip }
+
+    /** `Search: Result Tapped` for the row kind tapped, sent at the tap and before anything opens. */
+    fun resultTapped(type: SearchResultType) {
+        analytics.track(SearchEvents.resultTapped(type))
+    }
 
     /** Records [chatId] as a recent before the screen opens it. */
     fun opened(chatId: ChatId) {

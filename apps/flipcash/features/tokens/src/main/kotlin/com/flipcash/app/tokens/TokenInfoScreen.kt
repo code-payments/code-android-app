@@ -222,6 +222,7 @@ internal fun TokenInfoEntry.toTokenInfoSource(): TokenInfoSource =
         TokenInfoEntry.Deeplink -> TokenInfoSource.DEEPLINK
         TokenInfoEntry.Wallet -> TokenInfoSource.WALLET
         TokenInfoEntry.Discovery -> TokenInfoSource.DISCOVERY
+        TokenInfoEntry.Search -> TokenInfoSource.SEARCH
         TokenInfoEntry.Chat -> TokenInfoSource.CHAT
         TokenInfoEntry.ChatGate -> TokenInfoSource.CHAT_GATE
     }

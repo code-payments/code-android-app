@@ -39,6 +39,12 @@ class TokenInfoScreenAnalyticsTest {
     )
 
     @Test
+    fun searchTracksOpenedFromSearch() = assertTracksSource(
+        entry = TokenInfoEntry.Search,
+        expectedName = "Token Info: Opened From Search",
+    )
+
+    @Test
     fun chatTracksOpenedFromChat() = assertTracksSource(
         entry = TokenInfoEntry.Chat,
         expectedName = "Token Info: Opened From Chat",

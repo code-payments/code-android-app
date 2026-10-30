@@ -7,8 +7,79 @@ import kotlin.test.assertEquals
 class GroupEventsTest {
 
     @Test
-    fun newOpenedCarriesNoProperties() {
+    fun newOpenedLeavesOutAnAbsentType() {
         assertEquals(AnalyticsEvent("Group: New Opened", emptyMap()), GroupEvents.newOpened())
+    }
+
+    @Test
+    fun newOpenedCarriesEveryTypeByItsWireString() {
+        assertEquals(
+            listOf("Private", "Community"),
+            GroupType.entries.map {
+                val event = GroupEvents.newOpened(it)
+                assertEquals(AnalyticsEvent("Group: New Opened", mapOf("Type" to event.properties.getValue("Type"))), event)
+                (event.properties.getValue("Type") as PropertyValue.Text).value
+            },
+        )
+    }
+
+    @Test
+    fun inviteLinkCreatedAndRevokedCarryTheOutcome() {
+        assertEquals(
+            AnalyticsEvent("Group: Invite Link Created", mapOf("State" to PropertyValue.Text("Success"))),
+            GroupEvents.inviteLinkCreated(State.SUCCESS, null),
+        )
+        assertEquals(
+            AnalyticsEvent(
+                "Group: Invite Link Revoked",
+                mapOf("State" to PropertyValue.Text("Failure"), "Error" to PropertyValue.Text("Denied")),
+            ),
+            GroupEvents.inviteLinkRevoked(State.FAILURE, "Denied"),
+        )
+    }
+
+    @Test
+    fun joinRequestApprovedAndDeniedCarryTheOutcome() {
+        assertEquals(
+            AnalyticsEvent("Group: Join Request Approved", mapOf("State" to PropertyValue.Text("Success"))),
+            GroupEvents.joinRequestApproved(State.SUCCESS, null),
+        )
+        assertEquals(
+            AnalyticsEvent(
+                "Group: Join Request Denied",
+                mapOf("State" to PropertyValue.Text("Failure"), "Error" to PropertyValue.Text("Network")),
+            ),
+            GroupEvents.joinRequestDenied(State.FAILURE, "Network"),
+        )
+    }
+
+    @Test
+    fun memberSilencedCarriesEveryDurationByItsWireString() {
+        assertEquals(
+            listOf("1 Hour", "8 Hours", "1 Week", "Forever"),
+            SilenceDuration.entries.map {
+                val event = GroupEvents.memberSilenced(it, State.SUCCESS, null)
+                assertEquals(
+                    AnalyticsEvent(
+                        "Group: Member Silenced",
+                        mapOf("Duration" to event.properties.getValue("Duration"), "State" to PropertyValue.Text("Success")),
+                    ),
+                    event,
+                )
+                (event.properties.getValue("Duration") as PropertyValue.Text).value
+            },
+        )
+    }
+
+    @Test
+    fun memberRemovedCarriesTheOutcome() {
+        assertEquals(
+            AnalyticsEvent(
+                "Group: Member Removed",
+                mapOf("State" to PropertyValue.Text("Failure"), "Error" to PropertyValue.Text("Denied")),
+            ),
+            GroupEvents.memberRemoved(State.FAILURE, "Denied"),
+        )
     }
 
     @Test

@@ -117,6 +117,7 @@ class TokenInfoViewModelCommunityLeaderTest {
         purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true),
         feedCoordinator = mockk<ActivityFeedCoordinator>(relaxed = true),
         communityController = communityController,
+        analytics = com.flipcash.app.analytics.RecordingAnalytics(),
         dispatchers = TestDispatchers(testScheduler),
     )
 

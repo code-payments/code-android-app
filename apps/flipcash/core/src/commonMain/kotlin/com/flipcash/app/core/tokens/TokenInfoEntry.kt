@@ -37,6 +37,13 @@ sealed interface TokenInfoEntry : Parcelable {
         override val afterBuy get() = AfterBuy.Stay
     }
 
+    /** A currency result tapped on the Chats search screen. */
+    @Serializable
+    data object Search : TokenInfoEntry {
+        override val presentation get() = TokenInfoPresentation.Push
+        override val afterBuy get() = AfterBuy.Stay
+    }
+
     /** A currency mentioned in a chat transcript. */
     @Serializable
     data object Chat : TokenInfoEntry {
@@ -56,7 +63,7 @@ sealed interface TokenInfoEntry : Parcelable {
 
     companion object {
         /** Every origin. Covered by a test against the serializer's subclass list. */
-        val all: List<TokenInfoEntry> = listOf(Wallet, Deeplink, Discovery, Chat, ChatGate)
+        val all: List<TokenInfoEntry> = listOf(Wallet, Deeplink, Discovery, Search, Chat, ChatGate)
     }
 }
 

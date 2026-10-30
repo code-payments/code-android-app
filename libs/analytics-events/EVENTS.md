@@ -58,9 +58,11 @@ Group chats. `Member Count` is the member count before the action, from what the
 
 ### Group: New Opened
 
-The New Group form opened.
+The New Group form opened. Type says whether the user tapped Create a New Group or Create a New Community Chat.
 
-No properties.
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Type | list | yes | [GroupType](#grouptype) |
 
 ### Group: Created
 
@@ -133,7 +135,7 @@ The gate first appeared for a chat. Sent once per visit to the chat.
 
 ### Group: Joined
 
-JoinChat returned.
+JoinChat returned. Neither app sends it for a join from an invite link.
 
 | Property | Type | Optional | Values |
 |---|---|---|---|
@@ -160,6 +162,79 @@ The group info (profile) screen opened.
 |---|---|---|---|
 | Member Count | count | no | |
 | Is Member | yes/no | no | |
+
+### Group: Invite Link Created
+
+CreateInvite returned for a private group's invite link, from New Link in Manage Invites or when Share Invite Link makes one because none exists.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Group: Invite Link Revoked
+
+RevokeInvite returned after the host confirmed Revoke Link.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Group: Join Request Approved
+
+A host tapped Approve on a join request and the admit call returned.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Group: Join Request Denied
+
+A host tapped Deny on a join request and the deny call returned.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Group: Member Silenced
+
+A host picked a silence option for a member and the call returned. The member can still read the group but can't send messages.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Duration | list | no | [SilenceDuration](#silenceduration) |
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Group: Member Removed
+
+A host confirmed Remove on a member and the ban call returned. Both apps remove a member by banning them.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+## Search
+
+The Chats search screen.
+
+### Search: Opened
+
+The Chats search screen opened.
+
+No properties.
+
+### Search: Result Tapped
+
+A result row was tapped on the Chats search screen. Tapping a section's See all is not a result.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Result Type | list | no | [SearchResultType](#searchresulttype) |
 
 ## Transfer
 
@@ -354,13 +429,39 @@ The Phantom deeplink flow.
 |---|---|---|---|
 | Mint | text | no | |
 
+### Token Info: Tile Tapped
+
+An action tile was tapped on Currency Info. It counts the tap, not whether the Send, Buy or Transactions screen completed.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Tile | list | no | [CurrencyInfoTile](#currencyinfotile) |
+| Mint | text | no | |
+
+### Token Info: More Option Picked
+
+A row was picked in the More sheet on Currency Info.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Option | list | no | [CurrencyInfoMoreOption](#currencyinfomoreoption) |
+| Mint | text | no | |
+
+### Token Info: Community Chat Tapped
+
+A community chat row was tapped on Currency Info, in the Top Community Chats preview or its View All list.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Mint | text | no | |
+
 ## Swap
 
 Buying and selling a token.
 
 ### Token Purchase With {method}
 
-Phantom and Coinbase are Android only; part 2 decides whether iOS sends them.
+Phantom and Coinbase are Android only; part 2 decides whether iOS sends them. Currency is a buy paid with a held currency other than USDF reserves.
 
 `{method}` in the name is one of [PurchaseMethod](#purchasemethod).
 
@@ -370,7 +471,7 @@ Phantom and Coinbase are Android only; part 2 decides whether iOS sends them.
 | amount | group | no | [amount](#amount) |
 | Error | text | yes | |
 
-> **Drift:** (Reserves) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks.
+> **Drift:** (Reserves and Currency) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks.
 
 ### Token Sell
 
@@ -382,6 +483,23 @@ Phantom and Coinbase are Android only; part 2 decides whether iOS sends them.
 | Error | text | yes | |
 
 > **Drift:** iOS also sends State, and sends only Fiat and Currency of the amount, with no USDC, Quarks or Fee.
+
+## Currency Launch
+
+### Currency Launch With {method}
+
+A currency launch finished, on success or failure. Mint is the launched currency, Payment Mint the token that paid the launch cost, and Fiat and Currency the launch cost in the user's currency. Reserves is a launch paid with USDF; Currency is one paid with another held currency.
+
+`{method}` in the name is one of [LaunchMethod](#launchmethod).
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Mint | text | no | |
+| Payment Mint | text | no | |
+| Fiat | decimal | no | |
+| Currency | text | no | |
+| Error | text | yes | |
 
 ## Scan
 
@@ -401,7 +519,7 @@ No properties.
 | Zoom | decimal | no | |
 | Time | duration | no | |
 
-> **Drift:** iOS sends this as Gallery Scan: Code Found, with Type {Kik, QR}, Tier as {wholeImage, quadrant, window}, Zoom, and Elapsed in seconds instead of Time in ms.
+> **Drift:** iOS sends this as Gallery Scan: Code Found, with Type {Kik, QR}, Tier as {wholeImage, quadrant, window}, Zoom, and Elapsed in seconds instead of Time in ms. iOS will move to this event, and the Gallery Scan: Code Found series in Mixpanel ends on the iOS release that does.
 
 ### Gallery Scan: Failed
 
@@ -412,7 +530,7 @@ No properties.
 | Time | duration | no | |
 | Exhausted | yes/no | no | |
 
-> **Drift:** iOS sends this as Gallery Scan: Nothing Found, with State {Exhausted, Cancelled, Route Refused} and Elapsed in seconds instead of Time in ms and Exhausted.
+> **Drift:** iOS sends this as Gallery Scan: Nothing Found, with State {Exhausted, Cancelled, Route Refused} and Elapsed in seconds instead of Time in ms and Exhausted. iOS will move to this event, and the Gallery Scan: Nothing Found series in Mixpanel ends on the iOS release that does.
 
 ### Tip Card Scanned
 
@@ -440,11 +558,13 @@ Sent in 2 forms.
 |---|---|---|---|
 | Type | text | no | |
 
-> **Drift:** iOS's Type vocabulary is {Login, CashLink, EmailVerification, TokenInfo, Chat, ChatSendCash, Tip, Username, Wallet, DiscoverCurrencies, "Sheet:<x>"}, and iOS sends this for every link where Android sends it only on the gallery QR path.
+> **Drift:** iOS's Type vocabulary is {Login, CashLink, EmailVerification, TokenInfo, Chat, ChatSendCash, ChatMessage, GroupInvite, Tip, Profile, Wallet, DiscoverCurrencies, "Sheet:<x>"}. iOS sends this for every link that resolves to an action and for no other, where Android sends it only on the gallery QR path.
 
 | Property | Type | Optional | Values |
 |---|---|---|---|
 | Error | text | no | `Failed to parse deeplink => {url}` |
+
+> **Drift:** iOS never sends this form: it reports a parse only for links that resolve to an action.
 
 ### Deeplink: Routed
 
@@ -453,7 +573,7 @@ Sent in 2 forms.
 | Type | text | no | |
 | Error | text | yes | |
 
-> **Drift:** iOS never passes Error, and sends this for every kind where Android sends it only for a cash link.
+> **Drift:** iOS never passes Error. It sends this for every kind except access-key and verify-email links, which never report a route, and only when a user is logged in; Android sends it only for a cash link.
 
 ## Display Name
 
@@ -497,6 +617,20 @@ Android only; part 2 decides whether iOS sends it. iOS's Create Account fires at
 | Fiat | decimal | no | |
 | Currency | text | no | |
 | Owner Public Key | text | no | |
+
+### Create Account
+
+The user chose to create an account and registration began, before the server answers.
+
+No properties.
+
+> **Drift:** iOS also sends Owner Public Key, a wallet identifier that isn't part of the shared contract. iOS stops sending it when it moves to this event.
+
+### Auto-login complete
+
+A saved account on the device logged in at launch with no action from the user.
+
+No properties.
 
 ### Entered Phone Number
 
@@ -667,15 +801,18 @@ The `Provider` property on the Wallet events: the wallet app the flow goes throu
 
 ### TokenInfoSource
 
-Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 1; Android previously sent Wallet for all three. iOS's Give and Send sources stay native until part 2.
+Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 1; Android previously sent Wallet for all three. Give and Send are iOS's, from the Add More Cash prompt on the Give and Send amount screens; the event names iOS sends today are unchanged. Search is a result tapped on the Chats search screen.
 
 | Value sent | Name in code | Drift |
 |---|---|---|
 | Deeplink | `DEEPLINK` | |
 | Wallet | `WALLET` | |
 | Discovery | `DISCOVERY` | |
+| Search | `SEARCH` | |
 | Chat | `CHAT` | |
 | Chat Gate | `CHAT_GATE` | iOS doesn't send this source: its gate buy button pushes the buy screen and never opens Token Info. Group: Gate Funding Tapped covers that tap on both apps. |
+| Give | `GIVE` | Android has no such flow: its Give screen sends Add Money: Opened with source Give Shortfall instead of opening Token Info. |
+| Send | `SEND` | Android has no such flow: its Send screen has no Add More Cash prompt that opens Token Info. |
 
 ### MuteDuration
 
@@ -688,6 +825,26 @@ The `Duration` property on Chat Muted: the mute option picked. Both apps offer t
 | 1 Week | `ONE_WEEK` | |
 | Always | `ALWAYS` | |
 
+### SilenceDuration
+
+The `Duration` property on Group: Member Silenced: the silence option picked. Both apps offer these four. The last reads Forever here, where MuteDuration reads Always.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| 1 Hour | `ONE_HOUR` | |
+| 8 Hours | `EIGHT_HOURS` | |
+| 1 Week | `ONE_WEEK` | |
+| Forever | `FOREVER` | |
+
+### GroupType
+
+The `Type` property on Group: New Opened: which New Chat row was tapped. Private is Create a New Group; Community is Create a New Community Chat.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Private | `PRIVATE` | |
+| Community | `COMMUNITY` | |
+
 ### GroupField
 
 The `Field` property on Group: Edited: what the edit changed.
@@ -699,11 +856,11 @@ The `Field` property on Group: Edited: what the edit changed.
 
 ### GroupInviteSheetSource
 
-The `Source` property on Group: Invite Sheet Opened. Chat is Android's transcript CTA and iOS's head card.
+The `Source` property on Group: Invite Sheet Opened. Both apps send Profile, from the group profile and the join requests screen.
 
 | Value sent | Name in code | Drift |
 |---|---|---|
-| Chat | `CHAT` | |
+| Chat | `CHAT` | Neither app sends this today. It was Android's transcript CTA and iOS's card at the head of chat history; Android dropped its CTA in #1707 and iOS removed its card in cb036f487. |
 | Profile | `PROFILE` | |
 
 ### GroupInviteMethod
@@ -724,7 +881,7 @@ The `Source` property on Group: Invite Followed: what the group was opened from.
 |---|---|---|
 | Link | `LINK` | |
 | QR | `QR` | |
-| Chat Card | `CHAT_CARD` | |
+| Chat Card | `CHAT_CARD` | iOS sends this when a group card in a chat is tapped and its link names a chat other than the one on screen; a card whose link carries no chat id opens through the link path and sends Link. |
 
 ### GroupAccess
 
@@ -744,6 +901,39 @@ The `Method` property on Group: Gate Funding Tapped: the funding button tapped o
 | Buy Token | `BUY_TOKEN` | |
 | Add Cash | `ADD_CASH` | |
 
+### SearchResultType
+
+The `Result Type` property on Search: Result Tapped: the kind of result row. Chat covers direct messages and groups, and the recent chats shown before anything is typed.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Chat | `CHAT` | |
+| Currency | `CURRENCY` | |
+| Message | `MESSAGE` | |
+| Link | `LINK` | |
+
+### CurrencyInfoTile
+
+The `Tile` property on Token Info: Tile Tapped: the action tile tapped on Currency Info. Which tiles show depends on whether the currency is held.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Send | `SEND` | |
+| Buy | `BUY` | |
+| Buy In | `BUY_IN` | |
+| Transactions | `TRANSACTIONS` | |
+| More | `MORE` | |
+
+### CurrencyInfoMoreOption
+
+The `Option` property on Token Info: More Option Picked: the row picked in the More sheet.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Convert | `CONVERT` | |
+| Withdraw | `WITHDRAW` | |
+| Deposit | `DEPOSIT` | |
+
 ### PurchaseMethod
 
 How a token is paid for, sent in the event name `Token Purchase With {method}`.
@@ -753,6 +943,16 @@ How a token is paid for, sent in the event name `Token Purchase With {method}`.
 | Reserves | `RESERVES` | |
 | Phantom | `PHANTOM` | |
 | Coinbase | `COINBASE` | |
+| Currency | `CURRENCY` | |
+
+### LaunchMethod
+
+How a currency launch is paid for, sent in the event name `Currency Launch With {method}`.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Reserves | `RESERVES` | |
+| Currency | `CURRENCY` | |
 
 ### DisplayNameSource
 
@@ -816,6 +1016,8 @@ The button tapped, sent in the event name `Button: {button}`.
 | Buy With Coinbase | `BUY_WITH_COINBASE` | |
 | Buy With Other Wallet | `BUY_WITH_OTHER_WALLET` | |
 | Share Token Info | `SHARE_TOKEN_INFO` | |
+| Buy With Currency | `BUY_WITH_CURRENCY` | iOS sends this when a buy is paid with a held currency other than USDF reserves. Android sends no Button event for that buy. |
+| Give | `GIVE` | iOS sends this on Currency Info's Give button, which opens its send-to-person amount screen. Android's matching tile is labelled Send and sends no Button event. |
 
 ## People counters
 

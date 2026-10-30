@@ -93,6 +93,7 @@ class TokenInfoViewModelChartLoadTest {
                 communityController = mockk<com.flipcash.services.controllers.CommunityController> {
                 io.mockk.coEvery { getCommunity(any()) } returns Result.failure(Throwable("none"))
             },
+                analytics = com.flipcash.app.analytics.RecordingAnalytics(),
                 dispatchers = TestDispatchers(testScheduler),
             )
 

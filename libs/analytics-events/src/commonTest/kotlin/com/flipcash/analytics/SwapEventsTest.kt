@@ -22,8 +22,14 @@ class SwapEventsTest {
                 AnalyticsEvent("Token Purchase With Reserves", properties),
                 AnalyticsEvent("Token Purchase With Phantom", properties),
                 AnalyticsEvent("Token Purchase With Coinbase", properties),
+                AnalyticsEvent("Token Purchase With Currency", properties),
             ),
-            listOf(PurchaseMethod.RESERVES, PurchaseMethod.PHANTOM, PurchaseMethod.COINBASE)
+            listOf(
+                PurchaseMethod.RESERVES,
+                PurchaseMethod.PHANTOM,
+                PurchaseMethod.COINBASE,
+                PurchaseMethod.CURRENCY,
+            )
                 .map { SwapEvents.purchase(it, "mint", amount, null) },
         )
     }

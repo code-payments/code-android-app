@@ -4,7 +4,13 @@ import com.flipcash.analytics.Amount
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.navigation.DeeplinkType
+import com.flipcash.services.models.AdmitLobbyMemberError
+import com.flipcash.services.models.BanUserError
+import com.flipcash.services.models.CreateInviteError
+import com.flipcash.services.models.DenyLobbyMemberError
 import com.flipcash.services.models.JoinChatError
+import com.flipcash.services.models.RevokeInviteError
+import com.flipcash.services.models.SilenceUserError
 import com.flipcash.services.models.MuteChatError
 import com.flipcash.services.models.StartChatError
 import com.flipcash.services.models.chat.ChatId
@@ -107,6 +113,18 @@ class ConversionsTest {
         // MuteChatError.Denied's message is "Caller is not a member".
         assertEquals("Denied", MuteChatError.Denied().chatResult)
         assertEquals("TitleModerated", StartChatError.TitleModerated(mockk(relaxed = true)).chatResult)
+    }
+
+    @Test
+    fun `an invite, lobby or moderation error reports the proto result name`() {
+        assertEquals("TooManyInvites", CreateInviteError.TooManyInvites().chatResult)
+        assertEquals("Denied", CreateInviteError.Denied().chatResult)
+        assertEquals("NotFound", RevokeInviteError.NotFound().chatResult)
+        assertEquals("NotInLobby", AdmitLobbyMemberError.NotInLobby().chatResult)
+        assertEquals("Denied", DenyLobbyMemberError.Denied().chatResult)
+        assertEquals("CannotRestrictCreator", SilenceUserError.CannotRestrictCreator().chatResult)
+        assertEquals("CannotRestrictCreator", BanUserError.CannotRestrictCreator().chatResult)
+        assertEquals("Unrecognized", BanUserError.Unrecognized().chatResult)
     }
 
     @Test

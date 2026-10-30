@@ -6,6 +6,7 @@ import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.analytics.PropertyValue
 import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.GroupEvents
 import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.persistence.sources.UserProfileDataSource
@@ -19,7 +20,10 @@ import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.JoinChatError
+import com.flipcash.services.models.AdmitLobbyMemberError
+import com.flipcash.services.models.DenyLobbyMemberError
 import com.flipcash.services.models.LeaveChatError
+import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -30,6 +34,7 @@ import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.chat.GroupAccess
+import com.flipcash.shared.chat.HostLobbies
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
@@ -108,6 +113,7 @@ class ChatGroupAnalyticsTest {
     private val recentReactionsStore = mockk<RecentReactionsStore>(relaxed = true)
     private val emojiCatalogLoader = mockk<EmojiCatalogLoader>(relaxed = true)
     private val userProfileDataSource = mockk<UserProfileDataSource>(relaxed = true)
+    private val hostLobbies = mockk<HostLobbies>(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) }
 
     private val chatId = ChatId(UUID.randomUUID().bytes)
     private val mint = Mint("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaa")
@@ -169,7 +175,7 @@ class ChatGroupAnalyticsTest {
         rosterSearch = mockk(relaxed = true),
         featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
         lobbyRequests = mockk(relaxed = true),
-        hostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
+        hostLobbies = hostLobbies,
         groupRosters = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
         identifier = null,
@@ -315,4 +321,76 @@ class ChatGroupAnalyticsTest {
             val event = analytics.events.single { it.name == "Group: Invite Followed" }
             assertEquals(text("Chat Card"), event.properties["Source"])
         }
+
+    private fun lobbyMember(): LobbyMember = mockk(relaxed = true) {
+        every { userProfile.userId } returns listOf<Byte>(9)
+    }
+
+    @Test
+    fun `an approved request reports Join Request Approved as a success`() = runTest(mainCoroutineRule.dispatcher) {
+        coEvery { hostLobbies.approve(any(), any()) } returns Result.success(Unit)
+
+        val vm = createViewModel()
+        vm.openGroup(isMember = true)
+        vm.dispatchEvent(ChatViewModel.Event.ApproveJoinRequest(lobbyMember()))
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(GroupEvents.joinRequestApproved(state = AnalyticsState.SUCCESS, error = null)),
+            analytics.events.filter { it.name.startsWith("Group: Join Request") },
+        )
+    }
+
+    @Test
+    fun `a failed approve reports the result name`() = runTest(mainCoroutineRule.dispatcher) {
+        coEvery { hostLobbies.approve(any(), any()) } returns Result.failure(AdmitLobbyMemberError.Denied())
+
+        val vm = createViewModel()
+        vm.openGroup(isMember = true)
+        vm.dispatchEvent(ChatViewModel.Event.ApproveJoinRequest(lobbyMember()))
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(GroupEvents.joinRequestApproved(state = AnalyticsState.FAILURE, error = "Denied")),
+            analytics.events.filter { it.name.startsWith("Group: Join Request") },
+        )
+    }
+
+    @Test
+    fun `a denied request reports Join Request Denied, and a failure carries its error`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            coEvery { hostLobbies.deny(any(), any()) } returnsMany listOf(
+                Result.success(Unit),
+                Result.failure(DenyLobbyMemberError.Other(RuntimeException("UNAVAILABLE"))),
+            )
+
+            val vm = createViewModel()
+            vm.openGroup(isMember = true)
+            vm.dispatchEvent(ChatViewModel.Event.DenyJoinRequest(lobbyMember()))
+            advanceUntilIdle()
+            vm.dispatchEvent(ChatViewModel.Event.DenyJoinRequest(lobbyMember()))
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(
+                    GroupEvents.joinRequestDenied(state = AnalyticsState.SUCCESS, error = null),
+                    GroupEvents.joinRequestDenied(state = AnalyticsState.FAILURE, error = "Network"),
+                ),
+                analytics.events.filter { it.name.startsWith("Group: Join Request") },
+            )
+        }
+
+    @Test
+    fun `a request with no user id sends nothing`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        vm.openGroup(isMember = true)
+        vm.dispatchEvent(
+            ChatViewModel.Event.ApproveJoinRequest(
+                mockk(relaxed = true) { every { userProfile.userId } returns null }
+            )
+        )
+        advanceUntilIdle()
+
+        assertTrue(analytics.events.none { it.name.startsWith("Group: Join Request") })
+    }
 }

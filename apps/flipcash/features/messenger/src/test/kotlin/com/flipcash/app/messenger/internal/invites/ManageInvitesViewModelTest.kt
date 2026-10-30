@@ -1,7 +1,11 @@
 package com.flipcash.app.messenger.internal.invites
 
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.GroupEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Invite
+import com.flipcash.services.models.CreateInviteError
 import com.flipcash.services.models.GetChatInvitesError
 import com.flipcash.services.models.RevokeInviteError
 import com.flipcash.services.models.chat.InviteId
@@ -43,6 +47,7 @@ class ManageInvitesViewModelTest {
     private val resources = mockk<ResourceHelper>(relaxed = true) {
         every { getString(any<Int>()) } returns "text"
     }
+    private val analytics = RecordingAnalytics()
     private val listed = MutableStateFlow<Map<ChatId, List<HostInvite>>>(emptyMap())
 
     @Before
@@ -60,7 +65,7 @@ class ManageInvitesViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel() = ManageInvitesViewModel(hostInvites, resources)
+    private fun viewModel() = ManageInvitesViewModel(hostInvites, resources, analytics)
 
     private var seed = 0
     private fun hostInvite(
@@ -285,5 +290,104 @@ class ManageInvitesViewModelTest {
 
         assertFalse(model.state.value.failed)
         assertTrue(model.state.value.isEmpty)
+    }
+
+    @Test
+    fun `a created link sends Invite Link Created as a success`() = runTest {
+        coEvery { hostInvites.load(chatId) } returns Result.success(emptyList())
+        coEvery { hostInvites.create(chatId, any()) } returns InviteCreation.Created(hostInvite())
+        val model = viewModel()
+        model.open(chatId)
+
+        model.create(InviteSettings.Default)
+
+        assertEquals(
+            listOf(GroupEvents.inviteLinkCreated(state = AnalyticsState.SUCCESS, error = null)),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `each way a create fails sends Invite Link Created with its error`() = runTest {
+        coEvery { hostInvites.load(chatId) } returns Result.success(emptyList())
+        val model = viewModel()
+        model.open(chatId)
+
+        coEvery { hostInvites.create(chatId, any()) } returns InviteCreation.TooMany
+        model.create(InviteSettings.Default)
+        coEvery { hostInvites.create(chatId, any()) } returns InviteCreation.NotAvailable
+        model.create(InviteSettings.Default)
+        coEvery { hostInvites.create(chatId, any()) } returns InviteCreation.Failed(CreateInviteError.Unrecognized())
+        model.create(InviteSettings.Default)
+        coEvery { hostInvites.create(chatId, any()) } returns InviteCreation.Failed(IllegalStateException("offline"))
+        model.create(InviteSettings.Default)
+
+        assertEquals(
+            listOf("TooManyInvites", "Denied", "Unrecognized", "Network").map {
+                GroupEvents.inviteLinkCreated(state = AnalyticsState.FAILURE, error = it)
+            },
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `a create still in flight sends nothing yet`() = runTest {
+        coEvery { hostInvites.load(chatId) } returns Result.success(emptyList())
+        coEvery { hostInvites.create(chatId, any()) } coAnswers { kotlinx.coroutines.awaitCancellation() }
+        val model = viewModel()
+        model.open(chatId)
+
+        model.create(InviteSettings.Default)
+        model.create(InviteSettings.Default)
+
+        assertTrue(analytics.events.isEmpty())
+    }
+
+    @Test
+    fun `a confirmed revoke sends Invite Link Revoked as a success`() = runTest {
+        val active = hostInvite()
+        listed.value = mapOf(chatId to listOf(active))
+        coEvery { hostInvites.load(chatId) } returns Result.success(listOf(active))
+        coEvery { hostInvites.revoke(chatId, active.invite.id) } returns Result.success(Unit)
+        val model = viewModel()
+        model.open(chatId)
+
+        model.confirmRevoke(active)
+        BottomBarManager.messages.value.single().actions.single().onClick()
+
+        assertEquals(
+            listOf(GroupEvents.inviteLinkRevoked(state = AnalyticsState.SUCCESS, error = null)),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `a failed revoke sends Invite Link Revoked with the error`() = runTest {
+        val active = hostInvite()
+        listed.value = mapOf(chatId to listOf(active))
+        coEvery { hostInvites.load(chatId) } returns Result.success(listOf(active))
+        coEvery { hostInvites.revoke(chatId, active.invite.id) } returns Result.failure(RevokeInviteError.NotFound())
+        val model = viewModel()
+        model.open(chatId)
+
+        model.confirmRevoke(active)
+        BottomBarManager.messages.value.single().actions.single().onClick()
+
+        assertEquals(
+            listOf(GroupEvents.inviteLinkRevoked(state = AnalyticsState.FAILURE, error = "NotFound")),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `asking to revoke sends nothing until the host confirms`() = runTest {
+        val active = hostInvite()
+        coEvery { hostInvites.load(chatId) } returns Result.success(listOf(active))
+        val model = viewModel()
+        model.open(chatId)
+
+        model.confirmRevoke(active)
+
+        assertTrue(analytics.events.isEmpty())
     }
 }

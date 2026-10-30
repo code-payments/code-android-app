@@ -2,6 +2,7 @@ package com.flipcash.app.login.router
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.flipcash.analytics.Button
+import com.flipcash.analytics.events.AccountEvents
 import com.flipcash.analytics.events.ButtonEvents
 import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.auth.AuthManager
@@ -92,7 +93,10 @@ class LoginViewModelCreateAccountTest {
         // The tap is tracked off the eventFlow pipeline, which runs on `dispatchers.Default`
         // rather than inline with dispatchEvent, so it needs a pump to have landed.
         runCurrent()
-        assertEquals(ButtonEvents.tapped(Button.CREATE_ACCOUNT), analytics.events.single())
+        assertEquals(
+            listOf(ButtonEvents.tapped(Button.CREATE_ACCOUNT), AccountEvents.createAccount()),
+            analytics.events,
+        )
     }
 
     @Test

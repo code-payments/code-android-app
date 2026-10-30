@@ -4,6 +4,11 @@ import android.net.Uri
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.core.text.trimmedLength
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.LaunchMethod
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.CurrencyLaunchEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.flatMapResult
@@ -94,6 +99,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
     val purchaseMethodController: PurchaseMethodController,
     private val currencyCreatorCoordinator: CurrencyCreatorCoordinator,
     private val exchange: Exchange,
+    private val analytics: FlipcashAnalytics,
 ) : BaseViewModel<CurrencyCreatorViewModel.State, CurrencyCreatorViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -616,6 +622,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
         if (fast.isSuccess) {
             val completed = finalizeLaunch(mint)
+            trackLaunch(mint, success = completed)
             if (completed) {
                 delay(InlineCompletion.SUCCESS_HOLD)
                 dispatchEvent(Event.LaunchFinished)
@@ -628,6 +635,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         }
 
         if (fast.exceptionOrNull() !is BalancePollError.Timeout) {
+            trackLaunch(mint, success = false, error = fast.exceptionOrNull())
             dispatchEvent(Event.UpdateProcessingState())
             showLaunchFailed()
             return
@@ -642,9 +650,32 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             interval = InlineCompletion.SLOW_POLL_INTERVAL,
         )
         if (slow.isSuccess && finalizeLaunch(mint)) {
+            trackLaunch(mint, success = true)
             return
         }
+        trackLaunch(mint, success = false, error = slow.exceptionOrNull())
         dispatchEvent(Event.UpdateProcessingState(error = true))
+    }
+
+    /**
+     * Reports how the launch ended, once it is settled one way or the other. Reserves is a launch
+     * funded with USDF, Currency one funded with another held currency. The cost is reported in
+     * the user's currency, as iOS does.
+     */
+    private fun trackLaunch(launched: Mint, success: Boolean, error: Throwable? = null) {
+        val paymentMint = stateFlow.value.fundingMint ?: return
+        val cost = stateFlow.value.totalCost.convertingTo(exchange.preferredRate)
+        analytics.track(
+            CurrencyLaunchEvents.launched(
+                method = if (paymentMint == Mint.usdf) LaunchMethod.RESERVES else LaunchMethod.CURRENCY,
+                state = if (success) AnalyticsState.SUCCESS else AnalyticsState.FAILURE,
+                mint = launched.analytics,
+                paymentMint = paymentMint.analytics,
+                fiat = cost.decimalValue,
+                currency = cost.currencyCode.name,
+                error = error?.analytics,
+            )
+        )
     }
 
     /** Resolves the new token and its launch bill, then marks the launch successful. */
