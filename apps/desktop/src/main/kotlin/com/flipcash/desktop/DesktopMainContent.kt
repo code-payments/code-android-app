@@ -62,7 +62,6 @@ fun DesktopMainContent(
             Box(Modifier.fillMaxSize().background(CodeTheme.colors.background)) {
                 DesktopShell(
                     nav = nav,
-                    floatingSidebar = isMac,
                     sidebar = { m -> ChatListPlaceholder(onOpenChat = nav::openChat, modifier = m) },
                     main = { m -> ConversationPlaceholder(m) },
                     context = { content, m ->

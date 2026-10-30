@@ -46,7 +46,6 @@ object DesktopDimens {
     val SidebarMedium = 280.dp
     val SidebarExpanded = 300.dp
     val SidebarRail = 80.dp
-    val SidebarGlassInset = 8.dp
 
     /** The row the traffic lights sit in: the top of the sidebar and the chat's toolbar. */
     val TitleRowHeight = 52.dp

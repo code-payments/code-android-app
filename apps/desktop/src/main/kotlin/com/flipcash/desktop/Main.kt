@@ -46,10 +46,8 @@ import java.lang.management.ManagementFactory
 
 internal val isMac = System.getProperty("os.name").orEmpty().lowercase().startsWith("mac")
 
-// The standard macOS title bar the content runs under, when the runtime can't make it taller. Its
-// traffic lights sit near the top edge, so the sidebar meets that edge flush rather than putting its
-// rounded corner under them.
-private val MacChrome = WindowChrome(titleBarHeight = 28.dp, controlsWidth = 72.dp, flushSidebar = true)
+// The standard macOS title bar the content runs under, when the runtime can't make it taller.
+private val MacChrome = WindowChrome(titleBarHeight = 28.dp, controlsWidth = 72.dp)
 
 /** The tall title bar: the traffic lights centre in the 52-tall title row the sidebar and toolbar share. */
 private fun tallChrome(bar: CustomTitleBar) =

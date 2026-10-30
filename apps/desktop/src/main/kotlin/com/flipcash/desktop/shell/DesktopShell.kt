@@ -1,5 +1,16 @@
 package com.flipcash.desktop.shell
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -34,22 +46,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.glass.floatingGlass
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -66,8 +76,6 @@ private const val PeekDelayMillis = 150L
  * the rail floats the full list over the chat. The user can hide the list at any width; the toggle
  * then moves into the chat's toolbar. The context pane gets a column when there's room and otherwise
  * floats over the chat without dimming it. Compact shows the list or the main pane, never both.
- * [floatingSidebar] draws the sidebar as the macOS 26 glass panel inset from the window edges;
- * elsewhere it is a flat surface.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -81,41 +89,29 @@ fun DesktopShell(
     rail: @Composable (Modifier) -> Unit = {},
     railFooter: @Composable (Modifier) -> Unit = {},
     title: String = "",
-    floatingSidebar: Boolean = false,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val widthClass = widthClassFor(maxWidth)
         val sidebarMode = nav.sidebarModeAt(widthClass)
         val mode = nav.contextPaneModeAt(widthClass)
         val chrome = LocalWindowChrome.current
-        val hazeState = rememberHazeState()
         val shown = nav.context
 
         // The floating list belongs to the rail; it can't outlive it.
         LaunchedEffect(sidebarMode) { if (sidebarMode != SidebarMode.Rail) nav.sidebarPeek = false }
 
-        // topInset is how far below the window's top edge the slot starts; the title row is measured
-        // from the window, so the toggle lines up with the traffic lights and the toolbar.
-        val listColumn: @Composable (Modifier, Boolean, Dp) -> Unit = { m, withToggle, topInset ->
+        // The title row is left empty: the traffic lights and the toggle sit over it.
+        val listColumn: @Composable (Modifier) -> Unit = { m ->
             Column(m.testTag("sidebar")) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(DesktopDimens.TitleRowHeight - topInset)
-                        .padding(bottom = topInset, end = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Spacer(Modifier.weight(1f))
-                    if (withToggle) SidebarToggle(nav::toggleSidebar)
-                }
+                Spacer(Modifier.height(DesktopDimens.TitleRowHeight))
                 sidebar(Modifier.weight(1f).fillMaxWidth())
                 footer(Modifier.fillMaxWidth())
             }
         }
-        val railColumn: @Composable (Modifier, Dp) -> Unit = { m, topInset ->
+        val railColumn: @Composable (Modifier) -> Unit = { m ->
             Column(m.testTag("rail"), horizontalAlignment = Alignment.CenterHorizontally) {
                 // The traffic lights take the top row on macOS; the toggle and search sit under them.
-                Spacer(Modifier.height((chrome.titleBarHeight - topInset).coerceAtLeast(0.dp)))
+                Spacer(Modifier.height(chrome.titleBarHeight))
                 SidebarToggle(nav::toggleSidebar)
                 Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
                     Icon(Icons.Outlined.Search, contentDescription = "Search", tint = CodeTheme.colors.textSecondary, modifier = Modifier.size(20.dp))
@@ -125,14 +121,11 @@ fun DesktopShell(
                 railFooter(Modifier.fillMaxWidth())
             }
         }
-        val mainWithToolbar: @Composable (Modifier, Boolean, (() -> Unit)?) -> Unit = { m, leadingEdge, onBack ->
+        val mainWithToolbar: @Composable (Modifier, Dp, (() -> Unit)?) -> Unit = { m, leadingInset, onBack ->
             Column(m.testTag("main")) {
                 Toolbar(
                     title = title,
-                    // At the window's leading edge the toolbar makes room for the traffic lights.
-                    leadingInset = if (leadingEdge) chrome.controlsWidth else 0.dp,
-                    showToggle = leadingEdge && onBack == null,
-                    onToggleSidebar = nav::toggleSidebar,
+                    leadingInset = leadingInset,
                     onBack = onBack,
                     onInfo = nav::toggleInfo,
                 )
@@ -146,118 +139,174 @@ fun DesktopShell(
         if (widthClass == WidthClass.Compact) {
             when {
                 shown != null -> contextPane(shown, Modifier.fillMaxSize().testTag("context_overlay"))
-                nav.compactShowsChat -> mainWithToolbar(Modifier.fillMaxSize(), true) { nav.compactShowsChat = false }
-                else -> listColumn(Modifier.fillMaxSize(), false, 0.dp)
+                nav.compactShowsChat -> mainWithToolbar(Modifier.fillMaxSize(), chrome.controlsWidth) { nav.compactShowsChat = false }
+                else -> listColumn(Modifier.fillMaxSize())
             }
             return@BoxWithConstraints
         }
 
         val listWidth = if (widthClass == WidthClass.Medium) DesktopDimens.SidebarMedium else DesktopDimens.SidebarExpanded
+        // Hiding, folding to the rail and opening a pane all move the panes, so they slide rather than
+        // jump. The sidebar's content is laid out at its own width and clipped, so text doesn't reflow
+        // as the edge moves.
+        val sidebarWidth by animateDpAsState(
+            targetValue = when (sidebarMode) {
+                SidebarMode.List -> listWidth
+                SidebarMode.Rail -> DesktopDimens.SidebarRail
+                SidebarMode.Hidden -> 0.dp
+            },
+            animationSpec = PaneMotion.size(),
+            label = "sidebar width",
+        )
+        // With the list hidden, the toolbar starts after the traffic lights and the toggle.
+        val toolbarInset by animateDpAsState(
+            targetValue = if (sidebarMode == SidebarMode.Hidden) toggleStart(chrome) + ToggleSize else 0.dp,
+            animationSpec = PaneMotion.size(),
+            label = "toolbar inset",
+        )
+        // While the sidebar slides away it keeps showing what it showed.
+        var shownSidebar by remember { mutableStateOf(sidebarMode) }
+        if (sidebarMode != SidebarMode.Hidden) shownSidebar = sidebarMode
+        // The same for the context pane, so it has something to draw while it closes.
+        var lastShown by remember { mutableStateOf(shown) }
+        if (shown != null) lastShown = shown
         Box(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxSize()) {
-                when (sidebarMode) {
-                    SidebarMode.List -> SidebarSlot(listWidth, floatingSidebar, hazeState, chrome) { m, top -> listColumn(m, true, top) }
-                    SidebarMode.Rail -> {
-                        val scope = rememberCoroutineScope()
-                        var resting by remember { mutableStateOf<Job?>(null) }
-                        SidebarSlot(
-                            width = DesktopDimens.SidebarRail,
-                            floating = floatingSidebar,
-                            hazeState = hazeState,
-                            chrome = chrome,
-                            modifier = Modifier
-                                .onPointerEvent(PointerEventType.Enter) {
-                                    resting?.cancel()
-                                    resting = scope.launch {
-                                        delay(PeekDelayMillis)
-                                        nav.sidebarPeek = true
-                                    }
+                if (sidebarWidth > 0.dp) {
+                    val scope = rememberCoroutineScope()
+                    var resting by remember { mutableStateOf<Job?>(null) }
+                    SidebarSlot(
+                        width = sidebarWidth,
+                        modifier = Modifier
+                            .onPointerEvent(PointerEventType.Enter) {
+                                if (sidebarMode != SidebarMode.Rail) return@onPointerEvent
+                                resting?.cancel()
+                                resting = scope.launch {
+                                    delay(PeekDelayMillis)
+                                    nav.sidebarPeek = true
                                 }
-                                .onPointerEvent(PointerEventType.Exit) { resting?.cancel() },
-                            content = railColumn,
-                        )
-                    }
-                    SidebarMode.Hidden -> Unit
-                }
-                Box(Modifier.weight(1f).fillMaxHeight().hazeSource(hazeState)) {
-                    mainWithToolbar(Modifier.fillMaxSize(), sidebarMode == SidebarMode.Hidden, null)
-                    if (shown != null && mode == ContextPaneMode.Overlay) {
-                        // Keeps its width and covers the chat without dimming it; the chat beside it
-                        // stays usable. Esc and the pane's ✕ close it.
-                        contextPane(
-                            shown,
-                            Modifier
-                                .align(Alignment.TopEnd)
-                                .width(DesktopDimens.ContextPaneWidth)
-                                .fillMaxHeight()
-                                .shadow(16.dp)
-                                .testTag("context_overlay"),
-                        )
+                            }
+                            .onPointerEvent(PointerEventType.Exit) { resting?.cancel() },
+                    ) { m ->
+                        Crossfade(shownSidebar, animationSpec = PaneMotion.fade(), label = "sidebar content") { content ->
+                            when (content) {
+                                SidebarMode.Rail -> railColumn(m.wrapContentWidth(Alignment.Start, unbounded = true).width(DesktopDimens.SidebarRail))
+                                else -> listColumn(m.wrapContentWidth(Alignment.Start, unbounded = true).width(listWidth))
+                            }
+                        }
                     }
                 }
-                if (shown != null && mode == ContextPaneMode.Column) {
-                    PaneDivider()
-                    contextPane(
-                        shown,
-                        Modifier.width(DesktopDimens.ContextPaneWidth).fillMaxHeight().testTag("context_pane"),
-                    )
+                Box(Modifier.weight(1f).fillMaxHeight()) {
+                    mainWithToolbar(Modifier.fillMaxSize(), toolbarInset, null)
+                    // Keeps its width and covers the chat without dimming it; the chat beside it stays
+                    // usable. Esc and the pane's ✕ close it.
+                    OverlayPane(
+                        visible = shown != null && mode == ContextPaneMode.Overlay,
+                        modifier = Modifier.align(Alignment.TopEnd),
+                    ) {
+                        lastShown?.let {
+                            contextPane(
+                                it,
+                                Modifier
+                                    .width(DesktopDimens.ContextPaneWidth)
+                                    .fillMaxHeight()
+                                    .shadow(16.dp)
+                                    .testTag("context_overlay"),
+                            )
+                        }
+                    }
+                }
+                AnimatedVisibility(
+                    visible = shown != null && mode == ContextPaneMode.Column,
+                    enter = expandHorizontally(PaneMotion.bounds(), expandFrom = Alignment.Start),
+                    exit = shrinkHorizontally(PaneMotion.bounds(), shrinkTowards = Alignment.Start),
+                ) {
+                    Row(Modifier.fillMaxHeight()) {
+                        PaneDivider()
+                        lastShown?.let {
+                            contextPane(
+                                it,
+                                Modifier.width(DesktopDimens.ContextPaneWidth).fillMaxHeight().testTag("context_pane"),
+                            )
+                        }
+                    }
                 }
             }
-            if (sidebarMode == SidebarMode.Rail && nav.sidebarPeek) {
-                // The full list over the chat, which doesn't reflow. It covers the rail, so leaving it
-                // is leaving both.
+            // The full list over the chat, which doesn't reflow. It covers the rail, so leaving it is
+            // leaving both.
+            AnimatedVisibility(
+                visible = sidebarMode == SidebarMode.Rail && nav.sidebarPeek,
+                enter = slideInHorizontally(PaneMotion.offset()) { -it / 3 } + fadeIn(PaneMotion.fade()),
+                exit = slideOutHorizontally(PaneMotion.offset()) { -it / 3 } + fadeOut(PaneMotion.fade()),
+            ) {
                 SidebarSlot(
                     width = DesktopDimens.SidebarExpanded,
-                    floating = true,
-                    hazeState = hazeState,
-                    chrome = chrome,
                     modifier = Modifier
                         .onPointerEvent(PointerEventType.Exit) { nav.sidebarPeek = false }
                         .testTag("sidebar_peek"),
                     elevated = true,
-                ) { m, top -> listColumn(m, true, top) }
+                ) { m -> listColumn(m) }
+            }
+            // One toggle beside the traffic lights that stays put whether the list is shown or hidden,
+            // as in Finder and Notes. The rail carries its own, under the lights.
+            if (sidebarMode != SidebarMode.Rail) {
+                Box(
+                    Modifier.padding(start = toggleStart(chrome)).height(DesktopDimens.TitleRowHeight),
+                    contentAlignment = Alignment.Center,
+                ) { SidebarToggle(nav::toggleSidebar) }
             }
         }
     }
 }
 
+private val ToggleSize = 32.dp
+
+/** Where the toggle starts: after the traffic lights on macOS, or the window's edge elsewhere. */
+private fun toggleStart(chrome: WindowChrome) = if (chrome.controlsWidth > 0.dp) chrome.controlsWidth else 8.dp
+
+/** Durations for the panes moving: long enough to follow, short enough not to wait on. */
+private object PaneMotion {
+    fun size() = tween<Dp>(durationMillis = 250, easing = FastOutSlowInEasing)
+    fun offset() = tween<IntOffset>(durationMillis = 250, easing = FastOutSlowInEasing)
+    fun bounds() = tween<IntSize>(durationMillis = 250, easing = FastOutSlowInEasing)
+    fun fade() = tween<Float>(durationMillis = 150)
+}
+
+/** The context pane sliding in over the chat from the trailing edge. */
+@Composable
+private fun OverlayPane(visible: Boolean, modifier: Modifier, content: @Composable () -> Unit) {
+    AnimatedVisibility(
+        visible = visible,
+        modifier = modifier,
+        enter = slideInHorizontally(PaneMotion.offset()) { it } + fadeIn(PaneMotion.fade()),
+        exit = slideOutHorizontally(PaneMotion.offset()) { it } + fadeOut(PaneMotion.fade()),
+    ) { content() }
+}
+
 /**
- * The sidebar's place at the leading edge. Floating, it's the glass panel inset from the window edges
- * (or meeting the top edge, see [WindowChrome.flushSidebar]); otherwise a flat column with a divider.
+ * The sidebar's place at the leading edge: the window's own background with a hairline divider, as in
+ * node 13000:91. [elevated] is the list floating over the chat from the rail, which casts a shadow
+ * instead.
  */
 @Composable
 private fun SidebarSlot(
     width: Dp,
-    floating: Boolean,
-    hazeState: HazeState,
-    chrome: WindowChrome,
     modifier: Modifier = Modifier,
     elevated: Boolean = false,
-    content: @Composable (Modifier, topInset: Dp) -> Unit,
+    content: @Composable (Modifier) -> Unit,
 ) {
-    if (!floating) {
-        Row(modifier.width(width).fillMaxHeight()) {
-            content(Modifier.weight(1f).fillMaxHeight().background(CodeTheme.colors.background), 0.dp)
-            PaneDivider()
+    Row(
+        modifier
+            .width(width)
+            .fillMaxHeight()
+            .then(if (elevated) Modifier.shadow(24.dp) else Modifier)
+            .background(CodeTheme.colors.background)
+            .clipToBounds(),
+    ) {
+        Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.TopStart) {
+            content(Modifier.fillMaxHeight())
         }
-        return
-    }
-    val inset = DesktopDimens.SidebarGlassInset
-    val shape: Shape = if (chrome.flushSidebar) {
-        RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-    } else {
-        RoundedCornerShape(16.dp)
-    }
-    val top = if (chrome.flushSidebar) 0.dp else inset
-    Box(modifier.width(width + inset).fillMaxHeight()) {
-        content(
-            Modifier
-                .padding(start = inset, end = inset, bottom = inset, top = top)
-                .fillMaxSize()
-                .then(if (elevated) Modifier.shadow(24.dp, shape) else Modifier)
-                .floatingGlass(hazeState, shape),
-            top,
-        )
+        PaneDivider()
     }
 }
 
@@ -291,15 +340,13 @@ private fun SidebarToggle(onClick: () -> Unit) {
 
 /**
  * The bar over the main pane: the chat's title, and ⓘ for its Info. It's the window's title row, so
- * it shares the traffic lights' height; at the leading edge it starts after them, with the sidebar
- * toggle while the list is hidden. Back appears at compact.
+ * it shares the traffic lights' height; at the leading edge it starts after them and, while the list
+ * is hidden, after the sidebar toggle. Back appears at compact.
  */
 @Composable
 private fun Toolbar(
     title: String,
     leadingInset: Dp,
-    showToggle: Boolean,
-    onToggleSidebar: () -> Unit,
     onBack: (() -> Unit)?,
     onInfo: () -> Unit,
 ) {
@@ -312,7 +359,6 @@ private fun Toolbar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (showToggle) SidebarToggle(onToggleSidebar)
         if (onBack != null) {
             Text(
                 text = "‹ Chats",
