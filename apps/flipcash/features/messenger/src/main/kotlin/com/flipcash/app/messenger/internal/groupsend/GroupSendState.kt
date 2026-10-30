@@ -21,17 +21,38 @@ internal data class GroupSendState(
 ) {
     enum class Stage { Amount, People, Confirm }
 
-    /** The parts to pay, once [total] is known and someone is checked. */
-    val plan: GroupSendPlan
-        get() = total?.let { GroupSendSplit.split(GroupSendSplit.minorUnits(it), selected.size) }
-            ?: GroupSendPlan.NoRecipients
+    /**
+     * Who is paid: [selected] without the sender. The sender can be checked to take a part of the
+     * split, but the contract requires every receiver to be another member.
+     */
+    val paid: List<ID>
+        get() = selected.filterNot { it == viewerId }
 
-    /** Who Select People lists: the roster without the sender, who never pays themselves. */
+    /** Whether the sender is checked, which counts them in the split without paying them. */
+    val includesViewer: Boolean
+        get() = viewerId != null && viewerId in selected
+
+    /**
+     * The parts to pay, once [total] is known and someone other than the sender is checked: the
+     * total is split between everyone checked, the sender included as the last share, then the
+     * sender's part is dropped.
+     */
+    val plan: GroupSendPlan
+        get() {
+            val total = total ?: return GroupSendPlan.NoRecipients
+            return GroupSendSplit.splitWithViewer(GroupSendSplit.minorUnits(total), paid.size, includesViewer)
+        }
+
+    /** Who Select People lists: the roster without the sender, who has a "You" row of their own. */
     fun candidates(roster: List<ChatMember>): List<ChatMember> =
         roster.filter { it.userId != viewerId }.distinctBy { it.userId }
 
+    /** The sender's own row, from the roster, when they are in it. */
+    fun viewer(roster: List<ChatMember>): ChatMember? = roster.find { it.userId == viewerId }
+
     /**
-     * [selected] with [member] checked or unchecked, or null when checking them would make an 11th.
+     * [selected] with [member] checked or unchecked, or null when checking them would make an 11th
+     * person. The sender counts toward the cap, as a share of the split.
      */
     fun toggled(member: ID): List<ID>? = when {
         member in selected -> selected.filterNot { it == member }
