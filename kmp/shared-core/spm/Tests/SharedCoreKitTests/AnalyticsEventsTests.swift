@@ -33,7 +33,7 @@ import Testing
     /// A value added in Kotlin compiles on both sides and would be silently missing from any
     /// Swift switch that lists the cases; this is the check that it is not.
     @Test func tokenInfoSourcesAreTheSpecNames() {
-        #expect(TokenInfoSource.entries.map(\.value) == ["Deeplink", "Wallet", "Discovery", "Chat", "Chat Gate", "Give", "Send"])
+        #expect(TokenInfoSource.entries.map(\.value) == ["Deeplink", "Wallet", "Discovery", "Search", "Chat", "Chat Gate", "Give", "Send"])
     }
 
     @Test func buildsAGroupEventWithAnOptionalLeftOut() {
