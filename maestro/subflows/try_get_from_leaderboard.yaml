@@ -1,6 +1,7 @@
-# Opens leaderboard row ${ROW} and, if that currency offers "Get", enters the buy flow.
-# "Get" is only offered on a currency the account does NOT hold, and the leaderboard is live
-# data, so the caller walks the first few rows until one lands on swap_screen.
+# Opens leaderboard row ${ROW} and, if that currency offers a buy tile, enters the buy flow.
+# The tile reads "Buy In" on a currency the account does not hold and "Buy More" on one it does
+# (#1341 replaced "Get"); Dollars has neither. The leaderboard is live data, so the caller walks
+# the first few rows until one lands on swap_screen.
 appId: com.flipcash.app.android
 ---
 - tapOn:
@@ -13,15 +14,15 @@ appId: com.flipcash.app.android
 
 - runFlow:
     when:
-      visible: "^Get$"
+      visible: "^Buy (In|More)$"
     commands:
-      - tapOn: "^Get$"
+      - tapOn: "^Buy (In|More)$"
       - extendedWaitUntil:
           visible:
             id: swap_screen
           timeout: 8000
 
-# Held currency — back out and let the caller try the next row.
+# No buy tile (Dollars) — back out and let the caller try the next row.
 - runFlow:
     when:
       notVisible:

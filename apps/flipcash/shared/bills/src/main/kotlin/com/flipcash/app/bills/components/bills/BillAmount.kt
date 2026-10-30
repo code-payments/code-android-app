@@ -9,7 +9,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import com.flipcash.shared.bills.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.nonScaledSp
 
@@ -17,7 +16,6 @@ import com.getcode.ui.utils.nonScaledSp
 internal fun BillAmount(
     modifier: Modifier = Modifier,
     text: String = "",
-    flag: Int? = R.drawable.ic_flag_us,
     textStyle: TextStyle = CodeTheme.typography.displayLarge.copy(
         fontWeight = FontWeight.W600,
         fontSize = 50.nonScaledSp
@@ -29,18 +27,6 @@ internal fun BillAmount(
                 .vertical()
                 .rotate(-90f)
         ) {
-//            if (flag != null) {
-//                Image(
-//                    modifier = Modifier
-//                        .padding(end = CodeTheme.dimens.grid.x2)
-//                        .height(CodeTheme.dimens.grid.x5)
-//                        .width(CodeTheme.dimens.grid.x5)
-//                        .align(Alignment.CenterVertically)
-//                        .clip(CircleShape),
-//                    painter = painterResource(id = flag),
-//                    contentDescription = ""
-//                )
-//            }
             Text(
                 text = text,
                 style = textStyle,

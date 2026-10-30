@@ -37,7 +37,6 @@ internal class ReactionBoostAmountViewModel @Inject constructor(
         style = AmountEntryStyle(
             actionLabel = AmountEntryLabel.Plain(resources.getString(R.string.action_done)),
             actionStyle = ConfirmationStyle.Button,
-            canChangeCurrency = false,
         ),
     )
 

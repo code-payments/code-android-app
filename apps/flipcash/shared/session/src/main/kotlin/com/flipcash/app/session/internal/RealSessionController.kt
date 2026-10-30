@@ -9,9 +9,13 @@ import com.flipcash.app.blocklist.BlocklistCoordinator
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.core.media.MediaUrlResolver
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.FeaturedGroupsStore
+import com.flipcash.shared.chat.HostLobbies
+import com.flipcash.shared.chat.chatListFeeds
+import com.flipcash.shared.chat.hostedPrivateGroups
 import com.flipcash.shared.chat.observeUnreadChatListCount
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.internal.bill.BillController
@@ -58,6 +62,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.seconds
@@ -116,6 +121,7 @@ class RealSessionController @Inject constructor(
     private val blocklistCoordinator: BlocklistCoordinator,
     private val blobStorageCoordinator: BlobStorageCoordinator,
     private val mediaUrlResolver: MediaUrlResolver,
+    private val hostLobbies: HostLobbies,
     networkObserver: NetworkConnectivityListener,
     featureFlagController: FeatureFlagController,
     appSettingsCoordinator: AppSettingsCoordinator,
@@ -248,9 +254,29 @@ class RealSessionController @Inject constructor(
             .map { it.authState }
             .filter { it.isAtLeastRegistered }
             .distinctUntilChanged()
-            .flatMapLatest { chatCoordinator.observeUnreadChatListCount() }
+            .flatMapLatest {
+                chatCoordinator.observeUnreadChatListCount(hostLobbies.state) { userManager.accountId }
+            }
             .distinctUntilChanged()
             .onEach { count -> stateHolder.update { it.copy(chatListUnreadCount = count) } }
+            .launchIn(scope)
+
+        // The badge counts join requests, and nothing else loads a hosted group's lobby until Chats
+        // is opened: no push says a request came in, so a host who never opens Chats would never
+        // see one. Fetched as each hosted group first appears; the stream keeps them live after.
+        userManager.state
+            .map { it.authState }
+            .filter { it.isAtLeastRegistered }
+            .distinctUntilChanged()
+            .flatMapLatest {
+                // Per session, so signing back in fetches every lobby again after logout cleared them.
+                chatCoordinator.chatListFeeds()
+                    .map { feeds -> hostedPrivateGroups(feeds.main + feeds.archived, userManager.accountId).keys }
+                    .runningFold(emptySet<ChatId>() to emptySet<ChatId>()) { (_, seen), hosted ->
+                        (hosted - seen) to (seen + hosted)
+                    }
+            }
+            .onEach { (added, _) -> added.forEach { chatId -> scope.launch { hostLobbies.load(chatId) } } }
             .launchIn(scope)
 
         // Preload the blob upload policy once registered so profile-photo selection can filter and

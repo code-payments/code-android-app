@@ -149,6 +149,7 @@ class SessionControllerGiftCardErrorTest {
             blocklistCoordinator = mockk(relaxed = true),
             blobStorageCoordinator = mockk(relaxed = true),
             mediaUrlResolver = mockk(relaxed = true),
+            hostLobbies = mockk(relaxed = true),
             featureFlagController = mockk(relaxed = true),
             appSettingsCoordinator = mockk(relaxed = true),
             dispatchers = dispatchers,

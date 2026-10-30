@@ -289,7 +289,8 @@ private fun Excerpt(body: Body) {
 private fun ExcerptText(body: Body.Text) {
     Text(
         modifier = if (body.redacted) Modifier.redactedText() else Modifier,
-        text = flattenExcerpt(body.text),
+        // A quoted invite link reads "Invite link": its fragment is the group's key.
+        text = flattenExcerpt(labelInviteLinks(body.text, stringResource(R.string.label_inviteLinkPreview))),
         style = MessageLinkCardDefaults.bodyStyle,
         color = if (body.redacted) redactedTextColor(MessageLinkCardDefaults.EXCERPT) else MessageLinkCardDefaults.EXCERPT,
         maxLines = MessageLinkCardDefaults.BODY_LINES,

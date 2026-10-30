@@ -8,12 +8,16 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.ViewerState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,6 +32,25 @@ class ChatMetadataDataSource @Inject constructor(
 
     fun observeAll(): Flow<List<ChatMetadataEntity>> =
         db?.chatMetadataDao()?.observeAll() ?: emptyFlow()
+
+    /**
+     * Titles of the chats the viewer is a member of, keyed by chat-id hex. Chats without a title
+     * (DMs) and chats the viewer has left are absent.
+     *
+     * The database is resolved at collection time: the per-user DB is created at login, and a
+     * `@Singleton` consumer builds this flow before then. [observeAll] captures the null DB once and
+     * stays empty, which is why this does not wrap it.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun observeMemberTitles(): Flow<Map<String, String>> =
+        FlipcashDatabase.observeInstance()
+            .flatMapLatest { database ->
+                database?.chatMetadataDao()?.observeAll()?.map { rows ->
+                    rows.filter { it.isMember && !it.title.isNullOrBlank() }
+                        .associate { it.chatIdHex to it.title.orEmpty() }
+                } ?: flowOf(emptyMap())
+            }
+            .distinctUntilChanged()
 
     /** One chat's row by [chatId], re-emitted on change; `null` while it is not stored. */
     fun observeById(chatId: ChatId): Flow<ChatMetadataEntity?> =
@@ -87,8 +110,18 @@ class ChatMetadataDataSource @Inject constructor(
             muteUntilEpochMs = mapper.muteUntilEpochMs(viewerState.mute),
             muteForever = mapper.isMuteForever(viewerState.mute),
             canEdit = viewerState.permissions.canEdit,
+            canInvite = viewerState.permissions.canInvite,
             version = viewerState.version,
+            canSilence = viewerState.permissions.moderation.canSilence,
+            canBan = viewerState.permissions.moderation.canBan,
+            silenceUntilEpochMs = mapper.silenceUntilEpochMs(viewerState.restrictions?.silence),
+            silenceForever = mapper.isSilenceForever(viewerState.restrictions?.silence),
         )
+    }
+
+    /** Stores the moderation grants a fresh read of [chatId] reported, ahead of any version gate. */
+    suspend fun updateModerationGrants(chatId: ChatId, canSilence: Boolean, canBan: Boolean) {
+        db?.chatMetadataDao()?.updateModerationGrants(mapper.chatIdHex(chatId), canSilence, canBan)
     }
 
     /** Forgets the viewer state for [chatId], version included. Leaving a chat clears its mute. */
@@ -190,6 +223,11 @@ class ChatMetadataDataSource @Inject constructor(
     /** Applies a `MetadataUpdate.CoverPictureChanged` for [chatId]. See ChatMetadataDao.updateCoverPicture. */
     suspend fun updateCoverPicture(chatId: ChatId, coverPicture: MediaItem) {
         db?.chatMetadataDao()?.updateCoverPicture(mapper.chatIdHex(chatId), coverPicture)
+    }
+
+    /** Applies a `MetadataUpdate.RulesChanged` for [chatId]. See ChatMetadataDao.updateRules. */
+    suspend fun updateRules(chatId: ChatId, rules: ChatRules) {
+        db?.chatMetadataDao()?.updateRules(mapper.chatIdHex(chatId), mapper.rulesSerialized(rules))
     }
 
     suspend fun getAnalyticsCountedThrough(chatId: ChatId): Long =

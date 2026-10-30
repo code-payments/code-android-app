@@ -10,8 +10,17 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
+import com.flipcash.services.models.paymentrequest.PaymentRequest
+import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
+import com.flipcash.services.models.paymentrequest.PaymentRequestText
+import com.flipcash.services.models.paymentrequest.Share
+import com.flipcash.services.models.paymentrequest.Split
 import com.flipcash.shared.chat.ChatSummary
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.toFiat
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
@@ -322,6 +331,30 @@ class ChatSummaryPreviewTest {
     }
 
     @Test
+    fun `cash previews in the viewer's currency, from the USD it settled at`() {
+        // 7,500 ARS that settled as $5 reads as $6.85 to a viewer on CAD at 1.37, whatever the
+        // peso has done since — and with no flag or second line in the preview.
+        val cad = Rate(fx = 1.37, currency = CurrencyCode.CAD)
+        val exchange = mockk<Exchange> {
+            every { preferredRate } returns cad
+            every { rates() } returns mapOf(CurrencyCode.CAD to cad)
+        }
+        val cash = MessageContent.Cash(
+            intentId = listOf(3),
+            amount = Fiat(7_500.0, CurrencyCode.ARS),
+            mint = Mint.usdf,
+            tokenQuarks = Fiat(5.0, CurrencyCode.USD).quarks,
+        )
+        val expected = Fiat(6.85, CurrencyCode.CAD).formatted()
+        every { resources.getString(R.string.label_chat_preview_receivedCash, expected) } returns "Received $expected"
+
+        val reference = summary(listOf(cash), senderId = other)
+            .toConversationReference(selfId = self, tokensByMint = emptyMap(), resources = resources, exchange = exchange)
+
+        assertEquals("Received $expected", reference.lastMessagePreview)
+    }
+
+    @Test
     fun `a group nobody has spoken in yet reports no messages`() {
         val reference = ChatSummary(
             metadata = ChatMetadata(
@@ -378,6 +411,70 @@ class ChatSummaryPreviewTest {
         assertEquals("Shared a profile", preview(listOf(widget), senderId = self))
     }
 
+    private val requestId: ID = List(32) { 7 }
+
+    private fun request(share: Fiat) = PaymentRequest(
+        id = requestId,
+        creator = other,
+        createdAt = sentAt,
+        status = PaymentRequestStatus.Open,
+        closedAt = null,
+        version = 1,
+        kind = PaymentRequest.Kind.GroupSplit(
+            chatId = ChatId(byteArrayOf(9)),
+            split = Split(
+                text = PaymentRequestText.Plain("Dinner", ""),
+                currency = CurrencyCode.USD,
+                endsAt = Instant.fromEpochSeconds(100_000),
+                shares = listOf(self, other).map { Share(userId = it, amount = share, paid = null) },
+            ),
+        ),
+    )
+
+    @Test
+    fun `a payment request previews as who sent it and its title`() {
+        every {
+            resources.getString(R.string.label_chat_preview_sentRequest_bySender, "Alice", "Dinner")
+        } returns "Alice sent request for Dinner"
+        every { resources.getString(R.string.label_chat_preview_sentRequest, "Dinner") } returns "You sent request for Dinner"
+        val widget = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
+        val requests = mapOf(requestId to request(Fiat(20.0, CurrencyCode.USD)))
+
+        fun groupPreview(senderId: ID) = groupSummary(widget, senderId, "Alice")
+            .toConversationReference(self, emptyMap(), resources, paymentRequests = requests)
+            .lastMessagePreview
+
+        assertEquals("Alice sent request for Dinner", groupPreview(other))
+        assertEquals("You sent request for Dinner", groupPreview(self))
+    }
+
+    @Test
+    fun `a payment request whose title can't be opened previews without it`() {
+        every {
+            resources.getString(R.string.label_chat_preview_sentRequest_untitled_bySender, "Alice")
+        } returns "Alice sent request"
+        every { resources.getString(R.string.label_chat_preview_sentRequest_untitled) } returns "You sent request"
+        val widget = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
+        val held = request(Fiat(20.0, CurrencyCode.USD))
+        val requests = mapOf(
+            requestId to held.copy(kind = (held.kind as PaymentRequest.Kind.GroupSplit).let { kind ->
+                kind.copy(split = kind.split.copy(text = PaymentRequestText.Undecryptable))
+            }),
+        )
+
+        fun groupPreview(senderId: ID) = groupSummary(widget, senderId, "Alice")
+            .toConversationReference(self, emptyMap(), resources, paymentRequests = requests)
+            .lastMessagePreview
+
+        assertEquals("Alice sent request", groupPreview(other))
+        assertEquals("You sent request", groupPreview(self))
+    }
+
+    @Test
+    fun `a payment request the device doesn't hold yet has nothing to preview`() {
+        assertNull(preview(listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))))
+    }
+
     @Test
     fun `a widget this client can't draw has nothing to preview`() {
         assertNull(preview(listOf(MessageContent.Widget(WidgetContent.Unsupported))))
@@ -415,5 +512,31 @@ class ChatSummaryPreviewTest {
     fun `a join notice whose users are all named asks for no one`() {
         val notice = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(self, admittedBy = other))
         assertNull(groupSummary(listOf(notice), senderId = null).unnamedGroupSender(self, emptyMap()))
+    }
+
+    @Test
+    fun `an invite-link join previews with the inviter's name, for every viewer form`() {
+        val inviter: ID = listOf(6)
+        every { resources.getString(R.string.label_chat_system_joinedViaInvite, "Alice", "Jeff") } returns "Alice joined with Jeff’s invite link"
+        every { resources.getString(R.string.label_chat_system_joinedSelfViaInvite, "Alice") } returns "You joined with Alice’s invite link"
+        every { resources.getString(R.string.label_chat_system_joinedViaYourInvite, "Alice") } returns "Alice joined with your invite link"
+        // Named through the roster: `other` is Alice; the inviter is Jeff.
+        val roster = mapOf(inviter.hexEncodedString() to profile("Jeff"))
+
+        val others = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(other, null, inviter))
+        assertEquals("Alice joined with Jeff’s invite link", groupReference(listOf(others), senderId = null, senderProfiles = roster).lastMessagePreview)
+
+        val viewer = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(self, null, other))
+        assertEquals("You joined with Alice’s invite link", groupReference(listOf(viewer), senderId = null).lastMessagePreview)
+
+        val host = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(other, null, self))
+        assertEquals("Alice joined with your invite link", groupReference(listOf(host), senderId = null).lastMessagePreview)
+    }
+
+    @Test
+    fun `an invite-link join whose inviter is unknown asks for them`() {
+        val stranger: ID = listOf(5)
+        val notice = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(self, null, stranger))
+        assertEquals(stranger, groupSummary(listOf(notice), senderId = null).unnamedGroupSender(self, emptyMap()))
     }
 }

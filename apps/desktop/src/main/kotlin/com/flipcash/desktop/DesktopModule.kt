@@ -2,7 +2,6 @@ package com.flipcash.desktop
 
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.chat.TipHistorySource
 import com.flipcash.app.core.storage.DirectoryPreferencesFiles
 import com.flipcash.app.core.storage.PreferencesFiles
 import com.flipcash.app.devicelink.KeyringSeedVault
@@ -12,7 +11,6 @@ import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.funding.PurchaseMethodMetadata
 import com.flipcash.app.funding.PurchaseMethodSelection
 import com.flipcash.app.funding.PurchaseMethodState
-import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsFiles
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -38,7 +36,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.map
 
 /**
  * Desktop implementations of the seams Android binds in its Hilt modules. Funding, analytics and
@@ -99,11 +96,6 @@ object DesktopModule {
     @Provides
     @Singleton
     fun resources(): ResourceHelper = ComposeResourceHelper()
-
-    @Provides
-    fun tipHistory(messages: ChatMessageDataSource): TipHistorySource = object : TipHistorySource {
-        override fun hasEverTipped(): Flow<Boolean?> = messages.hasEverTipped().map { it }
-    }
 
     @Provides
     fun tokenMetadata(coordinator: TokenCoordinator): TokenMetadataProvider = coordinator

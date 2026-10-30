@@ -58,6 +58,7 @@ val Throwable.chatResult: String
         is StartChatError.PictureBlobNotAccepted, is EditChatError.PictureBlobNotAccepted -> "PictureBlobNotAccepted"
         is StartChatError.InvalidRules -> "InvalidRules"
         is StartChatError.RulesNotSatisfied, is JoinChatError.RulesNotSatisfied -> "RulesNotSatisfied"
+        is JoinChatError.Banned -> "Banned"
         is StartChatError.Unrecognized, is EditChatError.Unrecognized, is JoinChatError.Unrecognized,
         is LeaveChatError.Unrecognized, is MuteChatError.Unrecognized, is UnmuteChatError.Unrecognized -> "Unrecognized"
         is ValidationException -> "Validation"
@@ -123,6 +124,8 @@ val DeeplinkType.analytics: String
         is DeeplinkType.TipChat -> "TipChat"
         is DeeplinkType.GroupChatInvite -> "GroupChatInvite"
         is DeeplinkType.ChatMessage -> "ChatMessage"
+        is DeeplinkType.GroupInvite -> "GroupInvite"
+        is DeeplinkType.InvalidGroupInvite -> "InvalidGroupInvite"
         is DeeplinkType.Tipcard -> "Tipcard"
         is DeeplinkType.Profile -> "Profile"
         is DeeplinkType.EmailVerification -> "EmailVerification"

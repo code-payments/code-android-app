@@ -86,11 +86,15 @@ class FloatingToastHostState {
      * without appearing: a toast left on top would take that layer's taps, and one hidden beneath it
      * would time out unseen with its action unreachable.
      */
-    var isCovered: Boolean = false
+    var isCovered: Boolean
+        get() = coveredState
         set(value) {
-            field = value
+            coveredState = value
             if (value) current?.dismiss()
         }
+
+    // Snapshot state, so a caller can wait for a sheet to clear before it shows a toast.
+    private var coveredState by mutableStateOf(false)
 
     private val coverings = mutableStateMapOf<Any, Dp>()
 

@@ -1,0 +1,178 @@
+package com.flipcash.app.notificationstatus
+
+import android.content.Context
+import com.getcode.ui.components.CircularIconButton
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.animation.core.animateFloatAsState
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.android.IntentUtils
+import com.flipcash.app.notificationstatus.internal.Fix
+import com.flipcash.app.notificationstatus.internal.NotificationStatusContent
+import com.flipcash.app.notificationstatus.internal.NotificationStatusViewModel
+import com.flipcash.app.notificationstatus.internal.NotificationStatusViewModel.Event
+import com.flipcash.app.notificationstatus.internal.TestResult
+import com.flipcash.core.R
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.TopScrollEdge
+import com.getcode.ui.components.toast.LocalFloatingToastHost
+import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.theme.ScaffoldBarPlacement
+import dev.chrisbanes.haze.rememberHazeState
+import com.getcode.util.permissions.PermissionResult
+import com.getcode.util.permissions.rememberNotificationPermission
+import com.google.android.gms.common.GoogleApiAvailability
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+
+@Composable
+fun NotificationStatusScreen() {
+    val navigator = LocalCodeNavigator.current
+    val context = LocalContext.current
+    val toasts = LocalFloatingToastHost.current
+    val viewModel = hiltViewModel<NotificationStatusViewModel>()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+
+    // A grant lets the phone register, so every check runs again, Registration included.
+    val permission = rememberNotificationPermission { result ->
+        viewModel.dispatchEvent(if (result == PermissionResult.Granted) Event.PermissionGranted else Event.Refresh)
+    }
+
+    // Covers coming back from system settings after a Fix. Only the phone's settings are read
+    // again; registration keeps its last result (Decision 2).
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.dispatchEvent(Event.Refresh)
+    }
+
+    val scrollState = rememberScrollState()
+    val hazeState = rememberHazeState()
+
+    // As Settings: the page scrolls under the app bar and blurs into it (TopScrollEdge).
+    CodeScaffold(
+        barPlacement = ScaffoldBarPlacement.Overlay,
+        topBar = {
+            AppBarWithTitle(
+                title = stringResource(R.string.title_notificationStatus),
+                onBackIconClicked = { navigator.pop() },
+                endContent = {
+                    CheckAgainAction(
+                        enabled = !state.running,
+                        onClick = { viewModel.dispatchEvent(Event.CheckAgain) },
+                    )
+                },
+            )
+        },
+    ) { barPadding ->
+        val topPadding = barPadding.calculateTopPadding()
+        Box(modifier = Modifier.fillMaxSize()) {
+            NotificationStatusContent(
+                state = state,
+                topPadding = topPadding,
+                scrollState = scrollState,
+                hazeState = hazeState,
+                onFix = { fix ->
+                    when (fix) {
+                        Fix.TurnOn -> {
+                            // Ask while Android still allows it; after that only settings can turn it on.
+                            val askable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                permission.status in setOf(PermissionResult.NotRequested, PermissionResult.Denied)
+                            if (askable) permission.launch() else context.openAppNotificationSettings()
+                        }
+                        is Fix.ChannelSettings -> context.startActivity(
+                            Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                .putExtra(Settings.EXTRA_CHANNEL_ID, fix.channel.id),
+                        )
+                        Fix.BatterySettings ->
+                            context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                        Fix.AppDetails -> context.startActivity(IntentUtils.appSettings(context))
+                        Fix.ResolvePlayServices -> state.device?.let { device ->
+                            GoogleApiAvailability.getInstance()
+                                .getErrorResolutionPendingIntent(context, device.playServicesCode, 0)
+                                ?.send()
+                        }
+                        Fix.TryAgain -> viewModel.dispatchEvent(Event.TryAgain)
+                    }
+                },
+                onToggleExpanded = { viewModel.dispatchEvent(Event.ToggleExpanded) },
+                onSendTest = { viewModel.dispatchEvent(Event.SendTest) },
+                onShareReport = { viewModel.dispatchEvent(Event.ShareReportRequested) },
+            )
+            TopScrollEdge(hazeState = hazeState, scrollState = scrollState, height = topPadding)
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<Event.ShareReport>()
+            .onEach { context.startActivity(IntentUtils.share(it.text)) }
+            .launchIn(this)
+    }
+
+    val testSent = stringResource(R.string.toast_notificationStatusTestSent)
+    val testSentIcon = ImageVector.vectorResource(R.drawable.ic_check_circle)
+    val testUnreachable = stringResource(R.string.toast_notificationStatusTestUnreachable)
+    val testFailed = stringResource(R.string.toast_notificationStatusTestFailed)
+    LaunchedEffect(viewModel, toasts) {
+        if (toasts == null) return@LaunchedEffect
+        viewModel.eventFlow
+            .filterIsInstance<Event.TestFinished>()
+            .onEach { event ->
+                launch {
+                    when (event.result) {
+                        TestResult.Sent -> toasts.show(message = testSent, icon = testSentIcon)
+                        TestResult.Unreachable -> toasts.show(message = testUnreachable)
+                        TestResult.Failed -> toasts.show(message = testFailed)
+                    }
+                }
+            }
+            .launchIn(this)
+    }
+}
+
+private fun Context.openAppNotificationSettings() {
+    startActivity(
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, packageName),
+    )
+}
+
+/** Re-runs every check. Dimmed and inert while a run is in progress (Behaviour 7). */
+@Composable
+private fun CheckAgainAction(enabled: Boolean, onClick: () -> Unit) {
+    val alpha by animateFloatAsState(if (enabled) 1f else DisabledContentAlpha, label = "check again alpha")
+    CircularIconButton(enabled = enabled, onClick = onClick) { size ->
+        Icon(
+            imageVector = Icons.Rounded.Refresh,
+            contentDescription = stringResource(R.string.action_checkAgain),
+            tint = Color.White.copy(alpha = alpha),
+            modifier = Modifier.requiredSize(size),
+        )
+    }
+}
+
+// Matches ListItem's dimmed state for an action that can't run right now.
+private const val DisabledContentAlpha = 0.38f

@@ -6,6 +6,8 @@ import com.flipcash.app.auth.internal.accounts.AccountProfileCache
 import com.flipcash.app.auth.internal.accounts.AccountStore
 import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
+import com.flipcash.app.auth.push.PushRegistrar
+import com.flipcash.app.auth.push.PushRegistrationSource
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
@@ -14,6 +16,7 @@ import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.shared.profile.ProfileCoordinator
+import com.flipcash.services.chat.WrongKeyChats
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
@@ -52,6 +55,7 @@ class AuthManager @Inject constructor(
     private val profileController: ProfileController,
     private val pushController: PushController,
     private val pushTokenProvider: PushTokenProvider,
+    private val pushRegistrar: PushRegistrar,
     private val tokenCoordinator: TokenCoordinator,
     private val persistence: PersistenceProvider,
     private val featureFlags: FeatureFlagController,
@@ -60,6 +64,7 @@ class AuthManager @Inject constructor(
     private val profileCoordinator: ProfileCoordinator,
     private val contactCoordinator: ContactCoordinator,
     private val chatCoordinator: ChatCoordinator,
+    private val wrongKeyChats: WrongKeyChats,
     private val networkObserver: NetworkConnectivityListener,
     private val dispatchers: DispatcherProvider,
 //    private val analytics: AnalyticsService,
@@ -427,6 +432,8 @@ class AuthManager @Inject constructor(
             pushController.deleteTokens()
         }
         notificationManager.cancelAll()
+        // Keyed by account, so it must go before userManager.clear() forgets which one.
+        pushRegistrar.clear()
         userManager.clear()
         tokenCoordinator.reset()
         // Intentionally do NOT close the Room DB here. Closing it while the just-
@@ -440,6 +447,7 @@ class AuthManager @Inject constructor(
         userFlags.clearAll()
         profileCoordinator.reset()
         userFlags.resetCache()
+        wrongKeyChats.reset()
 
         if (!BuildConfig.DEBUG) TraceManager.userId = null
     }
@@ -449,14 +457,7 @@ class AuthManager @Inject constructor(
     }
 
     private suspend fun updateFcmToken() {
-        val pushToken = pushTokenProvider.getToken() ?: return
-        pushController.addToken(pushToken)
-            .onSuccess {
-                userManager.set(pushToken = pushToken)
-                trace("push token updated", type = TraceType.Silent)
-            }.onFailure {
-                trace(message = "Failure updating push token", error = it)
-            }
+        pushRegistrar.register(PushRegistrationSource.Login)
     }
 
     sealed class AuthManagerException : Exception() {

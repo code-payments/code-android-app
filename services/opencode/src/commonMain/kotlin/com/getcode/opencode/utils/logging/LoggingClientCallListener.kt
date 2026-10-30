@@ -1,7 +1,10 @@
 package com.getcode.opencode.utils.logging
 
+import androidx.annotation.VisibleForTesting
+import com.getcode.utils.LiveSecrets
 import com.getcode.utils.TraceManager
 import com.getcode.utils.TraceType
+import com.getcode.utils.maskedSuffix
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.google.protobuf.ByteString
@@ -71,12 +74,22 @@ private val BASE58_WRAPPER_NAMES = setOf(
 )
 
 /**
+ * Fields whose value can be used by anyone who reads it until the payment it belongs to
+ * succeeds, so they are only ever logged as their last six base58 characters.
+ */
+private val SENSITIVE_FIELD_NAMES = setOf(
+    "paymentIntentId_",
+)
+
+/**
  * Formats a gRPC message (expected to be a protobuf [MessageLite]) into a
  * human-readable single-line string.  Known byte-wrapper types are rendered
- * as base58; UUIDs are rendered in standard 8-4-4-4-12 form; all other
- * messages have their fields printed recursively.
+ * as base58, masked while [LiveSecrets] holds them; UUIDs are rendered in
+ * standard 8-4-4-4-12 form; all other messages have their fields printed
+ * recursively, with [SENSITIVE_FIELD_NAMES] masked.
  */
-private fun formatProto(obj: Any?): String {
+@VisibleForTesting
+internal fun formatProto(obj: Any?): String {
     if (obj == null) return "null"
     if (obj !is MessageLite) return obj.toString()
 
@@ -86,7 +99,7 @@ private fun formatProto(obj: Any?): String {
         // Byte-wrapper → base58
         if (name in BASE58_WRAPPER_NAMES) {
             val bytes = obj.getByteField("value_") ?: return name
-            return Base58.encode(bytes)
+            return LiveSecrets.redact(Base58.encode(bytes))
         }
 
         // UUID wrapper → standard format
@@ -115,7 +128,11 @@ private fun formatProto(obj: Any?): String {
             field.isAccessible = true
             val value = field.get(obj) ?: continue
 
-            val formatted = formatFieldValue(fieldName, value)
+            val formatted = if (fieldName in SENSITIVE_FIELD_NAMES) {
+                formatSensitive(value)
+            } else {
+                formatFieldValue(fieldName, value)
+            }
             if (formatted != null) {
                 // Strip the trailing underscore that protobuf-lite adds.
                 val displayName = fieldName.trimEnd('_')
@@ -158,6 +175,17 @@ private fun formatFieldValue(fieldName: String, value: Any): String? = when (val
         if (value.ordinal == 0) null else value.name
     }
     else -> value.toString().masked()
+}
+
+/** A sensitive field's value as its masked base58 suffix, or `null` when unset. */
+private fun formatSensitive(value: Any): String? {
+    val bytes = when (value) {
+        is ByteString -> value.toByteArray()
+        is MessageLite -> value.getByteField("value_") ?: value.toByteArray()
+        else -> return "…"
+    }
+    if (bytes.isEmpty()) return null
+    return Base58.encode(bytes).maskedSuffix()
 }
 
 /** Read a [ByteString] instance field by name via reflection. */

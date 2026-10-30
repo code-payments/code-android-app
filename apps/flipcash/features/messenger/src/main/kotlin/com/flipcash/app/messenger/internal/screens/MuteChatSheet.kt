@@ -2,10 +2,12 @@ package com.flipcash.app.messenger.internal.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.outlined.Schedule
@@ -21,6 +23,7 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.flipcash.app.messenger.internal.MuteOption
+import com.flipcash.app.messenger.internal.SilenceOption
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
@@ -58,24 +61,72 @@ internal fun MuteChatSheet(
     var pinnedOffersUnmute: Boolean? by remember { mutableStateOf(null) }
     val offersUnmute = pinnedOffersUnmute ?: isMuted
 
+    DurationChoiceSheet(
+        title = stringResource(R.string.title_muteChat),
+        // Worth saying because muting here does less than the word usually promises: the push still
+        // arrives and the message still lands in the thread, and only the notification is held back.
+        subtitle = stringResource(R.string.subtitle_muteChat),
+        onDismiss = onDismiss,
+    ) {
+        // Unmuting first: it is the one row that undoes what the others did, and it is only
+        // here at all while there is something to undo.
+        if (offersUnmute) {
+            ChoiceRow(
+                label = stringResource(R.string.action_muteFor_never),
+                icon = rememberVectorPainter(Icons.Outlined.Notifications),
+                onClick = {
+                    pinnedOffersUnmute = offersUnmute
+                    onUnmute()
+                },
+            )
+        }
+        for (option in MuteOption.entries) {
+            ChoiceRow(
+                label = stringResource(option.labelRes),
+                // A clock for the rows that name a length, and the bell-slash for the one that
+                // doesn't: nothing in the icon set says "8 hours", and what the timed rows have
+                // in common is that they end.
+                icon = rememberVectorPainter(
+                    if (option.duration != null) Icons.Outlined.Schedule
+                    else Icons.Outlined.NotificationsOff
+                ),
+                onClick = {
+                    pinnedOffersUnmute = offersUnmute
+                    onMute(option)
+                },
+            )
+        }
+    }
+}
+
+/**
+ * The sheet both duration pickers share: a title with a close button, one line saying what the
+ * choice does, and a card per row. Mute Notifications and Silence a member differ in their words
+ * and their request, not in how they look.
+ */
+@Composable
+internal fun DurationChoiceSheet(
+    title: String,
+    subtitle: String,
+    onDismiss: () -> Unit,
+    rows: @Composable ColumnScope.() -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding(),
     ) {
         AppBarWithTitle(
-            title = stringResource(R.string.title_muteChat),
+            title = title,
             titleAlignment = Alignment.CenterHorizontally,
             endContent = { AppBarDefaults.Close(onClick = onDismiss) },
         )
 
-        // Worth saying because muting here does less than the word usually promises: the push still
-        // arrives and the message still lands in the thread, and only the notification is held back.
         Text(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.inset),
-            text = stringResource(R.string.subtitle_muteChat),
+            text = subtitle,
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
@@ -87,35 +138,36 @@ internal fun MuteChatSheet(
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .padding(top = CodeTheme.dimens.grid.x4, bottom = CodeTheme.dimens.grid.x4),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-        ) {
-            // Unmuting first: it is the one row that undoes what the others did, and it is only
-            // here at all while there is something to undo.
-            if (offersUnmute) {
-                ChoiceRow(
-                    label = stringResource(R.string.action_muteFor_never),
-                    icon = rememberVectorPainter(Icons.Outlined.Notifications),
-                    onClick = {
-                        pinnedOffersUnmute = offersUnmute
-                        onUnmute()
-                    },
-                )
-            }
-            for (option in MuteOption.entries) {
-                ChoiceRow(
-                    label = stringResource(option.labelRes),
-                    // A clock for the rows that name a length, and the bell-slash for the one that
-                    // doesn't: nothing in the icon set says "8 hours", and what the timed rows have
-                    // in common is that they end.
-                    icon = rememberVectorPainter(
-                        if (option.duration != null) Icons.Outlined.Schedule
-                        else Icons.Outlined.NotificationsOff
-                    ),
-                    onClick = {
-                        pinnedOffersUnmute = offersUnmute
-                        onMute(option)
-                    },
-                )
-            }
+            content = rows,
+        )
+    }
+}
+
+/**
+ * How long to silence [firstName] in [groupTitle]. The rows are [SilenceOption]; picking one is the
+ * whole action, so there is no confirm and no unsilence row here: lifting a silence lives on the
+ * Silenced list.
+ */
+@Composable
+internal fun SilenceUserSheet(
+    firstName: String,
+    groupTitle: String,
+    onSilence: (SilenceOption) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    DurationChoiceSheet(
+        title = stringResource(R.string.title_silenceUser, firstName),
+        subtitle = stringResource(R.string.subtitle_silenceUser, firstName),
+        onDismiss = onDismiss,
+    ) {
+        for (option in SilenceOption.entries) {
+            ChoiceRow(
+                label = stringResource(option.labelRes),
+                icon = rememberVectorPainter(
+                    if (option.duration != null) Icons.Outlined.Schedule else Icons.Outlined.Block
+                ),
+                onClick = { onSilence(option) },
+            )
         }
     }
 }

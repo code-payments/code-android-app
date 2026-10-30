@@ -12,6 +12,23 @@ import com.flipcash.app.persistence.entities.EncryptionState
 import com.flipcash.app.persistence.entities.MessageStatus
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Excludes a cash message that pays a payment request share: the transcript draws no bubble for it
+ * (`MessageContent.paysRequestShare`), so it is not a preview, an unread message or an arrival.
+ *
+ * `content_json` is serialized with defaults, so a cash entry always carries `"paymentRequestId"`:
+ * `null` unless it paid a share. The widget that shows a request carries the same key under another
+ * type, hence the `"cash"` test. An unescaped `"` cannot come from message text, which is escaped.
+ */
+private const val NOT_REQUEST_SHARE =
+    "AND NOT (COALESCE(content_json, '') LIKE '%\"type\":\"cash\"%' " +
+        "AND COALESCE(content_json, '') LIKE '%\"paymentRequestId\":\"%') "
+
+/** [NOT_REQUEST_SHARE] for the correlated subqueries that alias the table as `m`. */
+private const val NOT_REQUEST_SHARE_M =
+    "AND NOT (COALESCE(m.content_json, '') LIKE '%\"type\":\"cash\"%' " +
+        "AND COALESCE(m.content_json, '') LIKE '%\"paymentRequestId\":\"%') "
+
 @Dao
 interface ChatMessageDao {
 
@@ -25,13 +42,6 @@ interface ChatMessageDao {
      */
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') ORDER BY timestamp_epoch_ms DESC, message_id DESC")
     fun observeMessagesPaged(chatIdHex: String): PagingSource<Int, ChatMessageEntity>
-
-    /**
-     * True once the user has sent a tip — an **outgoing** Cash message (sender = self) with verb
-     * TIPPED. Received tips don't count toward the "scanned a tip card" onboarding milestone.
-     */
-    @Query("SELECT EXISTS(SELECT 1 FROM chat_messages WHERE sender_id_hex = :selfIdHex AND content_json LIKE '%\"action\":\"TIPPED\"%')")
-    fun hasEverTipped(selfIdHex: String): Flow<Boolean>
 
     /**
      * The newest [limit] messages across every chat that Search can read: not tombstones, not
@@ -64,7 +74,7 @@ interface ChatMessageDao {
      * the newest id including tombstones, or a delete would regress the read pointer and leave the
      * chat unread forever.
      */
-    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 AND content_json IS NOT NULL AND content_json != '[]' AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT 1")
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 AND content_json IS NOT NULL AND content_json != '[]' AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') " + NOT_REQUEST_SHARE + "ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT 1")
     suspend fun getLatestVisible(chatIdHex: String): ChatMessageEntity?
 
     /**
@@ -80,6 +90,7 @@ interface ChatMessageDao {
             "WHERE m.chat_id_hex = c.chat_id_hex AND m.is_deleted = 0 " +
             "AND m.content_json IS NOT NULL AND m.content_json != '[]' " +
             "AND (m.encryption_state IS NULL OR m.encryption_state != 'KEY_PENDING') " +
+            NOT_REQUEST_SHARE_M +
             "ORDER BY m.timestamp_epoch_ms DESC, m.message_id DESC LIMIT 1) " +
             "FROM (SELECT DISTINCT chat_id_hex FROM chat_messages) c)"
     )
@@ -96,6 +107,7 @@ interface ChatMessageDao {
             "WHERE m.chat_id_hex = c.chat_id_hex AND m.is_deleted = 0 " +
             "AND m.content_json IS NOT NULL AND m.content_json != '[]' " +
             "AND (m.encryption_state IS NULL OR m.encryption_state != 'KEY_PENDING') " +
+            NOT_REQUEST_SHARE_M +
             "ORDER BY m.timestamp_epoch_ms DESC, m.message_id DESC LIMIT 1) " +
             "FROM (SELECT DISTINCT chat_id_hex FROM chat_messages) c)"
     )
@@ -124,7 +136,8 @@ interface ChatMessageDao {
         "SELECT COUNT(*) FROM chat_messages " +
             "WHERE chat_id_hex = :chatIdHex " +
             "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
-            "AND is_deleted = 0 AND message_id > :afterId"
+            "AND is_deleted = 0 AND message_id > :afterId " +
+            NOT_REQUEST_SHARE
     )
     suspend fun countInboundAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Int
 
@@ -136,7 +149,8 @@ interface ChatMessageDao {
         "SELECT COUNT(*) FROM chat_messages " +
             "WHERE chat_id_hex = :chatIdHex " +
             "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
-            "AND is_deleted = 0 AND message_id > :afterId"
+            "AND is_deleted = 0 AND message_id > :afterId " +
+            NOT_REQUEST_SHARE
     )
     fun observeInboundCountAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Flow<Int>
 
@@ -148,7 +162,8 @@ interface ChatMessageDao {
         "SELECT MAX(message_id) FROM chat_messages " +
             "WHERE chat_id_hex = :chatIdHex " +
             "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
-            "AND is_deleted = 0"
+            "AND is_deleted = 0 " +
+            NOT_REQUEST_SHARE
     )
     suspend fun newestInboundId(chatIdHex: String, selfIdHex: String): Long?
 
@@ -163,7 +178,8 @@ interface ChatMessageDao {
     @Query(
         "SELECT MIN(message_id) FROM chat_messages " +
             "WHERE chat_id_hex = :chatIdHex AND message_id > :afterId " +
-            "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex"
+            "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
+            NOT_REQUEST_SHARE
     )
     suspend fun firstNotSentByAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Long?
 

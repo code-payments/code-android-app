@@ -84,7 +84,6 @@ fun TokenList(
     tokens: List<TokenWithLocalizedBalance>?,
     modifier: Modifier = Modifier,
     itemModifier: LazyItemScope.() -> Modifier = { Modifier },
-    showFlags: Boolean = false,
     styling: TokenBalanceRowStyling = rememberTokenBalanceRowStyling(
         balanceDisplayStyle = TokenBalanceStyle.Pill(),
         selectionStyle = TokenSelectionStyle.Chevron,
@@ -163,7 +162,6 @@ fun TokenList(
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .then(itemModifier()),
                         tokenWithBalance = item,
-                        showFlag = showFlags,
                         styling = styling,
                         isSelected = (selectedToken == item.token.address).takeIf { showSelections },
                         isEnabled = updatedIsEnabled && (loadingMint == null || loadingMint == item.token.address),

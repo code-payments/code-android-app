@@ -29,6 +29,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -44,6 +48,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -58,18 +63,25 @@ import com.flipcash.app.core.ui.transitions.sharedBoundsTransition
 import com.getcode.opencode.model.financial.Token
 import com.flipcash.app.tokens.ui.TokenInfoViewModel
 import com.flipcash.features.tokens.R
-import com.flipcash.shared.transactionhistory.recentActivitySection
+import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.core.chat.ProfileAddress
+import com.flipcash.app.core.chat.ProfileOrigin
+import com.flipcash.app.tokens.ui.CurrencyActionTile
+import com.flipcash.app.tokens.ui.TopCommunityChatsPreviewCount
+import com.flipcash.app.tokens.ui.currencyActionTiles
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SocialLink
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White10
 import com.getcode.theme.extraSmall
 import com.getcode.ui.components.text.ExpandableText
 import com.getcode.ui.core.addIf
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
+import com.getcode.ui.components.BottomScrollEdge
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
@@ -100,243 +112,298 @@ internal fun CurrencyInfoContentV2(
     val inset = CodeTheme.dimens.inset
     val grid = CodeTheme.dimens.grid
 
-    LazyColumn(
-        // Content fills behind the overlaid app bar and scrolls under it; [hazeState] marks it as the
-        // blur source so the frosted (liquid-glass) bar chrome frosts it. [contentPadding] insets the
-        // first item below the bar (like the chat screen), and the bar draws its own bg->transparent
-        // scrim for the soft top fade.
-        modifier = Modifier
-            .fillMaxSize()
-            .addIf(hazeState != null) { Modifier.hazeSource(hazeState!!) },
-        state = listState,
-        contentPadding = contentPadding,
-    ) {
-        when (state.token) {
-            is Loadable.Loading -> {
-                item {
-                    Box(modifier = Modifier.fillParentMaxSize()) {
-                        Box(
-                            modifier = Modifier
-                                .fillParentMaxSize(0.24f)
-                                .aspectRatio(1f)
-                                .align(Alignment.Center),
-                        ) {
-                            CodeCircularProgressIndicator(
-                                modifier = Modifier.matchParentSize(),
-                                strokeWidth = grid.x1,
-                                color = Color.White,
-                                backgroundColor = Color.White.copy(0.30f),
-                                strokeCap = StrokeCap.Butt,
-                            )
-                        }
-                    }
-                }
-            }
-
-            is Loadable.Error -> {
-                item {
-                    Box(modifier = Modifier.fillParentMaxSize()) {
-                        Box(
-                            modifier = Modifier
-                                .fillParentMaxSize(0.24f)
-                                .aspectRatio(1f)
-                                .align(Alignment.Center),
-                        ) {
-                            Image(
-                                modifier = Modifier.matchParentSize(),
-                                painter = painterResource(R.drawable.ic_circle_exclamation_large),
-                                contentDescription = null,
-                            )
-                        }
-                    }
-                }
-            }
-
-            is Loadable.Loaded -> {
-                val loadedToken = state.token as Loadable.Loaded
-                val token = loadedToken.data
-
-                val isUsdf = state.isCashReserve
-                val isHeld = state.showTransactionHistory || state.balance.nativeAmount.isPositive
-                val openExplainer = {
-                    dispatch(
-                        TokenInfoViewModel.Event.OpenScreen(AppRoute.Token.MarketCapExplainer(token.address))
-                    )
-                }
-
-                // 1. Hero bill card
-                item {
-                    val appreciationText = state.appreciation
-                        ?.takeIf { isHeld && state.showAppreciation && it != LocalFiat.MIN_VALUE }
-                        ?.nativeAmount
-                        ?.formattedAppreciation()
-
-                    val heroModifier = Modifier
-                        .fillParentMaxWidth()
-                        .padding(horizontal = inset)
-                        .padding(top = grid.x2)
-
-                    if (heroAsPlaceholder) {
-                        // Reserve the slot, report its window bounds as the fly target, and reveal this
-                        // real card once the list scrolls (the flying overlay hides then — they're
-                        // coincident at the top, so the swap is invisible). Deferred alpha = no recompose.
-                        TokenCard(
-                            token = token,
-                            balanceText = if (isHeld) state.balance.nativeAmount.formatted() else "",
-                            displayName = token.name,
-                            appreciationText = appreciationText,
-                            modifier = heroModifier
-                                .onGloballyPositioned { onHeroBounds(it.boundsInWindow()) }
-                                .graphicsLayer { alpha = heroPlaceholderAlpha() },
-                        )
-                    } else {
-                        // Pushed/deeplink presentation: fly from the tapped wallet deck card (same mint
-                        // key), overlay-hosted while opening and in-layer while closing.
-                        val heroInOverlay = if (LocalInspectionMode.current) {
-                            true
-                        } else {
-                            LocalNavAnimatedContentScope.current.transition.targetState !=
-                                EnterExitState.PostExit
-                        }
-                        TokenCard(
-                            token = token,
-                            balanceText = if (isHeld) state.balance.nativeAmount.formatted() else "",
-                            displayName = token.name,
-                            appreciationText = appreciationText,
-                            modifier = heroModifier
-                                .sharedBoundsTransition(
-                                    key = SharedTransition.TokenCard(token.address).key,
-                                    enter = EnterTransition.None,
-                                    exit = ExitTransition.None,
-                                    boundsTransform = CardExpandTransition.boundsTransform,
-                                    renderInOverlayDuringTransition = heroInOverlay,
-                                ),
-                        )
-                    }
-                }
-
-                // 2. Action tiles row
-                item {
-                    CurrencyActionTiles(
-                        modifier = Modifier
-                            .fillParentMaxWidth()
-                            .padding(horizontal = inset)
-                            .padding(top = grid.x3),
-                        isHeld = isHeld,
-                        tokenMint = token.address,
-                        shortfall = shortfall,
-                        convertEnabled = state.canConvert,
-                        dispatch = dispatch,
-                    )
-                }
-
-                // 3. Recent transactions (only when held and non-empty) — shared with the wallet screen.
-                if (isHeld && state.transactions.isNotEmpty()) {
-                    recentActivitySection(
-                        transactions = state.transactions,
-                        modifier = Modifier
-                            .clickable {
-                                dispatch(
-                                    TokenInfoViewModel.Event.OpenScreen(
-                                        AppRoute.Token.Transactions(token.address)
-                                    )
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            // Content fills behind the overlaid app bar and scrolls under it; [hazeState] marks it as the
+            // blur source so the frosted (liquid-glass) bar chrome frosts it. [contentPadding] insets the
+            // first item below the bar (like the chat screen), and the bar draws its own bg->transparent
+            // scrim for the soft top fade.
+            modifier = Modifier
+                .fillMaxSize()
+                .addIf(hazeState != null) { Modifier.hazeSource(hazeState!!) },
+            state = listState,
+            contentPadding = contentPadding,
+        ) {
+            when (state.token) {
+                is Loadable.Loading -> {
+                    item {
+                        Box(modifier = Modifier.fillParentMaxSize()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillParentMaxSize(0.24f)
+                                    .aspectRatio(1f)
+                                    .align(Alignment.Center),
+                            ) {
+                                CodeCircularProgressIndicator(
+                                    modifier = Modifier.matchParentSize(),
+                                    strokeWidth = grid.x1,
+                                    color = Color.White,
+                                    backgroundColor = Color.White.copy(0.30f),
+                                    strokeCap = StrokeCap.Butt,
                                 )
                             }
-                            .padding(horizontal = inset)
-                            .padding(top = grid.x5, bottom = grid.x1),
-                        itemPadding = PaddingValues(horizontal = inset),
-                        onItemClick = { item ->
-                            dispatch(
-                                TokenInfoViewModel.Event.OpenScreen(
-                                    AppRoute.Sheets.TransactionDetails(item.messageId)
-                                )
-                            )
-                        },
-                    )
+                        }
+                    }
                 }
 
-                // 4. Market cap (non-USDF only)
-                if (!isUsdf) {
-                    state.marketCap?.let { mcap ->
-                        val historicalData = state.historicalMarketCapData[state.selectedPeriod]
-                            ?: Loadable.Loaded(emptyList())
-                        item {
-                            MarketCapSection(
+                is Loadable.Error -> {
+                    item {
+                        Box(modifier = Modifier.fillParentMaxSize()) {
+                            Box(
                                 modifier = Modifier
-                                    .fillParentMaxWidth()
-                                    .padding(top = grid.x5),
-                                contentPadding = PaddingValues(horizontal = inset),
-                                marketCap = mcap,
-                                selectedPeriod = state.selectedPeriod,
-                                rawHistoricalData = historicalData,
-                                // New v2 UI: no chart draw-in on open (it appears with the card-expand).
-                                animateChartOpen = false,
-                                onRetry = {
-                                    dispatch(
-                                        TokenInfoViewModel.Event.LoadHistoricalDataForPeriod(
-                                            state.selectedPeriod
-                                        )
-                                    )
-                                },
-                                onPeriodSelected = {
-                                    dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
-                                },
+                                    .fillParentMaxSize(0.24f)
+                                    .aspectRatio(1f)
+                                    .align(Alignment.Center),
+                            ) {
+                                Image(
+                                    modifier = Modifier.matchParentSize(),
+                                    painter = painterResource(R.drawable.ic_circle_exclamation_large),
+                                    contentDescription = null,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                is Loadable.Loaded -> {
+                    val loadedToken = state.token as Loadable.Loaded
+                    val token = loadedToken.data
+
+                    val isUsdf = state.isCashReserve
+                    val isHeld = state.showTransactionHistory || state.balance.nativeAmount.isPositive
+                    val openExplainer = {
+                        dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(AppRoute.Token.MarketCapExplainer(token.address))
+                        )
+                    }
+
+                    // 1. Hero bill card
+                    item {
+                        val appreciationText = state.appreciation
+                            ?.takeIf { isHeld && state.showAppreciation && it != LocalFiat.MIN_VALUE }
+                            ?.nativeAmount
+                            ?.formattedAppreciation()
+
+                        val heroModifier = Modifier
+                            .fillParentMaxWidth()
+                            .padding(horizontal = inset)
+                            .padding(top = grid.x2)
+
+                        if (heroAsPlaceholder) {
+                            // Reserve the slot, report its window bounds as the fly target, and reveal this
+                            // real card once the list scrolls (the flying overlay hides then — they're
+                            // coincident at the top, so the swap is invisible). Deferred alpha = no recompose.
+                            TokenCard(
+                                token = token,
+                                balanceText = if (isHeld) state.balance.nativeAmount.formatted() else "",
+                                displayName = token.name,
+                                appreciationText = appreciationText,
+                                modifier = heroModifier
+                                    .onGloballyPositioned { onHeroBounds(it.boundsInWindow()) }
+                                    .graphicsLayer { alpha = heroPlaceholderAlpha() },
+                            )
+                        } else {
+                            // Pushed/deeplink presentation: fly from the tapped wallet deck card (same mint
+                            // key), overlay-hosted while opening and in-layer while closing.
+                            val heroInOverlay = if (LocalInspectionMode.current) {
+                                true
+                            } else {
+                                LocalNavAnimatedContentScope.current.transition.targetState !=
+                                    EnterExitState.PostExit
+                            }
+                            TokenCard(
+                                token = token,
+                                balanceText = if (isHeld) state.balance.nativeAmount.formatted() else "",
+                                displayName = token.name,
+                                appreciationText = appreciationText,
+                                modifier = heroModifier
+                                    .sharedBoundsTransition(
+                                        key = SharedTransition.TokenCard(token.address).key,
+                                        enter = EnterTransition.None,
+                                        exit = ExitTransition.None,
+                                        boundsTransform = CardExpandTransition.boundsTransform,
+                                        renderInOverlayDuringTransition = heroInOverlay,
+                                    ),
                             )
                         }
+                    }
+
+                    // 2. Action tiles row
+                    item {
+                        CurrencyActionTiles(
+                            modifier = Modifier
+                                .fillParentMaxWidth()
+                                .padding(horizontal = inset)
+                                .padding(top = grid.x3),
+                            isHeld = isHeld,
+                            tokenMint = token.address,
+                            shortfall = shortfall,
+                            dispatch = dispatch,
+                        )
+                    }
+
+                    // 3. Top community chats (hidden when empty or the call failed)
+                    if (state.communityChats.isNotEmpty()) {
                         item {
-                            MarketCapExplainerRow(
+                            CommunityChatsHeader(
                                 modifier = Modifier
                                     .fillParentMaxWidth()
                                     .padding(horizontal = inset)
-                                    .padding(top = grid.x3),
-                                tokenName = token.name,
-                                onClick = openExplainer,
+                                    .padding(top = grid.x5),
+                                onInfo = { dispatch(TokenInfoViewModel.Event.OnRankingInfo) },
+                                onViewAll = {
+                                    dispatch(
+                                        TokenInfoViewModel.Event.OpenScreen(
+                                            AppRoute.Token.CommunityChats(token.address)
+                                        )
+                                    )
+                                },
+                            )
+                        }
+                        itemsIndexed(state.communityChats.take(TopCommunityChatsPreviewCount), key = { _, it -> it.chat.chatId.toString() }) { index, entry ->
+                            CommunityChatRow(
+                                card = true,
+                                // Cards 10dp apart, 14dp under the header (node 11622:1621, 0.65 scale).
+                                modifier = Modifier
+                                    .fillParentMaxWidth()
+                                    .padding(horizontal = inset)
+                                    .padding(top = if (index == 0) CodeTheme.dimens.grid.x3 else CodeTheme.dimens.grid.x2),
+                                chat = entry.chat,
+                                holdings = entry.holdings,
+                                currencyName = token.name,
+                                onClick = {
+                                    dispatch(
+                                        TokenInfoViewModel.Event.OpenScreen(
+                                            AppRoute.Messaging.Chat(
+                                                identifier = ChatIdentifier.ByChatId(entry.chat.chatId),
+                                                openOnProfile = true,
+                                            )
+                                        )
+                                    )
+                                },
                             )
                         }
                     }
-                }
 
-                // 5. About section
-                val description = token.description
-                val socialLinks = token.socialLinks
-                if (description.isNotBlank() || socialLinks.isNotEmpty()) {
-                    item {
-                        CurrencyAboutSection(
-                            modifier = Modifier
-                                .fillParentMaxWidth()
-                                .padding(top = grid.x5),
-                            description = description,
-                            socialLinks = socialLinks,
-                            isExpanded = state.descriptionExpanded,
-                            inset = inset,
-                            onToggleExpand = {
-                                dispatch(
-                                    TokenInfoViewModel.Event.ExpandDescription(!state.descriptionExpanded)
-                                )
-                            },
-                        )
-                    }
-                }
-
-                // 6. Created footer (non-USDF with a known creation date)
-                if (!isUsdf) {
-                    token.createdAt?.let { createdAt ->
+                    // 3b. Community leader (its own condition: shows without any ranked chats)
+                    state.communityLeader?.let { leader ->
                         item {
-                            val formattedDate = createdAt.format("MMMM dd, yyyy")
-                            Text(
+                            val userId = leader.userId
+                            CommunityLeaderSection(
                                 modifier = Modifier
                                     .fillParentMaxWidth()
-                                    .padding(top = grid.x6, bottom = grid.x6)
-                                    .padding(horizontal = inset),
-                                text = stringResource(R.string.label_createdAt, formattedDate).uppercase(),
-                                style = CodeTheme.typography.caption,
-                                color = CodeTheme.colors.textMain.copy(alpha = 0.3f),
-                                textAlign = TextAlign.Center,
+                                    .padding(horizontal = inset)
+                                    .padding(top = grid.x5),
+                                leader = leader,
+                                onClick = userId?.let {
+                                    {
+                                        dispatch(
+                                            TokenInfoViewModel.Event.OpenScreen(
+                                                AppRoute.Messaging.Profile(
+                                                    ProfileAddress.ById(it),
+                                                    ProfileOrigin.CommunityLeader,
+                                                )
+                                            )
+                                        )
+                                    }
+                                },
                             )
+                        }
+                    }
+
+                    // 4. About section (above the market cap chart)
+                    val description = token.description
+                    val socialLinks = token.socialLinks
+                    if (description.isNotBlank() || socialLinks.isNotEmpty()) {
+                        item {
+                            CurrencyAboutSection(
+                                modifier = Modifier
+                                    .fillParentMaxWidth()
+                                    .padding(top = grid.x5),
+                                description = description,
+                                socialLinks = socialLinks,
+                                isExpanded = state.descriptionExpanded,
+                                inset = inset,
+                                onToggleExpand = {
+                                    dispatch(
+                                        TokenInfoViewModel.Event.ExpandDescription(!state.descriptionExpanded)
+                                    )
+                                },
+                            )
+                        }
+                    }
+
+                    // 5. Market cap (non-USDF only)
+                    if (!isUsdf) {
+                        state.marketCap?.let { mcap ->
+                            val historicalData = state.historicalMarketCapData[state.selectedPeriod]
+                                ?: Loadable.Loaded(emptyList())
+                            item {
+                                MarketCapSection(
+                                    modifier = Modifier
+                                        .fillParentMaxWidth()
+                                        .padding(top = grid.x5),
+                                    contentPadding = PaddingValues(horizontal = inset),
+                                    marketCap = mcap,
+                                    selectedPeriod = state.selectedPeriod,
+                                    rawHistoricalData = historicalData,
+                                    // New v2 UI: no chart draw-in on open (it appears with the card-expand).
+                                    animateChartOpen = false,
+                                    onRetry = {
+                                        dispatch(
+                                            TokenInfoViewModel.Event.LoadHistoricalDataForPeriod(
+                                                state.selectedPeriod
+                                            )
+                                        )
+                                    },
+                                    onPeriodSelected = {
+                                        dispatch(TokenInfoViewModel.Event.OnMarketCapPeriodSelected(it))
+                                    },
+                                )
+                            }
+                            item {
+                                MarketCapExplainerRow(
+                                    modifier = Modifier
+                                        .fillParentMaxWidth()
+                                        .padding(horizontal = inset)
+                                        .padding(top = grid.x3),
+                                    tokenName = token.name,
+                                    onClick = openExplainer,
+                                )
+                            }
+                        }
+                    }
+
+                    // 6. Created footer (non-USDF with a known creation date)
+                    if (!isUsdf) {
+                        token.createdAt?.let { createdAt ->
+                            item {
+                                val formattedDate = createdAt.format("MMM d, yyyy")
+                                Text(
+                                    modifier = Modifier
+                                        .fillParentMaxWidth()
+                                        .padding(top = grid.x6, bottom = grid.x6)
+                                        .padding(horizontal = inset),
+                                    text = stringResource(R.string.label_createdAt, formattedDate),
+                                    style = CodeTheme.typography.textSmall,
+                                    color = SnippetText,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+
+        // Content blurs out toward the bottom edge as it scrolls under the nav bar; the same edge the
+        // other scrolling screens use. Hidden once the list reaches its end, so the footer reads clean.
+        if (hazeState != null) {
+            BottomScrollEdge(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                hazeState = hazeState,
+                listState = listState,
+            )
         }
     }
 }
@@ -350,117 +417,47 @@ private fun CurrencyActionTiles(
     isHeld: Boolean,
     tokenMint: Mint,
     shortfall: Fiat?,
-    convertEnabled: Boolean,
     dispatch: (TokenInfoViewModel.Event) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val giveTile: @Composable RowScope.() -> Unit = {
-        ActionTile(
-            modifier = Modifier.weight(1f),
-            label = stringResource(R.string.action_cash),
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.ic_banknote),
-                    contentDescription = null,
-                    tint = CodeTheme.colors.textMain,
-                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                )
-            },
-            onClick = {
-                dispatch(
-                    TokenInfoViewModel.Event.OpenScreen(
-                        AppRoute.Sheets.Give(mint = tokenMint, fromTokenInfo = true)
-                    )
-                )
-            },
-        )
-    }
-
-    val convertTile: @Composable RowScope.() -> Unit = {
-        ActionTile(
-            modifier = Modifier.weight(1f),
-            label = stringResource(R.string.action_convert),
-            icon = {
-                Icon(
-                    painter = painterResource(R.drawable.ic_convert),
-                    contentDescription = null,
-                    tint = CodeTheme.colors.textMain,
-                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                )
-            },
-            onClick = { dispatch(TokenInfoViewModel.Event.OnConvert) },
-            enabled = convertEnabled,
-        )
-    }
-
     Row(
         modifier = modifier,
+        // Node 11622:1609, drawn at 0.65: 5.2 gaps, i.e. 8dp.
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
-        when {
-            !isHeld -> {
-                // Single full-width "Buy In" tile
-                ActionTile(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.action_buyIn),
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_arrow_down),
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                        )
-                    },
-                    onClick = { dispatch(TokenInfoViewModel.Event.OnBuy(shortfall)) },
-                )
+        currencyActionTiles(tokenMint, isHeld).forEach { tile ->
+            val (label, icon) = when (tile) {
+                CurrencyActionTile.Send -> R.string.action_send to R.drawable.ic_currency_send
+                CurrencyActionTile.Buy -> R.string.action_buy to R.drawable.ic_currency_buy
+                CurrencyActionTile.BuyIn -> R.string.action_buyIn to R.drawable.ic_currency_buy
+                CurrencyActionTile.Transactions -> R.string.action_transactions to R.drawable.ic_currency_transactions
+                CurrencyActionTile.More -> R.string.action_more to R.drawable.ic_more_horizontal
             }
-
-            // Dollars keeps Withdraw: there is no "buy more" of the cash reserve, and cashing
-            // out is the action people come to this screen for.
-            tokenMint == Mint.usdf -> {
-                giveTile()
-                convertTile()
-                ActionTile(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.action_withdraw),
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_arrow_up_large),
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+            ActionTile(
+                modifier = Modifier.weight(1f),
+                label = stringResource(label),
+                icon = {
+                    Icon(
+                        painter = painterResource(icon),
+                        contentDescription = null,
+                        tint = CodeTheme.colors.textMain,
+                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
+                    )
+                },
+                onClick = {
+                    when (tile) {
+                        CurrencyActionTile.Send -> dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(AppRoute.Sheets.CurrencySend(tokenMint))
                         )
-                    },
-                    onClick = {
-                        // Preselect the currency being viewed: Dollars detours through the
-                        // "Withdraw as USDC" intro, anything else opens straight on the amount screen.
-                        dispatch(
-                            TokenInfoViewModel.Event.OpenScreen(
-                                AppRoute.Transfers.Withdrawal(preselectedMint = tokenMint)
-                            )
+                        CurrencyActionTile.Buy, CurrencyActionTile.BuyIn ->
+                            dispatch(TokenInfoViewModel.Event.OnBuy(shortfall))
+                        CurrencyActionTile.Transactions -> dispatch(
+                            TokenInfoViewModel.Event.OpenScreen(AppRoute.Token.Transactions(tokenMint))
                         )
-                    },
-                )
-            }
-
-            // Held non-USDF token: Give + Buy More + Convert
-            else -> {
-                giveTile()
-                ActionTile(
-                    modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.action_buyMore),
-                    icon = {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_arrow_down),
-                            contentDescription = null,
-                            tint = CodeTheme.colors.textMain,
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                        )
-                    },
-                    onClick = { dispatch(TokenInfoViewModel.Event.OnBuy(shortfall)) },
-                )
-                convertTile()
-            }
+                        CurrencyActionTile.More -> dispatch(TokenInfoViewModel.Event.OnMore)
+                    }
+                },
+            )
         }
     }
 }
@@ -478,19 +475,22 @@ private fun ActionTile(
     Column(
         modifier = modifier
             .alpha(if (enabled) 1f else DisabledActionTileAlpha)
-            .height(CodeTheme.dimens.staticGrid.x18)
-            .clip(CodeTheme.shapes.extraSmall)
-            .background(Color.White.copy(alpha = 0.1f))
+            .height(CodeTheme.dimens.grid.x18)
+            .clip(CodeTheme.shapes.small)
+            .background(White10)
             .clickable(enabled = enabled, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         icon()
-        Spacer(Modifier.height(CodeTheme.dimens.grid.x1))
+        Spacer(Modifier.height(CodeTheme.dimens.grid.x2))
+        // Medium 12, line height 1.4, in textMain (node 11622:1610): "Transactions" fits one line.
         Text(
             text = label,
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textSecondary,
+            style = CodeTheme.typography.caption.copy(lineHeight = 16.8.sp),
+            color = CodeTheme.colors.textMain,
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }
@@ -510,13 +510,13 @@ private fun CurrencyAboutSection(
                 modifier = Modifier.padding(horizontal = inset),
                 text = stringResource(R.string.subtitle_about),
                 style = CodeTheme.typography.textLarge,
-                color = CodeTheme.colors.textMain.copy(alpha = 0.6f),
+                color = CodeTheme.colors.textMain,
             )
             ExpandableText(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
                 text = description,
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textSecondary,
+                style = CodeTheme.typography.textSmall,
+                color = SnippetText,
                 isExpanded = isExpanded,
                 contentPadding = PaddingValues(horizontal = inset),
                 onToggle = onToggleExpand,
@@ -527,7 +527,7 @@ private fun CurrencyAboutSection(
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = CodeTheme.dimens.grid.x4),
+                    .padding(top = CodeTheme.dimens.grid.x3),
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 contentPadding = PaddingValues(horizontal = inset),
             ) {

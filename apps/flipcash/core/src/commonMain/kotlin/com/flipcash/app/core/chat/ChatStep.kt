@@ -2,6 +2,9 @@ package com.flipcash.app.core.chat
 
 import com.getcode.libs.parcelable.Parcelable
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.GroupBalanceRole
+import com.getcode.solana.keys.Mint
+import com.getcode.navigation.FullscreenSheet
 import com.getcode.navigation.HalfSheet
 import com.getcode.navigation.Sheet
 import com.getcode.navigation.WrapContentSheet
@@ -25,6 +28,19 @@ data object ChatSendResult : Parcelable
 @Parcelize
 @Serializable
 data class GroupInviteResult(val chatId: ChatId) : Parcelable
+
+/** What the host picked on Manage Invites' row sheet (frame 2b). */
+@Parcelize
+@Serializable
+enum class InviteLinkAction : Parcelable { Share, Revoke }
+
+/**
+ * What the host picked on New Invite Link (frame 2d): the preset names, not the presets, because
+ * this module cannot see `shared:chat`. Presets only; never a key or link.
+ */
+@Parcelize
+@Serializable
+data class NewInviteLinkChoice(val expiry: String, val uses: String) : Parcelable
 
 /** A custom paid-reaction amount, in whole US cents. */
 @Parcelize
@@ -50,6 +66,20 @@ sealed interface ChatStep : FlowStep, Parcelable {
     data object AmountEntry : ChatStep, NavigationRetVal<ChatSendResult>, Sheet
 
     /**
+     * [AmountEntry] for a send to a private group's members, which carries on past the amount to
+     * Select People and the confirm. Presented as the share sheet ([ShareMessage]) is: full screen,
+     * closed by its X. Its steps can't be dragged away (see `GroupSendStep`), so a half-picked send
+     * isn't lost to a stray swipe.
+     */
+    @Parcelize
+    @Serializable
+    data object GroupSendAmountEntry :
+        ChatStep,
+        NavigationRetVal<ChatSendResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
+
+    /**
      * Nodes 10329:12104 and 10330:19549 — share or copy a group's invite link, or send it to
      * recent 1:1 chats.
      *
@@ -70,6 +100,55 @@ sealed interface ChatStep : FlowStep, Parcelable {
         NavigationRetVal<GroupInviteResult>,
         Sheet,
         com.getcode.navigation.FullscreenSheet
+
+    /**
+     * Frames 1b, 1f: a private group's invite link, in the share-to-chats sheet. [inviteIdHex] null
+     * is the sheet's current link, which the first Share or Copy tap makes when there is none;
+     * otherwise it is one invite from Manage Invites (2b's Share Link).
+     *
+     * Carries the invite's id and never its link: a step is logged and saved, and the link's
+     * fragment is the secret. The sheet rebuilds the link from the host's own invites.
+     */
+    @Parcelize
+    @Serializable
+    data class ShareInviteLink(val inviteIdHex: String? = null) :
+        ChatStep,
+        NavigationRetVal<GroupInviteResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
+
+    /**
+     * Frame 2b: Share Link and Revoke Link for one invite on Manage Invites. Returns the pick and
+     * leaves the work to Manage Invites, which is still on screen beneath it and owns the revoke
+     * confirm (2c).
+     *
+     * Carries the invite's id and never its link, as [ShareInviteLink] does.
+     */
+    @Parcelize
+    @Serializable
+    data class InviteLinkActions(val inviteIdHex: String) :
+        ChatStep,
+        NavigationRetVal<InviteLinkAction>,
+        Sheet,
+        WrapContentSheet
+
+    /**
+     * Frame 2d: expiry and use-limit presets for a new invite link. Returns the chosen
+     * [NewInviteLinkChoice] and closes; Manage Invites, still beneath it, makes the link and shows
+     * the creating state. The result is presets only, never a key or link.
+     */
+    @Parcelize
+    @Serializable
+    data object NewInviteLink :
+        ChatStep,
+        NavigationRetVal<NewInviteLinkChoice>,
+        Sheet,
+        WrapContentSheet
+
+    /** Frame 2a: the invite links this host has made, Active then Inactive. Pushed, like [EditGroup]. */
+    @Parcelize
+    @Serializable
+    data object ManageInvites : ChatStep
 
     /**
      * Sharing one message into the viewer's other chats — [InviteToGroup]'s sheet with the
@@ -114,7 +193,7 @@ sealed interface ChatStep : FlowStep, Parcelable {
      * view model.
      *
      * Name, description, picture and cover each open their own editor and save on their own;
-     * the balance requirements are shown read-only, since nothing on `EditChatRequest` writes them.
+     * the Balance Requirements card's rows open [EditGroupBalanceRequirement].
      */
     @Parcelize
     @Serializable
@@ -128,6 +207,19 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data object JoinRequests : ChatStep
+
+    /**
+     * Android frame AC8a — the members a moderator has silenced, each with Unsilence. Host-only;
+     * carries nothing because the flow is open on the group.
+     */
+    @Parcelize
+    @Serializable
+    data object SilencedMembers : ChatStep
+
+    /** AC8b — the members a moderator has removed (banned), each with Unban. Host-only. */
+    @Parcelize
+    @Serializable
+    data object RemovedMembers : ChatStep
 
     /**
      * Node 11210:70 — every member of a private group, the creator pinned first with a Host tag.
@@ -158,6 +250,15 @@ sealed interface ChatStep : FlowStep, Parcelable {
     data object EditGroupDescription : ChatStep
 
     /**
+     * One of the group's minimum balances, on the shared amount keypad — pushed from a row of
+     * [EditGroup]'s Balance Requirements card. [role] picks the listener (Join) or speaker (Chat)
+     * rule.
+     */
+    @Parcelize
+    @Serializable
+    data class EditGroupBalanceRequirement(val role: GroupBalanceRole) : ChatStep
+
+    /**
      * The full emoji picker for a message's reaction, opened from the pill row's "+" or the
      * quick strip's "+". A plain [Sheet] rather than [WrapContentSheet]: the picker's catalog
      * needs the screen's height, unlike the short, fixed-content sheets above. [HalfSheet]
@@ -174,6 +275,28 @@ sealed interface ChatStep : FlowStep, Parcelable {
      * sheet (node 10330:18091), opened from the pill row's "$". The sheet picks which reaction from
      * the viewer's own. Short and fixed, so it wraps its content.
      */
+    /**
+     * Frames 03–06 — a private group's Request Money history, and the create flow behind its New
+     * Request button, on a back stack of its own. Presented as [ShareMessage] is, a full sheet
+     * with a close at its root; its steps are non-draggable, so the close is the only way out.
+     */
+    @Parcelize
+    @Serializable
+    data class RequestMoney(val chatId: ChatId) : ChatStep, Sheet, FullscreenSheet
+
+    /**
+     * Frames 09, 11, 24 and 35 — one payment request in [chatId]. [requestId] is the request's id
+     * in base58, so the step stays a plain parcelable. A full sheet like [RequestMoney], closed
+     * only from its app bar; `ChatFlowScreen` turns the drag-to-dismiss off. [pay] opens it
+     * straight into paying the viewer's share, as the deck's Pay button does.
+     */
+    @Parcelize
+    @Serializable
+    data class RequestDetails(val chatId: ChatId, val requestId: String) :
+        ChatStep,
+        Sheet,
+        FullscreenSheet
+
     @Parcelize
     @Serializable
     data class ReactionBoost(
@@ -193,6 +316,14 @@ sealed interface ChatStep : FlowStep, Parcelable {
     ) : ChatStep, Sheet, HalfSheet
 
     /**
+     * The currency picker behind the send sheet's token pill on the amount step. Opens over the
+     * send sheet, which stays up beneath it, and closes on a pick.
+     */
+    @Parcelize
+    @Serializable
+    data object SendCurrency : ChatStep, Sheet, HalfSheet
+
+    /**
      * The keypad behind [ReactionBoost]'s "…" chip, for an amount the presets don't cover. Returns
      * the amount in whole US cents. Opens over the Paid Reactions sheet, which stays up beneath it.
      */
@@ -209,6 +340,20 @@ sealed interface ChatStep : FlowStep, Parcelable {
      * sheet height rather than wrapping its content. [HalfSheet] matches iOS's
      * `ReactorsSheet.presentationDetents([.medium, .large])`.
      */
+    /**
+     * A group send's details (node 11293:6918, frame 10): the currency, who sent it and who it
+     * paid, by name and without amounts. Ids are hex, as the profile map keys them.
+     */
+    @Parcelize
+    @Serializable
+    data class GroupSendDetails(
+        val mint: Mint,
+        val tokenName: String,
+        val tokenImageUrl: String,
+        val senderIdHex: String?,
+        val recipientIdsHex: List<String>,
+    ) : ChatStep, Sheet, WrapContentSheet
+
     @Parcelize
     @Serializable
     data class Reactors(val chatId: ChatId, val messageId: Long) : ChatStep, Sheet, HalfSheet
@@ -246,7 +391,10 @@ enum class ProfileOrigin {
     UsernameLookup,
 
     /** A transaction's counterparty. Blocking pops back to the transaction. */
-    Transaction;
+    Transaction,
+
+    /** The Community Leader row on Currency Info. Blocking pops back to the currency, like [Link]. */
+    CommunityLeader;
 
     /** Whether blocking from here leaves the stack to the chat list rather than popping one entry. */
     val resetsToChatsAfterBlock: Boolean

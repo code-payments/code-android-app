@@ -21,7 +21,6 @@ import com.getcode.opencode.model.core.RandomId
 import com.getcode.utils.hexEncodedString
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -56,26 +55,6 @@ class ChatMessageDataSource @Inject constructor(
     fun setActiveChatId(chatId: ChatId) {
         activeChatId = chatId
     }
-
-    /**
-     * Reactive "has the user ever sent a tip" — an outgoing Cash message (self) with verb TIPPED.
-     *
-     * Both inputs are resolved reactively rather than read once at subscription time. The per-user
-     * DB is created at login and the account id is set during it, so a subscriber that starts before
-     * either is ready (the wallet tab composing while a soft login is still in flight) used to latch
-     * onto a constant `false` for the whole session — pinning the onboarding checklist to
-     * "incomplete" and leaving the new-user tutorial on screen for an established account.
-     */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun hasEverTipped(): Flow<Boolean> =
-        combine(
-            FlipcashDatabase.observeInstance(),
-            userManager.state.map { it.accountId }.distinctUntilChanged(),
-        ) { database, accountId -> database to accountId }
-            .flatMapLatest { (database, accountId) ->
-                val selfHex = accountId?.hexEncodedString() ?: return@flatMapLatest flowOf(false)
-                database?.chatMessageDao()?.hasEverTipped(selfHex) ?: flowOf(false)
-            }
 
     // region PagingDataSource
 
@@ -220,7 +199,7 @@ class ChatMessageDataSource @Inject constructor(
 
     /**
      * [countInboundAfter] as a stream, so arrivals and pointer moves both update it. Resolved through
-     * [FlipcashDatabase.observeInstance] like [hasEverTipped]: a subscriber that starts before the
+     * [FlipcashDatabase.observeInstance]: a subscriber that starts before the
      * per-user DB exists counts 0 until it does, rather than completing empty for good.
      */
     @OptIn(ExperimentalCoroutinesApi::class)

@@ -10,6 +10,7 @@ import androidx.paging.map
 import com.flipcash.app.core.feed.ActivityFeedMessage
 import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.core.feed.MessageMetadata
+import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.MessageDataSource
 import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.app.persistence.sources.mapper.notifications.MessageEntityToFeedMessageMapper
@@ -24,6 +25,8 @@ import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.transactionhistory.internal.TransactionDetailsMapper
+import com.flipcash.shared.transactionhistory.internal.boostedReactionOf
+import com.flipcash.shared.transactionhistory.internal.isSplitBoost
 import com.flipcash.shared.transactionhistory.internal.TransactionItemMapper
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
@@ -48,6 +51,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
@@ -83,6 +87,7 @@ class ActivityFeedCoordinator @Inject internal constructor(
     private val transactionDetailsMapper: TransactionDetailsMapper,
     private val userProfiles: UserProfileDataSource,
     private val profileController: ProfileController,
+    private val chats: ChatMetadataDataSource,
 ) {
     private val pagingConfig = PagingConfig(pageSize = 20)
 
@@ -193,8 +198,8 @@ class ActivityFeedCoordinator @Inject internal constructor(
     fun recentTransactions(): Flow<PagingData<TransactionListItem>> =
         messages
             .cachedIn(scope)
-            .combine(resolvers) { paging, (profiles, tokens) ->
-                paging.map { msg -> resolveRow(msg, profiles, tokens) }
+            .combine(resolvers) { paging, resolved ->
+                paging.map { msg -> resolveRow(msg, resolved) }
             }
 
     /**
@@ -207,9 +212,9 @@ class ActivityFeedCoordinator @Inject internal constructor(
      */
     private fun resolveRow(
         msg: ActivityFeedMessage,
-        profiles: Map<String, UserProfile>,
-        tokens: Map<Mint, Token>,
+        resolved: Resolvers,
     ): TransactionListItem {
+        val (profiles, tokens, chatNames) = resolved
         val counterparty = counterpartyOf(msg.metadata)
         counterparty
             ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
@@ -226,6 +231,7 @@ class ActivityFeedCoordinator @Inject internal constructor(
                 message = msg,
                 token = token,
                 toToken = destinationTokenOf(msg.metadata, tokens),
+                boostChatName = boostChatNameOf(msg.metadata, chatNames),
             ) to profiles
         )
     }
@@ -288,6 +294,13 @@ class ActivityFeedCoordinator @Inject internal constructor(
     private fun destinationTokenOf(meta: MessageMetadata?, tokens: Map<Mint, Token>): Token? =
         convertOf(meta)?.toMint?.let { tokens[Mint(it.bytes)] }
 
+    /** A split boost's chat name, read from the local chat store only — never fetched. */
+    private fun boostChatNameOf(meta: MessageMetadata?, chatNames: Map<String, String>): String? {
+        if (!isSplitBoost(meta)) return null
+        val chatId = boostedReactionOf(meta)?.chatId ?: return null
+        return chatNames[chats.chatIdHex(chatId)]
+    }
+
     private fun counterpartyOf(meta: NotificationMetadata?): ID? = when (meta) {
         is NotificationMetadata.DirectlySentCrypto -> meta.userId
         is NotificationMetadata.ReceivedCrypto -> meta.userId
@@ -302,8 +315,8 @@ class ActivityFeedCoordinator @Inject internal constructor(
      * and an uncached counterparty triggers a background fetch (see [ensureProfile]).
      */
     fun recentTransactions(limit: Int): Flow<List<TransactionListItem>> =
-        combine(dataSource.observeRecent(limit), resolvers) { messages, (profiles, tokens) ->
-            messages.map { msg -> resolveRow(msg, profiles, tokens) }
+        combine(dataSource.observeRecent(limit), resolvers) { messages, resolved ->
+            messages.map { msg -> resolveRow(msg, resolved) }
         }
 
     /**
@@ -313,8 +326,8 @@ class ActivityFeedCoordinator @Inject internal constructor(
      * token/profile resolution.
      */
     fun recentTransactions(mint: Mint, limit: Int): Flow<List<TransactionListItem>> =
-        combine(dataSource.observeRecent(mint, limit), resolvers) { messages, (profiles, tokens) ->
-            messages.map { msg -> resolveRow(msg, profiles, tokens) }
+        combine(dataSource.observeRecent(mint, limit), resolvers) { messages, resolved ->
+            messages.map { msg -> resolveRow(msg, resolved) }
         }
 
     /**
@@ -326,8 +339,8 @@ class ActivityFeedCoordinator @Inject internal constructor(
      * screen shows before the first read lands.
      */
     fun transactionDetails(id: ID): Flow<ResolvedTransaction?> =
-        combine(dataSource.observeById(id), resolvers) { message, (profiles, tokens) ->
-            message?.let { resolveDetails(it, profiles, tokens) }
+        combine(dataSource.observeById(id), resolvers) { message, resolved ->
+            message?.let { resolveDetails(it, resolved) }
         }
 
     /**
@@ -340,9 +353,9 @@ class ActivityFeedCoordinator @Inject internal constructor(
      */
     private fun resolveDetails(
         msg: ActivityFeedMessage,
-        profiles: Map<String, UserProfile>,
-        tokens: Map<Mint, Token>,
+        resolved: Resolvers,
     ): ResolvedTransaction {
+        val (profiles, tokens, chatNames) = resolved
         val counterparty = counterpartyOf(msg.metadata)
         counterparty
             ?.takeUnless { profiles.containsKey(it.hexEncodedString()) }
@@ -362,6 +375,10 @@ class ActivityFeedCoordinator @Inject internal constructor(
                     message = msg,
                     token = token,
                     toToken = destinationToken,
+                    // Any boost, not only a split one: the receipt's Chat row names the chat of a
+                    // DM boost too. Local store only, never fetched.
+                    boostChatName = boostedReactionOf(msg.metadata)?.chatId
+                        ?.let { chatNames[chats.chatIdHex(it)] },
                 ) to profiles
             ),
             message = msg,
@@ -371,6 +388,16 @@ class ActivityFeedCoordinator @Inject internal constructor(
     }
 
     /**
+     * Titles of the chats the viewer is still a member of, keyed by chat-id hex. Only a split boost
+     * reads it, to name the row after its chat. A chat the viewer has left, or one that hasn't
+     * synced, is simply absent, and the row falls back to the nameless title.
+     *
+     * Starts empty so rows render before the chat store answers.
+     */
+    private val chatNames: Flow<Map<String, String>> = chats.observeMemberTitles()
+        .onStart { emit(emptyMap()) }
+
+    /**
      * Observed profile + token caches, paired for a single [combine] against the cached pages. All
      * three are network-free reads that re-emit as they hydrate, so rows resolve reactively from
      * memory. Started eagerly-cold: it only collects while [recentTransactions] is subscribed.
@@ -378,20 +405,30 @@ class ActivityFeedCoordinator @Inject internal constructor(
      * Held-token metadata is laid over [badgeTokens] rather than under it: the held cache is
      * refreshed on every balance update, the badge memo is fetched once and never again.
      */
-    private val resolvers: Flow<Pair<Map<String, UserProfile>, Map<Mint, Token>>> =
+    private val resolvers: Flow<Resolvers> =
         combine(
             userProfiles.observeProfiles(),
             tokenProvider.observeTokenCache(),
             badgeTokens,
-        ) { profiles, tokens, badges ->
-            profiles to (badges + tokens)
+            chatNames,
+        ) { profiles, tokens, badges, chatNames ->
+            Resolvers(profiles, badges + tokens, chatNames)
         }
+
+    /** What a row resolves against, all read from memory; see [resolvers]. */
+    private data class Resolvers(
+        val profiles: Map<String, UserProfile>,
+        val tokens: Map<Mint, Token>,
+        val chatNames: Map<String, String>,
+    )
 
     /**
      * Reactive "has money ever come in" — any completed incoming entry in the feed: an on-ramp buy,
-     * a deposit, or a tip received.
+     * a deposit, or a tip received. `null` while the answer cannot be believed; see
+     * [resolveHasReceivedMoney].
      */
-    fun hasEverReceivedMoney(): Flow<Boolean> = dataSource.hasEverReceivedMoney()
+    fun hasEverReceivedMoney(): Flow<Boolean?> =
+        resolveHasReceivedMoney(syncState, dataSource::hasEverReceivedMoney)
 
     suspend fun checkPendingMessagesForUpdates(): Result<Int> {
         val pendingMessages = dataSource.query(whereClause = "state = '${NotificationState.PENDING.name}'")
@@ -446,3 +483,35 @@ class ActivityFeedCoordinator @Inject internal constructor(
             }
     }
 }
+
+/**
+ * Folds the feed's sync state into "has money ever come in".
+ *
+ * A cold cache reports every account as never having received money until its history has been
+ * fetched, so absence only counts once the feed has left [FeedSyncState.Unknown]. Until then the
+ * answer is `null`, which a caller can tell apart from `false`.
+ *
+ * [received] is re-subscribed on every sync-state change so the first value after a sync is a
+ * fresh read. `combine`-ing the two flows instead would race: the emission carrying `Synced` would
+ * carry the *pre-sync* answer, and the caller would act on `false` a beat before Room's
+ * invalidation published `true`.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+internal fun resolveHasReceivedMoney(
+    syncState: Flow<FeedSyncState>,
+    received: () -> Flow<Boolean>,
+): Flow<Boolean?> =
+    syncState
+        .distinctUntilChanged()
+        .flatMapLatest { state ->
+            received().map { hasReceived ->
+                when {
+                    // A cached incoming entry is proof regardless of sync state.
+                    hasReceived -> true
+                    state == FeedSyncState.Unknown -> null
+                    else -> false
+                }
+            }
+        }
+        // The re-subscribe repeats the current answer whenever sync state moves.
+        .distinctUntilChanged()

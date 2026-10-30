@@ -1,6 +1,5 @@
 package com.flipcash.app.balance.internal
 
-import com.flipcash.app.core.ui.onboarding.TutorialItem
 import com.flipcash.shared.transactionhistory.FeedSyncState
 import com.flipcash.shared.transactionhistory.TransactionAvatar
 import com.flipcash.shared.transactionhistory.TransactionListItem
@@ -11,15 +10,10 @@ import kotlin.time.Instant
 
 /**
  * The wallet tab must not mistake a cold local cache for an empty account: on a fresh login the
- * activity feed and the onboarding milestones both read empty until the first sync lands, and
- * rendering that verdict greets an established user with the new-user tutorial.
+ * activity feed and the added-money flag both read empty until the first sync lands, and
+ * rendering that verdict greets an established user with the Add Money row.
  */
 class WalletLoadingStateTest {
-
-    private fun milestones(addedMoney: Boolean, tipped: Boolean) = listOf(
-        TutorialItem.AddMoney(isCompleted = addedMoney),
-        TutorialItem.ScanTipCard(isCompleted = tipped),
-    )
 
     private val aTransaction = TransactionListItem(
         id = "1",
@@ -41,7 +35,7 @@ class WalletLoadingStateTest {
     @Test
     fun `still awaits activity when milestones report against an unsynced feed`() {
         val state = WalletViewModel.State(
-            onboardingItems = milestones(addedMoney = false, tipped = false),
+            receivedMoney = false,
             feedSyncState = FeedSyncState.Unknown,
         )
         assertTrue(state.isAwaitingActivity)
@@ -50,7 +44,7 @@ class WalletLoadingStateTest {
     @Test
     fun `stops awaiting once the feed has synced`() {
         val state = WalletViewModel.State(
-            onboardingItems = milestones(addedMoney = false, tipped = false),
+            receivedMoney = false,
             feedSyncState = FeedSyncState.Synced,
         )
         assertFalse(state.isAwaitingActivity)
@@ -59,7 +53,7 @@ class WalletLoadingStateTest {
     @Test
     fun `stops awaiting when the feed is unreachable rather than spinning forever`() {
         val state = WalletViewModel.State(
-            onboardingItems = milestones(addedMoney = false, tipped = false),
+            receivedMoney = false,
             feedSyncState = FeedSyncState.Unavailable,
         )
         assertFalse(state.isAwaitingActivity)
@@ -68,7 +62,7 @@ class WalletLoadingStateTest {
     @Test
     fun `cached rows short-circuit the wait — there is nothing to mistake for a new account`() {
         val state = WalletViewModel.State(
-            onboardingItems = milestones(addedMoney = true, tipped = false),
+            receivedMoney = true,
             transactions = listOf(aTransaction),
             feedSyncState = FeedSyncState.Unknown,
         )
@@ -78,7 +72,7 @@ class WalletLoadingStateTest {
     @Test
     fun `a held balance short-circuits the wait on an unsynced feed`() {
         val state = WalletViewModel.State(
-            onboardingItems = milestones(addedMoney = true, tipped = false),
+            receivedMoney = true,
             transactions = emptyList(),
             feedSyncState = FeedSyncState.Unknown,
             holdsBalance = true,
@@ -89,7 +83,7 @@ class WalletLoadingStateTest {
     @Test
     fun `a held balance does not pre-empt the milestones themselves`() {
         val state = WalletViewModel.State(
-            onboardingItems = null,
+            receivedMoney = null,
             feedSyncState = FeedSyncState.Synced,
             holdsBalance = true,
         )
@@ -97,51 +91,28 @@ class WalletLoadingStateTest {
     }
 
     @Test
-    fun `tutorial is withheld while the milestones are unknown`() {
-        assertTrue(WalletViewModel.State().isNewUserTutorialComplete)
+    fun `add money row is hidden while nothing is known`() {
+        assertFalse(WalletViewModel.State().showAddMoney)
     }
 
     @Test
-    fun `tutorial shows once a milestone is known to be outstanding`() {
-        val state = WalletViewModel.State(
-            onboardingItems = milestones(addedMoney = true, tipped = false),
-            isTipMilestoneResolved = true,
-            feedSyncState = FeedSyncState.Synced,
-        )
-        assertFalse(state.isNewUserTutorialComplete)
+    fun `add money row is hidden while history is unsynced with nothing stored`() {
+        val state = WalletViewModel.State(receivedMoney = false, feedSyncState = FeedSyncState.Unknown)
+        assertFalse(state.showAddMoney)
     }
 
     @Test
-    fun `tutorial is complete when every milestone is`() {
-        val state = WalletViewModel.State(
-            onboardingItems = milestones(addedMoney = true, tipped = true),
-            isTipMilestoneResolved = true,
-            feedSyncState = FeedSyncState.Synced,
-        )
-        assertTrue(state.isNewUserTutorialComplete)
+    fun `add money row shows once history synced and no money was added`() {
+        val state = WalletViewModel.State(receivedMoney = false, feedSyncState = FeedSyncState.Synced)
+        assertTrue(state.showAddMoney)
+        assertFalse(state.hasReceivedMoney)
     }
 
-    /**
-     * The chat cache reports every account as never having tipped until it has been reconciled,
-     * and reconciling it waits on a per-conversation backfill. The tutorial is the only thing that
-     * reads the answer, so it is the only thing that waits.
-     */
     @Test
-    fun `an unresolved tip milestone withholds the tutorial without holding the tab`() {
-        val state = WalletViewModel.State(
-            onboardingItems = milestones(addedMoney = true, tipped = false),
-            isTipMilestoneResolved = false,
-            feedSyncState = FeedSyncState.Synced,
-        )
-        assertTrue(
-            state.isNewUserTutorialComplete,
-            "an un-reconciled chat cache must not be drawn as an outstanding milestone",
-        )
-        assertFalse(
-            state.isAwaitingActivity,
-            "the balance and the card deck do not read the tip milestone and must not wait for it",
-        )
-        assertTrue(state.hasReceivedMoney, "the action tiles read local state and are answerable")
+    fun `add money row is hidden once money was added, and the tiles show`() {
+        val state = WalletViewModel.State(receivedMoney = true, feedSyncState = FeedSyncState.Synced)
+        assertFalse(state.showAddMoney)
+        assertTrue(state.hasReceivedMoney)
     }
 
     @Test
@@ -151,18 +122,17 @@ class WalletLoadingStateTest {
 
     /**
      * An account funded before this install has money but no local feed row to prove it. The
-     * milestone is fed `hasEverReceivedMoney || holdsBalance`, so the checklist — and the action
-     * tiles it gates — must read complete off the balance alone.
+     * flag is fed `hasEverReceivedMoney || holdsBalance`, so the row hides and the action tiles
+     * show off the balance alone.
      */
     @Test
-    fun `a held balance completes the add-money milestone without a feed row`() {
+    fun `a held balance counts as money added without a feed row`() {
         val state = WalletViewModel.State(
-            onboardingItems = milestones(addedMoney = true, tipped = true),
-            isTipMilestoneResolved = true,
+            receivedMoney = true,
             feedSyncState = FeedSyncState.Synced,
             holdsBalance = true,
         )
         assertTrue(state.hasReceivedMoney)
-        assertTrue(state.isNewUserTutorialComplete)
+        assertFalse(state.showAddMoney)
     }
 }

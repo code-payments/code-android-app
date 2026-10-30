@@ -30,6 +30,7 @@ kotlin {
                 // KeyPair is part of this module's API.
                 api(project(":libs:encryption:ed25519"))
                 implementation(project(":libs:encryption:hmac"))
+                implementation(project(":libs:encryption:sha256"))
                 implementation(libs.sodium.bindings.kmp)
             }
         }

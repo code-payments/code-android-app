@@ -1,5 +1,7 @@
 package com.flipcash.app.userprofile.internal.username
 
+import com.getcode.opencode.exchange.Exchange
+import com.flipcash.app.core.ui.forViewer
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.lifecycle.viewModelScope
@@ -7,7 +9,7 @@ import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.features.userprofile.R
 import com.flipcash.services.controllers.ProfileController
-import com.flipcash.services.models.MaxUsernameLength
+import com.flipcash.services.models.MaxClaimableUsernameLength
 import com.flipcash.services.models.MinUsernameLength
 import com.flipcash.services.models.ModerationResult
 import com.flipcash.services.models.SetUsernameError
@@ -15,7 +17,6 @@ import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.errors.ValidationException
-import com.getcode.opencode.model.financial.Fiat
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
@@ -50,6 +51,7 @@ class UsernameEntryViewModel @Inject constructor(
     private val profileController: ProfileController,
     private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
+    private val exchange: Exchange,
 ) : BaseViewModel<UsernameEntryViewModel.State, UsernameEntryViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -186,7 +188,7 @@ class UsernameEntryViewModel @Inject constructor(
                 title = resources.getString(R.string.error_title_usernameTooLong),
                 message = resources.getString(
                     R.string.error_description_usernameTooLong,
-                    MaxUsernameLength,
+                    MaxClaimableUsernameLength,
                 ),
             )
 
@@ -208,11 +210,10 @@ class UsernameEntryViewModel @Inject constructor(
             )
 
             is SetUsernameError.InsufficientBalance -> {
-                val minimum = userFlags.resolvedFlags.value.usernameMinBalance.effectiveValue
-                val formatted = minimum.formatted(
-                    rule = Fiat.FormattingRule.Truncated,
-                    suffix = minimum.currencyCode.name,
-                )
+                // Priced in USD, shown in the viewer's currency.
+                val formatted = userFlags.resolvedFlags.value.usernameMinBalance.effectiveValue
+                    .forViewer(exchange.preferredRate, exchange.rates())
+                    .formatted()
                 BottomBarManager.showInfo(
                     title = resources.getString(
                         R.string.error_title_usernameMinimumBalance,

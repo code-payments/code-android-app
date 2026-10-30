@@ -14,6 +14,7 @@ import com.flipcash.analytics.Button
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.AppRoute
+import com.getcode.opencode.internal.extensions.fractionDigits
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
@@ -22,6 +23,7 @@ import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.InlineCompletion
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.DeeplinkError
@@ -173,7 +175,6 @@ class SwapViewModel @Inject constructor(
                     AmountEntryLabel.Plain(resources.getString(R.string.action_next))
                 }
             },
-            canChangeCurrency = (vmState.purpose as? SwapPurpose.Buy)?.fundingSource != FundingSource.Phantom,
             // Convert's v2 header states the ceiling as a plain "$X available" line that simply
             // turns red once exceeded, rather than swapping in a separate over-limit sentence.
             infoHint = {
@@ -1705,10 +1706,16 @@ class SwapViewModel @Inject constructor(
                             return@onEach
                         }
 
-                        if (amount < minimumCoinbasePurchaseAmount) {
+                        // The $5 floor is Coinbase's, in dollars; the typed amount is in the
+                        // viewer's currency, so the floor is restated before the two are compared.
+                        // Rounded half-up to the cent, as on iOS.
+                        val minimum = minimumCoinbasePurchaseAmount.forViewer(exchange.preferredRate, exchange.rates())
+                            .let { it.rounded(it.currencyCode.fractionDigits) }
+                        if (amount.currencyCode == minimum.currencyCode && amount < minimum) {
+                            val minimumText = minimum.formatted()
                             BottomBarManager.showAlert(
-                                title = resources.getString(R.string.error_title_onrampAmountTooLow),
-                                message = resources.getString(R.string.error_description_onrampAmountTooLow),
+                                title = resources.getString(R.string.error_title_onrampAmountTooLow, minimumText),
+                                message = resources.getString(R.string.error_description_onrampAmountTooLow, minimumText),
                             )
                             return@onEach
                         }

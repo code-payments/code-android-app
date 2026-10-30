@@ -83,8 +83,80 @@ fun GroupInviteLinkCard(
     shape: CornerBasedShape = GroupInviteCardDefaults.SHAPE,
 ) {
     val state = card.state
+    GroupLinkCardBody(
+        loading = state is LinkCard.GroupInvite.State.Loading,
+        resolved = (state as? LinkCard.GroupInvite.State.Resolved)?.let { resolved ->
+            GroupCardFace(
+                chatId = card.chatId,
+                title = resolved.title,
+                picture = resolved.picture,
+                memberCount = resolved.memberCount,
+                details = { resolved.requirement?.let { RequirementLines(it) } },
+            )
+        },
+        minHeight = minHeight,
+        ctaLabel = ctaLabel,
+        onStart = onStart,
+        modifier = modifier,
+        shape = shape,
+    )
+}
 
-    if (state is LinkCard.GroupInvite.State.Loading) {
+/**
+ * A private group's invite link in a transcript (spec surface 6): the group card, drawn from what
+ * `GetInvite` says, with the link's status where a join link states its rules. "View" opens the
+ * invite landing, which decides between the preview, the dead-link and not-found screens, and the
+ * chat itself for a member.
+ */
+@Composable
+fun InviteLinkCard(
+    card: LinkCard.InviteLink,
+    minHeight: Dp,
+    ctaLabel: String?,
+    onStart: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    shape: CornerBasedShape = GroupInviteCardDefaults.SHAPE,
+) {
+    val state = card.state
+    GroupLinkCardBody(
+        loading = state is LinkCard.InviteLink.State.Loading,
+        resolved = (state as? LinkCard.InviteLink.State.Resolved)?.let { resolved ->
+            GroupCardFace(
+                chatId = resolved.chatId,
+                title = resolved.title,
+                picture = resolved.picture,
+                memberCount = resolved.memberCount,
+                details = { InviteStatusLine(resolved.status) },
+            )
+        },
+        minHeight = minHeight,
+        ctaLabel = ctaLabel,
+        onStart = onStart,
+        modifier = modifier,
+        shape = shape,
+    )
+}
+
+/** What a resolved group card shows; [details] is the line under the member count. */
+private class GroupCardFace(
+    val chatId: ChatId,
+    val title: String?,
+    val picture: MediaItem?,
+    val memberCount: Long,
+    val details: @Composable () -> Unit,
+)
+
+@Composable
+private fun GroupLinkCardBody(
+    loading: Boolean,
+    resolved: GroupCardFace?,
+    minHeight: Dp,
+    ctaLabel: String?,
+    onStart: (() -> Unit)?,
+    modifier: Modifier,
+    shape: CornerBasedShape,
+) {
+    if (loading) {
         // Nothing about a group is known before the lookup -- not even whether it is one -- so the
         // loading card is a plain shimmer. It is as tall as a resolved card with no requirement,
         // not the floor: the transcript is anchored at the bottom, so every dp the row grows when
@@ -127,7 +199,6 @@ fun GroupInviteLinkCard(
         return
     }
 
-    val resolved = state as? LinkCard.GroupInvite.State.Resolved
     val placeholderTop = CodeTheme.colors.contactAvatar.colors.first()
     val tint = remember(resolved?.picture, placeholderTop) {
         BlurHash.averageColor(resolved?.picture?.blurhash())
@@ -175,7 +246,7 @@ fun GroupInviteLinkCard(
                 ContactAvatar(
                     image = resolved.picture,
                     displayName = title,
-                    access = BlobAccessContext.ChatProfile(card.chatId),
+                    access = BlobAccessContext.ChatProfile(resolved.chatId),
                     // Size first: the card is measured intrinsically, and a fixed size answers that
                     // without asking the avatar's BoxWithConstraints, which would throw.
                     modifier = Modifier
@@ -203,7 +274,7 @@ fun GroupInviteLinkCard(
                     style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
                 )
-                resolved.requirement?.let { RequirementLines(it) }
+                resolved.details()
             }
             // Unavailable draws nothing between the band and the button: there is no group to name.
 
@@ -248,6 +319,25 @@ fun GroupInviteLinkCard(
  * The rule: the balance line, then the staff
  * line, each on its own line and centred, since both can be set on one chat.
  */
+/** The link's status, centred under the member count like a join link's rule. */
+@Composable
+private fun InviteStatusLine(status: LinkCard.InviteLink.Status) {
+    Text(
+        modifier = Modifier.padding(top = GroupInviteCardDefaults.REQUIREMENT_GAP),
+        text = stringResource(
+            when (status) {
+                LinkCard.InviteLink.Status.Active -> R.string.label_linkCard_privateGroupInvite
+                LinkCard.InviteLink.Status.Exhausted -> R.string.subtitle_inviteExhausted
+                LinkCard.InviteLink.Status.Expired -> R.string.subtitle_inviteExpired
+                LinkCard.InviteLink.Status.Revoked -> R.string.subtitle_inviteRevoked
+            }
+        ),
+        style = CodeTheme.typography.textSmall,
+        color = CodeTheme.colors.textSecondary,
+        textAlign = TextAlign.Center,
+    )
+}
+
 @Composable
 private fun RequirementLines(requirement: LinkCard.GroupInvite.Requirement) {
     requirement.amount?.let { amount ->
@@ -415,3 +505,42 @@ private fun Preview_GroupInvite_LargeFont() {
 }
 
 // endregion
+
+private fun previewInviteCard(status: LinkCard.InviteLink.Status) = LinkCard.InviteLink(
+    url = "https://app.flipcash.com/chat/invite#s=preview",
+    start = 0,
+    end = 0,
+    state = LinkCard.InviteLink.State.Resolved(
+        chatId = ChatId(ByteArray(16) { it.toByte() }),
+        title = PreviewGroupResolved.title,
+        picture = PreviewGroupResolved.picture,
+        memberCount = PreviewGroupResolved.memberCount,
+        status = status,
+    ),
+)
+
+@Composable
+private fun PreviewInviteCard(status: LinkCard.InviteLink.Status) {
+    Box(Modifier.width(280.dp).padding(8.dp)) {
+        InviteLinkCard(
+            card = previewInviteCard(status),
+            minHeight = 280.dp * 224f / 328f,
+            ctaLabel = "View",
+            onStart = {},
+        )
+    }
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_InviteLink_Active() {
+    PreviewInviteCard(LinkCard.InviteLink.Status.Active)
+}
+
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_InviteLink_Expired() {
+    PreviewInviteCard(LinkCard.InviteLink.Status.Expired)
+}

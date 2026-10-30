@@ -4,10 +4,10 @@ package com.flipcash.shared.chat
 
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.PagingData
-import com.flipcash.app.core.chat.TipHistorySource
 import com.flipcash.app.core.contacts.DeviceContact
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.InviteParameters
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
@@ -263,7 +263,7 @@ interface DmChatResolver {
  *
  * Implemented by [com.flipcash.shared.chat.internal.delegates.MessagingDelegate].
  */
-interface MessagingOperations : TipHistorySource {
+interface MessagingOperations {
     /**
      * Returns the other member of a DM (fetching from the server and persisting
      * if not cached locally), or `null` if it can't be resolved. Chat-type
@@ -299,20 +299,6 @@ interface MessagingOperations : TipHistorySource {
 
     /** Observes all messages in [chatId] as a flat list. */
     fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>>
-
-    /**
-     * Whether the user has ever sent a tip — a Cash message with verb TIPPED — or `null` while the
-     * answer is not yet trustworthy.
-     *
-     * The read is of a local cache, so an absent TIPPED message means "never tipped" only once that
-     * cache is known to be complete; before then it is indistinguishable from history that has not
-     * arrived. Onboarding is the caller, and it draws a tutorial off the answer, so it needs the
-     * third state rather than a `false` it has to guess about. Resolves to `true`/`false` once
-     * [ChatHydrationState] leaves [ChatHydrationState.Unknown] — including on
-     * [ChatHydrationState.Unavailable], so an unreachable server ends the wait instead of extending
-     * it forever.
-     */
-    override fun hasEverTipped(): Flow<Boolean?>
 
     /** Observes messages in [chatId] via Paging 3, with remote-mediated page loads. */
     fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>>
@@ -516,6 +502,14 @@ interface MessagingOperations : TipHistorySource {
         linkPreview: OutgoingLinkPreview? = null,
     ): Result<ChatMessage>
 
+    /**
+     * Posts the widget for payment request [requestId] to [chatId], once the request exists. A
+     * failed send is retried on the same pending row; after the last retry the failure is a
+     * [PaymentRequestNotSent] naming that row, so it can be retried again with [retryMessage].
+     * The request is never created twice for one post.
+     */
+    suspend fun sendPaymentRequest(chatId: ChatId, requestId: ID): Result<ChatMessage>
+
     /** Retries a failed pending message: resets to SENDING and re-sends to the server. */
     suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage>
 
@@ -623,6 +617,13 @@ interface GroupOperations {
     suspend fun join(chatId: ChatId): Result<Unit>
 
     /**
+     * Joins private group [chatId] with an invite link, caching the chat as [join] does. The
+     * failures are `JoinChatError`'s, including the three dead-invite ones; the caller decides
+     * what each looks like.
+     */
+    suspend fun joinWithInvite(chatId: ChatId, invite: InviteParameters): Result<Unit>
+
+    /**
      * Leaves [chatId]. The chat drops out of the list immediately and comes back if the call
      * fails.
      */
@@ -643,6 +644,16 @@ interface GroupOperations {
      * or cover-less answer leaves whatever is stored alone.
      */
     suspend fun refreshCover(chatId: ChatId)
+
+    /**
+     * Stores the rules `GetChat` holds for [chatId].
+     *
+     * A member follows rules changes through `RulesChanged`, but a viewer outside the group, as
+     * after a leave, receives no events for it, so the stored rules can be older than the ones a
+     * join is judged against. Writes only rules that came back, so a failed answer leaves the
+     * stored ones alone.
+     */
+    suspend fun refreshRules(chatId: ChatId)
 }
 
 interface ChatCoordinator :
@@ -681,3 +692,10 @@ interface ChatCoordinator :
 
 class NoDmChatInitializedException(e164: String) : Exception("No DM chat for $e164")
 class FailedToGenerateChatIdException(identifier: String?) : Exception("Failed to generate chat ID for $identifier")
+
+/**
+ * A payment request's widget message that still failed after its retries. The request itself
+ * exists; retry the pending row [pendingClientIdHex] with [ChatCoordinator.retryMessage].
+ */
+class PaymentRequestNotSent(val pendingClientIdHex: String, cause: Throwable) :
+    Exception("payment request message not sent", cause)

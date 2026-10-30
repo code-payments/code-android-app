@@ -85,9 +85,6 @@ sealed interface AppRoute : NavKey, Parcelable {
         val fromDeeplink: Boolean = false,
         val resumeAt: ResumePoint = ResumePoint.Login,
         val skipContacts: Boolean = true,
-        // Set when onboarding is creating the account rather than signing in to one; decides
-        // where the permissions phase releases to.
-        val newAccount: Boolean = false,
     ) : AppRoute, FlowRoute {
         enum class Phase { Account, Permissions }
         enum class ResumePoint { Login, AccessKey, AccessKeyThenPurchase, PostAccessKey }
@@ -199,7 +196,22 @@ sealed interface AppRoute : NavKey, Parcelable {
         @Serializable
         data class TokenSelection(val purpose: TokenPurpose) : Sheets
         @Serializable
-        data class Give(val mint: Mint? = null, val fromTokenInfo: Boolean = false) : Sheets
+        data class Give(
+            val mint: Mint? = null,
+            val fromTokenInfo: Boolean = false,
+            /**
+             * An amount in the viewer's preferred currency to give as-is. When set, the screen
+             * skips its own amount entry and goes straight to the bill.
+             */
+            val amount: Double? = null,
+        ) : Sheets
+
+        /**
+         * Send from Currency Info: an amount of [mint], then a recipient from the viewer's DMs.
+         * Dismisses back to Currency Info after the send.
+         */
+        @Serializable
+        data class CurrencySend(val mint: Mint) : Sheets
 
         /** Full unified paged activity history — the "dive in" from the wallet's recent-activity preview. */
         @Serializable
@@ -233,6 +245,9 @@ sealed interface AppRoute : NavKey, Parcelable {
         data class Transactions(val mint: Mint) : Token
         @Serializable
         data class MarketCapExplainer(val mint: Mint) : Token
+        /** "Top Community Chats": View All from Currency Info. */
+        @Serializable
+        data class CommunityChats(val mint: Mint) : Token
         @Serializable
         data class Swap(
             val purpose: SwapPurpose,
@@ -287,9 +302,14 @@ sealed interface AppRoute : NavKey, Parcelable {
     @Parcelize
     sealed interface Transfers : AppRoute {
         @Serializable
-        data class Deposit(val showOtherOptions: Boolean = true): Transfers, FlowRouteWithResult<DepositResult> {
+        data class Deposit(
+            val showOtherOptions: Boolean = true,
+            /** When set, opens straight on that currency's deposit address instead of the USDC intro. */
+            val mint: Mint? = null,
+        ): Transfers, FlowRouteWithResult<DepositResult> {
             override val initialStack: List<NavKey>
-                get() =  listOf(DepositStep.UsdcInformational(showOtherOptions))
+                get() = mint?.let { listOf(DepositStep.Destination(it)) }
+                    ?: listOf(DepositStep.UsdcInformational(showOtherOptions))
         }
 
         /**
@@ -333,6 +353,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         data object DeviceLogs : Menu
         @Serializable
         data object LinkDesktop : Menu
+        data object NotificationStatus : Menu
         @Serializable
         data object AccountSelection : Menu
         @Serializable
@@ -394,13 +415,33 @@ sealed interface AppRoute : NavKey, Parcelable {
             // inside the app. The conversation offers a chip back to it; a link from outside the
             // app has nowhere to go back to and sets none.
             val returnToTitle: String? = null,
+            // Open with this request's details (its id in base58) over the transcript: where a
+            // payment of a share leads back to its request. Needs a [ChatIdentifier.ByChatId], since
+            // the details are keyed by chat.
+            val openRequestId: String? = null,
         ) : Messaging, FlowRoute {
             override val initialStack: List<NavKey>
                 get() = when {
                     openOnJoinRequests -> listOf(ChatStep.JoinRequests)
                     openOnProfile -> listOf(ChatStep.GroupProfile)
+                    openRequestId != null && identifier is ChatIdentifier.ByChatId ->
+                        listOf(ChatStep.Conversation, ChatStep.RequestDetails(identifier.chatId, openRequestId))
                     else -> listOf(ChatStep.Conversation)
                 }
+        }
+
+        /**
+         * A group invite link opened by the joiner (nodes 12846:59 to 12846:259). [secret] is the
+         * link's key material, so it is redacted from [toString]; null is a link with no valid
+         * secret, which shows the broken-link state rather than a chat.
+         */
+        @Serializable
+        @Parcelize
+        class GroupInvite(val secret: ByteArray?) : Messaging {
+            override fun equals(other: Any?): Boolean =
+                other is GroupInvite && secret.contentEquals(other.secret)
+            override fun hashCode(): Int = secret.contentHashCode()
+            override fun toString(): String = "GroupInvite(redacted)"
         }
 
         /**
@@ -525,6 +566,22 @@ sealed interface AppRoute : NavKey, Parcelable {
             com.getcode.navigation.WrapContentSheet
 
         /**
+         * How long to silence [userId] in the group [chatId]. Carries the words the sheet shows
+         * ([firstName], [groupTitle]) so it needs no lookup before it can draw. Presented like
+         * [MuteChat], for the same reason.
+         */
+        @Serializable
+        @Parcelize
+        data class SilenceUser(
+            val chatId: ChatId,
+            val userId: ID,
+            val firstName: String,
+            val groupTitle: String,
+        ) : Messaging,
+            com.getcode.navigation.Sheet,
+            com.getcode.navigation.WrapContentSheet
+
+        /**
          * Where a share from another app picks the conversation it goes to. Opened by the app
          * itself when a share is waiting in `PendingChatShares`, and sends the share from there
          * to the chats picked. Carries nothing: what was shared is held there, not on a route a back stack
@@ -554,6 +611,14 @@ sealed interface AppRoute : NavKey, Parcelable {
             val directChatId: ChatId?,
         ) : Messaging, com.getcode.navigation.Sheet, com.getcode.navigation.FullscreenSheet
 
+        /** "Share <name>" from Currency Info: the page link shared, copied, or sent into recent chats. */
+        @Serializable
+        @Parcelize
+        data class ShareCurrencyToChats(
+            val mint: Mint,
+            val name: String,
+        ) : Messaging, com.getcode.navigation.Sheet, com.getcode.navigation.FullscreenSheet
+
         /**
          * What end-to-end encryption covers in a DM, opened from the DM profile's footer. A
          * [com.getcode.navigation.WrapContentSheet], for the reason [MuteChat] is one.
@@ -564,15 +629,6 @@ sealed interface AppRoute : NavKey, Parcelable {
             Messaging,
             com.getcode.navigation.Sheet,
             com.getcode.navigation.WrapContentSheet
-
-        /**
-         * The full-screen viewer for the photo in message [messageId] of [chatId]. Carries the
-         * message's address rather than the photo, which is not something a back stack can hold; the
-         * viewer reads the message back to learn how to fetch and open it.
-         */
-        @Serializable
-        @Parcelize
-        data class PhotoViewer(val chatId: ChatId, val messageId: Long) : Messaging
 
         /** The group counterpart of [E2eeDmInfo], opened from Group Info's footer. */
         @Serializable

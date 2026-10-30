@@ -26,8 +26,11 @@ import com.flipcash.services.internal.network.services.ChatMessagingService
 import com.flipcash.services.internal.network.services.EmailVerificationService
 import com.flipcash.services.internal.network.services.ContactListService
 import com.flipcash.services.internal.network.services.ModerationService
+import com.flipcash.services.internal.network.services.PaymentRequestService
 import com.flipcash.services.internal.network.services.PollService
+import com.flipcash.services.internal.repositories.InternalPaymentRequestRepository
 import com.flipcash.services.internal.repositories.InternalPollRepository
+import com.flipcash.services.repository.PaymentRequestRepository
 import com.flipcash.services.repository.PollRepository
 import com.flipcash.services.internal.network.services.PhoneVerificationService
 import com.flipcash.services.internal.network.services.ProfileService
@@ -208,6 +211,12 @@ object FlipcashModule {
     internal fun providesPollRepository(
         service: PollService,
     ): PollRepository = InternalPollRepository(service)
+
+    @Provides
+    @JvmName("providesPaymentRequestRepository")
+    internal fun providesPaymentRequestRepository(
+        service: PaymentRequestService,
+    ): PaymentRequestRepository = InternalPaymentRequestRepository(service)
 
     @Provides
     @JvmName("providesModerationRepository")

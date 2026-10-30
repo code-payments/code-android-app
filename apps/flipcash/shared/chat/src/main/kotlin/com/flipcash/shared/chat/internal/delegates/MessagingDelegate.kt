@@ -2,6 +2,7 @@
 
 package com.flipcash.shared.chat.internal.delegates
 
+import com.flipcash.shared.chat.PaymentRequestNotSent
 import com.flipcash.shared.chat.link.OutgoingLinkPreview
 import com.flipcash.shared.chat.link.LinkPreviewImages
 import com.flipcash.shared.chat.link.LinkPreviewChecks
@@ -37,13 +38,13 @@ import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewerState
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.DeleteMessageError
 import com.flipcash.services.models.EditMessageError
 import com.flipcash.services.models.GetChatError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.chat.ChatHydration
-import com.flipcash.shared.chat.ChatHydrationState
 import com.flipcash.shared.chat.internal.SenderResolver
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.MessagingOperations
@@ -58,7 +59,9 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.utils.TraceType
 import java.nio.ByteBuffer
 import com.getcode.utils.trace
+import com.getcode.utils.hexEncodedString
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,6 +76,7 @@ import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Handles all per-chat messaging operations: sending and receiving messages,
@@ -153,7 +157,10 @@ class MessagingDelegate @Inject constructor(
     }
 
     override suspend fun hydrateChat(chatId: ChatId): ChatHydration {
-        if (metadataDataSource.exists(chatId)) return ChatHydration.Stored
+        if (metadataDataSource.exists(chatId)) {
+            refreshGroupViewerState(chatId)
+            return ChatHydration.Stored
+        }
         val metadata = chatController.getChat(chatId).getOrElse { cause ->
             if (cause is GetChatError.NotFound) return ChatHydration.Absent
             trace(tag = TAG, message = "Hydrate failed for $chatId", type = TraceType.Error)
@@ -162,36 +169,22 @@ class MessagingDelegate @Inject constructor(
         return ChatHydration.Fetched(ChatMembership(metadata = metadata, isMember = null))
     }
 
+    /**
+     * A stored group's grants are only ever written by a fetch or a viewer-state event, and the
+     * server sends the latter when the state changes. A chat stored before the moderation columns
+     * existed would therefore keep no grant until something unrelated moved, hiding the host's
+     * Silence and Remove. Reading the chat again on open fills them. They are written outside the
+     * version gate, which would drop a read whose version the row already holds.
+     */
+    private suspend fun refreshGroupViewerState(chatId: ChatId) {
+        if (metadataDataSource.getChatType(chatId) != ChatType.GROUP) return
+        val moderation = chatController.getChat(chatId).getOrNull()?.viewerState?.permissions?.moderation ?: return
+        metadataDataSource.updateModerationGrants(chatId, moderation.canSilence, moderation.canBan)
+    }
+
     override fun observeMessages(chatId: ChatId): Flow<List<ChatMessage>> {
         return messageDataSource.observeMessages(chatId)
     }
-
-    override fun hasEverTipped(): Flow<Boolean?> =
-        stateHolder.state
-            .map { it.historyHydration }
-            .distinctUntilChanged()
-            .flatMapLatest { hydration ->
-                // Re-subscribing on the hydration change re-runs the query, so the first value a
-                // caller sees after a backfill is a fresh read. `combine`-ing the two flows instead
-                // would race: the emission carrying "hydrated" would carry the *pre*-backfill answer
-                // with it, and the caller would act on `false` a beat before Room's invalidation
-                // published `true` — the same flash of wrong state, just narrower.
-                messageDataSource.hasEverTipped().map { tipped ->
-                    when {
-                        // A TIPPED message in the cache is proof regardless of hydration, and
-                        // answering straight away is what keeps a warm cache — the normal case now
-                        // that logout no longer wipes it — from waiting on a round-trip.
-                        tipped -> true
-                        // Absence proves nothing yet. Null rather than false: the caller has to be
-                        // able to tell "has not tipped" from "we have not looked".
-                        hydration == ChatHydrationState.Unknown -> null
-                        else -> false
-                    }
-                }
-            }
-            // The re-subscribe repeats the current answer whenever hydration moves, which for a
-            // cache that already held the tip is the same `true` twice over.
-            .distinctUntilChanged()
 
     override fun observeMessagesPaged(chatId: ChatId): Flow<PagingData<ChatMessage>> {
         return Pager(
@@ -476,6 +469,24 @@ class MessagingDelegate @Inject constructor(
         val withImage = payload(image.item)
         messageDataSource.insertPending(chatId, withImage, senderId, clientMessageId, ordinal = 0)
         return send(chatId, withImage, clientMessageId)
+    }
+
+    override suspend fun sendPaymentRequest(chatId: ChatId, requestId: ID): Result<ChatMessage> {
+        val senderId = userManager.accountId
+            ?: return Result.failure(IllegalStateException("Cannot send message without an account"))
+        val payload = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
+        val (_, clientMessageId) = messageDataSource.insertPending(chatId = chatId, content = payload, senderId = senderId)
+        val pendingClientIdHex = clientMessageId.bytes.toList().hexEncodedString()
+        // The request already exists, so only the message is retried, on the same pending row.
+        var result = send(chatId, payload, clientMessageId)
+        for (attempt in 1..PAYMENT_REQUEST_SEND_RETRIES) {
+            val cause = result.exceptionOrNull() ?: break
+            if (cause is SendMessageError.Denied) break
+            delay(PAYMENT_REQUEST_RETRY_BACKOFF * attempt)
+            messageDataSource.retryPending(chatId, pendingClientIdHex)
+            result = send(chatId, payload, clientMessageId)
+        }
+        return result.recoverCatching { cause -> throw PaymentRequestNotSent(pendingClientIdHex, cause) }
     }
 
     override suspend fun retryMessage(chatId: ChatId, pendingClientIdHex: String, content: List<MessageContent>): Result<ChatMessage> {
@@ -802,6 +813,9 @@ class MessagingDelegate @Inject constructor(
 
     private companion object {
         const val TAG = "MessagingDelegate"
+        /** Retries after the first failed send of a payment request's widget. */
+        const val PAYMENT_REQUEST_SEND_RETRIES = 2
+        val PAYMENT_REQUEST_RETRY_BACKOFF = 1.seconds
 
         /** The transcript's page size. */
         const val HISTORY_PAGE_SIZE = 50

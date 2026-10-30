@@ -25,10 +25,6 @@ dependencies {
     implementation(project(":apps:flipcash:shared:payments"))
     implementation(project(":apps:flipcash:shared:shareable"))
     implementation(project(":apps:flipcash:shared:tipping"))
-    // Balance for the username gate only — :shared:tokens:core is the narrow half, so the
-    // whole token stack does not come with it.
-    implementation(project(":apps:flipcash:shared:tokens:core"))
-    implementation(project(":apps:flipcash:shared:userflags"))
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:messaging"))

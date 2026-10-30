@@ -39,6 +39,7 @@ fun CircularIconButton(
     imageSize: Dp = IconSize,
     buttonSize: Dp = ButtonSize,
     hazeState: HazeState? = null,
+    enabled: Boolean = true,
     onClick: () -> Unit,
     testTag: String? = null,
     content: @Composable (Dp) -> Unit,
@@ -70,7 +71,7 @@ fun CircularIconButton(
         modifier = modifier
             .size(buttonSize)
             .then(fill)
-            .clickable { onClick() }
+            .clickable(enabled = enabled) { onClick() }
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
         contentAlignment = Alignment.Center,
     ) {

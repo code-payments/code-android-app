@@ -9,6 +9,9 @@ interface PushRepository {
         installationId: String?
     ): Result<Unit>
 
+    /** Sends a fixed test notification to every device the caller has registered. */
+    suspend fun sendTestPush(owner: KeyPair): Result<Unit>
+
     suspend fun deleteTokens(
         owner: KeyPair,
         installationId: String?,

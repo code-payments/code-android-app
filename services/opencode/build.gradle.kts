@@ -47,6 +47,7 @@ kotlin {
             implementation(libs.grpc.okhttp)
             implementation(libs.grpc.kotlin)
             implementation(libs.grpc.protobuf.lite)
+            implementation(libs.grpc.stub)
             implementation(libs.event.bus)
         }
         androidMain.dependencies {
@@ -80,6 +81,8 @@ kotlin {
             implementation(libs.bundles.unit.testing)
             implementation(project(":libs:currency-math:test-fixtures"))
             implementation(project(":libs:test-utils"))
+            // formatProto tests render a flipcash2 response that carries a payment_intent_id.
+            implementation(libs.flipcash2.client.protocol)
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))

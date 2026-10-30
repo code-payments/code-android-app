@@ -178,10 +178,13 @@ internal class ReactionBoostViewModel @Inject constructor(
     private fun boost() {
         val state = stateFlow.value
         val chatId = state.chatId ?: return
-        val messageId = state.messageId ?: return
-        val emoji = state.emoji?.takeIf { it in state.ownReactions } ?: return
         val cents = state.selectedCents ?: return
         if (!state.sendProgress.isIdle) return
+        // The slider only enables with a chat, an amount and an emoji, so these two pass it and
+        // then fail here; say so rather than letting it spring back.
+        val messageId = state.messageId ?: return notSent("no message id")
+        val emoji = state.emoji?.takeIf { it in state.ownReactions }
+            ?: return notSent("${state.emoji} is no longer the viewer's reaction on $messageId")
 
         viewModelScope.launch {
             dispatchEvent(Event.SendProgressChanged(LoadingSuccessState(loading = true)))
@@ -190,10 +193,12 @@ internal class ReactionBoostViewModel @Inject constructor(
             val metadata = chatCoordinator.observeMetadata(chatId).first()?.metadata
             val chat = boostChatOf(metadata?.type, metadata?.creator)
             if (author == null || chat == null) {
-                trace(
-                    tag = TAG,
-                    message = "No author or chat kind for message $messageId; boost not sent",
-                    type = TraceType.Error,
+                notSent(
+                    unresolvedReason(
+                        hasAuthor = author != null,
+                        type = metadata?.type,
+                        hasCreator = metadata?.creator != null,
+                    ) + " for message $messageId",
                 )
                 dispatchEvent(Event.SendProgressChanged(LoadingSuccessState()))
                 return@launch
@@ -217,6 +222,11 @@ internal class ReactionBoostViewModel @Inject constructor(
         }
     }
 
+    private fun notSent(reason: String) {
+        trace(tag = TAG, message = "Boost not sent: $reason", type = TraceType.Error)
+        payer.alertPaymentFailed()
+    }
+
     internal companion object {
         private const val TAG = "ReactionBoost"
 
@@ -232,6 +242,18 @@ internal class ReactionBoostViewModel @Inject constructor(
             ChatType.GROUP -> creator?.let { BoostChat.Group(it) }
             ChatType.UNKNOWN, null -> null
         }
+
+        /** Which of the author and the chat kind [boostChatOf] needs is missing, for the trace. */
+        fun unresolvedReason(hasAuthor: Boolean, type: ChatType?, hasCreator: Boolean): String =
+            listOfNotNull(
+                "no author".takeUnless { hasAuthor },
+                when {
+                    type == null -> "no chat metadata"
+                    type == ChatType.UNKNOWN -> "unknown chat type"
+                    type == ChatType.GROUP && !hasCreator -> "group has no creator"
+                    else -> null
+                },
+            ).joinToString().ifEmpty { "unresolved" }
 
         /** The subtitle's [SplitCopy] for [plan] in [chat]; null when either is unknown. */
         fun splitCopyOf(chat: BoostChat?, plan: ReactionBoostPlan?): SplitCopy? = when {

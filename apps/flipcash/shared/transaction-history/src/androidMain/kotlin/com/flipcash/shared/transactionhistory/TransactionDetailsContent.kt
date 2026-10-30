@@ -23,7 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import com.flipcash.app.core.ui.FlagWithFiat
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.app.core.ui.ReceiptLineItem
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.getcode.theme.CodeTheme
@@ -63,6 +63,10 @@ fun TransactionDetailsContent(
     onBack: () -> Unit = { },
     onCopyId: () -> Unit = { },
     onViewInChat: () -> Unit = { },
+    /** Opens the boosted message in its chat; the button shows whenever the entry boosted one. */
+    onViewMessage: () -> Unit = { },
+    /** Opens the request this payment paid a share of; shown when there is no boost. */
+    onViewRequest: () -> Unit = { },
     /** The button opens the counterparty's profile rather than a chat, because no DM exists yet. */
     viewsProfile: Boolean = false,
     onCancel: () -> Unit = { },
@@ -105,7 +109,23 @@ fun TransactionDetailsContent(
 
             IdCard(id = details.id, onCopyId = onCopyId)
 
-            if (details.canViewInChat) {
+            if (details.boostedReaction != null) {
+                CodeButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.action_txnDetails_viewMessage),
+                    buttonState = ButtonState.Filled05,
+                    shape = CodeTheme.shapes.extraSmall,
+                    onClick = onViewMessage,
+                )
+            } else if (details.requestedPayment != null) {
+                CodeButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(R.string.action_txnDetails_viewRequest),
+                    buttonState = ButtonState.Filled05,
+                    shape = CodeTheme.shapes.extraSmall,
+                    onClick = onViewRequest,
+                )
+            } else if (details.canViewInChat) {
                 CodeButton(
                     modifier = Modifier.fillMaxWidth(),
                     text = stringResource(
@@ -174,6 +194,9 @@ private fun Header(
                     style = CodeTheme.typography.textSmall,
                     color = CodeTheme.colors.textSecondary,
                     textAlign = TextAlign.Center,
+                    // A boost's sentence can carry a long group name; two lines, then the tail goes.
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -183,12 +206,11 @@ private fun Header(
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             details.amount?.let { amount ->
-                FlagWithFiat(
-                    fiat = amount,
-                    extraPrefix = details.signedAmountPrefix?.ifBlank { null },
-                    iconSize = CodeTheme.dimens.staticGrid.x5,
-                    spacing = CodeTheme.dimens.grid.x1,
-                    textStyle = CodeTheme.typography.displaySmall,
+                Text(
+                    text = amount.inDisplayCurrency()
+                        .formatted(extraPrefix = details.signedAmountPrefix?.ifBlank { null }),
+                    style = CodeTheme.typography.displaySmall,
+                    color = CodeTheme.colors.textMain,
                 )
             }
 
@@ -233,13 +255,6 @@ private fun Header(
 @Composable
 private fun DetailCard(details: TransactionDetails, modifier: Modifier = Modifier) {
     DetailsCard(modifier = modifier) {
-        details.currencyCode?.let {
-            ReceiptLineItem(
-                modifier = Modifier.fillMaxWidth(),
-                label = stringResource(R.string.label_txnDetails_currency),
-                amount = it,
-            )
-        }
         details.exchangeRate?.let {
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
@@ -271,14 +286,14 @@ private fun DetailCard(details: TransactionDetails, modifier: Modifier = Modifie
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
                 label = stringResource(R.string.label_txnDetails_fee),
-                amount = it.formatted(),
+                amount = it.inDisplayCurrency().formatted(),
             )
         }
         details.received?.let {
             ReceiptLineItem(
                 modifier = Modifier.fillMaxWidth(),
                 label = stringResource(R.string.label_txnDetails_received),
-                amount = it.formatted(),
+                amount = it.inDisplayCurrency().formatted(),
             )
         }
         ReceiptLineItem(

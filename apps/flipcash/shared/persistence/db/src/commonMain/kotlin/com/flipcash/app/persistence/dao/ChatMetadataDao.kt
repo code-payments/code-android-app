@@ -92,6 +92,9 @@ interface ChatMetadataDao {
             "description = :description, " +
             "picture_json = :pictureJson, " +
             "cover_picture_json = COALESCE(:coverPictureJson, cover_picture_json), " +
+            // Never cleared: the creator is fixed at creation. Refreshed rather than insert-only so
+            // a row stored before the column existed (DB v38) picks it up on the next sync.
+            "creator_hex = COALESCE(:creatorHex, creator_hex), " +
             "rules_json = :rulesJson, " +
             "is_member = :isMember, " +
             "use_e2ee = :useE2ee, " +
@@ -109,6 +112,7 @@ interface ChatMetadataDao {
         description: String?,
         pictureJson: MediaItem?,
         coverPictureJson: MediaItem?,
+        creatorHex: String?,
         rulesJson: ChatRulesSerialized?,
         isMember: Boolean,
         useE2ee: Boolean,
@@ -161,7 +165,8 @@ interface ChatMetadataDao {
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = :muteUntilEpochMs, " +
             "mute_forever = :muteForever, viewer_state_version = :version, " +
-            "can_edit = :canEdit " +
+            "can_edit = :canEdit, can_invite = :canInvite, can_silence = :canSilence, can_ban = :canBan, " +
+            "silence_until_epoch_ms = :silenceUntilEpochMs, silence_forever = :silenceForever " +
             "WHERE chat_id_hex = :chatIdHex AND (:version > viewer_state_version OR viewer_state_version = 0)"
     )
     suspend fun updateViewerStateIfNewer(
@@ -169,8 +174,24 @@ interface ChatMetadataDao {
         muteUntilEpochMs: Long?,
         muteForever: Boolean,
         canEdit: Boolean,
+        canInvite: Boolean,
         version: Long,
+        canSilence: Boolean = false,
+        canBan: Boolean = false,
+        silenceUntilEpochMs: Long? = null,
+        silenceForever: Boolean = false,
     )
+
+    /**
+     * Writes the moderation grants alone, whatever version the row holds.
+     *
+     * The grants are the server's answer to who the viewer is in this chat, not an event with an
+     * order to protect, and the columns arrive as 0 on a chat stored before they existed. Going
+     * through [updateViewerStateIfNewer] would drop a fresh read whose version the row already holds,
+     * which is every upgraded chat whose viewer state has not moved since.
+     */
+    @Query("UPDATE chat_metadata SET can_silence = :canSilence, can_ban = :canBan WHERE chat_id_hex = :chatIdHex")
+    suspend fun updateModerationGrants(chatIdHex: String, canSilence: Boolean, canBan: Boolean)
 
     /**
      * Drops the viewer state, version and all.
@@ -185,7 +206,8 @@ interface ChatMetadataDao {
      */
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = NULL, mute_forever = 0, " +
-            "viewer_state_version = 0, can_edit = 0 WHERE chat_id_hex = :chatIdHex"
+            "viewer_state_version = 0, can_edit = 0, can_invite = 0, can_silence = 0, can_ban = 0, " +
+            "silence_until_epoch_ms = NULL, silence_forever = 0 WHERE chat_id_hex = :chatIdHex"
     )
     suspend fun clearViewerState(chatIdHex: String)
 
@@ -212,6 +234,7 @@ interface ChatMetadataDao {
             description = entity.description,
             pictureJson = entity.pictureJson,
             coverPictureJson = entity.coverPictureJson,
+            creatorHex = entity.creatorHex,
             rulesJson = entity.rulesJson,
             isMember = entity.isMember,
             useE2ee = entity.useE2ee,
@@ -227,7 +250,12 @@ interface ChatMetadataDao {
             muteUntilEpochMs = entity.muteUntilEpochMs,
             muteForever = entity.muteForever,
             canEdit = entity.canEdit,
+            canInvite = entity.canInvite,
             version = entity.viewerStateVersion,
+            canSilence = entity.canSilence,
+            canBan = entity.canBan,
+            silenceUntilEpochMs = entity.silenceUntilEpochMs,
+            silenceForever = entity.silenceForever,
         )
     }
 
@@ -335,6 +363,13 @@ interface ChatMetadataDao {
     /** Unconditional, like [updatePicture]: `MetadataUpdate.CoverPictureChanged` carries no version. */
     @Query("UPDATE chat_metadata SET cover_picture_json = :coverPictureJson WHERE chat_id_hex = :chatIdHex")
     suspend fun updateCoverPicture(chatIdHex: String, coverPictureJson: MediaItem)
+
+    /**
+     * Unconditional, for the same reason as [updateTitle]: `MetadataUpdate.RulesChanged` carries no
+     * version. The wire carries the full replacement rules, so this overwrites the column.
+     */
+    @Query("UPDATE chat_metadata SET rules_json = :rulesJson WHERE chat_id_hex = :chatIdHex")
+    suspend fun updateRules(chatIdHex: String, rulesJson: ChatRulesSerialized?)
 
     @Query("DELETE FROM chat_metadata")
     suspend fun deleteAll()

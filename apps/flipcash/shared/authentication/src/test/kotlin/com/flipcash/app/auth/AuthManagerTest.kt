@@ -10,11 +10,13 @@ import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.links.TrustedWebsites
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
+import com.flipcash.app.auth.push.PushRegistrar
 import com.flipcash.app.push.PushTokenProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.profile.ProfileCoordinator
+import com.flipcash.services.chat.WrongKeyChats
 import com.flipcash.services.controllers.AccountController
 import com.flipcash.services.controllers.ProfileController
 import com.flipcash.services.controllers.PushController
@@ -64,6 +66,7 @@ class AuthManagerTest {
     private val profileController: ProfileController = mockk(relaxed = true)
     private val pushController: PushController = mockk(relaxed = true)
     private val pushTokenProvider: PushTokenProvider = mockk(relaxed = true)
+    private val pushRegistrar: PushRegistrar = mockk(relaxed = true)
     private val tokenCoordinator: TokenCoordinator = mockk(relaxed = true)
     private val persistence: PersistenceProvider = mockk(relaxed = true)
     private val featureFlagController: FeatureFlagController = mockk(relaxed = true)
@@ -72,6 +75,7 @@ class AuthManagerTest {
     private val profileCoordinator: ProfileCoordinator = mockk(relaxed = true)
     private val contactCoordinator: ContactCoordinator = mockk(relaxed = true)
     private val chatCoordinator: ChatCoordinator = mockk(relaxed = true)
+    private val wrongKeyChats: WrongKeyChats = mockk(relaxed = true)
     private val userManagerState = MutableStateFlow(UserManager.State())
 
     private val networkConnectivityListener = mockk<NetworkConnectivityListener>(relaxed = true)
@@ -114,6 +118,7 @@ class AuthManagerTest {
             profileController = profileController,
             pushController = pushController,
             pushTokenProvider = pushTokenProvider,
+            pushRegistrar = pushRegistrar,
             tokenCoordinator = tokenCoordinator,
             persistence = persistence,
             featureFlags = featureFlagController,
@@ -122,6 +127,7 @@ class AuthManagerTest {
             profileCoordinator = profileCoordinator,
             contactCoordinator = contactCoordinator,
             chatCoordinator = chatCoordinator,
+            wrongKeyChats = wrongKeyChats,
             dispatchers = dispatchers,
             networkObserver = networkConnectivityListener,
         )
@@ -258,6 +264,8 @@ class AuthManagerTest {
         verify { featureFlagController.reset() }
         verify { appSettings.reset() }
         verify { userFlags.clearAll() }
+        // A wrong-key mark is keyed by chat id alone, so the next account must not inherit it.
+        verify { wrongKeyChats.reset() }
     }
 
     @Test

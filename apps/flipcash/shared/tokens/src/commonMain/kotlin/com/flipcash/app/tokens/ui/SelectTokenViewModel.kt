@@ -3,6 +3,7 @@ package com.flipcash.app.tokens.ui
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.TokenPurpose
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.TokenSyncState
 import com.getcode.opencode.exchange.Exchange
@@ -125,7 +126,7 @@ open class SelectTokenViewModel @Inject constructor(
                         .map {
                             val balance = LocalFiat(
                                 usdf = it.balance,
-                                nativeAmount = it.balance.convertingTo(rateForPurpose),
+                                nativeAmount = it.balance.forViewer(rateForPurpose, exchange.rates()),
                             )
 
                             // USD reserves don't appreciate so we track that as MIN_VALUE internally to avoid confusion
@@ -138,7 +139,7 @@ open class SelectTokenViewModel @Inject constructor(
                             } else {
                                 LocalFiat(
                                     usdf = it.appreciation,
-                                    nativeAmount = it.appreciation.convertingTo(rateForPurpose),
+                                    nativeAmount = it.appreciation.forViewer(rateForPurpose, exchange.rates()),
                                 )
                             }
 

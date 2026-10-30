@@ -65,6 +65,22 @@ data class ChatMetadataEntity(
     // ViewerState.Permissions — a column no write has reached yet denies rather than grants.
     @ColumnInfo(name = "can_edit", defaultValue = "0")
     val canEdit: Boolean = false,
+    // Private group creator only. Same storage rules as can_edit.
+    @ColumnInfo(name = "can_invite", defaultValue = "0")
+    val canInvite: Boolean = false,
+    // The viewer's moderation grants: whether they may silence, and whether they may ban. Same
+    // reasoning as can_edit, and the same default.
+    @ColumnInfo(name = "can_silence", defaultValue = "0")
+    val canSilence: Boolean = false,
+    @ColumnInfo(name = "can_ban", defaultValue = "0")
+    val canBan: Boolean = false,
+    // A moderator's silence on the viewer. Stored the way a mute is, as a deadline or a forever
+    // flag and never both, because a timed silence lapses with no server signal and only the
+    // deadline compared against the clock on read stays correct.
+    @ColumnInfo(name = "silence_until_epoch_ms")
+    val silenceUntilEpochMs: Long? = null,
+    @ColumnInfo(name = "silence_forever", defaultValue = "0")
+    val silenceForever: Boolean = false,
     // Group creator; null for DMs and for group chats reconstructed without a server round
     // trip. Stored hex-encoded, matching every other user id column in this database.
     @ColumnInfo(name = "creator_hex")

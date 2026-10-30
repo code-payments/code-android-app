@@ -19,9 +19,10 @@ tags:
 - runFlow: subflows/navigate_to_wallet.yaml
 - assertNotVisible: "Float"
 # The action tiles sit below the (empty) deck and recent activity.
-- scrollUntilVisible:
-    element: "Currency Leaderboard"
-    direction: DOWN
+- runFlow:
+    file: helpers/scroll_wallet_to_tile.yaml
+    env:
+      TILE: "Currency Leaderboard"
 
 - runFlow: subflows/navigate_to_discovery.yaml
 - assertVisible:

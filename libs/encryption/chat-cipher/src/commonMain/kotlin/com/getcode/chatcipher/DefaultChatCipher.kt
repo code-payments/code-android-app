@@ -23,6 +23,7 @@ object DefaultChatCipher : ChatCipher {
     private val WRAP_LABEL = "flipcash-group-key-wrap-v1".encodeToByteArray()
     private val GROUP_LABEL = "flipcash-group-e2ee-v1".encodeToByteArray()
     private val GROUP_BLOB_LABEL = "flipcash-group-e2ee-blob-v1".encodeToByteArray()
+    private val PAYMENT_REQUEST_LABEL = "flipcash-group-payment-request-e2ee-v1".encodeToByteArray()
 
     override fun chatKey(ownKeyPair: KeyPair, peerPublicKey: ByteArray, chatId: ByteArray): ByteArray =
         pairKey(ownKeyPair, peerPublicKey, LABEL + chatId)
@@ -69,7 +70,7 @@ object DefaultChatCipher : ChatCipher {
      * Steps 1–3 shared by the DM chat key and the group key wrap: X25519 between the two members,
      * then HKDF-SHA256 salted with both Ed25519 public keys in bytewise order.
      */
-    private fun pairKey(ownKeyPair: KeyPair, peerPublicKey: ByteArray, info: ByteArray): ByteArray {
+    internal fun pairKey(ownKeyPair: KeyPair, peerPublicKey: ByteArray, info: ByteArray): ByteArray {
         if (ownKeyPair.publicKey.size != KEY_SIZE || ownKeyPair.privateKey.size != 64) {
             throw ChatCipherException("own key pair must be a 32-byte public and 64-byte private key")
         }
@@ -158,6 +159,20 @@ object DefaultChatCipher : ChatCipher {
     override fun decryptGroup(payload: EncryptedPayload, groupKey: ByteArray, chatId: ByteArray, senderId: ByteArray): ByteArray =
         open(payload.ciphertext, GROUP_LABEL + chatId + senderId, payload.nonce, groupKey)
 
+    override fun encryptPaymentRequestText(text: ByteArray, groupKey: ByteArray, chatId: ByteArray, creatorId: ByteArray): EncryptedPayload =
+        encryptPaymentRequestText(text, groupKey, chatId, creatorId, randomNonce())
+
+    internal fun encryptPaymentRequestText(
+        text: ByteArray,
+        groupKey: ByteArray,
+        chatId: ByteArray,
+        creatorId: ByteArray,
+        nonce: ByteArray,
+    ): EncryptedPayload = EncryptedPayload(nonce, seal(text, PAYMENT_REQUEST_LABEL + chatId + creatorId, nonce, groupKey))
+
+    override fun decryptPaymentRequestText(payload: EncryptedPayload, groupKey: ByteArray, chatId: ByteArray, creatorId: ByteArray): ByteArray =
+        open(payload.ciphertext, PAYMENT_REQUEST_LABEL + chatId + creatorId, payload.nonce, groupKey)
+
     override fun encryptGroupBlob(
         image: ByteArray,
         groupKey: ByteArray,
@@ -234,7 +249,7 @@ object DefaultChatCipher : ChatCipher {
         return out.copyOfRange(0, length)
     }
 
-    private fun seal(plain: ByteArray, aad: ByteArray, nonce: ByteArray, key: ByteArray): ByteArray {
+    internal fun seal(plain: ByteArray, aad: ByteArray, nonce: ByteArray, key: ByteArray): ByteArray {
         checkKeyAndNonce(key, nonce)
         ensureSodium()
         return AuthenticatedEncryptionWithAssociatedData.xChaCha20Poly1305IetfEncrypt(
@@ -242,7 +257,7 @@ object DefaultChatCipher : ChatCipher {
         ).toByteArray()
     }
 
-    private fun open(cipher: ByteArray, aad: ByteArray, nonce: ByteArray, key: ByteArray): ByteArray {
+    internal fun open(cipher: ByteArray, aad: ByteArray, nonce: ByteArray, key: ByteArray): ByteArray {
         checkKeyAndNonce(key, nonce)
         if (cipher.size < TAG_SIZE) throw ChatCipherException("ciphertext shorter than tag")
         ensureSodium()
@@ -260,7 +275,7 @@ object DefaultChatCipher : ChatCipher {
         if (nonce.size != NONCE_SIZE) throw ChatCipherException("nonce must be 24 bytes")
     }
 
-    private fun randomNonce(): ByteArray {
+    internal fun randomNonce(): ByteArray {
         ensureSodium()
         return LibsodiumRandom.buf(NONCE_SIZE).toByteArray()
     }
@@ -274,7 +289,7 @@ object DefaultChatCipher : ChatCipher {
         return a.size - b.size
     }
 
-    private fun ensureSodium() {
+    internal fun ensureSodium() {
         // Synchronous on JVM/Android/Native; the app also initializes it at startup.
         if (!LibsodiumInitializer.isInitialized()) LibsodiumInitializer.initializeWithCallback { }
     }

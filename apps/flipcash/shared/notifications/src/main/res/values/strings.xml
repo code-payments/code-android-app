@@ -7,14 +7,16 @@
     <string name="notification_channel_gain">Price Alerts</string>
     <string name="notification_channel_chat">Chat Messages</string>
     <string name="notification_channel_contact_join">New Contacts</string>
+    <string name="notification_channel_test_push">Test Notifications</string>
 
     <!-- Channel descriptions -->
-    <string name="notification_channel_default_description">General notifications</string>
+    <string name="notification_channel_default_description">Other updates from Flipcash</string>
     <string name="notification_channel_deposit_withdrawal_description">Deposit and withdrawal confirmations</string>
     <string name="notification_channel_buy_sell_description">Token purchase and sale confirmations</string>
     <string name="notification_channel_gain_description">Token price movement alerts</string>
     <string name="notification_channel_chat_description">Incoming chat messages</string>
     <string name="notification_channel_contact_join_description">When someone you know joins Flipcash</string>
+    <string name="notification_channel_test_push_description">Test notifications you send from Settings</string>
 
     <!-- Person names -->
     <string name="notification_self_person_name">Me</string>
@@ -26,4 +28,9 @@
     <!-- Channel group names -->
     <string name="notification_group_transactions">Transactions</string>
     <string name="notification_group_social">Social</string>
+
+    <!-- Payment-request push bodies; the sender is drawn by MessagingStyle, so it is not named here. -->
+    <string name="notification_request_amountAndTitle">Requested %1$s for %2$s</string>
+    <string name="notification_request_amountOnly">Requested %1$s</string>
+    <string name="notification_request_titleOnly">Sent request for %1$s</string>
 </resources>

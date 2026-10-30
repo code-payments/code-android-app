@@ -37,6 +37,9 @@ fun TokenSelectionPill(
     ),
     textStyle: TextStyle = CodeTheme.typography.screenTitle,
     imageSize: Dp = CodeTheme.dimens.staticGrid.x5,
+    // False draws the currency alone, with no dropdown mark and nothing to tap, for a flow that is
+    // locked to one currency.
+    showsPicker: Boolean = true,
     onClick: () -> Unit
 ) {
     // [contentPadding] only applies when a background is supplied, so call sites without one
@@ -46,7 +49,7 @@ fun TokenSelectionPill(
         modifier = modifier
             .clip(CircleShape)
             .background(color = background, shape = CircleShape)
-            .clickable { onClick() }
+            .clickable(enabled = showsPicker) { onClick() }
             .then(if (hasBackground) Modifier.padding(contentPadding) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(
@@ -62,12 +65,14 @@ fun TokenSelectionPill(
                 textStyle = textStyle,
             )
 
-            Image(
-                modifier = Modifier
-                    .size(CodeTheme.dimens.grid.x4),
-                painter = painterResource(Res.drawable.ic_dropdown),
-                contentDescription = ""
-            )
+            if (showsPicker) {
+                Image(
+                    modifier = Modifier
+                        .size(CodeTheme.dimens.grid.x4),
+                    painter = painterResource(Res.drawable.ic_dropdown),
+                    contentDescription = ""
+                )
+            }
         }
     }
 }

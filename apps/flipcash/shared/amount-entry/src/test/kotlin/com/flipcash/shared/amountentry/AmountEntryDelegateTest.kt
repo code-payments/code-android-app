@@ -196,7 +196,6 @@ class AmountEntryDelegateTest {
         assertEquals("Send", config.action.label.text)
         assertEquals(ConfirmationStyle.Slide, config.action.style)
         assertFalse(config.canConfirm)
-        assertTrue(config.canChangeCurrency)
     }
 
     @Test
@@ -213,19 +212,6 @@ class AmountEntryDelegateTest {
         val delegate = createDelegate()
 
         assertFalse(delegate.config.value.canConfirm)
-    }
-
-    // ---------------------------------------------------------------
-    // Config derivation — canChangeCurrency
-    // ---------------------------------------------------------------
-
-    @Test
-    fun `config canChangeCurrency reflects style`() = runTest {
-        val delegate = createDelegate(
-            style = AmountEntryStyle(actionLabel = AmountEntryLabel.Plain("Buy"), canChangeCurrency = false),
-        )
-
-        assertFalse(delegate.config.value.canChangeCurrency)
     }
 
     // ---------------------------------------------------------------
@@ -327,6 +313,24 @@ class AmountEntryDelegateTest {
         val hint = delegate.config.value.hint
         assertIs<AmountEntryHint.Error>(hint)
         assertTrue(hint.text.startsWith("Min is"))
+    }
+
+    @Test
+    fun `usd minimum is compared in the entry currency`() = runTest {
+        val eur = Rate(2.0, CurrencyCode.EUR)
+        every { exchange.preferredRate } returns eur
+        every { exchange.rates() } returns mapOf(CurrencyCode.EUR to eur)
+        val delegate = createDelegate(
+            style = AmountEntryStyle(
+                actionLabel = AmountEntryLabel.Plain("Next"),
+                belowMinHint = { "Min is $it" },
+            ),
+            minimumAmount = MutableStateFlow(Fiat(5.0, CurrencyCode.USD)),
+        )
+        delegate.onCurrencyChanged(Currency(code = "EUR", name = "Euro", symbol = "E"))
+        delegate.onNumber(8) // 8 EUR clears a raw 5, but the $5 floor is 10 EUR
+
+        assertIs<AmountEntryHint.Error>(delegate.config.value.hint)
     }
 
     @Test

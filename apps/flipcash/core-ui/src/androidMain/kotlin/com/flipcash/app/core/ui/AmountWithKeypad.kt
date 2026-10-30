@@ -70,20 +70,17 @@ fun AmountWithKeypad(
 }
 
 /**
- * The default amount field: centred in its region at display-large, with an optional currency
- * flag that doubles as the currency picker affordance.
+ * The default amount field: centred in its region at display-large. Carries no currency flag or
+ * picker — the amount is always in the viewer's preferred currency.
  */
 @Composable
 fun BoxScope.AmountEntryField(
     amountAnimatedModel: AmountAnimatedInputUiModel,
     prefix: String = "",
     placeholder: String = "",
-    currencyFlag: Int? = null,
     decimalPlaces: Int = 2,
     hint: String = "",
     isError: Boolean = false,
-    isClickable: Boolean = false,
-    onClick: () -> Unit = { },
 ) {
     val networkObserver = LocalNetworkObserver.current
     val networkState by networkObserver.state.collectAsStateWithLifecycle()
@@ -97,13 +94,12 @@ fun BoxScope.AmountEntryField(
         amountText = "",
         placeholder = placeholder,
         captionText = hint,
-        currencyResId = currencyFlag,
+        currencyResId = null,
         isAltCaptionKinIcon = false,
         isAltCaption = isError,
         uiModel = amountAnimatedModel,
         isAnimated = true,
-        isClickable = isClickable,
-        onClick = onClick,
+        isClickable = false,
         networkState = networkState,
         textStyle = CodeTheme.typography.displayLarge,
         decimalPlaces = decimalPlaces,
@@ -112,7 +108,7 @@ fun BoxScope.AmountEntryField(
 
 /**
  * v2 amount field: top-anchored and left-aligned at display-extra-large over an "$X available"
- * line. Carries no currency flag or chevron — the currency is fixed for the flows that use it.
+ * line. Carries no currency flag or chevron, like [AmountEntryField].
  *
  * @param caption optional text rendered immediately under the amount. It belongs here rather than
  * in [AmountWithKeypad]'s accessory strip: the strip sits at the bottom of the amount region, which

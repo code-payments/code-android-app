@@ -15,7 +15,9 @@ import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.solana.intents.ServerParameter
 import com.getcode.solana.keys.base58
 import com.getcode.solana.keys.redact
+import com.getcode.utils.LiveSecrets
 import com.getcode.utils.TraceType
+import com.getcode.utils.maskedSuffix
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -101,9 +103,10 @@ class IntentExecutor(
     ): Result<IntentType> = openBidirectionalStreamForResult(
         streamRef = streamRef,
         apiCall = { request ->
+            val id = intent.id.base58()
             trace(
                 tag = "SubmitIntent",
-                message = "submitting intent ${intent.id.base58().redact()}"
+                message = "submitting intent ${if (LiveSecrets.isLive(id)) id.maskedSuffix() else id.redact()}"
             )
             api.submitIntent(request)
         },

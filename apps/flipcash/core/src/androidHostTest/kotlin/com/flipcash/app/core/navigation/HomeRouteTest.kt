@@ -5,8 +5,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Home is where both launch and the end of onboarding release the user to — the Wallet tab, not the
- * camera — so a freshly onboarded user lands on their balance.
+ * [homeRoute] is where launch deeplinks open. Cold launch and the end of onboarding both use
+ * [launchRoute] (Chats).
  */
 class HomeRouteTest {
 
@@ -17,7 +17,7 @@ class HomeRouteTest {
 
     @Test
     fun `home is a nav bar tab home`() {
-        // Guards the release path: it's applied with ClearAll, so it must map to a tab or the
+        // Deeplinks apply it with ClearAll, so it must map to a tab or the
         // hoisted nav bar would render with no selection.
         assertEquals(NavBarButton.Wallet, homeRoute.asNavBarTab())
     }

@@ -1,6 +1,8 @@
 package com.flipcash.app.internal.ui.navigation
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.runtime.DisposableEffect
+import com.flipcash.app.internal.toast.LocalAndroidSystemToastController
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
@@ -43,6 +45,12 @@ import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.cardexpand.LocalCardExpansion
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.shared.chat.alerts.LocalReactionAlerts
+import com.flipcash.shared.chat.alerts.ReactionAlertAction
+import com.flipcash.shared.chat.alerts.ReactionAlertController
+import com.flipcash.shared.chat.ui.ReactionAlertHost
+import kotlinx.coroutines.flow.filterIsInstance
 import com.flipcash.app.core.navigation.DeeplinkAction
 import com.flipcash.app.core.navigation.LocalTabBarVisibility
 import com.flipcash.app.core.navigation.NavBarButton
@@ -108,6 +116,7 @@ internal fun AppContent(
     resultStateRegistry: NavResultStateRegistry,
     barManager: BarManager,
     cardExpansion: CardExpansionController,
+    reactionAlerts: ReactionAlertController,
     deepLink: () -> DeepLink?,
     onPendingAction: (DeeplinkAction) -> Unit = {},
     canSwitchAccounts: Boolean = false,
@@ -140,6 +149,27 @@ internal fun AppContent(
         snapshotFlow { barVisibility.coversToast }.collect { toasts.isCovered = it }
     }
     UpdateAvailableToast(navigator = codeNavigator, barVisibility = barVisibility, toasts = toasts)
+    // Toasts raised from view models land on this host too, rather than as system toasts.
+    val systemToasts = LocalAndroidSystemToastController.current
+    DisposableEffect(systemToasts, toasts) {
+        systemToasts?.attach(toasts)
+        onDispose { systemToasts?.detach(toasts) }
+    }
+
+    // A reaction pill tapped outside its chat opens the chat at the message. One tapped inside the
+    // open chat is handled by the chat screen, which scrolls and pulses instead.
+    LaunchedEffect(reactionAlerts, codeNavigator) {
+        reactionAlerts.actions
+            .filterIsInstance<ReactionAlertAction.OpenChat>()
+            .collect { action ->
+                codeNavigator.push(
+                    AppRoute.Messaging.Chat(
+                        identifier = ChatIdentifier.ByChatId(action.chatId),
+                        jumpToMessageId = action.messageId,
+                    )
+                )
+            }
+    }
 
     // A tab press replaces the whole back stack (tab-bar semantics — see AppNavigationBar), so every
     // tab home was destroyed and rebuilt on each switch: the wallet re-fetched its balances and the
@@ -167,6 +197,7 @@ internal fun AppContent(
         LocalCardExpansion provides cardExpansion,
         LocalTabBarVisibility provides tabBarVisibility,
         LocalFloatingToastHost provides toasts,
+        LocalReactionAlerts provides reactionAlerts,
     ) {
     Box(modifier = Modifier.fillMaxSize()) {
         // Mark the nav content as the haze source so the frosted bar blurs whatever scrolls beneath it.
@@ -300,6 +331,9 @@ internal fun AppContent(
 
         // The search button's glass growing into Search's field, over everything below it.
         searchMorph.Overlay(hazeState)
+
+        // Top of the app, over the status bar and the camera cutout, so it shows on any screen.
+        ReactionAlertHost(controller = reactionAlerts, hazeState = hazeState)
 
         // The expanded currency-info overlay is hosted INSIDE the wallet nav entry (see CardExpandHost),
         // not here — so a pushed Give/Convert/Withdraw naturally covers it (correct z-order) and the deck

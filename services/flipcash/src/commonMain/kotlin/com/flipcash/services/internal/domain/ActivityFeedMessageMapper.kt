@@ -14,6 +14,7 @@ import com.flipcash.services.internal.network.extensions.toMint
 import com.flipcash.services.internal.network.extensions.toPublicKey
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.models.BoostedReaction
+import com.flipcash.services.models.RequestedPayment
 import com.flipcash.services.models.NotificationMetadata
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.internal.network.extensions.toChatId
@@ -55,6 +56,7 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                             Model.DirectlySentCryptoNotificationMetadata.DestinationIdentifierCase.USER_ID
                         ) meta.userId.value.toByteArray().toList() else null,
                         boostedReaction = if (meta.hasBoostedReaction()) meta.boostedReaction.toDomain() else null,
+                        requestedPayment = if (meta.hasRequestedPayment()) meta.requestedPayment.toDomain() else null,
                     )
                 }
                 Model.Notification.AdditionalMetadataCase.RECEIVED_CRYPTO -> {
@@ -67,6 +69,7 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                             Model.ReceivedCryptoNotificationMetadata.SourceIdentifierCase.USER_ID
                         ) meta.userId.value.toByteArray().toList() else null,
                         boostedReaction = if (meta.hasBoostedReaction()) meta.boostedReaction.toDomain() else null,
+                        requestedPayment = if (meta.hasRequestedPayment()) meta.requestedPayment.toDomain() else null,
                     )
                 }
                 Model.Notification.AdditionalMetadataCase.WITHDREW_CRYPTO -> NotificationMetadata.WithdrewCrypto(
@@ -167,6 +170,11 @@ private fun Model.SwapState.toDomain(): SwapState = when (this) {
     Model.SwapState.UNRECOGNIZED,
     null -> SwapState.UNKNOWN
 }
+private fun Model.RequestedPayment.toDomain(): RequestedPayment = RequestedPayment(
+    chatId = chatId.toChatId(),
+    paymentRequestId = paymentRequestId.value.toByteArray().toList(),
+)
+
 private fun Model.BoostedReaction.toDomain(): BoostedReaction = BoostedReaction(
     chatId = chatId.toChatId(),
     messageId = messageId.value,

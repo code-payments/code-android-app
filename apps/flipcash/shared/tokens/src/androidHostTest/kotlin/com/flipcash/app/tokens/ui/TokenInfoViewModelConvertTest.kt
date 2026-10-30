@@ -100,6 +100,9 @@ class TokenInfoViewModelConvertTest {
             resources = FakeResourceHelper(),
             purchaseMethodController = mockk<PurchaseMethodController>(relaxed = true),
             feedCoordinator = mockk<ActivityFeedCoordinator>(relaxed = true),
+            communityController = mockk<com.flipcash.services.controllers.CommunityController> {
+                io.mockk.coEvery { getCommunity(any()) } returns Result.failure(Throwable("none"))
+            },
             dispatchers = TestDispatchers(testScheduler),
         )
         vm.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint))

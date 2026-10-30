@@ -1,0 +1,25 @@
+# Scrolls the Wallet tab down until an action tile's label is in the tree. Requires env: TILE.
+appId: com.flipcash.app.android
+---
+# scrollUntilVisible swipes from the screen centre, which is on the card deck, and the deck
+# swallowed the drag on CI (the list never moved past the header). Drag in the left gutter
+# instead, outside the cards; the tiles are the last rows, composed only once scrolled near.
+- repeat:
+    while:
+      notVisible: "${TILE}"
+    times: 12
+    commands:
+      - swipe:
+          start: "2%, 80%"
+          end: "2%, 30%"
+          duration: 500
+# The label can come into the tree while its row is still at the bottom edge, so keep going to
+# the end of the list: that parks the last row (Add/Withdraw Dollars) as high as it can go.
+# Extra swipes at the end are no-ops.
+- repeat:
+    times: 2
+    commands:
+      - swipe:
+          start: "2%, 80%"
+          end: "2%, 30%"
+          duration: 500

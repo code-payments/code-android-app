@@ -103,6 +103,57 @@ class ProfileActionsTest {
         assertFalse(ChatProfileAction.Unblock.isDestructive)
     }
 
+    @Test
+    fun `a host sees silence and remove as their own section after block`() {
+        val group = profileGroup(canSilence = true, canBan = true)
+        assertEquals(
+            listOf(
+                ChatProfileAction.Report, ChatProfileAction.Block,
+                ChatProfileAction.Silence, ChatProfileAction.Remove,
+            ),
+            profileMenuItems(isBlocked = false, hasDm = false, group = group, userId = member),
+        )
+    }
+
+    @Test
+    fun `each moderation row follows its own flag`() {
+        assertEquals(
+            listOf(ChatProfileAction.Report, ChatProfileAction.Block, ChatProfileAction.Silence),
+            profileMenuItems(false, false, profileGroup(canSilence = true, canBan = false), member),
+        )
+        assertEquals(
+            listOf(ChatProfileAction.Report, ChatProfileAction.Block, ChatProfileAction.Remove),
+            profileMenuItems(false, false, profileGroup(canSilence = false, canBan = true), member),
+        )
+    }
+
+    @Test
+    fun `the creator is never offered silence or remove`() {
+        assertEquals(
+            listOf(ChatProfileAction.Report, ChatProfileAction.Block),
+            profileMenuItems(false, false, profileGroup(canSilence = true, canBan = true), creator),
+        )
+    }
+
+    @Test
+    fun `outside a group there is no moderation section`() {
+        assertEquals(
+            listOf(ChatProfileAction.Report, ChatProfileAction.Block),
+            profileMenuItems(false, false, group = null, userId = member),
+        )
+    }
+
+    private val member = listOf<Byte>(9)
+    private val creator = listOf<Byte>(7)
+
+    private fun profileGroup(canSilence: Boolean, canBan: Boolean) = ProfileGroup(
+        chatId = ChatId(List(16) { 2.toByte() }),
+        title = "Jeffy",
+        creatorId = creator,
+        canSilence = canSilence,
+        canBan = canBan,
+    )
+
     // -- opensChatUnderneath --
 
     private val dm = ChatId(List(16) { 1.toByte() })

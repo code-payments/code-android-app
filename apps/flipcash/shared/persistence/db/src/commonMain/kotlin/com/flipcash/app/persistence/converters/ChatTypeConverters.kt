@@ -213,7 +213,20 @@ sealed interface MessageContentSerialized {
         // Base58, like [intentId]. Null for rows stored before this existed, and for messages
         // that carried no receiver.
         val receiver: String? = null,
+        // Each receiver's part of a multi-receiver payment. Empty for rows stored before this
+        // existed, and for single-receiver payments.
+        val multiReceiver: List<CashPayment> = emptyList(),
+        // Base58, like [intentId]. Null unless the payment paid a payment-request share.
+        val paymentRequestId: String? = null,
     ) : MessageContentSerialized
+
+    @Serializable
+    data class CashPayment(
+        // Base58, like [Cash.receiver].
+        val receiver: String,
+        val nativeAmount: Double,
+        val tokenQuarks: Long,
+    )
 
     @Serializable
     @SerialName("deleted")
@@ -241,8 +254,13 @@ sealed interface MessageContentSerialized {
     @SerialName("widget_share_profile")
     data class WidgetShareProfile(val username: String?) : MessageContentSerialized
 
+    // Mirrors WidgetContent.PaymentRequest; [paymentRequestId] is base58.
+    @Serializable
+    @SerialName("widget_payment_request")
+    data class WidgetPaymentRequest(val paymentRequestId: String) : MessageContentSerialized
+
     // Mirrors MessageContent.System. [joinedUser] is set for a UserJoined event, and
-    // [admittedBy] when someone let them in; both hex-encoded. Rows stored before the event was
+    // [admittedBy] when someone let them in or [invitedBy] when they used someone's invite; each hex-encoded. Rows stored before the event was
     // kept have neither and decode as fallback-only.
     @Serializable
     @SerialName("system")
@@ -250,6 +268,7 @@ sealed interface MessageContentSerialized {
         val fallbackText: String,
         val joinedUser: String? = null,
         val admittedBy: String? = null,
+        val invitedBy: String? = null,
     ) : MessageContentSerialized
 
     // Mirrors MessageContent.Unsupported: a content type the build that stored it didn't know.

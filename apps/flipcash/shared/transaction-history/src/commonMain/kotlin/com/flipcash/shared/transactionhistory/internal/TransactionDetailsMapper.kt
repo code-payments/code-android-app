@@ -19,6 +19,11 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import com.getcode.utils.hexEncodedString
 import javax.inject.Inject
+import com.flipcash.shared.transactionhistory.generated.resources.Res
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_boostReceived
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_boostReceivedIn
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_youBoosted
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_youBoostedIn
 
 /**
  * Maps a feed entry to the details screen's resolved state — the same entry the activity row draws,
@@ -45,6 +50,26 @@ internal class TransactionDetailsMapper @Inject constructor(
         val counterparty = userIdOf(meta)?.let { profiles[it.hexEncodedString()] }
         val convert = convertOf(meta)
         val kind = kindOf(meta, msg.text)
+        val boost = boostedReactionOf(meta)
+        val counterpartyName = counterparty?.displayName?.takeIf { it.isNotBlank() }
+        val boostLine = boost?.let { boostLineOf(meta, it.emoji.value, source.boostChatName) }
+        // A split boost has nobody to name, so the group takes the name's place; the line then
+        // never repeats it. A counterparty that hasn't resolved doesn't borrow the group's name
+        // either: the boost line alone is the heading.
+        val split = isSplitBoost(meta)
+        val splitChat = source.boostChatName?.takeIf { it.isNotBlank() && split }
+        val heading = when {
+            boost == null -> counterpartyName
+            split -> splitChat ?: boostLine
+            else -> counterpartyName ?: boostLine
+        }
+        val boostSubtitle = when {
+            boost == null -> null
+            split && splitChat != null ->
+                boostLineOf(meta, boost.emoji.value, chatName = null)
+            counterpartyName != null -> boostLine
+            else -> null
+        }
 
         return TransactionDetails(
             // Base58, not the row's hex: this is the value someone pastes into a support ticket or
@@ -54,14 +79,17 @@ internal class TransactionDetailsMapper @Inject constructor(
             avatar = avatarOf(counterparty, convert != null, meta, token, source.toToken),
             // A person entry is titled by the person; everything else falls back to the kind's own
             // heading, which is also what an unresolved counterparty gets.
-            heading = counterparty?.displayName?.takeIf { it.isNotBlank() },
-            subtitle = subtitleOf(kind, token, source.toToken),
+            // The name stays the large heading, with the boost's sentence under it; with no name
+            // the sentence itself is the heading. A boost always sets one, which is what keeps the
+            // kind's format-string heading from ever being drawn.
+            heading = heading,
+            subtitle = boostSubtitle ?: subtitleOf(kind, token, source.toToken),
             signedAmountPrefix = when {
                 meta == null -> null
                 meta.isOutgoing -> "-"
                 else -> "+"
             },
-            amount = msg.amount?.nativeAmount,
+            amount = msg.amount,
             timestamp = msg.timestamp,
             token = token,
             toToken = source.toToken,
@@ -70,7 +98,6 @@ internal class TransactionDetailsMapper @Inject constructor(
             // the notification metadata carries the account.
             account = null,
             status = statusOf(msg.state, convert?.swapState),
-            currencyCode = msg.amount?.nativeAmount?.currencyCode?.name,
             exchangeRate = msg.amount?.rate?.fx,
             tokenAmount = tokenAmountOf(msg.amount?.underlyingTokenAmount, token),
             fee = convert?.fee,
@@ -81,7 +108,25 @@ internal class TransactionDetailsMapper @Inject constructor(
             // The counterpart action opens a conversation or a profile, and both need somebody to
             // open it with.
             canViewInChat = counterparty != null,
+            boostedReaction = boost,
+            requestedPayment = requestedPaymentOf(meta),
         )
+    }
+
+    /**
+     * The boost's sentence: the emoji, and "in {chat}" when [chatName] is a stored group. A DM is
+     * stored without a title and a missing chat isn't stored, so both arrive as null and drop it.
+     */
+    private fun boostLineOf(meta: MessageMetadata?, emoji: String, chatName: String?): String {
+        val chat = chatName?.takeIf { it.isNotBlank() }
+        val received = meta is MessageMetadata.ReceivedCrypto
+        return when {
+            received && chat != null ->
+                resources.getString(Res.string.title_txnDetails_boostReceivedIn, emoji, chat)
+            received -> resources.getString(Res.string.title_txnDetails_boostReceived, emoji)
+            chat != null -> resources.getString(Res.string.title_txnDetails_youBoostedIn, emoji, chat)
+            else -> resources.getString(Res.string.title_txnDetails_youBoosted, emoji)
+        }
     }
 
     /**
@@ -117,12 +162,14 @@ internal class TransactionDetailsMapper @Inject constructor(
  */
 private fun kindOf(meta: MessageMetadata?, text: String): TransactionKind = when (meta) {
     is MessageMetadata.DirectlySentCrypto -> when {
+        meta.boostedReaction != null -> TransactionKind.Boosted
         isUnidentifiedBill(meta) -> TransactionKind.GaveCash
         text.isTipVerb() -> TransactionKind.Tipped
         else -> TransactionKind.Sent
     }
     is MessageMetadata.ReceivedCrypto ->
-        if (isUnidentifiedBill(meta)) TransactionKind.ReceivedCash else TransactionKind.Received
+        if (meta.boostedReaction != null) TransactionKind.BoostReceived
+        else if (isUnidentifiedBill(meta)) TransactionKind.ReceivedCash else TransactionKind.Received
     is MessageMetadata.IndirectlySentCrypto -> TransactionKind.SentCashLink
     is MessageMetadata.WithdrewCrypto -> TransactionKind.Withdraw
     MessageMetadata.DepositedCrypto -> TransactionKind.Deposit

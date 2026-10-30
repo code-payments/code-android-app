@@ -51,6 +51,22 @@ internal class PushApi @Inject constructor(
     }
 
     /**
+     * Sends a fixed test notification to every device the caller has registered.
+     */
+    suspend fun sendTestPush(owner: KeyPair): PushService.SendTestPushResponse {
+        val request =
+            PushService.SendTestPushRequest.newBuilder()
+                .apply { setAuth(authenticate(owner)) }
+                .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.sendTestPush(request)
+        }
+    }
+
+    /**
      * Removes all push tokens within an app install for a user
      */
     suspend fun deleteTokens(

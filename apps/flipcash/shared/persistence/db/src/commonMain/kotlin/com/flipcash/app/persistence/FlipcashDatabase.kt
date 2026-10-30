@@ -126,8 +126,12 @@ import kotlin.jvm.Synchronized
         AutoMigration(from = 42, to = 43), // pending_media table
         AutoMigration(from = 43, to = 44), // chat_metadata.cover_picture_json (nullable)
         AutoMigration(from = 44, to = 45), // chat_metadata.is_private (default 0)
+        AutoMigration(from = 45, to = 46, spec = FlipcashDatabase.Migration45To46::class), // chat_metadata.can_invite (default 0)
+        // chat_metadata moderation: can_silence, can_ban (default 0), silence_until_epoch_ms
+        // (nullable), silence_forever (default 0)
+        AutoMigration(from = 46, to = 47),
     ],
-    version = 45,
+    version = 47,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 @ConstructedBy(FlipcashDatabaseConstructor::class)
@@ -293,6 +297,17 @@ abstract class FlipcashDatabase : RoomDatabase() {
 
         companion object {
             const val REARM_VIEWER_STATE = "UPDATE chat_metadata SET viewer_state_version = 0"
+        }
+    }
+
+    /**
+     * Re-arms the viewer-state gate for the new `can_invite` column, for the reason
+     * [Migration36To37] gives for `can_edit`: without it a host's invite entry points stay hidden
+     * on every private group created before the upgrade until its viewer state version moves.
+     */
+    class Migration45To46 : AutoMigrationSpec {
+        override fun onPostMigrate(connection: SQLiteConnection) {
+            connection.execSQL(Migration36To37.REARM_VIEWER_STATE)
         }
     }
 

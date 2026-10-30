@@ -6,6 +6,8 @@ import com.flipcash.services.chat.GroupKeyEnvelopes
 import com.flipcash.services.chat.GroupKeySource
 import com.getcode.chatcipher.ChatCipher
 import com.getcode.chatcipher.DefaultChatCipher
+import com.getcode.chatcipher.DefaultInviteCipher
+import com.getcode.chatcipher.InviteCipher
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -25,5 +27,8 @@ abstract class ChatCryptoModule {
     companion object {
         @Provides
         fun provideChatCipher(): ChatCipher = DefaultChatCipher
+
+        @Provides
+        fun provideInviteCipher(): InviteCipher = DefaultInviteCipher
     }
 }

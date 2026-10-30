@@ -36,6 +36,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.ReactionSummary
@@ -98,6 +99,11 @@ class ChatEntityMapper @Inject constructor() {
             muteForever = isMuteForever(metadata.viewerState?.mute),
             viewerStateVersion = metadata.viewerState?.version ?: 0,
             canEdit = metadata.viewerState?.permissions?.canEdit ?: false,
+            canInvite = metadata.viewerState?.permissions?.canInvite ?: false,
+            canSilence = metadata.viewerState?.permissions?.moderation?.canSilence ?: false,
+            canBan = metadata.viewerState?.permissions?.moderation?.canBan ?: false,
+            silenceUntilEpochMs = silenceUntilEpochMs(metadata.viewerState?.restrictions?.silence),
+            silenceForever = isSilenceForever(metadata.viewerState?.restrictions?.silence),
             creatorHex = metadata.creator?.hexEncodedString(),
             useE2ee = metadata.useE2ee,
             isPrivate = metadata.isPrivate,
@@ -145,6 +151,13 @@ class ChatEntityMapper @Inject constructor() {
     /** The `mute_forever` column a [mute] writes. */
     fun isMuteForever(mute: MuteState?): Boolean = mute is MuteState.Forever
 
+    /** The `silence_until_epoch_ms` column a [silence] writes; null for forever and for none. */
+    fun silenceUntilEpochMs(silence: SilenceState?): Long? =
+        (silence as? SilenceState.Until)?.until?.toEpochMilliseconds()
+
+    /** The `silence_forever` column a [silence] writes. */
+    fun isSilenceForever(silence: SilenceState?): Boolean = silence is SilenceState.Forever
+
     /**
      * The row's viewer state, or null when it holds nothing about the viewer.
      *
@@ -153,7 +166,7 @@ class ChatEntityMapper @Inject constructor() {
      * the domain model disagree about what is stored, and a later write gate compare against a
      * version whose state had been silently rewritten.
      *
-     * A granted `can_edit` counts as state held about the viewer, so it keeps the row out of the
+     * A granted `can_edit` or `can_invite` counts as state held about the viewer, so it keeps the row out of the
      * null case on its own: a chat nobody has muted still has to report that the viewer may edit
      * it, and returning null there would deny an edit the server allows.
      */
@@ -165,11 +178,24 @@ class ChatEntityMapper @Inject constructor() {
             until != null -> MuteState.Until(Instant.fromEpochMilliseconds(until))
             else -> null
         }
-        if (mute == null && viewerStateVersion == 0L && !canEdit) return null
+        val silenceUntil = silenceUntilEpochMs
+        val silence = when {
+            silenceForever -> SilenceState.Forever
+            silenceUntil != null -> SilenceState.Until(Instant.fromEpochMilliseconds(silenceUntil))
+            else -> null
+        }
+        if (mute == null && silence == null && viewerStateVersion == 0L && !canEdit && !canInvite && !canSilence && !canBan) {
+            return null
+        }
         return ViewerState(
             mute = mute,
             version = viewerStateVersion,
-            permissions = ViewerState.Permissions(canEdit = canEdit),
+            permissions = ViewerState.Permissions(
+                canEdit = canEdit,
+                canInvite = canInvite,
+                moderation = ViewerState.ModerationPermissions(canSilence = canSilence, canBan = canBan),
+            ),
+            restrictions = silence?.let { ViewerState.Restrictions(silence = it) },
         )
     }
 
@@ -313,6 +339,8 @@ class ChatEntityMapper @Inject constructor() {
 
     // region Helpers
 
+    fun rulesSerialized(rules: ChatRules): ChatRulesSerialized = rules.toSerialized()
+
     fun chatIdHex(chatId: ChatId): String = chatId.bytes.toList().hexEncodedString()
 
     fun chatIdFromHex(hex: String): ChatId = ChatId(hex.hexToByteArray())
@@ -401,6 +429,14 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
         action = action.name,
         tokenQuarks = tokenQuarks,
         receiver = receiver?.base58,
+        multiReceiver = multiReceiver.map {
+            MessageContentSerialized.CashPayment(
+                receiver = it.receiver.base58,
+                nativeAmount = it.nativeAmount,
+                tokenQuarks = it.tokenQuarks,
+            )
+        },
+        paymentRequestId = paymentRequestId?.base58,
     )
     is MessageContent.Reply -> MessageContentSerialized.Reply(
         repliedMessageId = repliedMessageId,
@@ -410,14 +446,19 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
         items = items,
         caption = caption?.let { MessageContentSerialized.Text(it.text) },
     )
-    is MessageContent.Widget -> MessageContentSerialized.WidgetShareProfile(
-        username = (widget as? WidgetContent.ShareProfile)?.username,
-    )
+    is MessageContent.Widget -> when (val widget = widget) {
+        is WidgetContent.PaymentRequest ->
+            MessageContentSerialized.WidgetPaymentRequest(paymentRequestId = widget.id.base58)
+        else -> MessageContentSerialized.WidgetShareProfile(
+            username = (widget as? WidgetContent.ShareProfile)?.username,
+        )
+    }
     is MessageContent.System -> when (val event = event) {
         is MessageContent.SystemEvent.UserJoined -> MessageContentSerialized.System(
             fallbackText = fallbackText,
             joinedUser = event.userId.hexEncodedString(),
             admittedBy = event.admittedBy?.hexEncodedString(),
+            invitedBy = event.invitedBy?.hexEncodedString(),
         )
         null -> MessageContentSerialized.System(fallbackText = fallbackText)
     }
@@ -437,6 +478,9 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
     is MessageContentSerialized.WidgetShareProfile -> MessageContent.Widget(
         username?.let { WidgetContent.ShareProfile(it) } ?: WidgetContent.Unsupported,
     )
+    is MessageContentSerialized.WidgetPaymentRequest -> MessageContent.Widget(
+        WidgetContent.PaymentRequest(paymentRequestId.decodeBase58().toList()),
+    )
     is MessageContentSerialized.Text -> MessageContent.Text(text, linkPreview)
     is MessageContentSerialized.Cash -> MessageContent.Cash(
         intentId = intentId.decodeBase58().toList(),
@@ -451,6 +495,14 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
             ?: MessageContent.Cash.Action.SENT,
         tokenQuarks = tokenQuarks,
         receiver = receiver?.decodeBase58()?.toList(),
+        multiReceiver = multiReceiver.map {
+            MessageContent.Cash.Payment(
+                receiver = it.receiver.decodeBase58().toList(),
+                nativeAmount = it.nativeAmount,
+                tokenQuarks = it.tokenQuarks,
+            )
+        },
+        paymentRequestId = paymentRequestId?.decodeBase58()?.toList(),
     )
     is MessageContentSerialized.Reply -> MessageContent.Reply(
         repliedMessageId = repliedMessageId,
@@ -462,7 +514,7 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
     )
     is MessageContentSerialized.System -> MessageContent.System(
         fallbackText = fallbackText,
-        event = joinedUser?.let { MessageContent.SystemEvent.UserJoined(it.hexToIdExt(), admittedBy?.hexToIdExt()) },
+        event = joinedUser?.let { MessageContent.SystemEvent.UserJoined(it.hexToIdExt(), admittedBy?.hexToIdExt(), invitedBy?.hexToIdExt()) },
     )
     MessageContentSerialized.Unsupported -> MessageContent.Unsupported
     is MessageContentSerialized.Deleted -> MessageContent.Deleted(

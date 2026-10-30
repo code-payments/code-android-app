@@ -65,9 +65,7 @@ internal fun FeedItemSummary(
         }
 
         message.amount?.let { amount ->
-            // Flagged on both lines here: this screen has always flagged the one amount it shows,
-            // so the viewer's own currency keeps its flag rather than losing it to the new line.
-            ActivityAmount(amount = amount, showViewerFlag = true)
+            ActivityAmount(amount = amount)
         }
     }
 }

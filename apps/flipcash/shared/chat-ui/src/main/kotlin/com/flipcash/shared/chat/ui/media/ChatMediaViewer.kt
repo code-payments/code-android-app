@@ -1,29 +1,52 @@
 package com.flipcash.shared.chat.ui.media
 
 import com.getcode.theme.CodeTheme
-import android.content.Context
-import android.content.Intent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.foundation.border
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import com.flipcash.shared.chat.reactions.ReactionStrip
+import com.flipcash.shared.chat.ui.QuickReactionStrip
+import com.getcode.ui.components.glass.floatingGlass
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.IosShare
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.AddReaction
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
@@ -61,17 +84,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.core.content.FileProvider
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
 import com.flipcash.core.R
 import kotlinx.coroutines.launch
-import java.io.File
 import kotlin.math.abs
 
 internal const val VIEWER_IMAGE_TAG = "chat_media_viewer_image"
 internal const val VIEWER_CLOSE_TAG = "chat_media_viewer_close"
-internal const val VIEWER_SHARE_TAG = "chat_media_viewer_share"
+internal const val VIEWER_REACT_TAG = "chat_media_viewer_react"
+internal const val VIEWER_REACT_GLYPH_TAG = "chat_media_viewer_react_glyph"
+internal const val VIEWER_REACT_MORE_TAG = "chat_media_viewer_react_more"
+internal const val VIEWER_REACT_STRIP_TAG = "chat_media_viewer_react_strip"
+internal const val VIEWER_REACT_SCRIM_TAG = "chat_media_viewer_react_scrim"
+internal const val VIEWER_REPLY_TAG = "chat_media_viewer_reply"
+internal const val VIEWER_SAVE_TAG = "chat_media_viewer_save"
+internal const val VIEWER_FORWARD_TAG = "chat_media_viewer_forward"
 
 private const val DISMISS_DISTANCE_FRACTION = 0.2f
 private const val MIN_BACKGROUND_ALPHA = 0.2f
@@ -80,8 +108,9 @@ private const val MIN_BACKGROUND_ALPHA = 0.2f
  * A full-screen photo.
  *
  * Pinch zooms from 1× to 4× with the pan held inside the image's edges; a double tap goes to 2.5×
- * about the tapped point, or back to fit when already zoomed. A single tap hides or shows the
- * close and share buttons. A one-finger drag that starts while
+ * about the tapped point, or back to fit when already zoomed. The viewer opens with no chrome; a
+ * single tap shows or hides the close button and the two pills at the bottom (React and Reply on the
+ * left, Save and Forward on the right). A one-finger drag that starts while
  * the image is at fit pulls it away; when zoomed the same drag pans instead.
  *
  * On its own the pull moves the image down, fading the black behind it, and past a fifth of the
@@ -91,12 +120,20 @@ private const val MIN_BACKGROUND_ALPHA = 0.2f
  * close button's.
  *
  * [placeholder] (usually the bubble's BlurHash, or the thumbnail already on screen) shows until
- * the full image has loaded, which [onFullImageLoaded] reports. Share stays disabled until
- * [fullImageLoaded] is true, since there is nothing worth sharing before then.
+ * the full image has loaded, which [onFullImageLoaded] reports. Save stays disabled until
+ * [fullImageLoaded] is true, since there is nothing worth saving before then.
  *
- * Hostable as a Nav3 entry: it takes plain parameters and calls back for close and share. The host
- * owns what Share does; [shareImage] is the usual answer.
+ * Hostable as a Nav3 entry: it takes plain parameters and calls back for close, save, reply and
+ * forward. The host owns what each does; [rememberSavePhoto] is the usual answer to Save.
  *
+ * @param ownReactions the emoji the viewer has reacted with, in the order the pill row shows them;
+ * the React button draws them in place of its icon.
+ * @param onReact a pick from [reactionStrip]; null hides the React button, for a message that
+ * cannot be reacted to. The button opens the strip above it, and a pick, a tap outside it or
+ * hiding the chrome closes it again.
+ * @param onOpenPicker the strip's "+": the host's full emoji picker.
+ * @param onReply Reply; null hides the button, for a message that cannot be replied to.
+ * @param onForward Forward; null hides the button, for a message with no link to hand out.
  * @param model what Coil loads for the full image.
  * @param frame the photo's rect, corners and the opacities, read at layout and draw time so a
  * host can animate them without recomposing. Null fills the container.
@@ -108,9 +145,15 @@ fun ChatMediaViewer(
     model: Any?,
     fullImageLoaded: Boolean,
     onFullImageLoaded: () -> Unit,
-    onShare: () -> Unit,
+    onSave: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    onReact: ((emoji: String) -> Unit)? = null,
+    reactionStrip: List<ReactionStrip.Entry> = emptyList(),
+    ownReactions: List<String> = emptyList(),
+    onOpenPicker: () -> Unit = {},
+    onReply: (() -> Unit)? = null,
+    onForward: (() -> Unit)? = null,
     placeholder: Painter? = null,
     zoomState: ChatMediaZoomState = remember { ChatMediaZoomState() },
     reduceMotion: Boolean = rememberReducedMotion(),
@@ -128,7 +171,9 @@ fun ChatMediaViewer(
     val currentOnPull by rememberUpdatedState(onPull)
     val currentOnPullEnd by rememberUpdatedState(onPullEnd)
     val touchSlop = LocalViewConfiguration.current.touchSlop
-    var chromeVisible by remember { mutableStateOf(true) }
+    var chromeVisible by remember { mutableStateOf(false) }
+    var stripOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(chromeVisible) { if (!chromeVisible) stripOpen = false }
     val chromeShown by animateFloatAsState(
         targetValue = if (chromeVisible) 1f else 0f,
         animationSpec = if (reduceMotion) snap() else tween(200),
@@ -146,6 +191,7 @@ fun ChatMediaViewer(
     )
     if (onPainter != null) SideEffect { onPainter(painter) }
 
+    val hazeState = rememberHazeState()
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -166,6 +212,7 @@ fun ChatMediaViewer(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .hazeSource(hazeState)
                 .testTag(VIEWER_IMAGE_TAG)
                 .pointerInput(zoomState, reduceMotion) {
                     detectTapGestures(
@@ -310,18 +357,89 @@ fun ChatMediaViewer(
             enabled = interactive,
             visible = chromeVisible,
             tag = VIEWER_CLOSE_TAG,
+            hazeState = hazeState,
             onClick = onDismiss,
             modifier = chrome.align(Alignment.TopStart),
         )
-        ViewerButton(
-            icon = Icons.Outlined.IosShare,
-            description = stringResource(R.string.description_chatMediaShare),
-            enabled = fullImageLoaded && interactive,
-            visible = chromeVisible,
-            tag = VIEWER_SHARE_TAG,
-            onClick = onShare,
-            modifier = chrome.align(Alignment.TopEnd),
-        )
+        if (stripOpen && onReact != null && reactionStrip.isNotEmpty()) {
+            // A tap anywhere else closes the strip without reacting.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .testTag(VIEWER_REACT_SCRIM_TAG)
+                    .pointerInput(Unit) { detectTapGestures { stripOpen = false } },
+            )
+            QuickReactionStrip(
+                entries = reactionStrip,
+                onToggle = { emoji ->
+                    stripOpen = false
+                    onReact(emoji)
+                },
+                onOpenPicker = {
+                    stripOpen = false
+                    onOpenPicker()
+                },
+                glass = hazeState,
+                modifier = chrome
+                    .align(Alignment.BottomStart)
+                    .navigationBarsPadding()
+                    .padding(
+                        start = CodeTheme.dimens.staticGrid.x4,
+                        bottom = CodeTheme.dimens.staticGrid.x3 + CodeTheme.dimens.staticGrid.x10 +
+                            CodeTheme.dimens.staticGrid.x2,
+                    )
+                    .testTag(VIEWER_REACT_STRIP_TAG),
+            )
+        }
+        Row(
+            modifier = chrome
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = CodeTheme.dimens.staticGrid.x4, vertical = CodeTheme.dimens.staticGrid.x3),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            ViewerPill(hazeState) {
+                if (onReact != null) {
+                    ViewerPillButton(
+                        icon = Icons.Outlined.AddReaction,
+                        emoji = ownReactions,
+                        description = reactDescription(ownReactions),
+                        // Nothing to show until the strip's inputs have loaded.
+                        enabled = interactive && chromeVisible && reactionStrip.isNotEmpty(),
+                        tag = VIEWER_REACT_TAG,
+                        onClick = { stripOpen = !stripOpen },
+                    )
+                }
+                if (onReply != null) {
+                    ViewerPillButton(
+                        icon = Icons.AutoMirrored.Filled.Reply,
+                        description = stringResource(R.string.action_reply),
+                        enabled = interactive && chromeVisible,
+                        tag = VIEWER_REPLY_TAG,
+                        onClick = onReply,
+                    )
+                }
+            }
+            ViewerPill(hazeState) {
+                ViewerPillButton(
+                    icon = Icons.Outlined.Download,
+                    description = stringResource(R.string.description_chatMediaSave),
+                    enabled = fullImageLoaded && interactive && chromeVisible,
+                    tag = VIEWER_SAVE_TAG,
+                    onClick = onSave,
+                )
+                if (onForward != null) {
+                    ViewerPillButton(
+                        icon = ForwardArrow,
+                        description = stringResource(R.string.action_forwardMessage),
+                        enabled = interactive && chromeVisible,
+                        tag = VIEWER_FORWARD_TAG,
+                        onClick = onForward,
+                    )
+                }
+            }
+        }
     }
 
     LaunchedEffect(model) { zoomState.reset() }
@@ -340,6 +458,7 @@ private fun ViewerButton(
     visible: Boolean,
     tag: String,
     onClick: () -> Unit,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
     IconButton(
@@ -350,8 +469,57 @@ private fun ViewerButton(
             .statusBarsPadding()
             .padding(CodeTheme.dimens.staticGrid.x2)
             .size(CodeTheme.dimens.staticGrid.x8)
-            .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.4f))
+            .floatingGlass(hazeState)
+            .testTag(tag),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            tint = Color.White.copy(alpha = if (enabled) 1f else 0.4f),
+        )
+    }
+}
+
+/** The capsule behind a group of bottom buttons: frosted glass over the photo, as the viewer's other chrome. */
+@Composable
+private fun ViewerPill(hazeState: HazeState, content: @Composable () -> Unit) {
+    Row(
+        modifier = Modifier
+            .floatingGlass(hazeState),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
+        verticalAlignment = Alignment.CenterVertically,
+    ) { content() }
+}
+
+@Composable
+private fun ViewerPillButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    description: String,
+    enabled: Boolean,
+    tag: String,
+    onClick: () -> Unit,
+    emoji: List<String> = emptyList(),
+) {
+    if (emoji.isNotEmpty()) {
+        // Not an IconButton: that pins its content to a 40dp square, which would clip the stack.
+        Box(
+            modifier = Modifier
+                .height(CodeTheme.dimens.staticGrid.x10)
+                .widthIn(min = CodeTheme.dimens.staticGrid.x10)
+                .clip(CircleShape)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                .semantics { contentDescription = description }
+                .testTag(tag),
+            contentAlignment = Alignment.Center,
+        ) { ReactionGlyphs(emoji, dimmed = !enabled) }
+        return
+    }
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .size(CodeTheme.dimens.staticGrid.x10)
+            .semantics { contentDescription = description }
             .testTag(tag),
     ) {
         Icon(
@@ -363,26 +531,65 @@ private fun ViewerButton(
 }
 
 /**
- * The directory the share sheet may read chat photos from. `res/xml/file_paths.xml` in the app
- * exposes `cacheDir/chat_media/` through the existing `${applicationId}.fileprovider` authority;
- * a file anywhere else makes [FileProvider] throw.
+ * The user's own reactions as a stack of chips: each emoji sits in its own circle, ringed in the
+ * glass tint's opaque equivalent so each chip is cut out of the one beneath it. Up to three show;
+ * more show the first two and a "+N" chip. Later chips sit on top of earlier ones.
  */
-fun chatMediaShareDir(context: Context): File =
-    File(context.cacheDir, "chat_media").apply { if (!exists()) mkdirs() }
-
-/**
- * Opens the system share sheet for [file], a JPEG under [chatMediaShareDir]. Returns false, rather
- * than throwing, when the file is outside the provider's paths or nothing can handle the intent.
- */
-fun shareImage(context: Context, file: File, mimeType: String = "image/jpeg"): Boolean = runCatching {
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-    val send = Intent(Intent.ACTION_SEND).apply {
-        putExtra(Intent.EXTRA_STREAM, uri)
-        type = mimeType
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+@Composable
+private fun ReactionGlyphs(emoji: List<String>, dimmed: Boolean) {
+    val shown = if (emoji.size > 3) emoji.take(2) else emoji
+    val count = shown.size + if (emoji.size > 3) 1 else 0
+    val backdrop = CodeTheme.colors.background
+    val ringTint = lerp(backdrop, Color.White, 0.18f)
+    val chipTint = lerp(backdrop, Color.White, 0.32f)
+    val chipSize = 28.dp
+    // Each chip starts 65% of its width after the last, so neighbours overlap by 35%.
+    val stride = chipSize * 0.65f
+    Box(
+        modifier = Modifier
+            .padding(horizontal = CodeTheme.dimens.staticGrid.x2)
+            .width(chipSize + stride * (count - 1))
+            .height(chipSize)
+            .graphicsLayer { alpha = if (dimmed) 0.4f else 1f },
+    ) {
+        shown.forEachIndexed { index, glyph ->
+            ReactionChip(chipSize, chipTint, ringTint, Modifier.offset(x = stride * index)) {
+                Text(text = glyph, fontSize = 14.sp, modifier = Modifier.testTag(VIEWER_REACT_GLYPH_TAG))
+            }
+        }
+        if (emoji.size > 3) {
+            ReactionChip(chipSize, chipTint, ringTint, Modifier.offset(x = stride * shown.size)) {
+                Text(
+                    text = "+${emoji.size - 2}",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    modifier = Modifier.testTag(VIEWER_REACT_MORE_TAG),
+                )
+            }
+        }
     }
-    context.startActivity(
-        Intent.createChooser(send, context.getString(R.string.title_chatMediaShare))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-    )
-}.isSuccess
+}
+
+@Composable
+private fun ReactionChip(
+    size: androidx.compose.ui.unit.Dp,
+    fill: Color,
+    ring: Color,
+    modifier: Modifier,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(fill)
+            .border(2.dp, ring, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) { content() }
+}
+
+@Composable
+private fun reactDescription(own: List<String>): String {
+    val base = stringResource(R.string.action_addReaction)
+    return if (own.isEmpty()) base else stringResource(R.string.description_chatMediaReactWith, base, own.joinToString(" "))
+}

@@ -47,6 +47,7 @@ import com.flipcash.app.core.chat.NewGroupStep
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.ui.DisplayTextInput
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.app.tipping.internal.BalancePresets
 import com.flipcash.app.tipping.internal.CreateGroupViewModel
 import com.flipcash.features.tipping.R
@@ -367,7 +368,7 @@ private fun RequirementSection(
                         onClick = { onPresetSelected(preset) },
                     ) { textColor ->
                         Text(
-                            text = preset.formatted(rule = Fiat.FormattingRule.Truncated),
+                            text = preset.inDisplayCurrency().formatted(rule = Fiat.FormattingRule.Truncated),
                             style = ChipStyle,
                             color = textColor,
                         )
@@ -383,7 +384,7 @@ private fun RequirementSection(
                     onClick = onCustomAmount,
                 ) { textColor ->
                     Text(
-                        text = custom?.formatted(rule = Fiat.FormattingRule.Truncated) ?: "•••",
+                        text = custom?.inDisplayCurrency()?.formatted(rule = Fiat.FormattingRule.Truncated) ?: "•••",
                         style = ChipStyle,
                         color = textColor,
                     )

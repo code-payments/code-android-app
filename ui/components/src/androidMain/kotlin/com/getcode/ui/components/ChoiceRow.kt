@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -35,12 +36,14 @@ fun ChoiceRow(
     label: String,
     icon: Int,
     modifier: Modifier = Modifier,
+    contentColor: Color = CodeTheme.colors.textMain,
     onClick: () -> Unit,
 ) {
     ChoiceRow(
         label = label,
         icon = painterResource(icon),
         modifier = modifier,
+        contentColor = contentColor,
         onClick = onClick,
     )
 }
@@ -54,6 +57,8 @@ fun ChoiceRow(
     label: String,
     icon: Painter,
     modifier: Modifier = Modifier,
+    /** Icon and label colour; a destructive choice passes the error text colour. */
+    contentColor: Color = CodeTheme.colors.textMain,
     onClick: () -> Unit,
 ) {
     Row(
@@ -70,13 +75,13 @@ fun ChoiceRow(
             modifier = Modifier.size(IconSize),
             painter = icon,
             contentDescription = null,
-            tint = CodeTheme.colors.textMain,
+            tint = contentColor,
         )
         Text(
             text = label,
             // 17sp Demi, matching the settings rows rather than the 16sp of `textMedium`.
             style = CodeTheme.typography.textMedium.copy(fontSize = 17.sp, lineHeight = 22.sp),
-            color = CodeTheme.colors.textMain,
+            color = contentColor,
         )
     }
 }

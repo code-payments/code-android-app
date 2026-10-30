@@ -144,6 +144,7 @@ internal fun MessageList(
         // True while the list is being carried to a new newest row, so the jump button stays down.
         var autoScrolling by remember { mutableStateOf(false) }
         HandleMessageReads(listState, messages, enabled = hasPositioned)
+        ReportVisibleToReactionAlerts(state.chatId, listState, messages)
         // The first drag or fling after the list has settled. Not isScrollInProgress, which is
         // also true through the animated and instant scrolls the list makes itself (opening,
         // auto-scroll, the jump button): only a finger starts a DragInteraction, and a fling
@@ -329,9 +330,9 @@ internal fun MessageList(
             // over an empty list has no append to hint. A quote tap is past this already.
             snapshotFlow { hasLoaded && listState.layoutInfo.visibleItemsInfo.isNotEmpty() }
                 .first { it }
-            messages.walkUntil(budget) { indexOf(messages, target) }?.let {
+            messages.walkUntil(budget) { indexOfOrNearestOlder(messages, target) }?.let {
                 listState.centerItem(it)
-                attentionId = target
+                attentionId = (messages.peek(it) as? ChatListItem.ContentBubble)?.messageId ?: target
                 attentionRequest++
             }
             // A visit opened at a message is positioned once this lands, found or not: reads are
@@ -520,6 +521,9 @@ internal fun MessageList(
             }
         }
 
+        // Off with the backdrop up, like the reply swipe: the rows are behind it.
+        val reveal = rememberTimestampReveal(enabled = !selecting)
+
         Box(Modifier.fillMaxSize()) {
             LazyColumn(
                 // NB: no sheetResignmentBehavior, unlike every other scrolling list in the app. The
@@ -529,6 +533,8 @@ internal fun MessageList(
                 // the edge a downward drag overscrolls past, and this one is reverseLayout, where
                 // index0/offset0 is the resting position and a downward drag scrolls into history.
                 modifier = modifier
+                    // Outer to the list's own scroll, which it has to beat to a horizontal drag.
+                    .timestampRevealGesture(reveal, enabled = !selecting)
                     // The backdrop is modal. While a message is selected or being edited the rest of
                     // the transcript sits behind it, so a tap there dismisses what is up rather than
                     // reaching the message it landed on — the exit iOS gives its held blur.
@@ -684,6 +690,7 @@ internal fun MessageList(
                             NoAttention
                         },
                         typingHandoff = handoff,
+                        reveal = reveal,
                     )
 
                     // Under the newest row, not in place of it. A message growing out of the dots
@@ -1061,6 +1068,21 @@ private fun LazyListState.restsOn(key: Any, index: Int): Boolean =
 private fun indexOf(messages: LazyPagingItems<ChatListItem>, messageId: Long): Int? =
     (0 until messages.itemCount).firstOrNull { i ->
         (messages.peek(i) as? ChatListItem.ContentBubble)?.messageId == messageId
+    }
+
+/**
+ * [indexOf], or the newest loaded message older than [messageId] when it isn't drawn. A request
+ * share's cash message is stored and paged but has no row, and a link or quote to it (a payment
+ * push opens at its message) lands on its neighbour instead of walking the whole budget for nothing.
+ *
+ * Rows run newest first, so the first one at or below [messageId] is the nearest. Pending sends
+ * carry non-positive ids and say nothing about where [messageId] sits. A target that is simply not
+ * loaded yet has no such row, because every loaded message is newer than it.
+ */
+private fun indexOfOrNearestOlder(messages: LazyPagingItems<ChatListItem>, messageId: Long): Int? =
+    indexOf(messages, messageId) ?: (0 until messages.itemCount).firstOrNull { i ->
+        val id = (messages.peek(i) as? ChatListItem.ContentBubble)?.messageId
+        id != null && id > 0 && id <= messageId
     }
 
 /**

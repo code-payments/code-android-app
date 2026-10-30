@@ -15,9 +15,11 @@ import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.ViewMode
+import com.flipcash.services.models.chat.WidgetContent
 import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.network.jwt.ApiProvider
 import com.getcode.opencode.model.core.ID
@@ -25,10 +27,12 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
+import com.flipcash.services.models.paymentrequest.NewSplitRequest
 import com.google.protobuf.Timestamp
 import kotlin.time.Instant
 import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
+import com.codeinc.flipcash.gen.paymentrequest.v1.Model as PaymentRequestModel
 
 internal fun Checksum.asHash(): Common.Hash {
     return Common.Hash.newBuilder().setValue(byteArray.toByteString()).build()
@@ -136,7 +140,7 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
             .setCash(
                 MessagingModel.CashContent.newBuilder()
                     .setIntentId(Common.IntentId.newBuilder().setValue(intentId.toByteString()))
-                    .setAmount(
+                    .setTotalAmount(
                         Common.CryptoPaymentAmount.newBuilder()
                             .setQuarks(tokenQuarks ?: amount.quarks)
                             .setMint(Common.PublicKey.newBuilder().setValue(mint.bytes.toByteString()))
@@ -148,8 +152,27 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                         }
                     )
                     .apply {
-                        this@asContent.receiver?.let {
-                            setReceiver(Common.UserId.newBuilder().setValue(it.toByteString()))
+                        // single_receiver and multi_receiver share a oneof; setting one clears the other.
+                        val multi = this@asContent.multiReceiver
+                        if (multi.isNotEmpty()) {
+                            setMultiReceiver(
+                                MessagingModel.CashContent.Payments.newBuilder().addAllItems(
+                                    multi.map {
+                                        MessagingModel.CashContent.Payment.newBuilder()
+                                            .setReceiver(it.receiver.asUserId())
+                                            .setNativeAmount(it.nativeAmount)
+                                            .setQuarks(it.tokenQuarks)
+                                            .build()
+                                    }
+                                )
+                            )
+                        } else {
+                            this@asContent.receiver?.let { setSingleReceiver(it.asUserId()) }
+                        }
+                        this@asContent.paymentRequestId?.let {
+                            setPaymentRequestId(
+                                PaymentRequestModel.PaymentRequestId.newBuilder().setValue(it.toByteString())
+                            )
                         }
                     }
             )
@@ -173,8 +196,19 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                     }
             )
             .build()
-        // Server-authored and receive-only: no client path builds one, so reaching this is a bug.
-        is MessageContent.Widget -> error("Widget messages are receive-only and are never sent by a client")
+        // A client sends only the payment request widget; share-profile is server-authored.
+        is MessageContent.Widget -> when (val widget = widget) {
+            is WidgetContent.PaymentRequest -> MessagingModel.Content.newBuilder()
+                .setWidget(
+                    MessagingModel.WidgetContent.newBuilder().setPaymentRequest(
+                        MessagingModel.PaymentRequestWidget.newBuilder()
+                            .setPaymentRequestId(widget.id.asPaymentRequestId())
+                    )
+                )
+                .build()
+            is WidgetContent.ShareProfile, WidgetContent.Unsupported ->
+                error("Only a payment request widget is ever sent by a client")
+        }
         // Only ever decoded from a type this build doesn't know, so it has no wire form to send.
         is MessageContent.Unsupported -> error("Unsupported content is decode-only; it has no wire form")
         is MessageContent.System -> {
@@ -183,9 +217,15 @@ internal fun MessageContent.asContent(): MessagingModel.Content {
                 is MessageContent.SystemEvent.UserJoined -> {
                     val joined = MessagingModel.SystemContent.UserJoined.newBuilder()
                         .setUserId(event.userId.asUserId())
-                    event.admittedBy?.let {
-                        joined.setAdmitted(MessagingModel.SystemContent.UserJoined.Admitted.newBuilder().setAdmittedBy(it.asUserId()))
-                    } ?: joined.setDirect(MessagingModel.SystemContent.UserJoined.Direct.getDefaultInstance())
+                    val admittedBy = event.admittedBy
+                    val invitedBy = event.invitedBy
+                    when {
+                        admittedBy != null ->
+                            joined.setAdmitted(MessagingModel.SystemContent.UserJoined.Admitted.newBuilder().setAdmittedBy(admittedBy.asUserId()))
+                        invitedBy != null ->
+                            joined.setInvited(MessagingModel.SystemContent.UserJoined.Invited.newBuilder().setInvitedBy(invitedBy.asUserId()))
+                        else -> joined.setDirect(MessagingModel.SystemContent.UserJoined.Direct.getDefaultInstance())
+                    }
                     systemBuilder.setUserJoined(joined)
                 }
                 null -> Unit
@@ -370,6 +410,14 @@ internal fun ViewMode.asViewMode(): MessagingModel.ViewMode {
     }
 }
 
+internal fun SilenceState.asProtoSilenceState(): ChatModel.SilenceState {
+    val builder = ChatModel.SilenceState.newBuilder()
+    return when (this) {
+        is SilenceState.Until -> builder.setUntil(until.asTimestamp()).build()
+        SilenceState.Forever -> builder.setForever(ChatModel.SilenceState.Forever.getDefaultInstance()).build()
+    }
+}
+
 internal fun MuteState.asProtoMuteState(): ChatModel.MuteState {
     val builder = ChatModel.MuteState.newBuilder()
     return when (this) {
@@ -383,5 +431,37 @@ internal fun com.flipcash.services.models.chat.KeyEnvelope.asProtoKeyEnvelope():
         .setSchemeValue(scheme)
         .setNonce(nonce.toByteString())
         .setCiphertext(ciphertext.toByteString())
+        .build()
+}
+
+internal fun ID.asPaymentRequestId(): PaymentRequestModel.PaymentRequestId {
+    return PaymentRequestModel.PaymentRequestId.newBuilder().setValue(toByteString()).build()
+}
+
+internal fun IdempotencyKey.asPaymentRequestIdempotencyKey(): PaymentRequestModel.IdempotencyKey {
+    return PaymentRequestModel.IdempotencyKey.newBuilder().setValue(bytes.toByteString()).build()
+}
+
+internal fun NewSplitRequest.asGroupChatPaymentRequest(): PaymentRequestModel.GroupChatPaymentRequest {
+    val split = PaymentRequestModel.Split.newBuilder()
+        .setEncrypted(
+            PaymentRequestModel.EncryptedPaymentRequestText.newBuilder()
+                .setSchemeValue(text.scheme)
+                .setNonce(text.nonce.toByteString())
+                .setCiphertext(text.ciphertext.toByteString())
+        )
+        .setCurrency(currency.name.lowercase())
+        .setEndsAt(endsAt.asTimestamp())
+        .addAllShares(
+            shares.map { userId ->
+                PaymentRequestModel.Share.newBuilder()
+                    .setUserId(userId.asUserId())
+                    .setNativeAmount(perPerson.decimalValue)
+                    .build()
+            }
+        )
+    return PaymentRequestModel.GroupChatPaymentRequest.newBuilder()
+        .setChatId(chatId.asChatId())
+        .setSplit(split)
         .build()
 }

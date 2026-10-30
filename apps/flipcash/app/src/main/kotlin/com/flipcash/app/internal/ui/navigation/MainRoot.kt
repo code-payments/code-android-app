@@ -231,7 +231,6 @@ internal fun buildNavGraphForLaunch(
                         target = AppRoute.OnboardingFlow(
                             phase = AppRoute.OnboardingFlow.Phase.Permissions,
                             skipContacts = true,
-                            newAccount = true,
                         ),
                         allowBack = false,
                     )

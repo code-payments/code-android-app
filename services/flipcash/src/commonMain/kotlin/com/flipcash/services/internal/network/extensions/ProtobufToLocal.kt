@@ -52,7 +52,11 @@ import com.flipcash.services.models.chat.isSystemBlank
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MetadataUpdate
+import com.flipcash.services.models.paymentrequest.PaymentRequestUpdate
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.BanState
+import com.flipcash.services.models.chat.RestrictedUser
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -78,6 +82,14 @@ import com.codeinc.flipcash.gen.activity.v1.Model as ActivityModels
 import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.codeinc.flipcash.gen.events.v1.Model as EventModel
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
+import com.codeinc.flipcash.gen.paymentrequest.v1.Model as PaymentRequestModel
+import com.flipcash.services.models.paymentrequest.PaidShare
+import com.flipcash.services.models.paymentrequest.PaymentRequest
+import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
+import com.flipcash.services.models.paymentrequest.PaymentRequestText
+import com.flipcash.services.models.paymentrequest.Share
+import com.flipcash.services.models.paymentrequest.Split
+import com.flipcash.services.models.paymentrequest.shareAmount
 
 internal fun ActivityModels.NotificationId.toId(): ID = value.toByteArray().toList()
 internal fun Common.UserId.toId(): ID = value.toByteArray().toList()
@@ -190,16 +202,28 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
         MessagingModel.Content.TypeCase.CASH -> MessageContent.Cash(
             intentId = cash.intentId.value.toByteArray().toList(),
             amount = Fiat(
-                fiat = cash.amount.nativeAmount,
-                currencyCode = CurrencyCode.tryValueOf(cash.amount.currency) ?: CurrencyCode.USD,
+                fiat = cash.totalAmount.nativeAmount,
+                currencyCode = CurrencyCode.tryValueOf(cash.totalAmount.currency) ?: CurrencyCode.USD,
             ),
-            mint = cash.amount.mint.value.toByteArray().toMint(),
+            mint = cash.totalAmount.mint.value.toByteArray().toMint(),
             action = when (cash.verb) {
                 MessagingModel.CashContent.Verb.TIPPED -> MessageContent.Cash.Action.TIPPED
                 else -> MessageContent.Cash.Action.SENT
             },
-            receiver = if (cash.hasReceiver()) cash.receiver.value.toByteArray().toList() else null,
-            tokenQuarks = cash.amount.quarks,
+            receiver = if (cash.hasSingleReceiver()) cash.singleReceiver.value.toByteArray().toList() else null,
+            tokenQuarks = cash.totalAmount.quarks,
+            multiReceiver = if (cash.hasMultiReceiver()) {
+                cash.multiReceiver.itemsList.map {
+                    MessageContent.Cash.Payment(
+                        receiver = it.receiver.toId(),
+                        nativeAmount = it.nativeAmount,
+                        tokenQuarks = it.quarks,
+                    )
+                }
+            } else {
+                emptyList()
+            },
+            paymentRequestId = if (cash.hasPaymentRequestId()) cash.paymentRequestId.value.toByteArray().toList() else null,
         )
         MessagingModel.Content.TypeCase.REPLY -> MessageContent.Reply(
             repliedMessageId = reply.repliedMessageId.value,
@@ -229,6 +253,11 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
             when (widget.typeCase) {
                 MessagingModel.WidgetContent.TypeCase.SHARE_PROFILE ->
                     WidgetContent.ShareProfile(widget.shareProfile.username.value)
+                // Only the id travels; the card owns the chat/creator mismatch check.
+                MessagingModel.WidgetContent.TypeCase.PAYMENT_REQUEST ->
+                    WidgetContent.PaymentRequest(
+                        widget.paymentRequest.paymentRequestId.value.toByteArray().toList()
+                    )
                 else -> WidgetContent.Unsupported
             }
         )
@@ -430,6 +459,8 @@ internal fun ChatModel.MetadataUpdate.toMetadataUpdate(
             MetadataUpdate.PictureChanged(profilePictureChanged.newProfilePicture.toMediaItem())
         ChatModel.MetadataUpdate.KindCase.COVER_PICTURE_CHANGED ->
             MetadataUpdate.CoverPictureChanged(coverPictureChanged.newCoverPicture.toMediaItem())
+        ChatModel.MetadataUpdate.KindCase.RULES_CHANGED ->
+            MetadataUpdate.RulesChanged(rulesChanged.newRules.toChatRules())
         else -> MetadataUpdate.LastActivityChanged(Instant.fromEpochSeconds(0))
     }
 }
@@ -475,7 +506,7 @@ internal fun ChatModel.Metadata.toChatMetadata(): ChatMetadata {
 internal fun ChatModel.HoldingsSummary.toHoldingsSummary(): HoldingsSummary {
     return HoldingsSummary(
         mint = mint.toMint(),
-        holdings = Fiat(quarks = quarks),
+        quarks = quarks,
         holderCount = holderCount,
         asOf = Instant.fromEpochSeconds(asOf.seconds, asOf.nanos),
     )
@@ -488,12 +519,46 @@ internal fun ChatModel.ViewerState.toViewerState(): ViewerState {
         mute = if (hasSettings() && settings.hasMute()) settings.mute.toMuteState() else null,
         version = version,
         permissions = if (hasPermissions()) {
-            ViewerState.Permissions(canEdit = permissions.canEdit)
+            ViewerState.Permissions(
+                canEdit = permissions.canEdit,
+                canInvite = permissions.canInvite,
+                moderation = if (permissions.hasModeration()) {
+                    ViewerState.ModerationPermissions(
+                        canSilence = permissions.moderation.canSilence,
+                        canBan = permissions.moderation.canBan,
+                    )
+                } else {
+                    ViewerState.ModerationPermissions()
+                },
+            )
         } else {
             ViewerState.Permissions()
         },
+        restrictions = if (hasRestrictions()) {
+            ViewerState.Restrictions(
+                silence = if (restrictions.hasSilence()) restrictions.silence.toSilenceState() else null,
+            )
+        } else {
+            null
+        },
     )
 }
+
+internal fun ChatModel.SilenceState.toSilenceState(): SilenceState {
+    return when (durationCase) {
+        ChatModel.SilenceState.DurationCase.UNTIL ->
+            SilenceState.Until(Instant.fromEpochSeconds(until.seconds, until.nanos))
+        ChatModel.SilenceState.DurationCase.FOREVER -> SilenceState.Forever
+        // A duration this client does not know is treated as the strictest one the user can see.
+        else -> SilenceState.Forever
+    }
+}
+
+internal fun ChatModel.RestrictedUser.toRestrictedUser(): RestrictedUser = RestrictedUser(
+    userProfile = userProfile.toMemberUserProfile(fallbackUserId = userId.toId()),
+    silence = if (hasSilence()) silence.toSilenceState() else null,
+    ban = if (hasBan()) BanState(Instant.fromEpochSeconds(ban.bannedAt.seconds, ban.bannedAt.nanos)) else null,
+)
 
 internal fun ChatModel.MuteState.toMuteState(): MuteState {
     return when (durationCase) {
@@ -636,6 +701,9 @@ internal fun EventModel.ChatUpdate.toChatUpdate(
         } else emptyList(),
         lobbyUpdates = if (hasLobbyUpdates()) {
             lobbyUpdates.lobbyUpdatesList.mapNotNull { it.toLobbyUpdateOrNull() }
+        } else emptyList(),
+        paymentRequestUpdates = if (hasPaymentRequestUpdates()) {
+            paymentRequestUpdates.paymentRequestUpdatesList.map { it.toPaymentRequestUpdate() }
         } else emptyList(),
     )
 }
@@ -789,7 +857,105 @@ private fun MessagingModel.SystemContent.toSystemEvent(): MessageContent.SystemE
                 admittedBy = joined.admitted
                     .takeIf { joined.methodCase == MessagingModel.SystemContent.UserJoined.MethodCase.ADMITTED && it.hasAdmittedBy() }
                     ?.admittedBy?.toId(),
+                invitedBy = joined.invited
+                    .takeIf { joined.methodCase == MessagingModel.SystemContent.UserJoined.MethodCase.INVITED && it.hasInvitedBy() }
+                    ?.invitedBy?.toId(),
             )
         }
     else -> null
 }
+
+internal fun PaymentRequestModel.PaymentRequestMetadata.toPaymentRequest(): PaymentRequest = PaymentRequest(
+    id = paymentRequestId.value.toByteArray().toList(),
+    creator = creator.toId(),
+    createdAt = Instant.fromEpochSeconds(createdAt.seconds, createdAt.nanos),
+    status = status.toDomain(),
+    closedAt = if (hasClosedAt()) Instant.fromEpochSeconds(closedAt.seconds, closedAt.nanos) else null,
+    version = version,
+    kind = groupChat.takeIf { hasGroupChat() }?.toKind() ?: PaymentRequest.Kind.Unsupported,
+)
+
+private fun PaymentRequestModel.PaymentRequestStatus.toDomain(): PaymentRequestStatus = when (this) {
+    PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_OPEN -> PaymentRequestStatus.Open
+    PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_COMPLETED -> PaymentRequestStatus.Completed
+    PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_CLOSED -> PaymentRequestStatus.Closed
+    PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_EXPIRED -> PaymentRequestStatus.Expired
+    else -> PaymentRequestStatus.Unknown
+}
+
+internal fun PaymentRequestModel.PaymentRequestUpdate.toPaymentRequestUpdate(): PaymentRequestUpdate =
+    PaymentRequestUpdate(
+        paymentRequestId = paymentRequestId.value.toByteArray().toList(),
+        kind = when (kindCase) {
+            PaymentRequestModel.PaymentRequestUpdate.KindCase.CREATED ->
+                PaymentRequestUpdate.Kind.Created(created.toPaymentRequest())
+            PaymentRequestModel.PaymentRequestUpdate.KindCase.UPDATES ->
+                PaymentRequestUpdate.Kind.Updates(
+                    version = updates.version,
+                    changes = updates.updatesList.map { it.toChange() },
+                )
+            else -> PaymentRequestUpdate.Kind.Unknown
+        },
+    )
+
+// An unknown update kind, or a share update with no share, maps to Unknown so the store refetches
+// rather than applying a partial change.
+private fun PaymentRequestModel.PaymentRequestUpdate.Update.toChange(): PaymentRequestUpdate.Change =
+    when (kindCase) {
+        PaymentRequestModel.PaymentRequestUpdate.Update.KindCase.SHARE_PAYMENT_UPDATE ->
+            sharePaymentUpdate.takeIf { it.hasShare() }?.share?.let { share ->
+                PaymentRequestUpdate.Change.SharePaid(
+                    userId = share.userId.toId(),
+                    paid = if (share.hasPaid()) share.paid.toPaidShare() else null,
+                )
+            } ?: PaymentRequestUpdate.Change.Unknown
+        PaymentRequestModel.PaymentRequestUpdate.Update.KindCase.STATUS_UPDATE ->
+            PaymentRequestUpdate.Change.StatusChanged(
+                status = statusUpdate.status.toDomain(),
+                closedAt = if (statusUpdate.hasClosedAt()) {
+                    Instant.fromEpochSeconds(statusUpdate.closedAt.seconds, statusUpdate.closedAt.nanos)
+                } else null,
+            )
+        else -> PaymentRequestUpdate.Change.Unknown
+    }
+
+private fun PaymentRequestModel.GroupChatPaymentRequest.toKind(): PaymentRequest.Kind {
+    if (!hasSplit()) return PaymentRequest.Kind.Unsupported
+    // An unknown currency can't be priced or shown; the request renders as unsupported.
+    val currency = CurrencyCode.tryValueOf(split.currency) ?: return PaymentRequest.Kind.Unsupported
+    val text = when (split.textCase) {
+        PaymentRequestModel.Split.TextCase.PLAINTEXT ->
+            PaymentRequestText.Plain(split.plaintext.title, split.plaintext.description)
+        PaymentRequestModel.Split.TextCase.ENCRYPTED -> PaymentRequestText.Encrypted(
+            scheme = split.encrypted.schemeValue,
+            nonce = split.encrypted.nonce.toByteArray(),
+            ciphertext = split.encrypted.ciphertext.toByteArray(),
+        )
+        else -> PaymentRequestText.Undecryptable
+    }
+    return PaymentRequest.Kind.GroupSplit(
+        chatId = chatId.toChatId(),
+        split = Split(
+            text = text,
+            currency = currency,
+            endsAt = Instant.fromEpochSeconds(split.endsAt.seconds, split.endsAt.nanos),
+            shares = split.sharesList.map { share ->
+                Share(
+                    userId = share.userId.toId(),
+                    amount = shareAmount(share.nativeAmount, currency),
+                    paid = if (share.hasPaid()) share.paid.toPaidShare() else null,
+                )
+            },
+        ),
+    )
+}
+
+private fun PaymentRequestModel.PaidShare.toPaidShare(): PaidShare = PaidShare(
+    paidAt = Instant.fromEpochSeconds(paidAt.seconds, paidAt.nanos),
+    how = when (howCase) {
+        PaymentRequestModel.PaidShare.HowCase.INTENT -> PaidShare.How.Payment
+        PaymentRequestModel.PaidShare.HowCase.MANUAL -> PaidShare.How.Manual
+        PaymentRequestModel.PaidShare.HowCase.CREATOR -> PaidShare.How.Creator
+        else -> PaidShare.How.Unknown
+    },
+)

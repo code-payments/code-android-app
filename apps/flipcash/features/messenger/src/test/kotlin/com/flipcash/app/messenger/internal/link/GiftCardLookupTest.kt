@@ -39,6 +39,7 @@ class GiftCardLookupTest {
         accountController = accountController,
         tokenCoordinator = mock(),
         userManager = mock { on { accountCluster } doReturn mock() },
+        exchange = mock(),
     )
 
     @Test

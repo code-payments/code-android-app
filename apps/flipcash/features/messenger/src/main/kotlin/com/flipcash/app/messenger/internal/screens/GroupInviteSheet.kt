@@ -42,11 +42,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import com.getcode.theme.extraSmall
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -71,6 +76,11 @@ import com.flipcash.app.core.share.SharePreviewImage
 import com.flipcash.app.core.share.TipCodePreview
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
+import com.flipcash.app.messenger.internal.invites.InviteLinkState
+import com.flipcash.app.messenger.internal.invites.InviteLinkViewModel
+import com.flipcash.app.messenger.internal.invites.elideInviteUrl
+import com.flipcash.app.messenger.internal.invites.inviteMetaLine
+import kotlinx.coroutines.flow.Flow
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.messenger.R
@@ -89,6 +99,7 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.ChatInputSubmit
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.sheetResignmentBehavior
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
@@ -110,6 +121,18 @@ import kotlinx.coroutines.launch
  */
 internal fun CodeNavigator.openGroupInvite() {
     navigateForResult<GroupInviteResult>(ChatStep.InviteToGroup) { result ->
+        if (result is NavResultOrCanceled.ReturnValue) {
+            navigate(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(result.value.chatId)))
+        }
+    }
+}
+
+/**
+ * Opens the invite variant of the sheet: the host's current link, or the invite [inviteIdHex] picked
+ * in Manage Invites. Returns the chat picked first, as [openGroupInvite] does.
+ */
+internal fun CodeNavigator.openInviteLinkShare(inviteIdHex: String? = null) {
+    navigateForResult<GroupInviteResult>(ChatStep.ShareInviteLink(inviteIdHex)) { result ->
         if (result is NavResultOrCanceled.ReturnValue) {
             navigate(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(result.value.chatId)))
         }
@@ -138,7 +161,10 @@ internal fun cardTileTag(subject: ShareToChatsSubject): String? =
  * link has no card.
  */
 internal fun showsCardTile(subject: ShareToChatsSubject, onShowCard: (() -> Unit)?): Boolean =
-    onShowCard != null && subject !is ShareToChatsSubject.Message
+    onShowCard != null &&
+        subject !is ShareToChatsSubject.Message &&
+        subject !is ShareToChatsSubject.Currency &&
+        subject !is ShareToChatsSubject.GroupInviteLink
 
 /**
  * What [GroupInviteSheet] hands out: a group's invite link, a person's profile link, or a link to
@@ -151,6 +177,15 @@ internal sealed interface ShareToChatsSubject {
      * on a group, so null is the frame before the subject resolves.
      */
     data class Group(val group: ChatSubject.Group?) : ShareToChatsSubject
+
+    /**
+     * A private group's invite link (frames 1b and 1f): the join variant's sheet with a link pill,
+     * Share Link and Copy Link in place of the group card, and Recent Chats cut to the chats an
+     * invite link may be sent into.
+     *
+     * [link] carries the link; its `toString` leaves the link out, so this prints without it.
+     */
+    data class GroupInviteLink(val group: ChatSubject.Group?, val link: InviteLinkState) : ShareToChatsSubject
 
     /**
      * @param preview the tip-code image for the system share sheet's card, when one is rendered.
@@ -167,6 +202,9 @@ internal sealed interface ShareToChatsSubject {
      * carried: the recipient's app draws the message card from it.
      */
     data object Message : ShareToChatsSubject
+
+    /** A currency's page link, from Currency Info. Like a message link it has no card to show. */
+    data class Currency(val name: String) : ShareToChatsSubject
 }
 
 /**
@@ -191,13 +229,16 @@ internal fun GroupInviteSheet(
     inviteUrl: String?,
     subject: ShareToChatsSubject,
     state: GroupInviteViewModel.State,
-    onShare: () -> Unit,
+    onShare: () -> Unit = {},
     onCopy: () -> Unit,
     onToggle: (ChatId) -> Unit,
     onMessageChanged: (String) -> Unit,
     onInvite: () -> Unit,
     onDismiss: () -> Unit,
     onShowCard: (() -> Unit)? = null,
+    /** The invite variant's Share, Copy and Send answers; see [InviteLinkViewModel.Effect]. */
+    inviteEffects: Flow<InviteLinkViewModel.Effect>? = null,
+    onInviteEffect: (InviteLinkViewModel.Effect) -> Unit = {},
 ) {
     val shareController = LocalShareController.current
     val scope = rememberCoroutineScope()
@@ -205,7 +246,10 @@ internal fun GroupInviteSheet(
     // Resolved here rather than in the share controller: the stored download URL expires, and
     // re-minting it needs the chat's profile to authorize it — neither of which the shareable
     // module can see. Same size and access as the avatar the conversation bar draws.
-    val group = (subject as? ShareToChatsSubject.Group)?.group
+    val inviteLink = subject as? ShareToChatsSubject.GroupInviteLink
+    val group = (subject as? ShareToChatsSubject.Group)?.group ?: inviteLink?.group
+    // Share, Copy and Send wait for the link: the tiles are disabled rather than dropping the tap.
+    val creating = inviteLink != null && inviteLink.link !is InviteLinkState.Ready
     val picture = group?.picture
     val pictureUrl = rememberMediaUrl(
         media = picture,
@@ -223,6 +267,29 @@ internal fun GroupInviteSheet(
     var headerHeight by remember { mutableStateOf(0.dp) }
     var fieldHeight by remember { mutableStateOf(0.dp) }
     var copied by remember { mutableStateOf(false) }
+
+    if (inviteEffects != null) {
+        val groupTitle = group?.groupTitle
+        val cacheKey = picture?.cacheKeyForSize(SharePreviewImage.TARGET_PX)
+        // The collector outlives recompositions, so it reads the latest callback rather than the first.
+        val currentOnInviteEffect by rememberUpdatedState(onInviteEffect)
+        LaunchedEffect(inviteEffects) {
+            inviteEffects.collect { effect ->
+                when (effect) {
+                    is InviteLinkViewModel.Effect.Share -> shareController.present(
+                        Shareable.GroupInvite(
+                            url = effect.url,
+                            title = groupTitle,
+                            imageUrl = pictureUrl.url,
+                            imageCacheKey = cacheKey,
+                        )
+                    )
+                    InviteLinkViewModel.Effect.Copied -> copied = true
+                    else -> currentOnInviteEffect(effect)
+                }
+            }
+        }
+    }
 
     // Held above the gesture bar, and dropped once the keyboard is up: the keyboard already lifts
     // the whole sheet clear of it, so counting both would leave a gap over the keys.
@@ -259,7 +326,17 @@ internal fun GroupInviteSheet(
                 },
             ),
         ) {
-            if (inviteUrl != null) {
+            if (inviteUrl != null || inviteLink != null) {
+                if (inviteLink != null) {
+                    item(key = "pill") {
+                        InviteLinkPill(
+                            link = inviteLink.link,
+                            modifier = Modifier
+                                .padding(horizontal = ListInset)
+                                .padding(top = TileRowTop),
+                        )
+                    }
+                }
                 item(key = "links") {
                     // Intrinsic height, so a tile whose label wraps stretches the others to
                     // match rather than standing taller than them.
@@ -268,16 +345,24 @@ internal fun GroupInviteSheet(
                             .fillMaxWidth()
                             .height(IntrinsicSize.Min)
                             .padding(horizontal = ListInset)
-                            .padding(top = TileRowTop, bottom = TileRowBottom),
-                        horizontalArrangement = Arrangement.spacedBy(TileGap),
+                            .padding(
+                                top = if (inviteLink != null) TileRowBottom else TileRowTop,
+                                bottom = TileRowBottom,
+                            ),
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     ) {
                         InviteLinkTile(
                             modifier = Modifier.weight(1f).fillMaxHeight(),
+                            enabled = !creating,
                             icon = R.drawable.ic_share_os,
-                            label = stringResource(R.string.action_shareInviteLink),
+                            label = stringResource(
+                                if (inviteLink != null) R.string.action_shareLink else R.string.action_shareInviteLink
+                            ),
                             onClick = {
                                 onShare()
-                                scope.launch {
+                                // The invite variant shares what the view model answers with, once
+                                // there is a link to share.
+                                if (inviteUrl != null) scope.launch {
                                     shareController.present(
                                         when (subject) {
                                             is ShareToChatsSubject.Group -> Shareable.GroupInvite(
@@ -294,6 +379,8 @@ internal fun GroupInviteSheet(
                                                 preview = subject.preview,
                                             )
                                             ShareToChatsSubject.Message -> Shareable.MessageLink(inviteUrl)
+                                            is ShareToChatsSubject.Currency -> Shareable.MessageLink(inviteUrl)
+                                            is ShareToChatsSubject.GroupInviteLink -> error("shared by effect")
                                         }
                                     )
                                 }
@@ -301,6 +388,7 @@ internal fun GroupInviteSheet(
                         )
                         InviteLinkTile(
                             modifier = Modifier.weight(1f).fillMaxHeight(),
+                            enabled = !creating,
                             icon = if (copied) R.drawable.ic_check else R.drawable.ic_copy,
                             label = stringResource(
                                 when {
@@ -311,7 +399,8 @@ internal fun GroupInviteSheet(
                             ),
                             onClick = {
                                 onCopy()
-                                copied = true
+                                // The invite variant has nothing to copy until the link exists.
+                                if (inviteLink == null) copied = true
                             },
                         )
                         if (showsCardTile(subject, onShowCard)) {
@@ -339,9 +428,21 @@ internal fun GroupInviteSheet(
                     RecentChatRow(
                         chat = chat,
                         selected = chat.chatId in state.selection,
-                        enabled = !state.sending,
+                        enabled = !state.sending && !creating,
                         onClick = { onToggle(chat.chatId) },
                     )
+                }
+                if (inviteLink != null) {
+                    item(key = "footnote") {
+                        Text(
+                            modifier = Modifier
+                                .padding(horizontal = ListInset)
+                                .padding(top = TileRowBottom),
+                            text = stringResource(R.string.footnote_inviteLink),
+                            style = CodeTheme.typography.textSmall,
+                            color = White50,
+                        )
+                    }
                 }
             }
         }
@@ -385,13 +486,14 @@ internal fun GroupInviteSheet(
                     )
                 }
                 .onSizeChanged { headerHeight = with(density) { it.height.toDp() } },
-            title = stringResource(
-                when (subject) {
-                    is ShareToChatsSubject.User -> R.string.title_shareProfileToChats
-                    is ShareToChatsSubject.Message -> R.string.title_shareMessageToChats
-                    is ShareToChatsSubject.Group -> R.string.title_invitePeople
-                }
-            ),
+            title = when (subject) {
+                is ShareToChatsSubject.Currency ->
+                    stringResource(R.string.title_shareCurrency, subject.name)
+                is ShareToChatsSubject.User -> stringResource(R.string.title_shareProfileToChats)
+                is ShareToChatsSubject.Message -> stringResource(R.string.title_shareMessageToChats)
+                is ShareToChatsSubject.Group,
+                is ShareToChatsSubject.GroupInviteLink -> stringResource(R.string.title_invitePeople)
+            },
             titleAlignment = Alignment.CenterHorizontally,
             contentPadding = PaddingValues(HeaderPadding),
             endContent = { AppBarDefaults.Close(hazeState = hazeState, onClick = onDismiss) },
@@ -401,7 +503,7 @@ internal fun GroupInviteSheet(
         // length of the fade.
         AnimatedVisibility(
             modifier = Modifier.align(Alignment.BottomCenter),
-            visible = inviteUrl != null && state.showsComposer,
+            visible = (inviteUrl != null || inviteLink != null) && state.showsComposer,
             enter = slideInVertically(ComposerSpring) { with(density) { ComposerTravel.roundToPx() } },
             exit = slideOutVertically(ComposerSpring) { with(density) { ComposerTravel.roundToPx() } },
         ) {
@@ -418,7 +520,7 @@ internal fun GroupInviteSheet(
                     hazeState = hazeState,
                     sending = state.sending,
                     sendLabel = stringResource(
-                        if (subject is ShareToChatsSubject.Group) R.string.action_invite else R.string.action_send
+                        if (subject is ShareToChatsSubject.Group || inviteLink != null) R.string.action_invite else R.string.action_send
                     ),
                     onMessageChanged = onMessageChanged,
                     onInvite = onInvite,
@@ -440,23 +542,25 @@ private fun InviteLinkTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     testTag: String? = null,
+    enabled: Boolean = true,
 ) {
     Column(
         modifier = modifier
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
-            .heightIn(min = TileMinHeight)
-            .clip(TileShape)
+            .alpha(if (enabled) 1f else DimmedAlpha)
+            .heightIn(min = CodeTheme.dimens.grid.x19)
+            .clip(CodeTheme.shapes.extraSmall)
             .background(White05)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = TilePaddingHorizontal, vertical = TilePaddingVertical),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = CodeTheme.dimens.grid.x2, vertical = CodeTheme.dimens.grid.x3),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(TileIconGap, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1, Alignment.CenterVertically),
     ) {
         Icon(
             painter = painterResource(icon),
             contentDescription = null,
             tint = CodeTheme.colors.textMain,
-            modifier = Modifier.size(TileIconSize),
+            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
         )
         Text(
             text = label,
@@ -467,12 +571,61 @@ private fun InviteLinkTile(
     }
 }
 
+/**
+ * Node 12933:113 — the invite link in a pill, with its expiry and joined count under it; while the
+ * tap on Share Invite Link makes the link, a spinner and "Creating link…" (node 12933:210). The link is cut in the
+ * middle so the secret is never shown whole.
+ */
+@Composable
+internal fun InviteLinkPill(link: InviteLinkState, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(CodeTheme.shapes.extraSmall)
+                .background(White05)
+                .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x3),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+        ) {
+            when (link) {
+                InviteLinkState.Creating -> {
+                    CodeCircularProgressIndicator(modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6 / 2))
+                    Text(
+                        text = stringResource(R.string.label_creatingInviteLink),
+                        style = CodeTheme.typography.textMedium,
+                        color = White50,
+                    )
+                }
+                is InviteLinkState.Ready -> Text(
+                    text = elideInviteUrl(link.url),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textMain,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
+                )
+                // A picked invite being fetched, or nothing to show as the sheet closes.
+                InviteLinkState.None, InviteLinkState.Loading ->
+                    CodeCircularProgressIndicator(modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6 / 2))
+            }
+        }
+        if (link is InviteLinkState.Ready) {
+            Text(
+                text = inviteMetaLine(link.expiresAt, link.useCount, link.maxUses),
+                style = CodeTheme.typography.textSmall,
+                color = White50,
+            )
+        }
+    }
+}
+
 /** Node 10330:19568 — the list's label, an ordinary row that scrolls with the chats. */
 @Composable
 private fun RecentChatsHeader() {
+    // Node 11633:2259: SemiBold 14, 16 above and below; the divider keeps the rows' insets.
     Column(modifier = Modifier.padding(horizontal = ListInset)) {
         Text(
-            modifier = Modifier.padding(vertical = HeaderRowVertical),
+            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
             text = stringResource(R.string.label_recentChats),
             style = CodeTheme.typography.textSmall,
             color = White50,
@@ -495,6 +648,7 @@ private fun RecentChatRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .alpha(if (enabled) 1f else DimmedAlpha)
             .toggleable(
                 value = selected,
                 enabled = enabled,
@@ -503,25 +657,27 @@ private fun RecentChatRow(
             )
             .padding(horizontal = ListInset),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(RowGap),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {
         ContactAvatar(
             image = chat.image,
             displayName = chat.name.orEmpty(),
             access = chat.avatarAccess,
             modifier = Modifier
-                .requiredSize(CodeTheme.dimens.staticGrid.x6)
+                .requiredSize(CodeTheme.dimens.staticGrid.x5)
                 .clip(CircleShape),
         )
         Column(modifier = Modifier.weight(1f)) {
             Row(
-                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x4),
+                // Node 11633:2262: 52 tall including the 1 divider.
+                modifier = Modifier.height(CodeTheme.dimens.grid.x10),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     modifier = Modifier.weight(1f),
-                    text = chat.name.orEmpty(),
-                    style = CodeTheme.typography.textMedium,
+                    text = chat.name.orEmpty().foldStyledLetters(),
+                    // SemiBold 17.
+                    style = CodeTheme.typography.textMedium.copy(fontSize = 17.sp),
                     color = CodeTheme.colors.textMain,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -529,6 +685,7 @@ private fun RecentChatRow(
                 // The same mark the token and currency pickers use, so this reads as the same kind
                 // of list.
                 Image(
+                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
                     painter = painterResource(
                         if (selected) R.drawable.ic_checked else R.drawable.ic_unchecked
                     ),
@@ -590,25 +747,18 @@ private val ListInset = 20.dp
 private val ComposerFill = Color(0x751E1E1E)
 private val ComposerBlurRadius = 24.dp
 private val HeaderPadding = 16.dp
-private val HeaderRowVertical = 16.dp
 // More above than below. AppBarWithTitle holds its height fixed and ignores HeaderPadding's bottom,
 // while its top pushes the close button down past the bar's measured edge, which is where the list
 // starts. iOS pads its header 16 on every side over the same 12 row inset; the extra 16 here stands
 // in for that bottom padding.
 private val TileRowTop = 28.dp
 private val TileRowBottom = 12.dp
-private val TileGap = 10.dp
-private val TileMinHeight = 95.dp
-private val TileShape = RoundedCornerShape(6.dp)
-private val TilePaddingHorizontal = 8.dp
-private val TilePaddingVertical = 16.dp
-private val TileIconSize = 28.dp
-private val TileIconGap = 6.dp
 
-// Node 10330:19572: the gap between avatar and name, which is also where the row's divider starts.
-private val RowGap = 16.dp
 
 private val ComposerMinBottom = 8.dp
+
+/** Share, Copy and Recent Chats while the first tap makes the link (node 12933:210). */
+private const val DimmedAlpha = 0.4f
 
 /** How far each edge scrim runs past its bar, as on the Chats list. */
 private val ScrimTail = 48.dp
@@ -616,3 +766,11 @@ private val ScrimTail = 48.dp
 private val ComposerTravel = 120.dp
 // iOS's spring(response: 0.35): stiffness (2π / 0.35)² and its default damping.
 private val ComposerSpring = spring<IntOffset>(dampingRatio = 0.825f, stiffness = 322f)
+
+/**
+ * Names can arrive in Unicode "styled" letters (e.g. U+1D5D4 mathematical sans-serif bold), which
+ * the app font has no glyphs for, so those rows fell back to a system font. NFKC folds them to
+ * the plain letters the app font draws; plain names are unchanged.
+ */
+internal fun String.foldStyledLetters(): String =
+    java.text.Normalizer.normalize(this, java.text.Normalizer.Form.NFKC)

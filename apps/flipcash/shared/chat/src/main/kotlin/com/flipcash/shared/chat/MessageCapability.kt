@@ -4,6 +4,8 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.reactions.SelfReaction
+import com.getcode.opencode.model.core.ID
+import com.flipcash.shared.chat.ui.linkableText
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -36,6 +38,16 @@ enum class MessageCapability {
      * notice and a widget are left out because the card they would resolve to has nothing to show.
      */
     Link,
+
+    /**
+     * Silence the message's sender in this group. Granted to a viewer holding the server's
+     * `can_silence` flag, on another member's message that is not the creator's. Never client-derived
+     * authority: the server answers DENIED if the flag was stale.
+     */
+    Silence,
+
+    /** Remove the message's sender from the group (a ban), under the same rules as [Silence] with `can_ban`. */
+    Remove,
 }
 
 /**
@@ -138,6 +150,10 @@ data class MessagePolicy(
  * including one who has left it and still has messages of their own in the transcript.
  * @param canSpeak whether the chat's speaker rules let the viewer speak (see [canSpeak]). Gates
  * Reply on every message. A direct message has no rules and always speaks.
+ * @param canSilence whether the server granted the viewer `can_silence` in this chat.
+ * @param canBan whether the server granted the viewer `can_ban` in this chat.
+ * @param creatorId the chat's creator, whose messages never offer [MessageCapability.Silence] or
+ * [MessageCapability.Remove].
  */
 fun resolveCapabilities(
     message: ChatMessage,
@@ -145,9 +161,21 @@ fun resolveCapabilities(
     now: Instant = Clock.System.now(),
     canPost: Boolean = true,
     canSpeak: Boolean = true,
+    canSilence: Boolean = false,
+    canBan: Boolean = false,
+    creatorId: ID? = null,
 ): Set<MessageCapability> {
     val resolved = resolveForParticipant(message, policy, now, canSpeak)
-    return if (canPost) resolved else resolved.readOnly()
+    if (!canPost) return resolved.readOnly()
+    // Report is granted on exactly the messages a participant other than the viewer sent, so it
+    // stands in for "someone else's message" here. The creator is never offered either action.
+    val moderatable = MessageCapability.Report in resolved &&
+        message.senderId != null && message.senderId != creatorId
+    if (!moderatable || (!canSilence && !canBan)) return resolved
+    return resolved + buildSet {
+        if (canSilence) add(MessageCapability.Silence)
+        if (canBan) add(MessageCapability.Remove)
+    }
 }
 
 /**
@@ -196,16 +224,21 @@ private fun resolveForParticipant(
         return if (canSpeak) setOf(MessageCapability.Reply) else emptySet()
     }
 
-    // A photo, bare or quoted in a reply, is never copied or edited: its caption rides with the
-    // image, and an edit would have to re-seal or replace the picture.
+    // A photo, bare or quoted in a reply, is never edited: its caption rides with the image, and
+    // an edit would have to re-seal or replace the picture. Its caption can be copied, as a text
+    // message's body can, and a photo with none has nothing to copy.
     val isPhoto = contents.any { it.isPhoto() }
-    val hasText = !isPhoto && contents.any { it is MessageContent.Text || it is MessageContent.Reply }
+    val hasText = if (isPhoto) {
+        contents.any { !it.linkableText().isNullOrEmpty() }
+    } else {
+        contents.any { it is MessageContent.Text || it is MessageContent.Reply }
+    }
 
     return buildSet {
         if (hasText) add(MessageCapability.Copy)
         if (canSpeak) add(MessageCapability.Reply)
         if (message.isFromSelf) {
-            if (hasText) add(MessageCapability.Edit)
+            if (hasText && !isPhoto) add(MessageCapability.Edit)
             add(MessageCapability.Delete)
         } else {
             add(MessageCapability.Report)
@@ -241,7 +274,7 @@ fun Set<MessageCapability>.withinWindows(
         // server enforces them, and nothing in the contract limits how old a reportable message
         // may be.
         MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report,
-        MessageCapability.Link -> true
+        MessageCapability.Link, MessageCapability.Silence, MessageCapability.Remove -> true
     }
 }
 

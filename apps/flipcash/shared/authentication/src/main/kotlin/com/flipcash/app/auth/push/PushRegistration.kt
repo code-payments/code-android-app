@@ -1,0 +1,56 @@
+package com.flipcash.app.auth.push
+
+import kotlin.time.Instant
+
+/**
+ * The last `AddToken` outcome for the signed-in account. Written by every call site (login, token
+ * refresh, the notification status page) so the status page and its report can say when push
+ * registration last worked. Never holds the token itself.
+ */
+data class PushRegistration(
+    val at: Instant,
+    val result: PushRegistrationResult,
+    val source: PushRegistrationSource,
+    /** When any call site last got `ok`; only a newer `ok` replaces it. */
+    val lastOkAt: Instant? = null,
+)
+
+enum class PushRegistrationResult(val key: String) {
+    Ok("ok"),
+    InvalidPushToken("invalidPushToken"),
+    Transport("transport"),
+    Unknown("unknown"),
+}
+
+enum class PushRegistrationSource(val key: String) {
+    Login("login"),
+    Refresh("refresh"),
+    StatusPage("statusPage"),
+}
+
+/** What one registration attempt found, before it is reduced to a saved [PushRegistrationResult]. */
+enum class PushRegistrationOutcome(val key: String) {
+    Ok("ok"),
+
+    /** The token provider returned no token, so `AddToken` was never called. */
+    NoToken("noToken"),
+    InvalidPushToken("invalidPushToken"),
+
+    /** No answer from the server: offline, unreachable, or the attempt timed out. */
+    Transport("transport"),
+    Failed("failed"),
+}
+
+data class PushRegistrationAttempt(
+    val outcome: PushRegistrationOutcome,
+    /** The record saved before this attempt, if any. */
+    val previous: PushRegistration?,
+    /** Last six characters of the token sent, for the support report. Null when none was sent, and then nothing was saved. */
+    val tokenSuffix: String?,
+)
+
+interface PushRegistrationStore {
+    suspend fun read(): PushRegistration?
+    suspend fun save(registration: PushRegistration)
+    suspend fun clear()
+}

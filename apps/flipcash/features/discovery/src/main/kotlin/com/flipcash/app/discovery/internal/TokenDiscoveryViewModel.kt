@@ -1,5 +1,7 @@
 package com.flipcash.app.discovery.internal
 
+import com.flipcash.app.core.ui.forViewer
+import com.getcode.opencode.exchange.Exchange
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.extensions.onResult
@@ -41,6 +43,7 @@ internal class TokenDiscoveryViewModel @Inject constructor(
     private val currencyController: CurrencyController,
     private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
+    private val exchange: Exchange,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<TokenDiscoveryViewModel.State, TokenDiscoveryViewModel.Event>(
     initialState = State(),
@@ -120,10 +123,10 @@ internal class TokenDiscoveryViewModel @Inject constructor(
             .filterIsInstance<Event.LearnAboutLeaderboard>()
             .map { stateFlow.value.minimumHolderAmount }
             .onEach { amount ->
-                val minAmount = amount.formatted(
-                    rule = Fiat.FormattingRule.Truncated,
-                    suffix = resources.getString(R.string.subtitle_usdSuffix),
-                )
+                // The minimum is set in USD and goes to Discover as USD; only its display converts.
+                val minAmount = amount
+                    .forViewer(exchange.preferredRate, exchange.rates())
+                    .formatted(rule = Fiat.FormattingRule.Truncated)
                 BottomBarManager.showInfo(
                     title = resources.getString(R.string.prompt_title_learnAboutLeaderboard),
                     message = resources.getString(R.string.prompt_description_learnAboutLeaderboard, minAmount)

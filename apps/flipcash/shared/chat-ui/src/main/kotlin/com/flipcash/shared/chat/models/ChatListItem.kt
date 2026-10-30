@@ -6,6 +6,8 @@ import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.flipcash.shared.chat.ui.DetectedMention
 import com.flipcash.shared.chat.ui.UndecryptableHint
+import com.flipcash.shared.chat.ui.linkableText
+import com.flipcash.shared.chat.ui.mediaBody
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
@@ -71,6 +73,8 @@ sealed interface ChatListItem {
         val contentIndex: Int,
         override val timestamp: Instant,
         val text: String,
+        /** Names in [text] that open a profile when tapped. */
+        val userLinks: List<SystemUserLink> = emptyList(),
     ) : TranscriptMessage {
         override val isFromSelf: Boolean = false
         override val itemKey: Any =
@@ -197,6 +201,18 @@ sealed interface ChatListItem {
          * selected or copied.
          */
         val redacted: Boolean = false,
+        /**
+         * The viewer's own part of a cash message that names its recipients
+         * ([MessageContent.Cash.multiReceiver] or [MessageContent.Cash.receiver]), which the bubble
+         * shows as "You received". Null when the message names others and not the viewer.
+         */
+        val receivedPart: MessageContent.Cash.Payment? = null,
+        /**
+         * Who a cash message in a group paid, as the bubble's foot reads it: "to Alex Morgan and
+         * 2 Others", or "to Alex Morgan" for one member. Null outside a group, and for a payment to
+         * the viewer alone, which keeps the plain "You received" card.
+         */
+        val groupSendRecipients: String? = null,
     ) : TranscriptMessage {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the
@@ -219,16 +235,15 @@ sealed interface ChatListItem {
             else -> authorId == other.authorId
         }
 
-        /** The body a Copy or an Edit acts on, or `null` for a bubble that carries no text. */
+        /**
+         * The body a Copy or an Edit acts on, or `null` for a bubble that carries no text. A
+         * photo's body is its caption.
+         *
+         * Copy and edit act on what the user wrote, not on the citation around it.
+         * PendingMutation.replacingText unwraps the same way when the edit is applied.
+         */
         val plainText: String?
-            get() = when (val content = content) {
-                is MessageContent.Text -> content.text
-                // Copy and edit act on what the user wrote, not on the citation around it.
-                // PendingMutation.replacingText unwraps the same way when the edit is applied.
-                is MessageContent.Reply ->
-                    content.content.filterIsInstance<MessageContent.Text>().firstOrNull()?.text
-                else -> null
-            }
+            get() = content.linkableText()
 
         /**
          * Whether long-pressing this bubble should open the selection bar.
@@ -307,6 +322,18 @@ enum class MessagePart(val id: String) {
  */
 fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentBubble> {
     val card = linkCard ?: return listOf(this)
+    // A photo draws its caption inside the photo's own bubble, so the photo row is never split:
+    // the bubble draws the caption's rows itself, in the order a text message's are (see
+    // [captionRowsAround]). A Flipcash card that is not money is kept for that whenever its span
+    // fits the caption. Cash and token cards are kept only when they are all the caption says,
+    // and a web card is dropped: no sender attaches a preview to a caption, so there is never one
+    // to draw.
+    if (content.mediaBody() != null) {
+        val caption = plainText ?: return listOf(copy(linkCard = null))
+        val keep = card.isAloneIn(caption) ||
+            (card.drawsAroundCaption() && card.marginsIn(caption) != null)
+        return listOf(if (keep) this else copy(linkCard = null))
+    }
     // A web card draws inside the text bubble, under the text, with the link left in the text. A
     // split row would carry the receipt and the reaction pills, and they would vanish whenever the
     // card is empty, which is most of the time.
@@ -337,6 +364,38 @@ fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentB
         )
     }
 }
+
+/** Whether this card may draw under a photo caption that has words around its link. */
+private fun LinkCard.drawsAroundCaption(): Boolean = when (this) {
+    is LinkCard.GroupInvite, is LinkCard.InviteLink, is LinkCard.User, is LinkCard.Message -> true
+    is LinkCard.Cash, is LinkCard.TokenInfo, is LinkCard.Web -> false
+}
+
+/**
+ * The rows of a photo caption around [this] card, split as [splitAroundLinkCard] splits a text
+ * message: the text before the link, then the card, then the text after, each text row dropped when
+ * it says nothing. Mentions are rebased into the row they fall in. Null when the caption is not
+ * drawn around a card.
+ */
+internal fun LinkCard.captionRowsAround(
+    caption: String,
+    mentions: List<DetectedMention>,
+): CaptionRows? {
+    if (!drawsAroundCaption() || isAloneIn(caption)) return null
+    val (leadingEnd, trailingStart) = marginsIn(caption) ?: return null
+    return CaptionRows(
+        leading = caption.substring(0, leadingEnd).takeIf { it.saysSomething() }
+            ?.let { it to mentions.rebased(from = 0, until = leadingEnd) },
+        trailing = caption.substring(trailingStart).takeIf { it.saysSomething() }
+            ?.let { it to mentions.rebased(from = trailingStart, until = caption.length) },
+    )
+}
+
+/** The text rows of a caption on either side of its card; each is its text and its mentions. */
+internal data class CaptionRows(
+    val leading: Pair<String, List<DetectedMention>>?,
+    val trailing: Pair<String, List<DetectedMention>>?,
+)
 
 /**
  * Where the text around [this] card's link ends and begins, or null when the card's span does not

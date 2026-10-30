@@ -150,4 +150,48 @@ class ChatReactionsReducerTest {
         assertEquals(1L, selected.selection?.messageId)
         assertFalse(selected.reactionStripOnly)
     }
+
+    @Test
+    fun `the photo viewer's strip highlights the live picks, not the ones from when it opened`() {
+        val squid = SelfReaction(emoji = "🦑", reactedAt = Instant.fromEpochSeconds(2_000))
+        val state = ChatViewModel.State(messagePolicy = unbounded, quickReactionInputs = inputs)
+        val opened = bubble(1)
+
+        val stale = state.reactionStripFor(opened)
+        val live = state.reactionStripFor(opened.withLiveSelfReactions(listOf(squid)))
+        val cleared = state.reactionStripFor(opened.withLiveSelfReactions(listOf(squid)).withLiveSelfReactions(emptyList()))
+
+        assertFalse(ReactionStrip.Entry(emoji = "🦑", highlighted = true) in stale)
+        assertTrue(ReactionStrip.Entry(emoji = "🦑", highlighted = true) in live)
+        assertFalse(cleared.any { it.highlighted })
+    }
+
+    @Test
+    fun `an overlay with nothing for the message leaves the opened bubble as it is`() {
+        val squid = SelfReaction(emoji = "🦑", reactedAt = Instant.fromEpochSeconds(2_000))
+        val opened = bubble(1, selfReactions = listOf(squid))
+
+        assertEquals(opened, opened.withLiveSelfReactions(null))
+    }
+
+    @Test
+    fun `the photo viewer's strip is empty until the inputs load`() {
+        assertEquals(emptyList(), ChatViewModel.State(messagePolicy = unbounded).reactionStripFor(bubble(1)))
+    }
+
+    @Test
+    fun `own reactions follow the pill row's order, then newest first, and track the live picks`() {
+        val a = SelfReaction("🦑", Instant.fromEpochSeconds(1))
+        val b = SelfReaction("🔥", Instant.fromEpochSeconds(3))
+        val c = SelfReaction("👍", Instant.fromEpochSeconds(2))
+        val pill = { e: String -> com.flipcash.shared.chat.reactions.ReactionPill(e, 1, true, false) }
+        val opened = bubble(1).copy(reactionPills = listOf(pill("👍"), pill("🦑")))
+
+        assertEquals(emptyList(), opened.ownReactionEmoji())
+        assertEquals(
+            listOf("👍", "🦑", "🔥"),
+            opened.withLiveSelfReactions(listOf(a, b, c)).ownReactionEmoji(),
+        )
+        assertEquals(listOf("🔥", "👍"), bubble(1).withLiveSelfReactions(listOf(c, b)).ownReactionEmoji())
+    }
 }

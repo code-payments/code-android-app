@@ -36,6 +36,7 @@ import com.flipcash.features.myaccount.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.EmptyState
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.utils.hexEncodedString
 import com.getcode.view.LoadingSuccessState
@@ -154,22 +155,9 @@ private fun BlockedUserRow(
 
 @Composable
 private fun EmptyBlocklist(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(horizontal = CodeTheme.dimens.inset),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-    ) {
-        Text(
-            text = stringResource(R.string.title_blocklistEmpty),
-            style = CodeTheme.typography.textLarge,
-            color = CodeTheme.colors.textMain,
-        )
-        Text(
-            modifier = Modifier.fillMaxWidth(0.8f),
-            text = stringResource(R.string.description_blocklistEmpty),
-            style = CodeTheme.typography.caption,
-            color = CodeTheme.colors.textSecondary,
-            textAlign = TextAlign.Center,
-        )
-    }
+    EmptyState(
+        modifier = modifier,
+        title = stringResource(R.string.title_blocklistEmpty),
+        description = stringResource(R.string.description_blocklistEmpty),
+    )
 }

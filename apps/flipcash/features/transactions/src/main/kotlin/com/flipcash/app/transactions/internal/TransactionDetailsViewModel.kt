@@ -4,11 +4,12 @@ import android.content.ClipboardManager
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.blocklist.DmDestinationResolver
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.extensions.onResult
 import com.flipcash.app.core.extensions.setText
 import com.flipcash.app.core.feed.MessageMetadata
-import com.flipcash.app.core.money.formatted
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.transactions.R
@@ -19,7 +20,9 @@ import com.flipcash.shared.transactionhistory.ResolvedTransaction
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionOperations
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
+import com.getcode.utils.base58
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
@@ -53,6 +56,7 @@ class TransactionDetailsViewModel @Inject constructor(
     clipboardManager: ClipboardManager,
     toastController: SystemToastController,
     userManager: UserManager,
+    exchange: Exchange,
     resources: ResourceHelper,
     dmDestinations: DmDestinationResolver,
     dispatchers: DispatcherProvider,
@@ -76,6 +80,35 @@ class TransactionDetailsViewModel @Inject constructor(
         val counterpartDestination: AppRoute? = null,
     ) {
         val viewsProfile: Boolean get() = counterpartDestination is AppRoute.Messaging.Profile
+
+        /**
+         * Where "View Message" goes when the entry boosted a reaction: the chat, scrolled to and
+         * flashing that message, through the route a message deeplink builds. Read straight off the
+         * stored snapshot — it is not validated, so a deleted message or a chat the viewer has left
+         * lands exactly where a stale message link does.
+         */
+        val boostedMessageRoute: AppRoute? get() = transaction?.details?.boostedReaction?.let { boost ->
+            AppRoute.Messaging.Chat(
+                identifier = ChatIdentifier.ByChatId(boost.chatId),
+                jumpToMessageId = boost.messageId,
+            )
+        }
+
+        /**
+         * Where "View Request" goes when the entry paid a share of a request: the chat with that
+         * request's details open over it. Read off the stored snapshot and not validated, so a
+         * request that has since closed, or that the viewer can no longer read, is handled by
+         * Request details itself. A boost wins if both are set.
+         */
+        val requestedPaymentRoute: AppRoute? get() {
+            val details = transaction?.details ?: return null
+            if (details.boostedReaction != null) return null
+            val requested = details.requestedPayment ?: return null
+            return AppRoute.Messaging.Chat(
+                identifier = ChatIdentifier.ByChatId(requested.chatId),
+                openRequestId = requested.paymentRequestId.base58,
+            )
+        }
     }
 
     sealed interface Event {
@@ -125,7 +158,7 @@ class TransactionDetailsViewModel @Inject constructor(
             .mapNotNull { stateFlow.value.transaction?.message }
             .onEach { message ->
                 val metadata = message.metadata as? MessageMetadata.IndirectlySentCrypto ?: return@onEach
-                val formattedAmount = message.amount?.formatted()
+                val formattedAmount = message.amount?.forViewer(exchange.preferredRate, exchange.rates())?.formatted()
                 val title = formattedAmount?.let {
                     resources.getString(R.string.prompt_title_cancelTransferWithAmount, it)
                 } ?: resources.getString(R.string.prompt_title_cancelTransferNoAmount)

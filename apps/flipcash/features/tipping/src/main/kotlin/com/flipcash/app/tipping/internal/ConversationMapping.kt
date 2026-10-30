@@ -1,9 +1,15 @@
 package com.flipcash.app.tipping.internal
 
+import com.getcode.opencode.exchange.Exchange
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatSummary
+import com.flipcash.shared.chat.waitingFor
+import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.shared.chat.ui.ConversationReference
+import com.flipcash.shared.chat.ui.previewedPaymentRequestId
 import com.flipcash.shared.chat.ui.toConversationReference
 import com.flipcash.shared.chat.ui.unnamedGroupSender
 import com.getcode.opencode.model.financial.Token
@@ -23,6 +29,12 @@ internal fun mapConversations(
     selfId: ID?,
     resources: ResourceHelper,
     chatCoordinator: ChatCoordinator,
+    exchange: Exchange,
+    paymentRequests: Map<ID, PaymentRequest>,
+    // Asked for each previewed request the store doesn't hold yet; the row redraws when it lands.
+    requestPaymentRequest: (ID) -> Unit,
+    // Hosted groups' lobbies; a row shows the ones waiting on a group the viewer hosts.
+    lobbies: Map<ChatId, List<LobbyMember>> = emptyMap(),
 ): List<ConversationReference> {
     val tokensByMint = tokens.associateBy { it.address }
     return summaries.map { summary ->
@@ -32,6 +44,10 @@ internal fun mapConversations(
         if (senderProfiles != null) {
             summary.unnamedGroupSender(selfId, senderProfiles)?.let(chatCoordinator::requestSenderProfile)
         }
-        summary.toConversationReference(selfId, tokensByMint, resources, senderProfiles.orEmpty())
+        summary.previewedPaymentRequestId()
+            ?.takeIf { it !in paymentRequests }
+            ?.let(requestPaymentRequest)
+        summary.toConversationReference(selfId, tokensByMint, resources, senderProfiles.orEmpty(), exchange, paymentRequests)
+            .copy(joinRequests = lobbies.waitingFor(summary.metadata, selfId).sortedByDescending { it.enteredAt })
     }
 }

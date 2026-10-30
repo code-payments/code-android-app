@@ -29,7 +29,7 @@ sealed interface SeparatorConfig {
     }
 
     data class Continuous(
-        val gap: Duration = 3.hours,
+        val gap: Duration = 1.hours,
     ) : SeparatorConfig {
         override val groupingWindow: Duration = Duration.INFINITE
         override fun shouldSeparate(before: Instant, after: Instant): Boolean =

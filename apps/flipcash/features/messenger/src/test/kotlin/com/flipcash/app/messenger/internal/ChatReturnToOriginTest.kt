@@ -97,6 +97,7 @@ class ChatReturnToOriginTest {
         identifier: ChatIdentifier? = null,
     ): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
+        wrongKeyChats = com.flipcash.services.chat.WrongKeyChats(),
         mediaUploads = noMediaUploads(),
         e2eePolicy = E2eePolicy(),
         contactCoordinator = contactCoordinator,
@@ -116,6 +117,7 @@ class ChatReturnToOriginTest {
         linkCardResolver = mockk(relaxed = true),
         cashLinkClaims = mockk(relaxed = true) { every { claimInFlight } returns MutableStateFlow(null) },
         chatCashLinks = mockk(relaxed = true),
+        groupSendPayments = mockk(relaxed = true),
         chatDraftStore = mockk(relaxed = true),
         recentReactionsStore = mockk(relaxed = true),
         toastController = mockk(relaxed = true),

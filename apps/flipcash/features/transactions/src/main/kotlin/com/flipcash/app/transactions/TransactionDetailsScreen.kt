@@ -53,6 +53,12 @@ fun TransactionDetailsScreen(id: ID) {
         onViewInChat = {
             state.counterpartDestination?.let { navigator.push(it) }
         },
+        onViewMessage = {
+            state.boostedMessageRoute?.let { navigator.push(it) }
+        },
+        onViewRequest = {
+            state.requestedPaymentRoute?.let { navigator.push(it) }
+        },
         onCancel = { viewModel.dispatchEvent(TransactionDetailsViewModel.Event.OnCancelRequested) },
     )
 }

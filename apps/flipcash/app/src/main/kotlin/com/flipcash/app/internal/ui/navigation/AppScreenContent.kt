@@ -22,6 +22,7 @@ import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.devicelogs.DeviceLogsScreen
 import com.flipcash.app.myaccount.LinkDesktopScreen
 import com.flipcash.app.purchase.OnboardingPurchaseStep
+import com.flipcash.app.notificationstatus.NotificationStatusScreen
 import com.flipcash.app.backupkey.BackupKeyScreen
 import com.flipcash.app.balance.WalletScreen
 import com.flipcash.app.cash.CashScreen
@@ -46,11 +47,15 @@ import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
 import com.flipcash.app.messenger.ChatFlowScreen
-import com.flipcash.app.messenger.ChatPhotoViewerScreen
+import com.flipcash.app.tokens.internal.CommunityChatsScreen
+import com.flipcash.app.messenger.CurrencySendScreen
+import com.flipcash.app.messenger.internal.screens.profile.GroupInviteScreen
 import com.flipcash.app.messenger.E2eeLearnMoreScreen
 import com.flipcash.app.messenger.MuteChatScreen
+import com.flipcash.app.messenger.SilenceUserScreen
 import com.flipcash.app.messenger.ProfileScreen
 import com.flipcash.app.messenger.SharePickerScreen
+import com.flipcash.app.messenger.ShareCurrencyToChatsScreen
 import com.flipcash.app.messenger.ShareProfileToChatsScreen
 import com.flipcash.app.messenger.ReportFlowScreen
 import com.flipcash.app.discovery.TokenDiscoveryScreen
@@ -131,7 +136,8 @@ internal fun appEntryProvider(
 
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
     // Route type is `Give` but the screen is the Cash/Give screen the flows call cash_screen.
-    annotatedEntry<AppRoute.Sheets.Give>(testTag = "cash_screen") { key -> CashScreen(key.mint, key.fromTokenInfo) }
+    annotatedEntry<AppRoute.Sheets.CurrencySend>(testTag = "currency_send_screen") { key -> CurrencySendScreen(key.mint, resultStateRegistry) }
+    annotatedEntry<AppRoute.Sheets.Give>(testTag = "cash_screen") { key -> CashScreen(key.mint, key.fromTokenInfo, key.amount) }
     annotatedEntry<AppRoute.Sheets.TokenSelection> { key -> TokenSelectScreen(key.purpose) }
     annotatedEntry<AppRoute.Sheets.ShareApp> { ShareAppScreen() }
     annotatedEntry<AppRoute.Sheets.ActivityHistory> { ActivityHistoryScreen() }
@@ -148,6 +154,7 @@ internal fun appEntryProvider(
             ChatFlowScreen(route = key, resultStateRegistry = resultStateRegistry)
         }
     }
+    annotatedEntry<AppRoute.Messaging.GroupInvite> { key -> GroupInviteScreen(key.secret) }
     annotatedEntry<AppRoute.Messaging.Profile> { key -> ProfileScreen(key.address, key.origin) }
     annotatedEntry<AppRoute.Messaging.NewChat> { NewChatScreen() }
     annotatedEntry<AppRoute.Messaging.ArchivedChats> { ArchivedChatsScreen() }
@@ -176,8 +183,11 @@ internal fun appEntryProvider(
     }
     annotatedEntry<AppRoute.Messaging.SharePicker> { SharePickerScreen() }
     annotatedEntry<AppRoute.Messaging.ShareProfileToChats> { key -> ShareProfileToChatsScreen(key) }
+    annotatedEntry<AppRoute.Messaging.ShareCurrencyToChats> { key -> ShareCurrencyToChatsScreen(key) }
     annotatedEntry<AppRoute.Messaging.MuteChat> { key -> MuteChatScreen(key.chatId, key.chatType) }
-    annotatedEntry<AppRoute.Messaging.PhotoViewer> { key -> ChatPhotoViewerScreen(key.chatId, key.messageId) }
+    annotatedEntry<AppRoute.Messaging.SilenceUser> { key ->
+        SilenceUserScreen(key.chatId, key.userId, key.firstName, key.groupTitle)
+    }
     annotatedEntry<AppRoute.Messaging.E2eeDmInfo> { E2eeLearnMoreScreen(forGroup = false) }
     annotatedEntry<AppRoute.Messaging.E2eeGroupInfo> { E2eeLearnMoreScreen(forGroup = true) }
     annotatedEntry<AppRoute.Messaging.E2eePrivateGroupInfo> {
@@ -191,6 +201,7 @@ internal fun appEntryProvider(
     annotatedEntry<AppRoute.Token.Transactions>(testTag = "transaction_history_screen") { key ->
         TransactionHistoryScreen(key.mint)
     }
+    annotatedEntry<AppRoute.Token.CommunityChats>(testTag = "community_chats_screen") { key -> CommunityChatsScreen(key.mint) }
     annotatedEntry<AppRoute.Token.MarketCapExplainer>(testTag = "market_cap_explainer_screen") { key ->
         MarketCapExplainerScreen(key.mint)
     }
@@ -226,6 +237,7 @@ internal fun appEntryProvider(
     annotatedEntry<AppRoute.Menu.BackupKey> { BackupKeyScreen() }
     annotatedEntry<AppRoute.Menu.DeviceLogs> { DeviceLogsScreen() }
     annotatedEntry<AppRoute.Menu.LinkDesktop> { LinkDesktopScreen() }
+    annotatedEntry<AppRoute.Menu.NotificationStatus> { NotificationStatusScreen() }
     annotatedEntry<AppRoute.Menu.AccountSelection> { AccountSelectionScreen() }
 
     annotatedEntry<AppRoute.UserFlags> { UserFlagsScreen() }

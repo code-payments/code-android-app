@@ -184,6 +184,7 @@ include(
     ":apps:flipcash:features:messenger",
     ":apps:flipcash:features:invite",
     ":apps:flipcash:features:device-logs",
+    ":apps:flipcash:features:notification-status",
     ":apps:flipcash:features:myaccount",
     ":apps:flipcash:features:backupkey",
     ":apps:flipcash:features:shareapp",

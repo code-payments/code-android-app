@@ -56,7 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.handle
 import com.flipcash.shared.chat.reactions.ReactionPill
-import com.flipcash.shared.chat.reactions.formatBoostCents
+import com.flipcash.shared.chat.ui.boostCentsText
 import com.flipcash.shared.chat.ui.ReactionBoostGold
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.opencode.model.core.ID
@@ -217,7 +217,7 @@ private fun BoostAmountPill(cents: Long, count: Int? = null) {
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
-            text = formatBoostCents(cents),
+            text = boostCentsText(cents),
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             color = ReactionBoostGold,
@@ -317,7 +317,7 @@ private fun ReactorEmojis(emojis: List<String>, boostCents: Long, modifier: Modi
     val overflows = scrollState.maxValue > 0
     val emojiText = emojis.joinToString(" ")
     val description = if (boostCents > 0) {
-        stringResource(R.string.label_reactorPaid, formatBoostCents(boostCents)) + ", " + emojiText
+        stringResource(R.string.label_reactorPaid, boostCentsText(boostCents)) + ", " + emojiText
     } else {
         emojiText
     }

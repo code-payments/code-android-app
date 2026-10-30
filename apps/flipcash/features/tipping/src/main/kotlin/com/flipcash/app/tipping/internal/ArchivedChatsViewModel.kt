@@ -1,5 +1,6 @@
 package com.flipcash.app.tipping.internal
 
+import com.getcode.opencode.exchange.Exchange
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.tokens.TokenCoordinator
@@ -14,6 +15,8 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
+import com.flipcash.shared.chat.HostLobbies
+import com.flipcash.shared.chat.PaymentRequests
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -23,12 +26,15 @@ import javax.inject.Inject
 /** Backs the Archived screen: the archived chats, newest first, and unarchive. */
 @HiltViewModel
 internal class ArchivedChatsViewModel @Inject constructor(
+    private val exchange: Exchange,
     private val chatCoordinator: ChatCoordinator,
     private val archiveStore: ChatArchiveStore,
     userManager: UserManager,
     tokenCoordinator: TokenCoordinator,
     resources: ResourceHelper,
     dispatchers: DispatcherProvider,
+    paymentRequests: PaymentRequests,
+    hostLobbies: HostLobbies,
 ) : BaseViewModel<ArchivedChatsViewModel.State, ArchivedChatsViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -51,8 +57,16 @@ internal class ArchivedChatsViewModel @Inject constructor(
             chatCoordinator.archivedChatListFeed(),
             tokenCoordinator.tokens,
             chatCoordinator.observeSenderProfiles(),
-        ) { summaries, tokens, senderProfiles ->
-            mapConversations(summaries, tokens, senderProfiles, userManager.accountId, resources, chatCoordinator)
+            // A payment preview reads at the display currency's rate and the sent currency's, so
+            // either one landing redraws the rows. Paired to stay at five typed flows.
+            combine(exchange.observePreferredRate(), exchange.observeRates(), ::Pair),
+            combine(paymentRequests.state, hostLobbies.state, ::Pair),
+        ) { summaries, tokens, senderProfiles, _, (requests, lobbies) ->
+            mapConversations(
+                summaries, tokens, senderProfiles, userManager.accountId, resources, chatCoordinator, exchange, requests,
+                requestPaymentRequest = { id -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id) } },
+                lobbies = lobbies,
+            ).sortedByDescending { it.rowActivity }
         }
             .flowOn(dispatchers.Default)
             .onEach { dispatchEvent(Event.ChatsUpdated(Loadable.Loaded(it))) }

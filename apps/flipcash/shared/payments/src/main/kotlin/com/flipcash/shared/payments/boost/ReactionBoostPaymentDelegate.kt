@@ -1,16 +1,15 @@
 package com.flipcash.shared.payments.boost
 
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.shared.payments.SharedStatePayment
 import com.flipcash.services.controllers.ResolverController
 import com.flipcash.services.models.buildReactionBoostMetadata
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Emoji
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
-import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.accounts.AccountCluster
-import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
@@ -30,16 +29,20 @@ import javax.inject.Singleton
  */
 @Singleton
 class ReactionBoostPaymentDelegate @Inject constructor(
-    private val resolverController: ResolverController,
-    private val transactionController: TransactionController,
-    private val tokenCoordinator: TokenCoordinator,
-    private val verifiedFiatCalculator: VerifiedFiatCalculator,
+    resolverController: ResolverController,
+    transactionController: TransactionController,
+    tokenCoordinator: TokenCoordinator,
+    verifiedFiatCalculator: VerifiedFiatCalculator,
     private val exchange: Exchange,
 ) {
 
+    private val payment = SharedStatePayment(
+        resolverController, transactionController, tokenCoordinator, verifiedFiatCalculator,
+    )
+
     /**
      * Boosts the viewer's existing [emoji] reaction on [messageId] in [chatId] with [plan], paid in
-     * [token] from [source]. Every share is priced before anything is sent.
+     * [token] from [source]. Every share is priced, at one verified state, before anything is sent.
      */
     suspend fun boost(
         chatId: ChatId,
@@ -49,63 +52,16 @@ class ReactionBoostPaymentDelegate @Inject constructor(
         token: Token,
         source: AccountCluster,
     ): Result<Unit> {
-        val priced = price(plan, token).getOrElse { return Result.failure(it) }
-        return pay(chatId, messageId, emoji, priced, token, source)
+        val priced = payment.price(plan.shares.map { it.usd() }, token, exchange.rateForUsd())
+            .getOrElse { return Result.failure(it) }
+        return payment.pay(
+            payees = plan.shares.map { it.payee },
+            priced = priced,
+            token = token,
+            source = source,
+            appMetadata = buildReactionBoostMetadata(chatId, messageId, Emoji(emoji)),
+        )
     }
-
-    /**
-     * Each share's quarks from its own USD amount, all at one verified state: a multi-payment
-     * intent carries one rate and reserve for every share. A refresh between two computes is
-     * retried once before giving up as stale.
-     */
-    private suspend fun price(plan: ReactionBoostPlan.Pay, token: Token): Result<List<PricedShare>> {
-        repeat(2) {
-            val priced = plan.shares.map { share ->
-                verifiedFiatCalculator.compute(
-                    amount = share.usd(),
-                    token = token,
-                    balance = tokenCoordinator.balanceForToken(token),
-                    rate = exchange.rateForUsd(),
-                ).map { PricedShare(share, it) }.getOrElse { return Result.failure(it) }
-            }
-            val states = priced.map { it.amount.verifiedState }
-            if (states.all { it != null && it == states.first() }) return Result.success(priced)
-        }
-        return Result.failure(ComputeVerifiedFiatError.StaleRate())
-    }
-
-    private suspend fun pay(
-        chatId: ChatId,
-        messageId: Long,
-        emoji: String,
-        priced: List<PricedShare>,
-        token: Token,
-        source: AccountCluster,
-    ): Result<Unit> = runCatching {
-        val metadata = buildReactionBoostMetadata(chatId, messageId, Emoji(emoji))
-        val destinations = priced.map { resolverController.resolve(it.share.payee).getOrThrow() }
-
-        if (priced.size == 1) {
-            transactionController.directTransfer(
-                amount = priced.single().amount,
-                token = token,
-                source = source,
-                destinationOwner = destinations.single(),
-                appMetadata = metadata,
-            ).getOrThrow()
-        } else {
-            transactionController.directMultiTransfer(
-                payments = destinations.zip(priced.map { it.amount.localFiat }),
-                verifiedState = requireNotNull(priced.first().amount.verifiedState),
-                token = token,
-                source = source,
-                appMetadata = metadata,
-            ).getOrThrow()
-        }
-        priced.forEach { tokenCoordinator.subtract(token, it.amount.localFiat) }
-    }
-
-    private class PricedShare(val share: BoostShare, val amount: VerifiedFiat)
 }
 
 /** This share as a USD amount, exact to the cent. */

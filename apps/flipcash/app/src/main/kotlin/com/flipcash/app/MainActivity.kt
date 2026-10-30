@@ -1,6 +1,8 @@
 package com.flipcash.app
 
 import android.app.Activity
+import com.flipcash.app.internal.toast.LocalAndroidSystemToastController
+import com.flipcash.app.internal.toast.AndroidSystemToastController
 import android.content.Intent
 import android.os.Bundle
 import android.os.Process.killProcess
@@ -144,6 +146,9 @@ class MainActivity : FragmentActivity() {
     lateinit var toastController: ToastController
 
     @Inject
+    internal lateinit var systemToastController: AndroidSystemToastController
+
+    @Inject
     lateinit var coinbaseOnRampController: CoinbaseOnRampController
 
     @Inject
@@ -197,6 +202,7 @@ class MainActivity : FragmentActivity() {
                 LocalEmailCodeChannel provides emailCodeChannel,
                 LocalContactCoordinator provides contactCoordinator,
                 LocalToastController provides toastController,
+                LocalAndroidSystemToastController provides systemToastController,
                 LocalCoinbaseOnRampController provides coinbaseOnRampController,
                 LocalTipCoordinator provides tippingCoordinator,
                 LocalMediaUrlResolver provides mediaUrlResolver,

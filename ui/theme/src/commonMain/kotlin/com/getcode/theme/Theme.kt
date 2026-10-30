@@ -41,6 +41,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     errorText = TextError,
     success = Success,
     successText = Success,
+    warningText = Warning,
     textMain = TextMain,
     textSecondary = TextSecondary,
     textTertiary = TextTertiary,
@@ -144,6 +145,8 @@ class ColorScheme(
     errorText: Color,
     success: Color,
     successText: Color,
+    /** Text and icons for a status that needs a look but isn't broken. */
+    warningText: Color,
     textMain: Color,
     textSecondary: Color,
     textTertiary: Color,
@@ -199,6 +202,8 @@ class ColorScheme(
     var success by mutableStateOf(success)
         private set
     var successText by mutableStateOf(successText)
+        private set
+    var warningText by mutableStateOf(warningText)
         private set
     var textMain by mutableStateOf(textMain)
         private set
@@ -277,6 +282,7 @@ class ColorScheme(
         errorText = other.errorText
         success = other.success
         successText = other.successText
+        warningText = other.warningText
         textMain = other.textMain
         textSecondary = other.textSecondary
         textTertiary = other.textTertiary
@@ -325,6 +331,7 @@ class ColorScheme(
         errorText = errorText,
         success = success,
         successText = successText,
+        warningText = warningText,
         textMain = textMain,
         textSecondary = textSecondary,
         textTertiary = textTertiary,

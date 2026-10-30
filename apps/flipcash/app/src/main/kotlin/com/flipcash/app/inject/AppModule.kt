@@ -77,7 +77,13 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun providesSystemToastController(
+    internal fun providesAndroidSystemToastController(
         @ApplicationContext context: Context
-    ): SystemToastController = AndroidSystemToastController(context)
+    ): AndroidSystemToastController = AndroidSystemToastController(context)
+
+    @Provides
+    @Singleton
+    internal fun providesSystemToastController(
+        controller: AndroidSystemToastController,
+    ): SystemToastController = controller
 }

@@ -9,7 +9,11 @@ import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageState
 import com.flipcash.app.core.feed.SwapState
 import com.flipcash.app.core.feed.SwappedCryptoMetadata
+import com.flipcash.services.models.BoostedReaction
+import com.flipcash.services.models.RequestedPayment
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.Emoji
 import com.flipcash.shared.transactionhistory.internal.TransactionDetailsMapper
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -42,8 +46,12 @@ import org.junit.Test
 class TransactionDetailsMapperTest {
 
     private val resources = FakeResourceHelper()
-        .stub(Res.string.title_activity_convert, "%1\$s → %2\$s")
-        .stub(Res.string.label_txnDetails_inPerson, "In Person")
+        .stub(R.string.title_activity_convert, "%1\$s → %2\$s")
+        .stub(R.string.label_txnDetails_inPerson, "In Person")
+        .stub(R.string.title_txnDetails_youBoosted, "You boosted %1\$s")
+        .stub(R.string.title_txnDetails_youBoostedIn, "You boosted %1\$s in %2\$s")
+        .stub(R.string.title_txnDetails_boostReceived, "Boost %1\$s received")
+        .stub(R.string.title_txnDetails_boostReceivedIn, "Boost %1\$s received in %2\$s")
     private val mapper = TransactionDetailsMapper(resources)
 
     private val knownUserId: ID = listOf<Byte>(0x0A, 0x0B, 0x0C)
@@ -80,11 +88,13 @@ class TransactionDetailsMapperTest {
         token: Token? = null,
         toToken: Token? = null,
         amount: LocalFiat = twentyDollars,
+        chatName: String? = null,
     ): TransactionDetails = mapper.map(
         ActivityFeedMessageWithToken(
             feedMessage(metadata, text, state, amount),
             token = token,
             toToken = toToken,
+            boostChatName = chatName,
         ) to cached
     )
 
@@ -293,4 +303,123 @@ class TransactionDetailsMapperTest {
     }
 
     // endregion
+
+    // --- Boosted reaction: the "View Message" button's inputs (D1-D3) ---
+
+    private val boost = BoostedReaction(
+        chatId = ChatId(ByteArray(32) { 9 }),
+        messageId = 7L,
+        emoji = Emoji("\uD83D\uDD25"),
+    )
+
+    @Test
+    fun `D1 a boost with a counterparty carries the boost for View Message`() {
+        val details = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost))
+        assertEquals(boost, details.boostedReaction)
+    }
+
+    @Test
+    fun `D2 a split boost carries the boost although there is nobody to view in chat`() {
+        val details = map(MessageMetadata.DirectlySentCrypto(boostedReaction = boost))
+        assertEquals(boost, details.boostedReaction)
+        assertFalse(details.canViewInChat)
+    }
+
+    @Test
+    fun `D3 without a boost the existing button logic is untouched`() {
+        val details = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId))
+        assertNull(details.boostedReaction)
+        assertTrue(details.canViewInChat)
+    }
+
+    // --- Boosted reaction: detail header (H1-H11) ---
+
+    private val fire = "\uD83D\uDD25"
+    private val sent = MessageMetadata.DirectlySentCrypto(userId = knownUserId, boostedReaction = boost)
+    private val received = MessageMetadata.ReceivedCrypto(userId = knownUserId, boostedReaction = boost)
+    private val unresolved =
+        MessageMetadata.DirectlySentCrypto(userId = listOf<Byte>(1, 2, 3), boostedReaction = boost)
+
+    private fun assertHeader(d: TransactionDetails, heading: String, subtitle: String?) {
+        assertEquals(heading, d.heading)
+        assertEquals(subtitle, d.subtitle)
+    }
+
+    @Test
+    fun `H1 a sent boost in a stored group names the group under the name`() =
+        assertHeader(
+            map(sent, chatName = "Grampa's Photo Community"),
+            "Sally The Streamer", "You boosted $fire in Grampa's Photo Community",
+        )
+
+    @Test
+    fun `H2 a sent boost in a DM drops the chat`() =
+        assertHeader(map(sent), "Sally The Streamer", "You boosted $fire")
+
+    @Test
+    fun `H3 a boost that is also a tip keeps the boost line`() {
+        val d = map(sent, text = "Tipped")
+        assertHeader(d, "Sally The Streamer", "You boosted $fire")
+    }
+
+    @Test
+    fun `H4 a split boost headed by its stored group`() =
+        assertHeader(
+            map(MessageMetadata.DirectlySentCrypto(boostedReaction = boost), chatName = "Design Team"),
+            "Design Team", "You boosted $fire",
+        )
+
+    @Test
+    fun `H5 a split boost whose chat is not stored is headed by the line alone`() =
+        assertHeader(map(MessageMetadata.DirectlySentCrypto(boostedReaction = boost)), "You boosted $fire", null)
+
+    @Test
+    fun `H6 a received boost in a stored group`() =
+        assertHeader(
+            map(received, chatName = "Design Team"),
+            "Sally The Streamer", "Boost $fire received in Design Team",
+        )
+
+    @Test
+    fun `H7 a received boost in a DM`() =
+        assertHeader(map(received), "Sally The Streamer", "Boost $fire received")
+
+    @Test
+    fun `H8 a boost whose chat is not stored drops the chat`() =
+        assertHeader(map(sent), "Sally The Streamer", "You boosted $fire")
+
+    @Test
+    fun `H9 an unresolved counterparty never borrows the group as heading`() =
+        assertHeader(map(unresolved, chatName = "Design Team"), "You boosted $fire in Design Team", null)
+
+    @Test
+    fun `H10 without a boost the header is unchanged`() {
+        val d = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId), chatName = "Design Team")
+        assertEquals("Sally The Streamer", d.heading)
+        assertNull(d.subtitle)
+        assertEquals(TransactionKind.Sent, d.kind)
+    }
+
+    private val requested = RequestedPayment(
+        chatId = ChatId(ByteArray(32) { 4 }),
+        paymentRequestId = List(16) { it.toByte() },
+    )
+
+    @Test
+    fun `a sent payment of a requested share carries the request`() {
+        val details = map(MessageMetadata.DirectlySentCrypto(userId = knownUserId, requestedPayment = requested))
+        assertEquals(requested, details.requestedPayment)
+        assertNull(details.boostedReaction)
+    }
+
+    @Test
+    fun `a received payment of a requested share carries the request`() {
+        val details = map(MessageMetadata.ReceivedCrypto(userId = knownUserId, requestedPayment = requested))
+        assertEquals(requested, details.requestedPayment)
+    }
+
+    @Test
+    fun `a payment with no request carries none`() {
+        assertNull(map(MessageMetadata.DirectlySentCrypto(userId = knownUserId)).requestedPayment)
+    }
 }

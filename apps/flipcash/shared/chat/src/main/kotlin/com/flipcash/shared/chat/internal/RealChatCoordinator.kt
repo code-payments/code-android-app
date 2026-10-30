@@ -11,7 +11,9 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatArchiveStore
+import com.flipcash.shared.chat.HostInvites
 import com.flipcash.shared.chat.LobbyUpdateSink
+import com.flipcash.shared.chat.PaymentRequests
 import com.flipcash.shared.chat.RosterUpdateSink
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
@@ -105,6 +107,8 @@ class RealChatCoordinator @Inject constructor(
     private val mediaSender: ChatMediaSending = ChatMediaSending.None,
     private val lobbyUpdates: LobbyUpdateSink = LobbyUpdateSink.None,
     private val rosterUpdates: RosterUpdateSink = RosterUpdateSink.None,
+    private val paymentRequests: PaymentRequests? = null,
+    private val hostInvites: HostInvites? = null,
 ) : ChatCoordinator,
     SessionListener,
     DefaultLifecycleObserver,
@@ -175,7 +179,7 @@ class RealChatCoordinator @Inject constructor(
         // don't get one.
         scope.launch { messagingDelegate.openKeyPending() }
         eventStreamDelegate.open()
-        eventStreamDelegate.startHeartbeat { syncFeeds() }
+        eventStreamDelegate.startHeartbeat(::resync)
     }
 
     // endregion
@@ -207,12 +211,8 @@ class RealChatCoordinator @Inject constructor(
                         eventStreamDelegate.performDeltaSync(event.chatId)
                     is FeedSyncDelegate.Event.ReadPointerUnreported ->
                         messagingDelegate.reportReadPointer(event.chatId, event.messageId)
-                    // Arrives after every catch-up item above it, because this is one sequential
-                    // collector over a FIFO channel. Anything reading chat history as evidence —
-                    // the wallet's "send a tip" milestone — waits for this rather than for the
-                    // feed sync, which reports itself synced before the backfill is scheduled.
-                    FeedSyncDelegate.Event.CatchUpComplete ->
-                        feedDelegate.markHistoryHydrated()
+                    // Marks the end of the backfill; nothing routes on it.
+                    FeedSyncDelegate.Event.CatchUpComplete -> Unit
                 }
             }.launchIn(scope)
 
@@ -257,7 +257,7 @@ class RealChatCoordinator @Inject constructor(
             .filter { foregrounded.value }
             .onEach {
                 trace(tag = TAG, message = "Network connected, re-syncing chat feed", type = TraceType.Process)
-                syncFeeds()
+                resync()
                 eventStreamDelegate.open()
             }
             .launchIn(scope)
@@ -288,9 +288,9 @@ class RealChatCoordinator @Inject constructor(
         scope.launch {
             if (cluster.value != null) {
                 trace(tag = TAG, message = "Lifecycle resumed, syncing chat feed", type = TraceType.Process)
-                syncFeeds()
+                resync()
                 eventStreamDelegate.open()
-                eventStreamDelegate.startHeartbeat { syncFeeds() }
+                eventStreamDelegate.startHeartbeat(::resync)
             }
         }
     }
@@ -359,6 +359,15 @@ class RealChatCoordinator @Inject constructor(
      * overlap rather than queue. A group feed that fails is traced and dropped by
      * [GroupFeedDelegate.performGroupFeedSync]; it cannot take the DM list down with it.
      */
+    /**
+     * For a stream coming back after a gap: what it missed is not replayed, so the feeds and the
+     * hosted lobbies are fetched again. A lobby's LobbyUpdates arrive only on the stream.
+     */
+    private fun resync() {
+        syncFeeds()
+        scope.launch { lobbyUpdates.reload() }
+    }
+
     private fun syncFeeds(fresh: Boolean = false) {
         if (feedSyncJob?.isActive == true) {
             // Shared with the one in flight, so a foreground, a reconnect or a heartbeat landing
@@ -428,6 +437,8 @@ class RealChatCoordinator @Inject constructor(
         reactionsDelegate.clearAll()
         lobbyUpdates.clear()
         rosterUpdates.clear()
+        paymentRequests?.clear()
+        hostInvites?.clear()
         cluster.value = null
         supervisorJob.cancel()
         trace(tag = TAG, message = "teardown complete", type = TraceType.Process)

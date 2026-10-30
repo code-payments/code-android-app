@@ -1,7 +1,6 @@
 package com.flipcash.app.balance.internal
 
 import com.flipcash.app.analytics.FlipcashAnalytics
-import com.flipcash.app.core.chat.TipHistorySource
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.WalletRevealCoordinator
@@ -20,7 +19,6 @@ internal class HiltWalletViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     purchaseMethodController: PurchaseMethodController,
     analytics: FlipcashAnalytics,
-    tipHistory: TipHistorySource,
     feedCoordinator: ActivityFeedCoordinator,
     tokenCoordinator: TokenCoordinator,
     walletReveal: WalletRevealCoordinator,
@@ -30,7 +28,6 @@ internal class HiltWalletViewModel @Inject constructor(
     dispatchers = dispatchers,
     purchaseMethodController = purchaseMethodController,
     analytics = analytics,
-    tipHistory = tipHistory,
     feedCoordinator = feedCoordinator,
     tokenCoordinator = tokenCoordinator,
     walletReveal = walletReveal,

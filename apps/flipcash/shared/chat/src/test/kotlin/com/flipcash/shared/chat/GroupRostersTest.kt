@@ -9,6 +9,7 @@ import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.RosterSummary
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -75,7 +76,7 @@ class GroupRostersTest {
     }
 
     @Test
-    fun `changes before a load are ignored`() {
+    fun `changes before a load are ignored`() = runTest {
         rosters.apply(chat, listOf(RosterChange.MemberJoined(joiner, null, summary)))
 
         assertNull(ids())
@@ -108,5 +109,34 @@ class GroupRostersTest {
         rosters.clear()
 
         assertNull(ids())
+    }
+
+    @Test
+    fun `a removal announced as a count-only change reads the roster again and drops the member`() = runTest {
+        loaded(host, joiner)
+        // The server's roster after the ban no longer holds the joiner.
+        coEvery { chatController.getRoster(chat, any()) } returns
+            Result.success(RosterPage(listOf(host), RosterSummary(memberCount = 1, version = 6), null, hasMore = false))
+
+        rosters.apply(chat, listOf(RosterChange.MembershipChanged(RosterSummary(memberCount = 1, version = 6))))
+
+        assertEquals(listOf(listOf<Byte>(1)), ids())
+    }
+
+    @Test
+    fun `a count-only change for a roster never loaded reads nothing`() = runTest {
+        rosters.apply(chat, listOf(RosterChange.MembershipChanged(summary)))
+
+        assertNull(ids())
+        coVerify(exactly = 0) { chatController.getRoster(any(), any()) }
+    }
+
+    @Test
+    fun `remove drops the member at once and leaves the rest`() = runTest {
+        loaded(host, joiner)
+
+        rosters.remove(chat, listOf(2))
+
+        assertEquals(listOf(listOf<Byte>(1)), ids())
     }
 }

@@ -52,7 +52,6 @@ class AmountEntryScreenTest {
     private fun setScreen(
         controller: FakeController = FakeController(),
         onConfirm: () -> Unit = {},
-        onChangeCurrency: () -> Unit = {},
         appBar: (@Composable () -> Unit)? = null,
     ): FakeController {
         composeTestRule.setContent {
@@ -60,7 +59,6 @@ class AmountEntryScreenTest {
                 AmountEntryScreen(
                     controller = controller,
                     onConfirm = onConfirm,
-                    onChangeCurrency = onChangeCurrency,
                     appBar = appBar,
                 )
             }

@@ -37,7 +37,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.messenger.internal.MemberModerationViewModel
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ReportSubject
@@ -79,6 +81,7 @@ internal fun ChatProfileScreen(
     viewModel: ChatProfileViewModel,
     chatUnderneath: ChatId?,
     onOpenChat: (ChatId) -> Unit,
+    group: ProfileGroup? = null,
 ) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
     PersonProfileScreen(
@@ -86,6 +89,7 @@ internal fun ChatProfileScreen(
         onBack = { flowNavigator.back() },
         onOpenChat = onOpenChat,
         chatUnderneath = chatUnderneath,
+        group = group,
     )
 }
 
@@ -101,8 +105,11 @@ internal fun PersonProfileScreen(
     onOpenChat: (ChatId) -> Unit,
     /** The chat this profile was opened from, when it is the DM with this person; null otherwise. */
     chatUnderneath: ChatId? = null,
+    /** The group chat this profile sits in, when it sits in one; adds the host's Silence and Remove. */
+    group: ProfileGroup? = null,
 ) {
     val navigator = LocalCodeNavigator.current
+    val moderation = if (group != null) hiltViewModel<MemberModerationViewModel>() else null
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     // The host decides what opening the chat means (pop back to it, or push it); everything else
@@ -288,7 +295,13 @@ internal fun PersonProfileScreen(
                             }
                             ProfileMenu(
                                 expanded = menuOpen,
-                                items = state.menuItems,
+                                items = profileMenuItems(
+                                    isBlocked = state.isBlocked,
+                                    hasDm = state.dmExists,
+                                    group = group,
+                                    userId = person.userId,
+                                ),
+                                groupTitle = group?.title,
                                 anchorHeight = menuAnchorHeight,
                                 onDismiss = { menuOpen = false },
                                 onItem = { item ->
@@ -301,6 +314,16 @@ internal fun PersonProfileScreen(
                                         // on the outer navigator: it is a top-level route.
                                         ChatProfileAction.Mute -> state.dmChatId?.let { chatId ->
                                             navigator.push(AppRoute.Messaging.MuteChat(chatId, ChatType.TIP_DM))
+                                        }
+                                        ChatProfileAction.Silence -> group?.let {
+                                            navigator.push(
+                                                AppRoute.Messaging.SilenceUser(
+                                                    it.chatId, person.userId, person.firstName(), it.title,
+                                                )
+                                            )
+                                        }
+                                        ChatProfileAction.Remove -> group?.let {
+                                            moderation?.confirmRemove(it.chatId, person.userId, person.firstName(), it.title)
                                         }
                                         ChatProfileAction.Report ->
                                             navigator.push(
@@ -332,4 +355,10 @@ internal fun PersonProfileScreen(
 private fun ProfilePinnedAction.label(): String = when (this) {
     is ProfilePinnedAction.StartChatting -> stringResource(labelRes(), fee.formatted())
     else -> stringResource(labelRes())
+}
+
+/** The first word of the person's name, as the confirm and the duration sheet address them. */
+private fun ChatParticipant.TipUser.firstName(): String {
+    val name = displayName
+    return name.substringBefore(' ').ifEmpty { name }
 }

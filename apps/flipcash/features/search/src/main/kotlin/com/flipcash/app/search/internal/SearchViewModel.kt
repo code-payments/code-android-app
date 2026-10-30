@@ -1,5 +1,7 @@
 package com.flipcash.app.search.internal
 
+import com.flipcash.core.R
+import com.getcode.opencode.exchange.Exchange
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
@@ -45,6 +47,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 internal class SearchViewModel @Inject constructor(
+    private val exchange: Exchange,
     chatCoordinator: ChatCoordinator,
     userManager: UserManager,
     tokenCoordinator: TokenCoordinator,
@@ -54,6 +57,8 @@ internal class SearchViewModel @Inject constructor(
     private val currencySearch: CurrencySearch,
     private val recentStore: RecentSearchStore,
 ) : ViewModel() {
+
+    private val inviteLinkLabel = resources.getString(R.string.label_inviteLinkPreview)
 
     val query = TextFieldState()
 
@@ -75,12 +80,14 @@ internal class SearchViewModel @Inject constructor(
         chatCoordinator.chatListFeeds(),
         tokenCoordinator.tokens,
         chatCoordinator.observeSenderProfiles(),
-    ) { feeds, tokens, profiles ->
+        // Payment previews read at the display and sent currencies' rates, so a rate landing redraws them.
+        combine(exchange.observePreferredRate(), exchange.observeRates(), ::Pair),
+    ) { feeds, tokens, profiles, _ ->
         val tokensByMint = tokens.associateBy { it.address }
         val selfId = userManager.accountId
         Directory(
             chats = (feeds.main + feeds.archived)
-                .map { it.toConversationReference(selfId, tokensByMint, resources, profiles) },
+                .map { it.toConversationReference(selfId, tokensByMint, resources, profiles, exchange) },
             profiles = profiles,
         )
     }
@@ -125,6 +132,7 @@ internal class SearchViewModel @Inject constructor(
             currencies = currencies,
             currencyShares = transcripts.currencyShares,
             senderName = { id -> directory.profiles.nameOf(id) },
+            inviteLinkLabel = inviteLinkLabel,
         )
     }
         .flowOn(dispatchers.Default)

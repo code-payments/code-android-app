@@ -1,11 +1,15 @@
 package com.flipcash.app.messenger.internal.link
 
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.app.router.Router
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.ui.DetectedUrl
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.shared.chat.ui.detectUrls
+import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.services.models.isUsernameShaped
 import com.getcode.opencode.model.core.bytes
 import com.getcode.solana.keys.Mint
@@ -47,7 +51,9 @@ class LinkCardClassifierTest {
                     ?.let { DeeplinkType.TokenInfo(Mint(it)) }
                 // As `AppRouter` does: a message link is matched first, on its exact shape;
                 // otherwise the id segment is checked and anything after it is not.
-                "chat" -> link.messageLinkForTest() ?: link.pathSegmentsForTest().getOrNull(1)
+                // `/chat/invite` is ahead of every other chat route, as in `AppRouter`; whether
+                // its fragment parses does not matter to the classifier.
+                "chat" -> link.inviteLinkForTest() ?: link.messageLinkForTest() ?: link.pathSegmentsForTest().getOrNull(1)
                     ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                     ?.let { DeeplinkType.GroupChatInvite(ChatId(it.bytes)) }
                 "tip" -> link.pathSegmentsForTest().getOrNull(1)
@@ -58,6 +64,16 @@ class LinkCardClassifierTest {
         }
 
         override fun dispatch(deepLink: DeepLink) = error("not used in classification tests")
+    }
+
+    private fun DeepLink.inviteLinkForTest(): DeeplinkType? {
+        val segments = pathSegmentsForTest()
+        if (segments.size != 2 || segments[1] != "invite") return null
+        return if (data.contains("#s=")) {
+            DeeplinkType.GroupInvite(ByteArray(32))
+        } else {
+            DeeplinkType.InvalidGroupInvite
+        }
     }
 
     private fun DeepLink.messageLinkForTest(): DeeplinkType.ChatMessage? {
@@ -193,6 +209,50 @@ class LinkCardClassifierTest {
         assertNull(classifier.firstCard(listOf(DetectedUrl(0, hostile.length, hostile))))
     }
 
+    private fun caption(text: String) =
+        MessageContent.Media(items = emptyList(), caption = MessageContent.Text(text))
+
+    /** A caption is read exactly as a text message's body: same links, same card. */
+    @Test
+    fun `a caption with a url yields the same links and card as a text message`() {
+        val classifier = LinkCardClassifier(router)
+        val body = "look https://example.com/a here"
+        val text = MessageContent.Text(body)
+        val photo = caption(body)
+
+        val textLinks = detectUrls(text.linkableText().orEmpty())
+        val photoLinks = detectUrls(photo.linkableText().orEmpty())
+        assertEquals(textLinks, photoLinks)
+        assertEquals(1, photoLinks.size)
+        assertEquals(
+            classifier.firstCard(textLinks),
+            classifier.firstCard(photoLinks),
+        )
+        assertIs<LinkCard.Web>(classifier.firstCard(photoLinks))
+    }
+
+    @Test
+    fun `a flipcash card in a caption is classified as it is in a text message`() {
+        val classifier = LinkCardClassifier(router)
+        val url = "https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3"
+        val photoLinks = detectUrls(caption(url).linkableText().orEmpty())
+        val textLinks = detectUrls(MessageContent.Text(url).linkableText().orEmpty())
+
+        assertIs<LinkCard.Cash>(classifier.firstCard(photoLinks))
+        assertEquals(classifier.firstCard(textLinks), classifier.firstCard(photoLinks))
+    }
+
+    @Test
+    fun `a cash link before a web link gives the caption the card the text path chooses`() {
+        val classifier = LinkCardClassifier(router)
+        val body = "send https://send.flipcash.com/c/#/e=KNi8pQr1n5hRU65vKJGge3 and read https://example.com/a"
+        val photoCard = classifier.firstCard(detectUrls(caption(body).linkableText().orEmpty()))
+        val textCard = classifier.firstCard(detectUrls(MessageContent.Text(body).linkableText().orEmpty()))
+
+        assertIs<LinkCard.Cash>(photoCard)
+        assertEquals(textCard, photoCard)
+    }
+
     @Test
     fun `a message that is only a cash link reads as that link`() {
         val classifier = LinkCardClassifier(router)
@@ -221,6 +281,111 @@ class LinkCardClassifierTest {
         assertEquals(0, group?.start)
         assertEquals(url.length, group?.end)
         assertEquals(LinkCard.GroupInvite.State.Loading, group?.state)
+    }
+
+    /**
+     * Spec surface 6 and Decision 6: an invite URL gets the card drawn from GetInvite and never a
+     * web card, since its fragment is the group's key. `link_detection.json` has no `/chat/invite`
+     * case; its `group-invite` vector is the plain join link, which still gets a group card.
+     */
+    @Test
+    fun `an invite link becomes an invite card, and one with no secret gets none`() {
+        val classifier = LinkCardClassifier(router)
+        val invite = "https://app.flipcash.com/chat/invite#s=${"A".repeat(43)}"
+        for (url in listOf(
+            invite,
+            "https://jump.flipcash.com/#source=" + java.net.URLEncoder.encode(invite, "UTF-8"),
+        )) {
+            val card = assertIs<LinkCard.InviteLink>(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))), url)
+            assertEquals(invite, card.url, url)
+            assertEquals(LinkCard.InviteLink.State.Loading, card.state, url)
+        }
+        for (url in listOf("https://app.flipcash.com/chat/invite")) {
+            assertNull(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))), url)
+        }
+    }
+
+    @Test
+    fun `an invite card's toString leaves the secret out`() {
+        val url = "https://app.flipcash.com/chat/invite#s=${"A".repeat(43)}"
+        val card = LinkCard.InviteLink(url = url, start = 0, end = url.length, state = LinkCard.InviteLink.State.Loading)
+        assertFalse("A".repeat(43) in card.toString())
+    }
+
+    @Test
+    fun `an invite link beside an outside link is the card, not a web preview of either`() {
+        val classifier = LinkCardClassifier(router)
+        val invite = "https://app.flipcash.com/chat/invite#s=${"A".repeat(43)}"
+        val outside = "https://example.com/post"
+
+        val card = classifier.firstCard(
+            listOf(
+                DetectedUrl(0, invite.length, invite),
+                DetectedUrl(invite.length + 1, invite.length + 1 + outside.length, outside),
+            )
+        )
+
+        assertEquals(invite, assertIs<LinkCard.InviteLink>(card).url)
+    }
+
+    /**
+     * The fake router above stands in for the parser. These run the real `AppRouter` (through the
+     * module that builds it), so a route the fake mis-states cannot hide an invite card.
+     */
+    @Test
+    fun `the real router gives an invite link its invite card on every host and wrapper`() {
+        val classifier = LinkCardClassifier(
+            com.flipcash.app.router.inject.RouterModule.providesRouter(io.mockk.mockk(relaxed = true)),
+        )
+        val secret = "A".repeat(43)
+        val invite = "/chat/invite#s=$secret"
+        for (url in listOf(
+            "https://app.flipcash.com$invite",
+            "https://flipcash.com$invite",
+            "https://jump.flipcash.com/#source=" +
+                java.net.URLEncoder.encode("https://app.flipcash.com$invite", "UTF-8"),
+        )) {
+            assertIs<LinkCard.InviteLink>(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))), url)
+            assertEquals(32, classifier.inviteSecret(url)?.size, url)
+        }
+        // No secret: no card, and the website rule does not unfurl it either.
+        for (url in listOf(
+            "https://app.flipcash.com/chat/invite",
+            "https://app.flipcash.com/chat/invite#s=",
+            "https://flipcash.com/chat/invite",
+        )) {
+            assertNull(classifier.firstCard(listOf(DetectedUrl(0, url.length, url))), url)
+            assertNull(classifier.inviteSecret(url), url)
+        }
+        assertNull(classifier.inviteSecret("https://example.com$invite"))
+    }
+
+    /**
+     * A tapped invite link opens its landing in the app, never the browser, so the secret in the
+     * fragment stays on the device. Runs the real router, as the card test above does.
+     */
+    @Test
+    fun `a tapped invite link opens the invite landing in the app`() {
+        val classifier = LinkCardClassifier(
+            com.flipcash.app.router.inject.RouterModule.providesRouter(io.mockk.mockk(relaxed = true)),
+        )
+        val invite = "/chat/invite#s=${"A".repeat(43)}"
+        for (url in listOf(
+            "https://app.flipcash.com$invite",
+            "https://flipcash.com$invite",
+            "https://jump.flipcash.com/#source=" +
+                java.net.URLEncoder.encode("https://app.flipcash.com$invite", "UTF-8"),
+        )) {
+            val route = assertIs<AppRoute.Messaging.GroupInvite>(classifier.inviteRoute(url), url)
+            assertEquals(32, route.secret?.size, url)
+        }
+
+        assertEquals(
+            AppRoute.Messaging.GroupInvite(null),
+            classifier.inviteRoute("https://app.flipcash.com/chat/invite"),
+        )
+        assertNull(classifier.inviteRoute("https://example.com$invite"))
+        assertNull(classifier.inviteRoute("https://app.flipcash.com/chat/${UUID.randomUUID()}"))
     }
 
     /** The send-cash path under a chat opens a payment, not the group, so it stays a plain link. */

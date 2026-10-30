@@ -58,8 +58,17 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import com.getcode.opencode.model.financial.Currency
+import com.getcode.opencode.model.financial.Limits
+import com.getcode.opencode.model.financial.SendLimit
+import com.flipcash.app.messenger.internal.groupsend.GroupSendState
+import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.shared.payments.group.GroupSendPaymentDelegate
+import com.flipcash.shared.payments.group.GroupSendPlan
+import com.getcode.opencode.model.financial.CurrencyCode
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -102,6 +111,9 @@ class ChatGroupCashLinkTest {
         every { claimInFlight } returns MutableStateFlow(null)
     }
     private val chatCashLinks = mockk<ChatCashLinks>(relaxed = true)
+    private val groupSendPayments = mockk<GroupSendPaymentDelegate>(relaxed = true)
+    private val viewerId: ID = UUID.randomUUID().bytes
+    private val roster: List<ChatMember> = List(12) { member(UUID.randomUUID().bytes) }
     private val chatDraftStore = mockk<ChatDraftStore>(relaxed = true)
 
     private val owner = mockk<AccountCluster>(relaxed = true)
@@ -115,8 +127,19 @@ class ChatGroupCashLinkTest {
         BottomBarManager.clear()
 
         every { userManager.accountCluster } returns owner
+        every { userManager.accountId } returns viewerId
+        coEvery {
+            groupSendPayments.send(any(), any(), any(), any(), any(), any())
+        } returns Result.success(Unit)
         every { exchange.preferredRate } returns Rate.oneToOne
-        every { transactionController.limits } returns MutableStateFlow(null)
+        every { transactionController.limits } returns MutableStateFlow(
+            Limits(
+                sinceDate = 0L,
+                fetchDate = 0L,
+                sendLimits = mapOf(CurrencyCode.USD to SendLimit(1000.0, 1000.0, 1000.0)),
+                amountUsdTransactedSinceConsumption = Fiat.Zero,
+            )
+        )
         every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(999.0)
         coEvery { tokenCoordinator.hasGiveableBalance(any()) } returns true
         coEvery { tokenCoordinator.getTokenMetadata(any()) } returns Result.failure(RuntimeException())
@@ -144,6 +167,7 @@ class ChatGroupCashLinkTest {
 
     private fun createViewModel(): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
+        wrongKeyChats = com.flipcash.services.chat.WrongKeyChats(),
         mediaUploads = noMediaUploads(),
         e2eePolicy = E2eePolicy(),
         contactCoordinator = contactCoordinator,
@@ -163,6 +187,7 @@ class ChatGroupCashLinkTest {
         linkCardResolver = linkCardResolver,
         cashLinkClaims = cashLinkClaims,
         chatCashLinks = chatCashLinks,
+        groupSendPayments = groupSendPayments,
         chatDraftStore = chatDraftStore,
         recentReactionsStore = mockk(relaxed = true),
         emojiCatalogLoader = mockk(relaxed = true),
@@ -177,7 +202,9 @@ class ChatGroupCashLinkTest {
         identifier = null,
     )
 
-    private fun ChatViewModel.openGroup() {
+    private fun member(id: ID) = ChatMember(id, mockk<UserProfile>(relaxed = true), emptyList())
+
+    private fun ChatViewModel.openGroup(isPrivate: Boolean = false) {
         dispatchEvent(ChatViewModel.Event.ChatFound(chatId))
         dispatchEvent(
             ChatViewModel.Event.OnGroupResolved(
@@ -185,6 +212,7 @@ class ChatGroupCashLinkTest {
                     metadata = mockk<ChatMetadata>(relaxed = true) {
                         every { this@mockk.chatId } returns this@ChatGroupCashLinkTest.chatId
                         every { rules } returns null
+                        every { this@mockk.isPrivate } returns isPrivate
                     },
                     isMember = true,
                 )
@@ -209,7 +237,31 @@ class ChatGroupCashLinkTest {
         vm.dispatchEvent(ChatViewModel.Event.OnSendCash)
         advanceUntilIdle()
 
-        assertTrue(ChatViewModel.Event.NavigateToAmountEntry in events)
+        assertTrue(events.any { it is ChatViewModel.Event.NavigateToAmountEntry })
+    }
+
+    @Test
+    fun `a private group's cash button offers Send Money or Request Money`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        val events = recordEvents(vm)
+        vm.openGroup(isPrivate = true)
+
+        vm.dispatchEvent(ChatViewModel.Event.OnSendCash)
+        advanceUntilIdle()
+
+        val sheet = BottomBarManager.messages.value.single()
+        val actions = sheet.actions
+        // The spec's sheet is two rows: no title and no Dismiss.
+        assertEquals("", sheet.title)
+        assertEquals(listOf("money_action_send", "money_action_request"), actions.map { it.testTag })
+        assertTrue(events.none { it is ChatViewModel.Event.NavigateToAmountEntry })
+
+        actions.first { it.testTag == "money_action_request" }.onClick()
+        advanceUntilIdle()
+
+        assertTrue(ChatViewModel.Event.NavigateToRequestMoney in events)
+        // Asking for money spends nothing, so it skips the balance gate.
+        coVerify(exactly = 0) { startChattingPayer.mayProceed(any(), any()) }
     }
 
     @Test
@@ -285,5 +337,110 @@ class ChatGroupCashLinkTest {
         coVerify(exactly = 1) { tipPaymentDelegate.send(userId, verifiedFiat, token, any(), any(), any()) }
         coVerify(exactly = 0) { chatCashLinks.sendToChat(any(), any(), any(), any()) }
         assertTrue(analytics.events.none { it.name == "Send Cash Link" })
+    }
+
+    /** A private group with [roster] and the viewer in it, on Select People with [total] entered. */
+    private fun TestScope.selectingPeople(vm: ChatViewModel, total: Double) {
+        vm.openGroup(isPrivate = true)
+        vm.dispatchEvent(ChatViewModel.Event.OnMembersResolved(listOf(member(viewerId)) + roster))
+        enterAmount(vm, total)
+        vm.dispatchEvent(ChatViewModel.Event.OnConfirmRequested)
+        advanceUntilIdle()
+    }
+
+    /** Opens the amount sheet, after which the keypad holds [total] dollars. */
+    private fun TestScope.enterAmount(vm: ChatViewModel, total: Double) {
+        vm.dispatchEvent(ChatViewModel.Event.TokenUpdated(token))
+        vm.dispatchEvent(ChatViewModel.Event.OnSendCash)
+        advanceUntilIdle()
+        // A private group's cash button asks Send Money or Request Money first.
+        BottomBarManager.messages.value.firstOrNull()?.let { sheet ->
+            sheet.actions.first { it.testTag == "money_action_send" }.onClick()
+            BottomBarManager.clear()
+            advanceUntilIdle()
+        }
+        vm.amountDelegate.onCurrencyChanged(Currency(code = "USD", name = "US Dollar"))
+        vm.amountDelegate.setAmount(total)
+    }
+
+    private fun ChatViewModel.check(count: Int) = roster.take(count).forEach {
+        dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(it.userId))
+    }
+
+    @Test
+    fun `a public group's amount goes straight to a cash link`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        vm.openGroup(isPrivate = false)
+        enterAmount(vm, 5.0)
+        vm.dispatchEvent(ChatViewModel.Event.OnConfirmRequested)
+        advanceUntilIdle()
+
+        assertNull(vm.stateFlow.value.groupSend)
+        coVerify(exactly = 1) { chatCashLinks.sendToChat(chatId, any(), token, owner) }
+        coVerify(exactly = 0) { groupSendPayments.send(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a private group's amount moves on to Select People without the viewer`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        selectingPeople(vm, total = 2.0)
+        advanceUntilIdle()
+
+        val state = vm.stateFlow.value
+        assertEquals(GroupSendState.Stage.People, state.groupSend?.stage)
+        assertEquals(Fiat(2.0), state.groupSend?.total)
+        assertEquals(roster.map { it.userId }, state.groupSendCandidates.map { it.userId })
+        coVerify(exactly = 0) { chatCashLinks.sendToChat(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `an 11th check shows the cap and keeps ten`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        selectingPeople(vm, total = 20.0)
+        vm.check(11)
+        advanceUntilIdle()
+
+        assertEquals(roster.take(10).map { it.userId }, vm.stateFlow.value.groupSend?.selected)
+        assertEquals(1, BottomBarManager.messages.value.size)
+    }
+
+    @Test
+    fun `a total under a cent each alerts and stays on Select People`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        selectingPeople(vm, total = 0.05)
+        vm.check(6)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
+        advanceUntilIdle()
+
+        assertEquals(GroupSendState.Stage.People, vm.stateFlow.value.groupSend?.stage)
+        assertEquals(1, BottomBarManager.messages.value.size)
+    }
+
+    @Test
+    fun `the swipe pays the checked members in the order they were checked`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        val events = recordEvents(vm)
+        selectingPeople(vm, total = 2.0)
+        roster.take(6).reversed().forEach {
+            vm.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(it.userId))
+        }
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
+        assertEquals(GroupSendState.Stage.Confirm, vm.stateFlow.value.groupSend?.stage)
+
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            groupSendPayments.send(
+                chatId = chatId,
+                recipients = roster.take(6).reversed().map { it.userId },
+                plan = GroupSendPlan.Pay(listOf(34, 34, 33, 33, 33, 33)),
+                currency = CurrencyCode.USD,
+                token = token,
+                source = any(),
+            )
+        }
+        coVerify(exactly = 0) { chatCashLinks.sendToChat(any(), any(), any(), any()) }
+        assertTrue(events.any { it is ChatViewModel.Event.SendComplete })
     }
 }

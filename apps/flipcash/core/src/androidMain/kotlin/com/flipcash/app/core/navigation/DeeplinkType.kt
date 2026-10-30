@@ -33,6 +33,21 @@ sealed interface DeeplinkType: Parcelable {
     @Serializable data class GroupChatInvite(val chatId: ChatId): DeeplinkType, Navigatable
 
     /**
+     * A group invite link — `app.flipcash.com/chat/invite#s=<secret>`. The secret is the link's
+     * key material: it is held as bytes, never in [toString] or anything built from it, and no
+     * caller logs or reports it.
+     */
+    @Serializable
+    class GroupInvite(val secret: ByteArray) : DeeplinkType, Navigatable {
+        override fun equals(other: Any?): Boolean = other is GroupInvite && secret.contentEquals(other.secret)
+        override fun hashCode(): Int = secret.contentHashCode()
+        override fun toString(): String = "GroupInvite(redacted)"
+    }
+
+    /** `/chat/invite` whose fragment holds no valid secret: a broken link, shown as one. */
+    @Serializable data object InvalidGroupInvite : DeeplinkType, Navigatable
+
+    /**
      * One message in a chat — `app.flipcash.com/chat/{chatId}/m/{seq}`.
      *
      * [messageId] is the message's per-chat sequence number, its canonical identity together with
@@ -91,6 +106,8 @@ sealed interface DeeplinkType: Parcelable {
             is Profile,
             is GroupChatInvite,
             is ChatMessage,
+            is GroupInvite,
+            is InvalidGroupInvite,
             -> true
 
             is Login,

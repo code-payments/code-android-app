@@ -151,6 +151,9 @@ internal fun Scanner() {
                             jumpToMessageId = deeplink.messageId,
                         ),
                     )
+                    // Same destination as the tapped /chat/invite link.
+                    is DeeplinkType.GroupInvite,
+                    is DeeplinkType.InvalidGroupInvite -> deeplink.groupInviteRoutes().orEmpty()
                     else -> emptyList()
                 }
                 if (routes.isNotEmpty()) {

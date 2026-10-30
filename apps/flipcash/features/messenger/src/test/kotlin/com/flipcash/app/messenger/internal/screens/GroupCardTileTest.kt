@@ -27,4 +27,9 @@ class GroupCardTileTest {
     fun `tile id is group-card-tile`() {
         assertEquals("group-card-tile", GroupCardTileTag)
     }
+
+    @Test
+    fun `an invite link sheet has no card tile even when the host supplies a card`() {
+        assertFalse(showsCardTile(ShareToChatsSubject.GroupInviteLink(group = null, link = com.flipcash.app.messenger.internal.invites.InviteLinkState.Creating)) {})
+    }
 }

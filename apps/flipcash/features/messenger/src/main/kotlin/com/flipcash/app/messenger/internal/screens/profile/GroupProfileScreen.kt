@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.Dp
+import com.getcode.util.resources.icons.SpeakerSlash
 import dev.chrisbanes.haze.HazeState
 import androidx.compose.ui.text.style.TextAlign
 import kotlin.time.Duration.Companion.minutes
@@ -42,7 +43,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -63,7 +63,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.material.icons.outlined.PersonRemove
+import com.getcode.ui.components.SubmenuDropdownMenu
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.AppRoute
@@ -77,7 +80,9 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.rememberMutedLabel
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
+import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.messenger.internal.screens.openGroupInvite
+import com.flipcash.app.messenger.internal.screens.openInviteLinkShare
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -124,6 +129,15 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val group = state.subject as? ChatSubject.Group
     val isMember = group?.isMember == true
+    val inviteHost = hiltViewModel<InviteHostViewModel>()
+    val canInviteByChat by inviteHost.canInvite.collectAsStateWithLifecycle()
+    val canInvite = state.chatId?.let { canInviteByChat[it] } == true
+    LaunchedEffect(state.chatId, group?.isPrivate) {
+        // Only a private group has invite links, and the answer is the server's, not the cached chat's.
+        if (group?.isPrivate == true && isMember) state.chatId?.let(inviteHost::refresh)
+    }
+    val moderation = state.viewerState?.permissions?.moderation
+    val canModerate = isMember && (moderation?.canSilence == true || moderation?.canBan == true)
     // A private group's non-member has no chat to open: no envelope, no transcript. The profile is
     // where they ask in, and where they wait.
     val privateJoin = PrivateGroupJoin.resolve(
@@ -246,7 +260,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                                 viewModel.dispatchEvent(
                                     ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE)
                                 )
-                                navigator.openGroupInvite()
+                                // A host sees the three-way sheet (frame 1a); a member without
+                                // can_invite keeps the single join link.
+                                if (canInvite) {
+                                    inviteHost.presentHostSheet(
+                                        groupName = group?.groupTitle.orEmpty(),
+                                        onShareInviteLink = { navigator.openInviteLinkShare() },
+                                        onShareJoinLink = { navigator.openGroupInvite() },
+                                        onManageInvites = { flowNavigator.navigateTo(ChatStep.ManageInvites) },
+                                    )
+                                } else {
+                                    navigator.openGroupInvite()
+                                }
                             },
                         )
                     },
@@ -257,7 +282,15 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(top = CodeTheme.dimens.staticGrid.x3),
-                        memberCount = group.memberCount,
+                        summary = stringResource(
+                            R.string.subtitle_privateGroupMembers,
+                            pluralStringResource(
+                                R.plurals.subtitle_memberCount,
+                                group.memberCount.toInt(),
+                                group.memberCount.toString(),
+                            ),
+                        ),
+                        detail = stringResource(R.string.subtitle_hostApprovesJoins),
                     )
                 }
 
@@ -450,12 +483,18 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         }
                         GroupProfileMenu(
                             expanded = menuOpen,
-                            items = groupProfileMenuActions(isMember),
+                            items = groupProfileMenuActions(
+                                isMember,
+                                canModerate = canModerate,
+                            ),
                             isPrivate = group?.isPrivate == true,
                             anchorHeight = anchorHeight,
                             onDismiss = { menuOpen = false },
+                            onSilenced = { flowNavigator.navigateTo(ChatStep.SilencedMembers) },
+                            onRemoved = { flowNavigator.navigateTo(ChatStep.RemovedMembers) },
                             onItem = { item ->
                                 when (item) {
+                                    GroupProfileMenuAction.Moderation -> Unit
                                     GroupProfileMenuAction.Encryption -> navigator.push(
                                         if (group?.isPrivate == true) {
                                             AppRoute.Messaging.E2eePrivateGroupInfo
@@ -507,55 +546,92 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     }
 }
 
-/** The ⋯ button's menu: Encryption and Mute, then a divider and the red Report. */
+/**
+ * The ⋯ button's menu: Encryption and Mute, the host's Moderation row, then a divider and the red
+ * Report. Moderation turns the menu into Restricted and Removed; see [SubmenuDropdownMenu].
+ */
 @Composable
-private fun GroupProfileMenu(
+internal fun GroupProfileMenu(
     expanded: Boolean,
     items: List<GroupProfileMenuAction>,
     isPrivate: Boolean,
     anchorHeight: androidx.compose.ui.unit.Dp,
     onDismiss: () -> Unit,
     onItem: (GroupProfileMenuAction) -> Unit,
+    onSilenced: () -> Unit,
+    onRemoved: () -> Unit,
 ) {
-    DropdownMenu(
+    SubmenuDropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
-        containerColor = CodeTheme.colors.brandLight,
-        shape = CodeTheme.shapes.extraLarge,
         offset = DpOffset(x = 0.dp, y = -anchorHeight),
     ) {
         items.forEachIndexed { index, item ->
             if (index > 0 && items[index - 1].isDestructive != item.isDestructive) {
-                HorizontalDivider(color = CodeTheme.colors.divider)
+                Item { HorizontalDivider(color = CodeTheme.colors.divider) }
+            }
+            if (item == GroupProfileMenuAction.Moderation) {
+                Submenu(label = stringResource(item.labelRes()), icon = item.icon(isPrivate)) {
+                    ModerationEntry(R.string.title_silencedMembers, SpeakerSlash) {
+                        onDismiss()
+                        onSilenced()
+                    }
+                    ModerationEntry(R.string.title_removedMembers, Icons.Outlined.PersonRemove) {
+                        onDismiss()
+                        onRemoved()
+                    }
+                }
+                return@forEachIndexed
             }
             val tint = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
-            DropdownMenuItem(
-                leadingIcon = { Icon(imageVector = item.icon(isPrivate), contentDescription = null, tint = tint) },
-                text = {
-                    Text(
-                        text = stringResource(item.labelRes()),
-                        style = CodeTheme.typography.textSmall,
-                        color = tint,
-                    )
-                },
-                onClick = {
-                    onDismiss()
-                    onItem(item)
-                },
-            )
+            Item {
+                DropdownMenuItem(
+                    leadingIcon = { Icon(imageVector = item.icon(isPrivate), contentDescription = null, tint = tint) },
+                    text = {
+                        Text(
+                            text = stringResource(item.labelRes()),
+                            style = CodeTheme.typography.textSmall,
+                            color = tint,
+                        )
+                    },
+                    onClick = {
+                        onDismiss()
+                        onItem(item)
+                    },
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun ModerationEntry(@androidx.annotation.StringRes label: Int, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+    DropdownMenuItem(
+        leadingIcon = { Icon(imageVector = icon, contentDescription = null, tint = CodeTheme.colors.textMain) },
+        text = {
+            Text(
+                text = stringResource(label),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textMain,
+            )
+        },
+        onClick = onClick,
+    )
 }
 
 /** How long the requirement amounts wait for their token's name before showing without it. */
 private val RuleNameHold = 1500.milliseconds
 
 /** Four rows of portraits; the count beside the title opens the rest. */
-private const val MembersGridLimit = 16
+internal const val MembersGridLimit = 16
 
-/** "Private group · 48 members" over "The host approves who joins", behind a lock. */
+/**
+ * A line behind a lock under a private group's description, with an optional second line. A
+ * member count reads "Private group · 48 members" over "The host approves who joins"; an invite
+ * link replaces both ([summary] alone, nodes 12846:59 and 12846:126).
+ */
 @Composable
-private fun PrivateGroupNote(memberCount: Long, modifier: Modifier = Modifier) {
+internal fun PrivateGroupNote(summary: String, detail: String?, modifier: Modifier = Modifier) {
     Column(modifier = modifier) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
@@ -568,19 +644,18 @@ private fun PrivateGroupNote(memberCount: Long, modifier: Modifier = Modifier) {
                 tint = CodeTheme.colors.textSecondary,
             )
             Text(
-                text = stringResource(
-                    R.string.subtitle_privateGroupMembers,
-                    pluralStringResource(R.plurals.subtitle_memberCount, memberCount.toInt(), memberCount.toString()),
-                ),
+                text = summary,
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
             )
         }
-        Text(
-            text = stringResource(R.string.subtitle_hostApprovesJoins),
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textSecondary,
-        )
+        if (detail != null) {
+            Text(
+                text = detail,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+            )
+        }
     }
 }
 
@@ -589,7 +664,7 @@ private fun PrivateGroupNote(memberCount: Long, modifier: Modifier = Modifier) {
  * with Cancel Request under it and how long the request has waited above it.
  */
 @Composable
-private fun PrivateJoinBar(
+internal fun PrivateJoinBar(
     join: PrivateGroupJoin,
     hostName: String?,
     lobbyCall: LobbyCall?,

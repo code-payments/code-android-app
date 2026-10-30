@@ -9,7 +9,9 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatUpdate
+import com.flipcash.services.models.chat.LobbyUpdate
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.internal.ChatIdGenerator
 import com.flipcash.shared.chat.internal.ChatStateHolder
@@ -68,6 +70,16 @@ class ChatCoordinatorLifecycleStreamTest {
         override val type: ConnectionType get() = mutableState.value.type
     }
 
+    /** Counts reloads: updates the stream dropped while down are only recovered by refetching. */
+    private class RecordingLobbies : LobbyUpdateSink {
+        var reloads = 0
+        override fun apply(chatId: ChatId, updates: List<LobbyUpdate>) = Unit
+        override suspend fun reload() {
+            reloads++
+        }
+    }
+
+    private val lobbies = RecordingLobbies()
     private lateinit var eventStreamingController: EventStreamingController
     private var opens = 0
     private lateinit var networkObserver: FakeNetworkObserver
@@ -150,6 +162,7 @@ class ChatCoordinatorLifecycleStreamTest {
             dispatchers = testDispatchers,
             groupFeedDelegate = mockk(relaxed = true),
             reactionsDelegate = mockk(relaxed = true),
+            lobbyUpdates = lobbies,
         )
     }
 
@@ -231,6 +244,7 @@ class ChatCoordinatorLifecycleStreamTest {
             advanceTimeBy(2.seconds)
             runCurrent()
 
+            val reloadsBefore = lobbies.reloads
             disconnected()
             advanceTimeBy(2.seconds)
             connected(SignalStrength.Good)
@@ -240,6 +254,7 @@ class ChatCoordinatorLifecycleStreamTest {
             coordinator.teardown()
 
             assertEquals(4, opens)
+            assertEquals(reloadsBefore + 1, lobbies.reloads)
         }
 
     /** Backgrounding and then returning still reopens — the gate is the lifecycle, not a latch. */
@@ -259,11 +274,13 @@ class ChatCoordinatorLifecycleStreamTest {
             advanceTimeBy(10.seconds)
             runCurrent()
 
+            val reloadsBefore = lobbies.reloads
             coordinator.onStart(mockk(relaxed = true))
             runCurrent()
 
             coordinator.teardown()
 
             assertEquals(4, opens)
+            assertEquals(reloadsBefore + 1, lobbies.reloads)
         }
 }

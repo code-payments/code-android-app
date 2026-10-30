@@ -18,9 +18,11 @@ import com.flipcash.services.models.chat.ChatRules
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.RosterSummary
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.ViewerState
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.PublicKey
 import com.flipcash.app.persistence.entities.EncryptionState
 import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.services.chat.UndecryptableReason
@@ -133,6 +135,31 @@ class ChatEntityMapperTest {
         assertEquals(false, entity(MessageContent.Text("still here")).isDeleted)
     }
 
+    /** The 5b–5d copy names the inviter, so a stored join has to keep who invited them. */
+    @Test
+    fun `an invite join keeps its inviter through the round trip`() {
+        val joined = MessageContent.System(
+            fallbackText = "joined",
+            event = MessageContent.SystemEvent.UserJoined(
+                userId = listOf(0x01.toByte()),
+                admittedBy = null,
+                invitedBy = listOf(0x02.toByte()),
+            ),
+        )
+        val entity = mapper.toEntity(
+            CHAT_HEX,
+            ChatMessage(
+                messageId = 1,
+                senderId = listOf(0xAB.toByte()),
+                content = listOf(joined),
+                timestamp = Instant.fromEpochSeconds(1_000),
+                unreadSeq = 1,
+            ),
+        )
+
+        assertEquals(joined, mapper.toMessage(entity).content.single())
+    }
+
     @Test
     fun `a denied row maps to a denied delivery`() {
         val entity = mapper.toEntity(
@@ -211,6 +238,27 @@ class ChatEntityMapperTest {
     }
 
     @Test
+    fun `cash multi-receiver parts and payment request id survive the round trip`() {
+        val parts = listOf(
+            MessageContent.Cash.Payment(listOf<Byte>(1), 1.25, 4L),
+            MessageContent.Cash.Payment(listOf<Byte>(2), 1.25, 6L),
+        )
+        val requestId = List<Byte>(16) { (it + 1).toByte() }
+        val message = cashMessage(tokenQuarks = 10L).let { m ->
+            m.copy(content = m.content.map {
+                (it as MessageContent.Cash).copy(multiReceiver = parts, paymentRequestId = requestId)
+            })
+        }
+
+        val restored = mapper.toMessage(mapper.toEntity(CHAT_HEX, message))
+            .content.single() as MessageContent.Cash
+
+        assertEquals(parts, restored.multiReceiver)
+        assertEquals(requestId, restored.paymentRequestId)
+        assertNull(restored.receiver)
+    }
+
+    @Test
     fun `cash receiver survives the round trip, and its absence stays null`() {
         val receiver = listOf<Byte>(9, 8, 7)
         val with = mapper.toMessage(mapper.toEntity(CHAT_HEX, cashMessage(1L, receiver)))
@@ -253,6 +301,22 @@ class ChatEntityMapperTest {
             listOf<MessageContent>(MessageContent.Widget(WidgetContent.Unsupported)),
             mapper.toMessage(entity).content,
         )
+    }
+
+    @Test
+    fun `a payment request widget survives the round trip through the message row`() {
+        val widget = MessageContent.Widget(WidgetContent.PaymentRequest(List(32) { it.toByte() }))
+        val message = ChatMessage(
+            messageId = 1,
+            senderId = listOf(0xAB.toByte()),
+            content = listOf(widget),
+            timestamp = Instant.fromEpochSeconds(1_000),
+            unreadSeq = 1,
+        )
+
+        val entity = mapper.toEntity(CHAT_HEX, message)
+
+        assertEquals(listOf<MessageContent>(widget), mapper.toMessage(entity).content)
     }
 
     private fun groupMetadata() = ChatMetadata(
@@ -327,6 +391,29 @@ class ChatEntityMapperTest {
             ),
             restored.rules?.speaker,
         )
+    }
+
+    /**
+     * The write `MetadataUpdate.RulesChanged` and a rules edit make: [ChatEntityMapper.rulesSerialized]
+     * into `rules_json`, read back with the row. A speaker minimum added and then removed has to
+     * come back each time as it was sent, with the rules around it untouched.
+     */
+    @Test
+    fun `a speaker minimum added and removed through a rules change survives the round trip`() {
+        val mint = PublicKey(ByteArray(32) { 4 }.toList())
+        val join = ChatRuleRequirement.MinimumBalance(Fiat(quarks = 1_000_000_000, currencyCode = CurrencyCode.JPY), listOf(mint))
+        val chat = ChatRuleRequirement.MinimumBalance(Fiat(quarks = 2_500_000_000, currencyCode = CurrencyCode.JPY), listOf(mint))
+        val withSpeaker = ChatRules(
+            listener = listOf(join, ChatRuleRequirement.Staff),
+            speaker = listOf(chat, ChatRuleRequirement.Creator),
+        )
+        val withoutSpeaker = withSpeaker.copy(speaker = listOf(ChatRuleRequirement.Creator))
+        val entity = mapper.toEntity(groupMetadata())
+
+        for (rules in listOf(withSpeaker, withoutSpeaker)) {
+            val stored = entity.copy(rulesJson = mapper.rulesSerialized(rules))
+            assertEquals(rules, mapper.toMetadata(stored, members = emptyList(), lastMessage = null).rules)
+        }
     }
 
     @Test
@@ -506,6 +593,87 @@ class ChatEntityMapperTest {
         val restored = mapper.toMetadata(entity, emptyList(), null)
 
         assertEquals(true, restored.viewerState?.permissions?.canEdit)
+    }
+
+    @Test
+    fun `an invite grant survives the round trip`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(permissions = ViewerState.Permissions(canInvite = true))
+            )
+        )
+        assertEquals(true, entity.canInvite)
+
+        val restored = mapper.toMetadata(entity, emptyList(), null)
+
+        assertEquals(true, restored.viewerState?.permissions?.canInvite)
+    }
+
+    @Test
+    fun `moderation grants survive the round trip`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(
+                    version = 2,
+                    permissions = ViewerState.Permissions(
+                        moderation = ViewerState.ModerationPermissions(canSilence = true, canBan = true),
+                    ),
+                )
+            )
+        )
+        assertEquals(true, entity.canSilence)
+        assertEquals(true, entity.canBan)
+
+        val moderation = mapper.toMetadata(entity, emptyList(), null).viewerState?.permissions?.moderation
+
+        assertEquals(true, moderation?.canSilence)
+        assertEquals(true, moderation?.canBan)
+    }
+
+    @Test
+    fun `a timed silence survives the round trip as its deadline`() {
+        val until = Instant.fromEpochMilliseconds(9_000)
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(
+                    version = 4,
+                    restrictions = ViewerState.Restrictions(silence = SilenceState.Until(until)),
+                )
+            )
+        )
+        assertEquals(9_000L, entity.silenceUntilEpochMs)
+        assertEquals(false, entity.silenceForever)
+
+        val restored = mapper.toMetadata(entity, emptyList(), null)
+
+        assertEquals(SilenceState.Until(until), restored.viewerState?.restrictions?.silence)
+    }
+
+    @Test
+    fun `a forever silence survives the round trip`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(
+                    version = 4,
+                    restrictions = ViewerState.Restrictions(silence = SilenceState.Forever),
+                )
+            )
+        )
+        assertEquals(true, entity.silenceForever)
+        assertEquals(null, entity.silenceUntilEpochMs)
+
+        val restored = mapper.toMetadata(entity, emptyList(), null)
+
+        assertEquals(SilenceState.Forever, restored.viewerState?.restrictions?.silence)
+    }
+
+    @Test
+    fun `a chat with no silence reads back with no restrictions`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(viewerState = ViewerState(version = 4))
+        )
+
+        assertEquals(null, mapper.toMetadata(entity, emptyList(), null).viewerState?.restrictions)
     }
 
     // region Reactions

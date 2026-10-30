@@ -9,10 +9,12 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.services.models.chat.LobbyUpdate
 import com.getcode.opencode.model.core.ID
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -22,6 +24,12 @@ fun interface LobbyUpdateSink {
 
     /** Drops everything held. For logout: the lobbies belong to the account. */
     fun clear() = Unit
+
+    /**
+     * Fetches again every lobby held. For a reopened stream: updates sent while it was down are
+     * not replayed, so a request that came or went in the gap would otherwise stay wrong.
+     */
+    suspend fun reload() = Unit
 
     object None : LobbyUpdateSink {
         override fun apply(chatId: ChatId, updates: List<LobbyUpdate>) = Unit
@@ -104,6 +112,11 @@ class HostLobbies @Inject constructor(
 
     override fun clear() {
         lobbies.value = emptyMap()
+    }
+
+    /** Only the chats a host surface already loaded: those are the ones anyone is showing. */
+    override suspend fun reload() = coroutineScope {
+        lobbies.value.keys.forEach { chatId -> launch { load(chatId) } }
     }
 
     private fun remove(chatId: ChatId, userId: ID) {

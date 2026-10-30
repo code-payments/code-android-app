@@ -176,7 +176,7 @@ class EditGroupConfirmationTest {
     }
 }
 
-private class TestDispatchers(private val dispatcher: CoroutineDispatcher) : DispatcherProvider {
+internal class TestDispatchers(private val dispatcher: CoroutineDispatcher) : DispatcherProvider {
     override val Default: CoroutineDispatcher get() = dispatcher
     override val Main: CoroutineDispatcher get() = dispatcher
     override val IO: CoroutineDispatcher get() = dispatcher

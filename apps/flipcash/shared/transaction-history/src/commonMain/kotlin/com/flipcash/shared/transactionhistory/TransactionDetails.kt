@@ -1,6 +1,10 @@
 package com.flipcash.shared.transactionhistory
 
+import com.flipcash.services.models.BoostedReaction
+import com.flipcash.services.models.RequestedPayment
 import com.flipcash.shared.transactionhistory.generated.resources.Res
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_boostReceived
+import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_youBoosted
 import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_from
 import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_status_completed
 import com.flipcash.shared.transactionhistory.generated.resources.label_txnDetails_status_failed
@@ -22,6 +26,7 @@ import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetai
 import com.flipcash.shared.transactionhistory.generated.resources.title_txnDetails_youTipped
 import org.jetbrains.compose.resources.StringResource
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import kotlin.time.Instant
 
@@ -42,6 +47,8 @@ import kotlin.time.Instant
  * from taking a bill in person — both arrive as an unattributed `ReceivedCrypto`.
  */
 enum class TransactionKind(val headingRes: StringResource) {
+    Boosted(Res.string.title_txnDetails_youBoosted),
+    BoostReceived(Res.string.title_txnDetails_boostReceived),
     Tipped(Res.string.title_txnDetails_youTipped),
     Received(Res.string.title_txnDetails_youReceived),
     Sent(Res.string.title_txnDetails_youSent),
@@ -124,6 +131,12 @@ enum class TransactionStatus(val labelRes: StringResource) {
  * @param canCancel Whether the movement can still be pulled back — an open cash link, and nothing
  * else. Drawn as the app bar's end action.
  * @param canViewInChat Whether the counterparty's conversation can be opened from here.
+ * @param boostedReaction The reaction this payment boosted, when it did. Its presence swaps the
+ * chat button for "View Message", which opens the boosted message — and shows it even on a split
+ * boost, which has no counterparty for [canViewInChat] to open.
+ * @param requestedPayment The payment request this payment paid a share of, when it did. Swaps the
+ * chat button for "View Request" the way [boostedReaction] does; a boost wins if both are set. A
+ * snapshot of what the payment was for, not kept current.
  */
 data class TransactionDetails(
     val id: String,
@@ -132,17 +145,18 @@ data class TransactionDetails(
     val heading: String? = null,
     val subtitle: String?,
     val signedAmountPrefix: String?,
-    val amount: Fiat?,
+    val amount: LocalFiat?,
     val timestamp: Instant,
     val token: Token?,
     val toToken: Token? = null,
     val account: TransactionAccount? = null,
     val status: TransactionStatus,
-    val currencyCode: String?,
     val exchangeRate: Double?,
     val tokenAmount: String?,
     val fee: Fiat? = null,
     val received: Fiat? = null,
     val canCancel: Boolean = false,
     val canViewInChat: Boolean = false,
+    val boostedReaction: BoostedReaction? = null,
+    val requestedPayment: RequestedPayment? = null,
 )

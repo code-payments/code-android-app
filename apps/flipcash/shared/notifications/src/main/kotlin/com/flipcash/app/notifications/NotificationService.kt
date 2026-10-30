@@ -12,6 +12,7 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.media.RingtoneManager
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
@@ -26,28 +27,33 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.flipcash.app.core.media.MediaUrlResolver
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.auth.push.PushRegistrar
+import com.flipcash.app.auth.push.PushRegistrationSource
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.contacts.ContactResolver
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.PaymentRequests
+import com.flipcash.shared.chat.ui.labelInviteLinks
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.UserProfileDataSource
 import com.flipcash.services.controllers.ProfileController
-import com.flipcash.services.controllers.PushController
 import com.getcode.opencode.model.core.ID
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.handle
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.NavigationTrigger
-import com.flipcash.services.models.NotificationCategory
 import com.flipcash.services.models.NotificationPayload
 import com.flipcash.services.models.PushChatMetadata
 import com.flipcash.services.models.Substitution
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
+import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.notifications.R
 import com.getcode.utils.TraceType
@@ -92,6 +98,7 @@ class NotificationService : FirebaseMessagingService(),
         // bound only caps the cold-cache network fetch so the notification isn't
         // held back indefinitely.
         private const val AVATAR_FETCH_TIMEOUT_MS = 5_000L
+        private const val REQUEST_FETCH_TIMEOUT_MS = 5_000L
     }
 
     @Inject
@@ -101,7 +108,7 @@ class NotificationService : FirebaseMessagingService(),
     lateinit var userManager: UserManager
 
     @Inject
-    lateinit var pushController: PushController
+    lateinit var pushRegistrar: PushRegistrar
 
     @Inject
     lateinit var mediaUrlResolver: MediaUrlResolver
@@ -122,6 +129,9 @@ class NotificationService : FirebaseMessagingService(),
     lateinit var chatCoordinator: ChatCoordinator
 
     @Inject
+    lateinit var paymentRequests: PaymentRequests
+
+    @Inject
     lateinit var profileController: ProfileController
 
     @Inject
@@ -136,6 +146,9 @@ class NotificationService : FirebaseMessagingService(),
     @Inject
     lateinit var pushMessageClassifier: PushMessageClassifier
 
+    @Inject
+    lateinit var testPushMark: TestPushMark
+
     // TODO(firebase-messaging): 25.1.0 deprecated onNewToken in favor of FID-based onRegistered().
     //  Migrate once Firebase ships a stable guide and the backend accepts FID registration.
     //  Tracking: https://github.com/firebase/firebase-android-sdk/issues/8087
@@ -145,13 +158,7 @@ class NotificationService : FirebaseMessagingService(),
         authenticateIfNeeded {
             launch {
                 if (userManager.state.value.authState.canAccessAuthenticatedApis) {
-                    pushController.addToken(token)
-                        .onSuccess {
-                            userManager.set(pushToken = token)
-                            trace("push token updated onNewToken", type = TraceType.Silent)
-                        }.onFailure {
-                            trace(message = "Failure updating push token", error = it)
-                        }
+                    pushRegistrar.register(PushRegistrationSource.Refresh, token = token)
                 }
             }
         }
@@ -197,12 +204,21 @@ class NotificationService : FirebaseMessagingService(),
 
         if (actions.isEmpty()) return
 
-        execute(actions)
+        // Chosen on arrival rather than at post time, which can wait on authentication: the test
+        // push's mark has to be read before it lapses.
+        val channel = if (actions.any { it is PushAction.PostNotification }) {
+            NotificationChannels.channelForPush(this, payload, testPushMark)
+        } else {
+            null
+        }
+
+        execute(actions, channel)
     }
 
     /** Runs a planned action list. Sync work starts immediately; posting a
-     *  notification waits for authentication, as it always has. */
-    private fun execute(actions: List<PushAction>) {
+     *  notification waits for authentication, as it always has. [channel] is where the
+     *  notification posts, set when one is planned. */
+    private fun execute(actions: List<PushAction>, channel: NotificationChannelCompat?) {
         if (PushAction.UpdateTokens in actions) {
             launch { tokenCoordinator.update() }
         }
@@ -238,13 +254,13 @@ class NotificationService : FirebaseMessagingService(),
                 try {
                     if (syncContacts) launch { contactCoordinator.sync() }
                     val decided = post?.let { applyArchiveOrPost(it) }
-                    if (decided != null) {
+                    if (decided != null && channel != null) {
                         val resolvedTitle =
                             applySubstitutions(decided.title, decided.payload?.titleSubstitutions.orEmpty())
                         val resolvedBody = decided.body?.let {
                             applySubstitutions(it, decided.payload?.bodySubstitutions.orEmpty())
                         }
-                        postNotification(resolvedTitle, resolvedBody, decided.payload, decided.silent)
+                        postNotification(resolvedTitle, resolvedBody, decided.payload, channel, decided.silent)
                     }
                 } catch (e: Exception) {
                     trace(tag = "NotificationService", message = "Failed to handle push", error = e)
@@ -299,6 +315,7 @@ class NotificationService : FirebaseMessagingService(),
         title: String,
         body: String?,
         payload: NotificationPayload?,
+        channel: NotificationChannelCompat,
         silent: Boolean = false,
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -306,9 +323,7 @@ class NotificationService : FirebaseMessagingService(),
             != PackageManager.PERMISSION_GRANTED
         ) return
 
-        val category = payload?.category ?: NotificationCategory.DEFAULT
         NotificationChannels.ensureChannelGroups(this, notificationManager)
-        val channel = NotificationChannels.channelFor(this, category)
         notificationManager.createNotificationChannel(channel)
 
         val chatId = when (val trigger = payload?.navigation) {
@@ -362,7 +377,7 @@ class NotificationService : FirebaseMessagingService(),
             builder.applyChatStyle(chatId, styling, groupKey, title, body, payload?.chatMetadata)
         } else {
             builder.setContentTitle(title).setContentText(body)
-            SecureRandom().nextInt(Int.MAX_VALUE)
+            planNotificationId(channel.id, randomId = { SecureRandom().nextInt(Int.MAX_VALUE) })
         }
 
         notificationManager.notify(notificationId, builder.build())
@@ -481,8 +496,14 @@ class NotificationService : FirebaseMessagingService(),
         // The server can't read an end-to-end encrypted DM or private group, so its body is a
         // stand-in. The opened text is the message itself, with no sender prefix to strip; a group
         // line takes its sender from the Person. Unencrypted messages open to null and keep the body.
-        val opened = openPushedMessage(chatId, metadata)
-        style.addMessage(opened ?: planMessageBody(body, senderNames), System.currentTimeMillis(), senderPerson)
+        // A payment request carries only its id, so its body comes from fetching the request.
+        // An invite link's fragment is the group's key, so it never shows on the lock screen. Only
+        // message text is labelled; a request's body is built from its amount and title.
+        val inviteLabel = getString(com.flipcash.core.R.string.label_inviteLinkPreview)
+        val line = openPushedMessage(chatId, metadata)?.let { labelInviteLinks(it, inviteLabel) }
+            ?: pushedRequestBody(chatId, metadata)
+            ?: labelInviteLinks(planMessageBody(body, senderNames), inviteLabel)
+        style.addMessage(line, System.currentTimeMillis(), senderPerson)
 
         // After the extract above, not before: a re-post rebuilds the style from the notification
         // already on screen, which carries the old flag and title back with it.
@@ -508,6 +529,39 @@ class NotificationService : FirebaseMessagingService(),
             throw e
         } catch (e: Exception) {
             trace(tag = "NotificationService", message = "Couldn't open a pushed message", error = e)
+            null
+        }
+    }
+
+    /**
+     * What a payment-request push asks, from fetching the request, or `null` to keep the server's
+     * body: the message isn't a request, or the fetch failed or took longer than
+     * [REQUEST_FETCH_TIMEOUT_MS]. A sealed (private group) request's title is opened by the fetch.
+     */
+    private suspend fun pushedRequestBody(chatId: ChatId, metadata: PushChatMetadata?): String? {
+        if (metadata == null || (metadata.message == null && metadata.messageId == null)) return null
+        return try {
+            val widget = (metadata.message?.content?.singleOrNull() as? MessageContent.Widget)?.widget
+                ?: (chatCoordinator.openPushedChatMessage(chatId, metadata.message, metadata.messageId)
+                    ?.content?.singleOrNull() as? MessageContent.Widget)?.widget
+            val requestId = (widget as? WidgetContent.PaymentRequest)?.id ?: return null
+            val request: PaymentRequest? = withTimeoutOrNull(REQUEST_FETCH_TIMEOUT_MS.milliseconds) {
+                paymentRequests.fetch(requestId).getOrNull()?.paymentRequest
+            }
+            planPaymentRequestBody(
+                request = request,
+                chatId = chatId,
+                viewerId = userManager.accountId,
+                templates = PaymentRequestBodyTemplates(
+                    amountAndTitle = getString(R.string.notification_request_amountAndTitle),
+                    amountOnly = getString(R.string.notification_request_amountOnly),
+                    titleOnly = getString(R.string.notification_request_titleOnly),
+                ),
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            trace(tag = "NotificationService", message = "Couldn't build a payment request body", error = e)
             null
         }
     }

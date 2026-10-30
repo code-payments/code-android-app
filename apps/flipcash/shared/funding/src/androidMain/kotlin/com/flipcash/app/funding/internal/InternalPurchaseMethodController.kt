@@ -6,6 +6,7 @@ import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
+import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.funding.PaymentAction
 import com.flipcash.app.funding.PurchaseMethod
 import com.flipcash.app.funding.PurchaseMethodController
@@ -81,7 +82,7 @@ class InternalPurchaseMethodController @Inject constructor(
         ) { balance, rate ->
             LocalFiat(
                 usdf = balance,
-                nativeAmount = balance.convertingTo(rate),
+                nativeAmount = balance.forViewer(rate, exchange.rates()),
             )
         }.onEach { reservesBalance ->
             _state.update { it.copy(reservesBalance = reservesBalance) }

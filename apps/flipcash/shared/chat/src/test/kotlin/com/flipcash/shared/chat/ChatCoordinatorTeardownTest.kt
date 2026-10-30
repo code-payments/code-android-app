@@ -25,6 +25,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -54,6 +55,7 @@ class ChatCoordinatorTeardownTest {
     private lateinit var draftStore: ChatDraftStore
     private lateinit var archiveStore: ChatArchiveStore
     private lateinit var groupFeedDelegate: GroupFeedDelegate
+    private lateinit var hostInvites: HostInvites
     private lateinit var coordinator: RealChatCoordinator
 
     @Before
@@ -75,6 +77,7 @@ class ChatCoordinatorTeardownTest {
         draftStore = mockk(relaxed = true)
         archiveStore = mockk(relaxed = true)
         groupFeedDelegate = mockk(relaxed = true)
+        hostInvites = mockk(relaxed = true)
         val messagingController = mockk<ChatMessagingController>(relaxed = true)
         val stateHolder = ChatStateHolder()
 
@@ -126,6 +129,7 @@ class ChatCoordinatorTeardownTest {
             groupFeedDelegate = groupFeedDelegate,
             reactionsDelegate = mockk(relaxed = true),
             archiveStore = archiveStore,
+            hostInvites = hostInvites,
         )
     }
 
@@ -148,6 +152,14 @@ class ChatCoordinatorTeardownTest {
         coordinator.teardown()
 
         coVerify(exactly = 0) { draftStore.clearAll() }
+    }
+
+    /** The invites belong to the account, and the links among them are as good as the chat key. */
+    @Test
+    fun `teardown drops the held invites`() = runTest {
+        coordinator.teardown()
+
+        verify(exactly = 1) { hostInvites.clear() }
     }
 
     @Test

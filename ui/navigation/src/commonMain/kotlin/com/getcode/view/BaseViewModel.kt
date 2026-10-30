@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 abstract class BaseViewModel<ViewState : Any, Event : Any>(
     initialState: ViewState,
@@ -82,6 +83,24 @@ abstract class BaseViewModel<ViewState : Any, Event : Any>(
  * this one.
  */
 val SuccessHoldDuration = 500.milliseconds
+
+/**
+ * How long the checkmark holds on a payment or swipe-to-send sheet before it dismisses.
+ *
+ * Longer than [SuccessHoldDuration] because money has moved and the confirmation is worth
+ * reading. Matches iOS.
+ */
+val PaymentSuccessHoldDuration = 1.seconds
+
+/**
+ * Shows payment success, holds it for [PaymentSuccessHoldDuration], then releases. Cancellation
+ * during the hold skips [release]. Mirrors iOS `PaymentSuccess.release(after:_:)`.
+ */
+suspend inline fun holdPaymentSuccess(show: () -> Unit, release: () -> Unit) {
+    show()
+    delay(PaymentSuccessHoldDuration)
+    release()
+}
 
 /**
  * The least time a confirm button's spinner stays up once it has gone up.

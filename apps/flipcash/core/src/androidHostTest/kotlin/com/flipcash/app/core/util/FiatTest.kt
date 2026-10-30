@@ -65,9 +65,9 @@ class FiatTest {
     fun `a low-value currency's tip tiers stay within the cap`() {
         // The $5 / $10 / $20 tiers in pesos, dong and yen — the amounts that overflow the button
         // when written out in full (7,500 / 15,000 / 30,000 pesos).
-        assertEquals("7.5K", Fiat(7_500.0, CurrencyCode.ARS).abbreviated())
-        assertEquals("15K", Fiat(15_000.0, CurrencyCode.ARS).abbreviated())
-        assertEquals("30K", Fiat(30_000.0, CurrencyCode.ARS).abbreviated())
+        assertEquals("$7.5K", Fiat(7_500.0, CurrencyCode.ARS).abbreviated())
+        assertEquals("$15K", Fiat(15_000.0, CurrencyCode.ARS).abbreviated())
+        assertEquals("$30K", Fiat(30_000.0, CurrencyCode.ARS).abbreviated())
 
         assertEquals("\u20ab126K", Fiat(126_000.0, CurrencyCode.VND).abbreviated())
         assertEquals("\u20ab1.32M", Fiat(1_315_000.0, CurrencyCode.VND).abbreviated())
@@ -78,7 +78,7 @@ class FiatTest {
 
     @Test
     fun `an odd peso amount keeps a decimal only while it fits`() {
-        assertEquals("25.5K", Fiat(25_500.0, CurrencyCode.ARS).abbreviated())
-        assertEquals("123K", Fiat(123_456.0, CurrencyCode.ARS).abbreviated())
+        assertEquals("$25.5K", Fiat(25_500.0, CurrencyCode.ARS).abbreviated())
+        assertEquals("$123K", Fiat(123_456.0, CurrencyCode.ARS).abbreviated())
     }
 }

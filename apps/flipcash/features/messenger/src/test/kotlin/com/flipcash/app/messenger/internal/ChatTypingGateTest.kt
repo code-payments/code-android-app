@@ -31,6 +31,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -75,6 +76,10 @@ class ChatTypingGateTest {
         displayNumber = "(555) 123-4567",
     )
     private val chatId = ChatId(UUID.randomUUID().bytes)
+    private val wrongKey = MutableStateFlow(false)
+    private val wrongKeyChats = mockk<com.flipcash.services.chat.WrongKeyChats> {
+        every { observe(any()) } returns wrongKey
+    }
 
     @Before
     fun setUp() {
@@ -95,6 +100,7 @@ class ChatTypingGateTest {
 
     private fun createViewModel(): ChatViewModel = ChatViewModel(
         chatCoordinator = chatCoordinator,
+        wrongKeyChats = wrongKeyChats,
         mediaUploads = noMediaUploads(),
         e2eePolicy = E2eePolicy(),
         contactCoordinator = contactCoordinator,
@@ -114,6 +120,7 @@ class ChatTypingGateTest {
         linkCardResolver = mockk(relaxed = true),
         cashLinkClaims = mockk(relaxed = true) { every { claimInFlight } returns MutableStateFlow(null) },
         chatCashLinks = mockk(relaxed = true),
+        groupSendPayments = mockk(relaxed = true),
         chatDraftStore = mockk(relaxed = true),
         recentReactionsStore = mockk(relaxed = true),
         toastController = mockk(relaxed = true),
@@ -163,5 +170,83 @@ class ChatTypingGateTest {
         assertTrue(state.chatType == ChatType.CONTACT_DM)
         assertTrue(state.typingConstraints.resolved)
         assertFalse(state.typingConstraints.enabled)
+    }
+
+    @Test
+    fun `a wrong-key mark on the open chat reaches state and clears with it`() = runTest {
+        every { contactCoordinator.lookupContact(any()) } returns Result.failure(NoSuchElementException())
+        coEvery { contactCoordinator.lookupContactByDmChatId(any()) } returns null
+        every { chatCoordinator.observeMetadata(chatId) } returns flowOf(
+            ChatMembership(
+                metadata = mockk<ChatMetadata>(relaxed = true) { every { this@mockk.type } returns ChatType.TIP_DM },
+                isMember = true,
+            ),
+        )
+
+        val viewModel = createViewModel()
+        viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(ChatIdentifier.ByChatId(chatId)))
+        advanceUntilIdle()
+        assertFalse(viewModel.stateFlow.value.wrongKey)
+
+        wrongKey.value = true
+        advanceUntilIdle()
+        assertTrue(viewModel.stateFlow.value.wrongKey)
+
+        wrongKey.value = false
+        advanceUntilIdle()
+        assertFalse(viewModel.stateFlow.value.wrongKey)
+    }
+
+    @Test
+    fun `the wrong-key event sets the flag and nothing else`() = runTest {
+        val viewModel = createViewModel()
+        val before = viewModel.stateFlow.value
+        viewModel.dispatchEvent(ChatViewModel.Event.OnWrongKey(true))
+        advanceUntilIdle()
+        assertEquals(before.copy(wrongKey = true), viewModel.stateFlow.value)
+
+        viewModel.dispatchEvent(ChatViewModel.Event.OnWrongKey(false))
+        advanceUntilIdle()
+        assertEquals(before, viewModel.stateFlow.value)
+    }
+
+    @Test
+    fun `the wrong-key mark follows the chat the screen switches to`() = runTest {
+        val other = ChatId(UUID.randomUUID().bytes)
+        every { contactCoordinator.lookupContact(any()) } returns Result.failure(NoSuchElementException())
+        coEvery { contactCoordinator.lookupContactByDmChatId(any()) } returns null
+        for (id in listOf(chatId, other)) {
+            every { chatCoordinator.observeMetadata(id) } returns flowOf(
+                ChatMembership(
+                    metadata = mockk<ChatMetadata>(relaxed = true) { every { this@mockk.type } returns ChatType.TIP_DM },
+                    isMember = true,
+                ),
+            )
+        }
+        val first = MutableStateFlow(true)
+        val second = MutableStateFlow(false)
+        every { wrongKeyChats.observe(chatId) } returns first
+        every { wrongKeyChats.observe(other) } returns second
+        coEvery { chatCoordinator.hydrateChat(other) } returns ChatHydration.Stored
+        every { chatCoordinator.observeMessages(other) } returns flowOf(emptyList())
+
+        val viewModel = createViewModel()
+        viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(ChatIdentifier.ByChatId(chatId)))
+        advanceUntilIdle()
+        assertTrue(viewModel.stateFlow.value.wrongKey)
+
+        viewModel.dispatchEvent(ChatViewModel.Event.OnChatOpened(ChatIdentifier.ByChatId(other)))
+        advanceUntilIdle()
+        assertFalse(viewModel.stateFlow.value.wrongKey)
+
+        // The old chat's mark changing is no longer this screen's business.
+        first.value = false
+        first.value = true
+        advanceUntilIdle()
+        assertFalse(viewModel.stateFlow.value.wrongKey)
+
+        second.value = true
+        advanceUntilIdle()
+        assertTrue(viewModel.stateFlow.value.wrongKey)
     }
 }

@@ -41,8 +41,8 @@ internal fun EditProfileScreenContent(
             avatar = state.avatar,
             displayName = state.displayName,
             access = BlobAccessContext.Owned,
-            changeCoverLabel = stringResource(R.string.action_changeCover),
-            changePhotoLabel = stringResource(R.string.action_changePhoto),
+            changeCoverLabel = stringResource(R.string.action_addCoverPhoto),
+            changePhotoLabel = stringResource(R.string.action_addProfilePhoto),
             onChangeCover = { openStep(UpdateProfileStep.Cover) },
             onChangePhoto = { openStep(UpdateProfileStep.Photo) },
         )
@@ -57,22 +57,12 @@ internal fun EditProfileScreenContent(
                 placeholder = stringResource(R.string.placeholder_editProfileName),
                 onClick = { openStep(EditProfileViewModel.nameStep) },
             )
-            if (state.usernameNeedsClaim) {
-                FieldCard(
-                    title = stringResource(R.string.title_username),
-                    value = stringResource(R.string.action_claimUsername),
-                    placeholder = "",
-                    valueIsPrompt = true,
-                    onClick = { dispatch(EditProfileViewModel.Event.UsernameClicked) },
-                )
-            } else {
-                FieldCard(
-                    title = stringResource(R.string.title_username),
-                    value = "@${state.username.orEmpty()}",
-                    placeholder = "",
-                    onClick = { openStep(UpdateProfileStep.Username) },
-                )
-            }
+            FieldCard(
+                title = stringResource(R.string.title_username),
+                value = state.username?.takeIf { it.isNotBlank() }?.let { "@$it" },
+                placeholder = stringResource(R.string.placeholder_editProfileUsername),
+                onClick = { dispatch(EditProfileViewModel.Event.UsernameClicked) },
+            )
             FieldCard(
                 title = stringResource(R.string.title_bio),
                 value = state.bio.ifEmpty { null },

@@ -24,11 +24,14 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.filled.Feedback
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material.icons.materialPath
 import com.flipcash.app.messenger.internal.screens.openMessageShare
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import com.flipcash.services.models.chat.ChatId
+import com.getcode.opencode.model.core.ID
+import androidx.compose.material.icons.outlined.PersonRemove
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,10 +44,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -60,6 +65,8 @@ import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.ui.MutedIndicator
+import com.flipcash.shared.chat.ui.media.ForwardArrow
+import com.flipcash.shared.chat.ui.messageFullTime
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
@@ -71,6 +78,7 @@ import com.getcode.ui.core.measured
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.utils.KeyboardController
 import com.getcode.ui.utils.rememberKeyboardController
+import com.getcode.util.resources.icons.SpeakerSlash
 
 @Composable
 internal fun ChatTopBar(
@@ -79,6 +87,9 @@ internal fun ChatTopBar(
     onBarHeightChange: (Dp) -> Unit,
     chatActionHandler: ChatActionHandler,
     dispatch: (ChatViewModel.Event) -> Unit,
+    /** Asks the host to confirm a removal: chat, member, first name, group title. Supplied by the screen so the bar needs no Hilt. */
+    onConfirmRemove: (ChatId, ID, String, String) -> Unit = { _, _, _, _ -> },
+    trailing: @Composable () -> Unit = {},
 ) {
     val bgColor = CodeTheme.colors.background
     val statusBars = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -107,9 +118,17 @@ internal fun ChatTopBar(
             label = "chat top bar",
         ) { target ->
             when (target) {
-                TopBarMode.Conversation -> ConversationTitleBar(navigator, state, chatActionHandler)
+                TopBarMode.Conversation -> ConversationTitleBar(navigator, state, chatActionHandler, trailing)
                 TopBarMode.Editing -> EditingBar(dispatch)
-                is TopBarMode.Selecting -> MessageSelectionBar(
+                is TopBarMode.Selecting -> {
+                    val sender = target.selection.sender
+                    val groupTitle = (state.subject as? ChatSubject.Group)?.title
+                    val moderationTarget = if (sender != null && groupTitle != null) {
+                        Triple(sender.userId, sender.displayName.substringBefore(' ').ifEmpty { sender.displayName }, groupTitle)
+                    } else {
+                        null
+                    }
+                    MessageSelectionBar(
                     selection = target.selection,
                     keyboard = keyboard,
                     dispatch = dispatch,
@@ -130,7 +149,27 @@ internal fun ChatTopBar(
                             )
                         }
                     },
-                )
+                    // Both name the sender and the group, so neither is offered until the sender's
+                    // profile has resolved. The host never sees them on the creator or on a DM:
+                    // the capabilities are not granted there.
+                    onSilence = moderationTarget?.let { (userId, firstName, groupTitle) ->
+                        {
+                            state.chatId?.let { chatId ->
+                                dispatch(ChatViewModel.Event.ClearMessageSelection)
+                                navigator.push(AppRoute.Messaging.SilenceUser(chatId, userId, firstName, groupTitle))
+                            }
+                        }
+                    },
+                    onRemove = moderationTarget?.let { (userId, firstName, groupTitle) ->
+                        {
+                            state.chatId?.let { chatId ->
+                                dispatch(ChatViewModel.Event.ClearMessageSelection)
+                                onConfirmRemove(chatId, userId, firstName, groupTitle)
+                            }
+                        }
+                    },
+                    )
+                }
             }
         }
     }
@@ -169,6 +208,7 @@ private fun ConversationTitleBar(
     navigator: CodeNavigator,
     state: ChatViewModel.State,
     chatActionHandler: ChatActionHandler,
+    trailing: @Composable () -> Unit,
 ) {
     AppBarWithTitle(
         leftIcon = {
@@ -255,6 +295,9 @@ private fun ConversationTitleBar(
                         )
                     }
                 }
+                // The payment request deck, beside the title rather than in the actions slot, so
+                // the bar keeps its height (group requests spec, concept B).
+                trailing()
             }
         }
     )
@@ -275,6 +318,10 @@ private fun MessageSelectionBar(
     dispatch: (ChatViewModel.Event) -> Unit,
     onShareMessage: () -> Unit,
     onReport: () -> Unit,
+    /** Null when the sender is unknown or the viewer cannot silence them. */
+    onSilence: (() -> Unit)?,
+    /** Null when the sender is unknown or the viewer cannot remove them. */
+    onRemove: (() -> Unit)?,
 ) {
     val capabilities = selection.capabilities
     val body = selection.plainText
@@ -363,6 +410,39 @@ private fun MessageSelectionBar(
         }
     }
 
+    // The host's two, after Report and always under the overflow: they are rare and consequential,
+    // so they never take an icon slot however wide the bar is.
+    val moderationActions = buildList {
+        val firstName = selection.sender?.displayName?.substringBefore(' ').orEmpty()
+        if (onSilence != null && MessageCapability.Silence in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_silenceMember, firstName),
+                    icon = SpeakerSlash,
+                    testTag = "action_silence_member",
+                    onClick = onSilence,
+                )
+            )
+        }
+        if (onRemove != null && MessageCapability.Remove in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_removeMemberNamed, firstName),
+                    icon = Icons.Outlined.PersonRemove,
+                    testTag = "action_remove_member",
+                    isDestructive = true,
+                    onClick = onRemove,
+                )
+            )
+        }
+    }
+
+    val time = messageFullTime(selection.timestamp)
+    val timeStyle = CodeTheme.typography.textMedium
+    val timeWidth = with(LocalDensity.current) {
+        rememberTextMeasurer().measure(time, timeStyle, maxLines = 1).size.width.toDp()
+    }
+
     AppBarWithTitle(
         leftIcon = {
             CircularIconButton(
@@ -377,10 +457,20 @@ private fun MessageSelectionBar(
                 )
             }
         },
-        // Nothing in the title slot: one message is selected at a time, so a count would only ever
-        // read "1" and the back arrow already says the bar is a selection.
-        title = { },
-        rightContents = { MessageActions(actions) },
+        // When the selected message was sent, not a count: one message is selected at a time, so a
+        // count would only ever read "1". iOS gives the same time at the top of its message menu.
+        title = {
+            Text(
+                modifier = Modifier.testTag("selected_message_time"),
+                text = time,
+                style = timeStyle,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        // The time is never cut short: the icons get what it leaves, and the rest go under the overflow.
+        rightContents = { MessageActions(actions, moderationActions, reservedWidth = timeWidth + TitleChrome) },
     )
 }
 
@@ -389,6 +479,7 @@ private data class MessageAction(
     val label: String,
     val icon: ImageVector,
     val testTag: String,
+    val isDestructive: Boolean = false,
     val onClick: () -> Unit,
 )
 
@@ -409,18 +500,35 @@ private data class MessageAction(
 private const val ActionBudgetFraction = 0.5f
 
 /**
+ * What the bar spends besides the title and the actions, inside the actions' slot: the back
+ * button (40dp) in its 5dp-padded slot, and the app bar's content padding, which [TopAppBarBase]
+ * takes twice on each side (10dp × 4).
+ */
+private val TitleChrome = 50.dp + 40.dp
+
+/**
  * How many actions stay as icons in a [barWidth] slot. Extracted so the widths that decide it can
  * be tested without laying a bar out; see `MessageActionCapacityTest`.
  */
-internal fun inlineActionCapacity(barWidth: Dp, buttonSize: Dp, spacing: Dp): Int =
+internal fun inlineActionCapacity(
+    barWidth: Dp,
+    buttonSize: Dp,
+    spacing: Dp,
+    /** Width the title needs whole; the actions only get what is left after it. */
+    reservedWidth: Dp = 0.dp,
+): Int {
     // n buttons cost n widths and n-1 gaps, so adding one gap to both sides makes it a division.
-    ((barWidth * ActionBudgetFraction + spacing) / (buttonSize + spacing))
-        .toInt()
-        .coerceAtLeast(1)
+    fun fit(width: Dp) = ((width + spacing) / (buttonSize + spacing)).toInt()
+    return minOf(fit(barWidth * ActionBudgetFraction), fit(barWidth - reservedWidth)).coerceAtLeast(1)
+}
 
 @Composable
-private fun MessageActions(actions: List<MessageAction>) {
-    if (actions.isEmpty()) return
+private fun MessageActions(
+    actions: List<MessageAction>,
+    overflowOnly: List<MessageAction> = emptyList(),
+    reservedWidth: Dp = 0.dp,
+) {
+    if (actions.isEmpty() && overflowOnly.isEmpty()) return
 
     // Both match what the app bar itself uses, so the budget is measured in the widths that will
     // actually be laid out.
@@ -428,10 +536,15 @@ private fun MessageActions(actions: List<MessageAction>) {
     val spacing = CodeTheme.dimens.grid.x2
 
     BoxWithConstraints {
-        val capacity = inlineActionCapacity(maxWidth, buttonSize, spacing)
+        val capacity = inlineActionCapacity(maxWidth, buttonSize, spacing, reservedWidth)
         // The overflow needs a slot of its own, so it only pays for itself when it is holding
         // something — the last action is not displaced by a menu that would contain only it.
-        val inline = if (actions.size <= capacity) actions else actions.take(capacity - 1)
+        // Actions that live only under the overflow take its slot whether or not the others fit.
+        val inline = when {
+            overflowOnly.isNotEmpty() -> actions.take(capacity - 1)
+            actions.size <= capacity -> actions
+            else -> actions.take(capacity - 1)
+        }
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(spacing),
@@ -447,14 +560,14 @@ private fun MessageActions(actions: List<MessageAction>) {
                     )
                 }
             }
-            MessageOverflow(actions.drop(inline.size))
+            MessageOverflow(actions.drop(inline.size), overflowOnly)
         }
     }
 }
 
 @Composable
-private fun MessageOverflow(actions: List<MessageAction>) {
-    if (actions.isEmpty()) return
+private fun MessageOverflow(actions: List<MessageAction>, overflowOnly: List<MessageAction> = emptyList()) {
+    if (actions.isEmpty() && overflowOnly.isEmpty()) return
 
     var expanded by remember { mutableStateOf(false) }
     Box {
@@ -475,7 +588,35 @@ private fun MessageOverflow(actions: List<MessageAction>) {
         ) {
             actions.forEach { action ->
                 DropdownMenuItem(
-                    text = { OverflowLabel(action.label) },
+                    text = { OverflowLabel(action.label, action.isDestructive) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = action.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(CodeTheme.dimens.grid.x5),
+                            tint = if (action.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain,
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        action.onClick()
+                    },
+                )
+            }
+            if (actions.isNotEmpty() && overflowOnly.isNotEmpty()) {
+                HorizontalDivider(color = CodeTheme.colors.divider)
+            }
+            overflowOnly.forEach { action ->
+                DropdownMenuItem(
+                    text = { OverflowLabel(action.label, action.isDestructive) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = action.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(CodeTheme.dimens.grid.x5),
+                            tint = if (action.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain,
+                        )
+                    },
                     onClick = {
                         expanded = false
                         action.onClick()
@@ -487,27 +628,10 @@ private fun MessageOverflow(actions: List<MessageAction>) {
 }
 
 @Composable
-private fun OverflowLabel(text: String) {
+private fun OverflowLabel(text: String, isDestructive: Boolean = false) {
     Text(
         text = text,
         style = CodeTheme.typography.textSmall,
-        color = CodeTheme.colors.textMain,
+        color = if (isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain,
     )
-}
-
-// Material has no forward counterpart to Reply, and its Forward is a straight block arrow. iOS draws
-// Forward as Reply's mirror (arrowshape.turn.up.right.fill), so this is Reply's path flipped across x = 12.
-private val ForwardArrow: ImageVector by lazy {
-    materialIcon(name = "Flipcash.ForwardArrow", autoMirror = true) {
-        materialPath {
-            moveTo(14.0f, 9.0f)
-            verticalLineTo(5.0f)
-            lineToRelative(7.0f, 7.0f)
-            lineToRelative(-7.0f, 7.0f)
-            verticalLineToRelative(-4.1f)
-            curveToRelative(-5.0f, 0.0f, -8.5f, 1.6f, -11.0f, 5.1f)
-            curveToRelative(1.0f, -5.0f, 4.0f, -10.0f, 11.0f, -11.0f)
-            close()
-        }
-    }
 }

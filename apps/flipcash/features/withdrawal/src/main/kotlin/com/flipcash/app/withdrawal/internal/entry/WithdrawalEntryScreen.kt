@@ -10,12 +10,10 @@ import com.getcode.solana.keys.Mint
 internal fun WithdrawalEntryScreen(
     viewModel: WithdrawalViewModel,
     mint: Mint,
-    onOpenRegionSelection: () -> Unit,
 ) {
     AmountEntryScreen(
         controller = viewModel.amountDelegate,
         onConfirm = { viewModel.dispatchEvent(WithdrawalViewModel.Event.OnAmountConfirmed) },
-        onChangeCurrency = onOpenRegionSelection,
     )
 
     LaunchedEffect(viewModel) {

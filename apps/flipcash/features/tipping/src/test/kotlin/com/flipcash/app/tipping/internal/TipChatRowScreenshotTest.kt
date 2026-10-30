@@ -12,8 +12,11 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tipping.internal.components.TipChatRow
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.shared.chat.ui.ConversationReference
+import com.getcode.solana.keys.PublicKey
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,6 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
@@ -121,6 +125,46 @@ class TipChatRowScreenshotTest {
         repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
 
         capture("tip_chat_row_empty.png")
+    }
+
+    @Test
+    fun rendersJoinRequestStates() {
+        val at = Instant.fromEpochMilliseconds(1_700_000_000_000)
+        fun waiting(name: String, minutesAgo: Long) = LobbyMember(
+            userProfile = UserProfile.Empty.copy(displayName = name),
+            publicKey = PublicKey("11111111111111111111111111111111"),
+            enteredAt = at - minutesAgo.minutes,
+        )
+        val group = ConversationReference(
+            chatId = ChatId(byteArrayOf(6)),
+            title = "Friday Night Poker",
+            isGroup = true,
+            lastMessagePreview = "Leo: who's bringing chips?",
+            lastActivity = at - 30.minutes,
+            unreadCount = 0,
+        )
+        val rows = listOf(
+            // One request, no unread messages.
+            group.copy(joinRequests = listOf(waiting("Jasper", 1))),
+            // Several requests.
+            group.copy(joinRequests = listOf(waiting("Jasper", 1), waiting("Mia", 2), waiting("Sam", 3))),
+            // One request and three unread messages: pill 4, request then the preview.
+            group.copy(unreadCount = 3, joinRequests = listOf(waiting("Jasper", 1))),
+            // Nobody waiting: the row as it was.
+            group,
+        )
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            FlipcashPreview(showBackground = true) {
+                Column(modifier = Modifier.width(360.dp).padding(vertical = 8.dp)) {
+                    rows.forEach { TipChatRow(chat = it, onClick = {}) }
+                }
+            }
+        }
+        repeat(10) { composeRule.mainClock.advanceTimeByFrame() }
+
+        capture("tip_chat_row_join_requests.png")
     }
 
     private fun capture(name: String) {

@@ -1,13 +1,14 @@
 package com.flipcash.app.messenger.internal.screens
 
+import com.flipcash.services.models.paymentrequest.unpaidShareOf
+import com.flipcash.app.messenger.internal.request.RequestDeckStrip
+import com.flipcash.app.messenger.internal.request.rememberDeckHostState
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.core.rememberTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import com.flipcash.shared.chat.ui.media.ChatPhotoOverlay
@@ -28,15 +30,17 @@ import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.messenger.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -51,9 +55,11 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.getcode.opencode.model.core.ID
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.chat.ChatStep
+import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.links.ExternalLinkUriHandler
@@ -61,9 +67,16 @@ import com.flipcash.app.core.links.LocalTrustedWebsites
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.MemberModerationViewModel
+import com.flipcash.app.messenger.internal.ownReactionEmoji
+import com.flipcash.app.messenger.internal.reactionStripFor
+import com.flipcash.app.messenger.internal.withLiveSelfReactions
 import com.flipcash.app.messenger.internal.MentionDestination
 import com.flipcash.app.messenger.internal.link.CashCardTap
+import com.flipcash.app.messenger.internal.screens.components.WrongKeyBanner
 import com.flipcash.app.messenger.internal.screens.components.ChatTopBar
+import com.flipcash.app.messenger.internal.screens.components.deckBackdropSpec
+import com.flipcash.app.messenger.internal.screens.components.chatBackdrop
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
 import com.flipcash.app.messenger.internal.screens.components.GatedLandingRow
@@ -73,7 +86,9 @@ import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.BlurredContent
+import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
+import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.Shareable
@@ -85,11 +100,25 @@ import com.getcode.navigation.results.navigateForResult
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.theme.ScaffoldBarPlacement
 import com.getcode.ui.utils.rememberKeyboardController
+import com.getcode.utils.hexEncodedString
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.flow.filterIsInstance
 import com.flipcash.services.models.chat.BlobAccessContext
+import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.common.ui.profile.PrefetchProfileCover
+import com.flipcash.app.messenger.internal.request.ChatRequestsViewModel
+import com.flipcash.app.messenger.internal.request.rememberPaymentRequestCards
+import com.flipcash.app.messenger.internal.request.ExpandedRequests
+import com.flipcash.app.messenger.internal.request.RequestDeckLayout
+import com.flipcash.app.messenger.internal.request.RequestDeckPill
+import com.flipcash.app.messenger.internal.request.deckTitle
+import com.flipcash.shared.chat.ui.request.LocalPaymentRequestCards
+import com.flipcash.services.models.chat.ChatType
+import com.getcode.utils.base58
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.flipcash.app.messenger.internal.request.RequestPaySheet
+import com.flipcash.app.messenger.internal.request.RequestPayViewModel
 
 @Composable
 internal fun MessengerScreen(viewModel: ChatViewModel) {
@@ -129,7 +158,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // The photo bubbles on screen, and the photo opened over them. The overlay sits above the whole
     // screen rather than being a route, so it can grow out of and shrink back into its bubble.
     val photoSources = remember { ChatPhotoSources() }
-    var openPhotoId by remember { mutableStateOf<Long?>(null) }
+    var openPhoto by remember { mutableStateOf<ChatListItem.ContentBubble?>(null) }
 
     // A private group the viewer is not in has no transcript to show: no key envelope, so nothing
     // to decrypt. A share link or deep link only knows the chat id and lands here first, so once the
@@ -171,6 +200,29 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         else UpdateAppAction(label = updateLabel, onClick = { scope.launch { updater.startOptionalUpdate() } })
     }
 
+    val openUser = { targetId: ID, targetIsOwn: Boolean ->
+        val counterpart = (state.participant as? ChatParticipant.TipUser)?.userId
+        when {
+            // Your own card lives on the You tab, where scanning it and its deep link
+            // already send you. There is no chat with yourself to open.
+            targetIsOwn -> keyboard.hideIfVisible {
+                navigator.rootNavigator.navigateAll(listOf(AppRoute.Tabs.Menu))
+            }
+            // A link to the person this DM is with has nowhere to go.
+            targetId == counterpart -> Unit
+            else -> keyboard.hideIfVisible {
+                viewModel.dispatchEvent(
+                    ChatViewModel.Event.OpenScreen(
+                        // The profile their flipcash.com link opens, pushed as the group
+                        // card pushes its chat, so Back returns here. Its Message shortcut
+                        // goes on to the DM.
+                        AppRoute.Messaging.Profile(ProfileAddress.ById(targetId))
+                    )
+                )
+            }
+        }
+    }
+
     val chatActionHandler = { action: ChatAction ->
         when (action) {
             is ChatAction.AdvanceReadPointer -> {
@@ -179,7 +231,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
             is ChatAction.OpenPhoto -> {
                 // After the keyboard is down, so the bubble the photo grows from has settled.
-                keyboard.hideIfVisible { openPhotoId = action.bubble.messageId }
+                keyboard.hideIfVisible { openPhoto = action.bubble }
             }
 
             is ChatAction.RetryMessage -> {
@@ -201,6 +253,24 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             // expand is the wallet card growing into its own detail, and there
                             // is no card here for it to grow from.
                             AppRoute.Token.Info(action.mint, TokenInfoEntry.Chat)
+                        )
+                    )
+                }
+            }
+
+            is ChatAction.ViewGroupSend -> {
+                val cash = action.bubble.content as? MessageContent.Cash
+                if (cash != null) keyboard.hideIfVisible {
+                    navigator.push(
+                        ChatStep.GroupSendDetails(
+                            mint = cash.mint,
+                            tokenName = cash.tokenName,
+                            tokenImageUrl = cash.tokenImageUrl,
+                            senderIdHex = action.bubble.authorId?.hexEncodedString(),
+                            // A one-recipient group payment names its payee in `receiver`, not `multiReceiver`.
+                            recipientIdsHex = cash.multiReceiver.map { it.receiver }
+                                .ifEmpty { listOfNotNull(cash.receiver) }
+                                .map { it.hexEncodedString() },
                         )
                     )
                 }
@@ -260,28 +330,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 }
             }
 
-            is ChatAction.OpenUser -> {
-                val counterpart = (state.participant as? ChatParticipant.TipUser)?.userId
-                when {
-                    // Your own card lives on the You tab, where scanning it and its deep link
-                    // already send you. There is no chat with yourself to open.
-                    action.isOwn -> keyboard.hideIfVisible {
-                        navigator.rootNavigator.navigateAll(listOf(AppRoute.Tabs.Menu))
-                    }
-                    // A link to the person this DM is with has nowhere to go.
-                    action.userId == counterpart -> Unit
-                    else -> keyboard.hideIfVisible {
-                        viewModel.dispatchEvent(
-                            ChatViewModel.Event.OpenScreen(
-                                // The profile their flipcash.com link opens, pushed as the group
-                                // card pushes its chat, so Back returns here. Its Message shortcut
-                                // goes on to the DM.
-                                AppRoute.Messaging.Profile(ProfileAddress.ById(action.userId))
-                            )
-                        )
-                    }
-                }
-            }
+            is ChatAction.OpenUser -> openUser(action.userId, action.isOwn)
+            is ChatAction.OpenUserById -> openUser(action.userId, action.isOwn)
 
             is ChatAction.OpenMention -> {
                 viewModel.dispatchEvent(ChatViewModel.Event.MentionTapped(action.username))
@@ -408,14 +458,64 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     }
 
     // The group's profile is one tap away; have its cover downloaded before that tap.
+    // The flow's, so the Request details step can minimize the deck once it covers the chat.
+    val requestsViewModel = flowSharedViewModel<ChatRequestsViewModel>()
+    val moderation = hiltViewModel<MemberModerationViewModel>()
+    val requestCards = rememberPaymentRequestCards(
+        viewModel = requestsViewModel,
+        chatId = state.chatId.takeIf { state.chatType == ChatType.GROUP },
+        onOpen = { chatId, id -> keyboard.hideIfVisible { navigator.push(ChatStep.RequestDetails(chatId, id.base58)) } },
+    )
+
     (state.subject as? ChatSubject.Group)?.let { group ->
         PrefetchProfileCover(group.coverPicture, BlobAccessContext.ChatProfile(group.chatId))
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Before the deck is read, so requests already held are there on the first frame.
+    val deckChat = state.chatId.takeIf { state.chatType == ChatType.GROUP }
+    remember(deckChat) { deckChat?.also(requestsViewModel::attach) }
+    val deck by requestsViewModel.deck.collectAsStateWithLifecycle()
+    val deckExpanded by requestsViewModel.expanded.collectAsStateWithLifecycle()
+    val deckNow by requestsViewModel.now.collectAsStateWithLifecycle()
+    val drawnDeck = remember(deck) { deck.filter { it.deckTitle != null } }
+    val viewerId = requestsViewModel.viewerId
+    // One per visit: reopening the chat while still owing brings the strip back.
+    val owed = drawnDeck.filter { it.unpaidShareOf(viewerId, deckNow) != null }.map { it.id }.toSet()
+    val deckHosts = rememberDeckHostState(deckChat, owed)
+    val deckTransition = rememberTransition(deckHosts.transition, label = "request deck")
+    // Read here rather than in the effect, so expanding recomposes this scope and reaches the hosts.
+    val expandedNow = deckExpanded
+    SideEffect {
+        deckHosts.owing(owed, hasDeck = drawnDeck.isNotEmpty())
+        deckHosts.expanded = expandedNow
+    }
+    val expandDeck = {
+        // Partway into the pill, a tap waits for the scroll to settle it.
+        if (!deckHosts.collapsing) keyboard.hideIfVisible { requestsViewModel.setExpanded(true) }
+    }
+    val openRequest: (com.flipcash.services.models.paymentrequest.PaymentRequest) -> Unit = { request ->
+        // The deck stays expanded while the details slide over it; the step minimizes it once covered.
+        state.chatId?.let { chatId ->
+            keyboard.hideIfVisible { navigator.push(ChatStep.RequestDetails(chatId, request.id.base58)) }
+        }
+    }
+
+    val requestPay = hiltViewModel<RequestPayViewModel>()
+    val requestPayState by requestPay.state.collectAsStateWithLifecycle()
+    val requestPayMembers by requestPay.members.collectAsStateWithLifecycle()
+    val requestPayToken by requestPay.token.collectAsStateWithLifecycle()
+    LaunchedEffect(requestPay) { requestPay.routes.collect { route -> navigator.navigate(route) } }
+
+    // The collapsed pill's last bounds, where the expanded deck puts its close button.
+    var deckPill by remember { mutableStateOf<Rect?>(null) }
+
+    RequestDeckLayout(modifier = Modifier.fillMaxSize()) {
     CodeScaffold(
         // The input bar rides the keyboard; the message list is inset by it either way.
-        modifier = Modifier.imePadding(),
+        // The expanded request deck raises its cards over the whole screen, the bars included.
+        modifier = Modifier
+            .imePadding()
+            .chatBackdrop(behind = deckExpanded, animationSpec = deckBackdropSpec(deckExpanded)),
         // The list runs the full height and passes under both bars, each of which fades it out
         // against the background at its own edge.
         barPlacement = ScaffoldBarPlacement.Overlay,
@@ -430,7 +530,61 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     onBarHeightChange = { barHeight = it },
                     chatActionHandler = chatActionHandler,
                     dispatch = viewModel::dispatchEvent,
+                    onConfirmRemove = moderation::confirmRemove,
+                    trailing = {
+                        if (state.chatType == ChatType.GROUP) {
+                            RequestDeckPill(
+                                deck = drawnDeck,
+                                now = deckNow,
+                                viewerId = viewerId,
+                                transition = deckTransition,
+                                onExpand = expandDeck,
+                                onCycle = requestsViewModel::cycle,
+                                modifier = Modifier.onGloballyPositioned {
+                                    // Kept from the last frame it had a size; it empties while expanded.
+                                    if (it.size.width > 0) deckPill = it.boundsInWindow()
+                                },
+                            )
+                        }
+                    },
                 )
+                if (state.chatType == ChatType.GROUP) {
+                    // Behind the backdrop whenever the rows are, since it sits over them: a raised
+                    // message or its reaction strip reads against a sharp stack otherwise. A tap on
+                    // it then dismisses the selection, as a tap on the rows does.
+                    val stripBehindBackdrop = state.selection != null || state.editing != null
+                    Box {
+                        Box(modifier = Modifier.chatBackdrop(behind = stripBehindBackdrop)) {
+                            RequestDeckStrip(
+                                deck = drawnDeck,
+                                now = deckNow,
+                                viewerId = viewerId,
+                                transition = deckTransition,
+                                rest = deckHosts.rest.host,
+                                onExpand = expandDeck,
+                                onCycle = requestsViewModel::cycle,
+                                // Straight to the swipe sheet over the chat; the card body opens details.
+                                onPay = { request ->
+                                    state.chatId?.let { chatId ->
+                                        keyboard.hideIfVisible { requestPay.pay(chatId, request.id) }
+                                    }
+                                },
+                                onHeightChange = { deckHosts.stripPx = it.toFloat() },
+                            )
+                        }
+                        if (stripBehindBackdrop) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .pointerInput(Unit) {
+                                        detectTapGestures {
+                                            viewModel.dispatchEvent(ChatViewModel.Event.ClearMessageSelection)
+                                        }
+                                    },
+                            )
+                        }
+                    }
+                }
                 // Hold the last list through the exit, so the card doesn't empty as it slides away.
                 var lastRequests by remember { mutableStateOf(state.joinRequests) }
                 if (state.joinRequests.isNotEmpty()) lastRequests = state.joinRequests
@@ -443,6 +597,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         requests = lastRequests,
                         onReview = { keyboard.hideIfVisible { navigator.push(ChatStep.JoinRequests) } },
                         hazeState = hazeState,
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.grid.x2),
+                    )
+                }
+                if (state.wrongKey) {
+                    WrongKeyBanner(
+                        onLeave = { viewModel.dispatchEvent(ChatViewModel.Event.LeaveChat) },
                         modifier = Modifier
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(top = CodeTheme.dimens.grid.x2),
@@ -471,20 +633,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             // as its rows are, and a tap on it dismisses the selection as a tap on them does. An
             // edit raises a message too, but it is the composer doing the editing, so it stays sharp.
             val behindBackdrop = state.selection != null && state.editing == null
-            val dimAlpha by animateFloatAsState(
-                targetValue = if (behindBackdrop) 0.4f else 1f,
-                label = "composerDim",
-            )
-            val dimBlur by animateDpAsState(
-                targetValue = if (behindBackdrop) 8.dp else 0.dp,
-                label = "composerBlur",
-            )
             Box {
-                Box(
-                    modifier = Modifier
-                        .blur(dimBlur, BlurredEdgeTreatment.Unbounded)
-                        .graphicsLayer { alpha = dimAlpha },
-                ) {
+                Box(modifier = Modifier.chatBackdrop(behind = behindBackdrop)) {
                     UserControlBottomBar(
                         state = state,
                         hazeState = hazeState,
@@ -519,6 +669,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 LocalChatMediaProgress provides mediaProgressOf,
                 LocalChatPhotoSources provides photoSources,
                 LocalUpdateAppAction provides updateAppAction,
+                LocalPaymentRequestCards provides requestCards,
             ) {
                 // Held for the saved link previews, 300 ms at most and the first chat only.
                 if (previewsReady) {
@@ -526,6 +677,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("chat_message_list")
+                            .nestedScroll(deckHosts.scrollConnection)
                             .softTopEdge(ChatTopEdge.blurHold(barHeight))
                             .hazeSource(hazeState)
                             // Inside the edge blur and the haze, so a photo landing under the bars
@@ -568,11 +720,57 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         }
     }
 
-    openPhotoId?.let { id ->
+    // In-window, over the conversation and the deck, so the bottom bar draws above it.
+    RequestPaySheet(
+        pay = requestPayState,
+        request = deck.firstOrNull { it.id == requestPayState.requestId },
+        members = requestPayMembers,
+        viewerId = viewerId,
+        now = deckNow,
+        token = requestPayToken,
+        actions = requestPay.actions,
+    )
+    ExpandedRequests(
+        deck = drawnDeck,
+        now = deckNow,
+        viewerId = viewerId,
+        expanded = deckExpanded,
+        transition = deckTransition,
+        top = barHeight,
+        pill = deckPill,
+        onCollapse = { requestsViewModel.setExpanded(false) },
+        onOpen = openRequest,
+    )
+
+    openPhoto?.let { opened ->
+        // The bubble the photo opened from is a snapshot; the strip highlights the live picks.
+        val live by remember(opened.messageId) { viewModel.selfReactionsOf(opened.messageId) }
+            .collectAsStateWithLifecycle(initialValue = null)
+        val bubble = opened.withLiveSelfReactions(live)
         ChatPhotoOverlay(
-            messageId = id,
+            messageId = bubble.messageId,
             sources = photoSources,
-            onClosed = { openPhotoId = null },
+            onClosed = { openPhoto = null },
+            onSaveResult = { saved -> viewModel.dispatchEvent(ChatViewModel.Event.PhotoSaveResult(saved)) },
+            // The same actions the message's context menu offers, gated by the same capabilities.
+            // React sends the event the menu's strip does, and the strip is built the same way.
+            onReact = if (bubble.canReact) {
+                { emoji ->
+                    viewModel.dispatchEvent(
+                        ChatViewModel.Event.ToggleReaction(bubble.messageId, emoji, clearsSelection = true)
+                    )
+                }
+            } else null,
+            reactionStrip = state.reactionStripFor(bubble),
+            ownReactions = bubble.ownReactionEmoji(),
+            onOpenPicker = { navigator.push(ChatStep.ReactionPicker(bubble.messageId)) },
+            // Reply sets the strip the way the menu's Reply does; the overlay closes itself.
+            onReply = if (MessageCapability.Reply in bubble.capabilities) {
+                { viewModel.dispatchEvent(ChatViewModel.Event.ReplyRequested(bubble)) }
+            } else null,
+            onForward = if (MessageCapability.Link in bubble.capabilities) {
+                { navigator.openMessageShare(bubble.messageId) }
+            } else null,
         )
     }
     }

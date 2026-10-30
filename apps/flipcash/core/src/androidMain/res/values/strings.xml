@@ -55,6 +55,7 @@
     <string name="subtitle_giveCashHintLimitExceeded">You can only give up to %1$s</string>
 
     <string name="subtitle_sendHint">Enter up to %1$s</string>
+    <string name="subtitle_currencySendAvailable">%1$s available</string>
     <string name="subtitle_sendHintLimitExceeded">You can only send up to %1$s</string>
 
     <string name="error_title_sendLimitReached">Transaction Limit Reached</string>
@@ -290,6 +291,7 @@
     <string name="title_insufficientBalance">Insufficient Balance</string>
     <string name="description_insufficientBalanceToCreate">Add more money to create a currency</string>
     <string name="description_insufficientBalanceToUse">Add more money, or enter a smaller amount</string>
+    <string name="description_insufficientBalanceToPayRequest">Add more money, or select a different Community Currency</string>
     <string name="description_noBalanceYetToGive">Add money to give cash</string>
     <string name="description_noBalanceYetToBuy">Add money to buy currencies</string>
     <string name="description_noBalanceYetToSend">Add money to send cash</string>
@@ -565,10 +567,6 @@
     <string name="title_addMoney">Add Money</string>
     <string name="subtitle_addMoney">Add money to your account</string>
 
-    <string name="title_scanTipCard">Scan a Profile Card</string>
-    <string name="subtitle_scanTipCard">Send your first message</string>
-
-
     <!-- Copy matches iOS's "Finish Your Profile" display-name step. -->
 
 
@@ -691,14 +689,14 @@
     <string name="title_purchase">Purchase</string>
     <string name="action_connectYourPhantomWallet">Connect Your Phantom Wallet</string>
 
-    <string name="error_title_onrampAmountTooLow">$5 Minimum Purchase</string>
-    <string name="error_description_onrampAmountTooLow">Please enter an amount of $5 or higher</string>
+    <string name="error_title_onrampAmountTooLow">%1$s Minimum Purchase</string>
+    <string name="error_description_onrampAmountTooLow">Please enter an amount of %1$s or higher</string>
 
     <string name="error_title_onrampInvalidCard">Debit Cards Only</string>
     <string name="error_description_onrampInvalidCard">The transaction was declined. Please make sure you are using a debit card and the billing address is correct</string>
 
     <string name="error_title_onrampTransactionLimit">Weekly Limit Exceeded</string>
-    <string name="error_description_onrampTransactionLimit">You can only add up to $1,000 per week</string>
+    <string name="error_description_onrampTransactionLimit">You can only add up to %1$s per week</string>
 
     <string name="error_title_onrampTransactionCount">Maximum Purchases Reached</string>
     <string name="error_description_onrampTransactionCount">Each user is limited to 15 purchases total</string>
@@ -910,6 +908,8 @@
     <string name="title_messageNotSent">Message Not Sent</string>
     <string name="description_messageNotSent">Your message could not be delivered. Would you like to try again?</string>
     <string name="label_chatSeparator_today">Today</string>
+    <!-- A message's full send time: its day ("Today", "Yesterday", "Oct 20"), then its time. -->
+    <string name="label_messageTime_full">%1$s, %2$s</string>
     <plurals name="title_chatUnreadDivider">
         <item quantity="one">%1$s Unread Message</item>
         <item quantity="other">%1$s Unread Messages</item>
@@ -930,6 +930,8 @@
     <string name="subtitle_chatGate_speakerMinimumBalance">Minimum Balance to Send Messages: %1$s of %2$s</string>
     <string name="subtitle_chatGate_speakerMinimumBalance_anyToken">Minimum Balance to Send Messages: %1$s</string>
     <string name="subtitle_chatGate_speakerStaffOnly">Only Flipcash staff can send messages here</string>
+    <string name="subtitle_chatGate_silencedUntil">You can\'t send messages until %1$s</string>
+    <string name="subtitle_chatGate_silencedForever">You can\'t send messages in this group</string>
     <string name="subtitle_chatGate_speakerCreatorOnly">Only the creator can send messages</string>
     <string name="subtitle_chatGate_speakerUnsupported">Update Flipcash to send messages</string>
     <string name="action_buyMoreToken">Buy More %1$s</string>
@@ -946,7 +948,7 @@
     <string name="action_leaveChat">Leave Chat</string>
     <string name="prompt_title_leaveChat">Leave %1$s?</string>
     <!-- A private group: coming back means a new request, not an invite link (node 11206:98). -->
-    <string name="prompt_description_leavePrivateChat">You’ll lose access to the conversation. To rejoin, you’ll need to request again and wait for the host to approve</string>
+    <string name="prompt_description_leavePrivateChat">You’ll lose access to the conversation. To rejoin, you’ll need an invite link or the host’s approval</string>
     <string name="prompt_description_leaveChat">You won’t receive messages from this group any more. You can join again with an invite link</string>
     <string name="error_title_failedToLeave">Something Went Wrong</string>
     <string name="error_description_failedToLeave">We were unable to leave this group. Please try again</string>
@@ -958,6 +960,49 @@
          options name the state they produce ("1 Week") rather than the act ("Mute for 1 week"),
          which is also what lets "Never" sit among them. -->
     <string name="title_muteChat">Mute Notifications</string>
+    <!-- Silencing a member (group moderation). "Restrict" is the per-member word; "mute" stays the
+         notification setting. Durations match the mute sheet except the last row, which says
+         "Forever" on both platforms. -->
+    <string name="title_silenceUser">Restrict %1$s</string>
+    <string name="subtitle_silenceUser">%1$s can still read the group but can\'t send messages</string>
+    <string name="action_silenceFor_forever">Forever</string>
+    <string name="toast_silenced_oneHour">%1$s can\'t send messages for 1 hour</string>
+    <string name="toast_silenced_eightHours">%1$s can\'t send messages for 8 hours</string>
+    <string name="toast_silenced_oneWeek">%1$s can\'t send messages for 1 week</string>
+    <string name="toast_silenced_forever">%1$s can\'t send messages in this group</string>
+    <string name="toast_silenceLifted">You are now able to chat again</string>
+    <string name="toast_unsilenced">%1$s can send messages again</string>
+    <string name="error_title_failedToSilence">Something Went Wrong</string>
+    <string name="error_description_failedToSilence">We were unable to restrict this member. Please try again</string>
+    <string name="action_silenceMember">Restrict %1$s</string>
+    <string name="action_removeMemberNamed">Remove %1$s</string>
+    <string name="action_removeMember">Remove</string>
+    <string name="title_moderation">Moderation</string>
+    <string name="title_silencedMembers">Restricted</string>
+    <string name="title_removedMembers">Removed</string>
+    <string name="subtitle_silencedUntil">Restricted · until %1$s</string>
+    <string name="subtitle_silencedForever">Restricted · forever</string>
+    <string name="subtitle_removedOn">Removed %1$s</string>
+    <string name="subtitle_removedOnAlsoSilenced">Removed %1$s · also restricted</string>
+    <string name="action_unsilence">Lift</string>
+    <string name="action_unban">Unban</string>
+    <string name="title_noSilencedMembers">No One Restricted</string>
+    <string name="title_noRemovedMembers">No One Removed</string>
+    <string name="description_noSilencedMembers">Stop someone from sending messages in this group by tapping their profile and selecting Restrict</string>
+    <string name="description_noRemovedMembers">Remove someone from this group by tapping their profile and selecting Remove from Group</string>
+    <string name="error_title_failedToLoadRestricted">Something Went Wrong</string>
+    <string name="error_description_failedToLoadRestricted">We were unable to load this list. Please try again</string>
+    <string name="error_title_failedToUnsilence">Something Went Wrong</string>
+    <string name="error_description_failedToUnsilence">We were unable to lift this restriction. Please try again</string>
+    <string name="error_title_failedToUnban">Something Went Wrong</string>
+    <string name="error_description_failedToUnban">We were unable to unban this member. Please try again</string>
+    <string name="action_silenceMemberShort">Restrict</string>
+    <string name="action_removeFromGroup">Remove from Group</string>
+    <string name="title_menuSection_inGroup">In %1$s</string>
+    <string name="prompt_title_removeMember">Remove %1$s?</string>
+    <string name="prompt_description_removeMember">They\'ll leave %1$s and can\'t rejoin until you unban them. Their messages stay in the chat</string>
+    <string name="error_title_failedToRemoveMember">Something Went Wrong</string>
+    <string name="error_description_failedToRemoveMember">We were unable to remove this member. Please try again</string>
     <string name="title_unmuteChat">Unmute Notifications</string>
     <!-- Load-bearing rather than decorative: a muted chat still delivers the push, still stores the
          message and still counts it unread. Only the notification is held back. -->
@@ -984,6 +1029,9 @@
     <string name="error_title_failedToJoin">Couldn\'t Join Chat</string>
     <string name="error_description_failedToJoin">Something went wrong. Please try again.</string>
     <string name="error_description_joinChat_rulesNotSatisfied">You don\'t meet this chat\'s requirements yet.</string>
+    <string name="error_title_cannotJoinGroup">You Can\'t Join This Group</string>
+    <string name="error_description_removedFromGroup">The host removed you from %1$s</string>
+    <string name="error_description_removedFromGroup_unnamed">The host removed you from this group</string>
     <string name="error_description_joinChat_denied">This chat isn\'t open to you</string>
     <string name="error_description_joinChat_notFound">This chat no longer exists</string>
     <string name="error_title_groupNotFound">Group Not Found</string>
@@ -1009,9 +1057,166 @@
     <string name="label_chat_system_added">%1$s added %2$s</string>
     <string name="label_chat_system_addedSelf">%1$s added you</string>
     <string name="label_chat_system_selfAdded">You added %1$s</string>
+    <string name="label_chat_system_joinedViaInvite">%1$s joined with %2$s’s invite link</string>
+    <string name="label_chat_system_joinedSelfViaInvite">You joined with %1$s’s invite link</string>
+    <string name="label_chat_system_joinedViaYourInvite">%1$s joined with your invite link</string>
     <string name="label_chat_preview_sentCash_bySender">%1$s sent %2$s</string>
     <string name="label_chat_preview_tippedCash_bySender">%1$s tipped %2$s</string>
     <string name="label_chat_preview_sharedProfile">Shared a profile</string>
+    <string name="label_paymentRequest_card">Request</string>
+    <string name="label_chat_preview_sentRequest">You sent request for %1$s</string>
+    <string name="label_chat_preview_sentRequest_bySender">%1$s sent request for %2$s</string>
+    <string name="label_chat_preview_sentRequest_untitled">You sent request</string>
+    <string name="label_chat_preview_sentRequest_untitled_bySender">%1$s sent request</string>
+    <string name="action_sendMoney">Send Money</string>
+    <string name="subtitle_sendMoney_group">Send money to someone in the group, or multiple people</string>
+    <string name="action_requestMoney">Request Money</string>
+    <string name="subtitle_requestMoney_group">Collect money from people in the group</string>
+    <!-- Request Money history and the create flow, group requests spec frames 03–06 and 25. -->
+    <string name="title_requestMoneyHistory">Request Money</string>
+    <string name="action_newRequest">New Request</string>
+    <string name="header_openRequests">Open Requests</string>
+    <string name="header_previousRequests">Previous Requests</string>
+    <string name="label_requestProgress">%1$s paid, %2$s requested</string>
+    <string name="label_requestCompleted">✓ %1$s paid</string>
+    <string name="title_amountPerPerson">Amount Per Person</string>
+    <string name="title_newRequest">New Request</string>
+    <string name="label_perPerson">per person</string>
+    <string name="label_requestName">Name</string>
+    <string name="title_requestName">What is the request for?</string>
+    <string name="label_requestPeople">People</string>
+    <string name="label_requestTiming">Timing</string>
+    <plurals name="label_requestDaysLeft">
+        <item quantity="one">%1$d day left to pay</item>
+        <item quantity="other">%1$d days left to pay</item>
+    </plurals>
+    <plurals name="label_requestHoursLeft">
+        <item quantity="one">%1$d hour left to pay</item>
+        <item quantity="other">%1$d hours left to pay</item>
+    </plurals>
+    <plurals name="label_requestMinutesLeft">
+        <item quantity="one">%1$d minute left to pay</item>
+        <item quantity="other">%1$d minutes left to pay</item>
+    </plurals>
+    <string name="label_requestPaidInFull">Paid in full</string>
+    <string name="label_requestClosed">Closed</string>
+    <string name="label_requestExpired">Expired</string>
+    <!-- The owed deck's time left: the status line without "to pay". -->
+    <plurals name="label_requestDaysLeftShort">
+        <item quantity="one">%1$d day left</item>
+        <item quantity="other">%1$d days left</item>
+    </plurals>
+    <plurals name="label_requestHoursLeftShort">
+        <item quantity="one">%1$d hour left</item>
+        <item quantity="other">%1$d hours left</item>
+    </plurals>
+    <plurals name="label_requestMinutesLeftShort">
+        <item quantity="one">%1$d minute left</item>
+        <item quantity="other">%1$d minutes left</item>
+    </plurals>
+    <!-- The owed deck: "You owe $20", then "You owe $20 · 2 days left". -->
+    <string name="label_requestYouOwe">You owe %1$s</string>
+    <string name="label_requestYouPaid">✓ You paid %1$s</string>
+    <string name="label_requestYourRequest">Your request</string>
+    <string name="cd_requestYouPaid">you paid %1$s</string>
+    <string name="cd_requestYouOwe">you owe %1$s</string>
+    <string name="cd_requestYourRequest">your request</string>
+    <string name="action_requestPay">Pay</string>
+    <string name="cd_requestPayShare">Pay %1$s</string>
+    <string name="cd_requestOwed">You owe %1$s for %2$s, %3$s</string>
+    <!-- The app-bar deck's front card: "$180 of $520". -->
+    <string name="label_requestDeckProgress">%1$s of %2$s</string>
+    <!-- Screen reader label for the deck: title, "<paid> of <requested> paid", status line. -->
+    <string name="cd_requestDeck">%1$s, %2$s of %3$s paid, %4$s</string>
+    <!-- As cd_requestDeck, with the viewer's standing ("you paid $5") after the title. -->
+    <string name="cd_requestDeckViewer">%1$s, %2$s, %3$s of %4$s paid, %5$s</string>
+    <plurals name="cd_requestDeckCount">
+        <item quantity="one">%1$d request</item>
+        <item quantity="other">%1$d requests</item>
+    </plurals>
+    <string name="action_nextRequest">Next request</string>
+    <!-- %1$s is the weekday in the device locale: "Saturday Request". -->
+    <string name="label_defaultRequestTitle">%1$s Request</string>
+    <string name="value_requestPeople_everyoneIncludingYou">Everyone, Including You</string>
+    <string name="value_requestPeople_everyoneExceptYou">Everyone Except You</string>
+    <string name="value_requestPeople_choose">Choose People</string>
+    <plurals name="value_requestPeople_someIncludingYou">
+        <item quantity="one">%1$d Person, Including You</item>
+        <item quantity="other">%1$d People, Including You</item>
+    </plurals>
+    <plurals name="value_requestPeople_some">
+        <item quantity="one">%1$d Person</item>
+        <item quantity="other">%1$d People</item>
+    </plurals>
+    <string name="subtitle_requestMarkedPaid">You\'ll be marked as paid</string>
+    <plurals name="value_requestDaysToPay">
+        <item quantity="one">%1$d Day To Pay</item>
+        <item quantity="other">%1$d Days To Pay</item>
+    </plurals>
+    <!-- %1$s is a medium date and short time in the device locale: "Until Nov 2, 6:00 PM". -->
+    <string name="value_requestUntil">Until %1$s</string>
+    <string name="subtitle_requestAutoCloses">Request automatically closes after</string>
+    <plurals name="action_requestFromPeople">
+        <item quantity="one">Request %2$s from %1$d Person</item>
+        <item quantity="other">Request %2$s from %1$d People</item>
+    </plurals>
+    <string name="label_selectPeople_you">You</string>
+    <string name="title_requestMaxPeople">100 People Max</string>
+    <string name="description_requestMaxPeople">A request can include up to 100 people.</string>
+    <string name="title_timeToPay">Time To Pay</string>
+    <string name="option_timeToPay_day">1 Day</string>
+    <string name="option_timeToPay_threeDays">3 Days</string>
+    <string name="option_timeToPay_week">1 Week</string>
+    <string name="option_timeToPay_twoWeeks">2 Weeks</string>
+    <string name="option_timeToPay_fourWeeks">4 Weeks</string>
+    <string name="option_timeToPay_custom">Custom</string>
+    <plurals name="description_timeToPayPreset">
+        <item quantity="one">%2$s · closes %1$d day after you send</item>
+        <item quantity="other">%2$s · closes %1$d days after you send</item>
+    </plurals>
+    <plurals name="description_timeToPayCustom">
+        <item quantity="one">Custom · %1$d day</item>
+        <item quantity="other">Custom · %1$d days</item>
+    </plurals>
+    <string name="description_timeToPayCustomToday">Custom · today</string>
+    <string name="label_timeToPayStarts">Starts</string>
+    <string name="value_timeToPayStarts">Today, on send</string>
+    <string name="label_timeToPayCloses">Closes</string>
+    <string name="value_timeToPayClosesAround">≈ %1$s</string>
+    <string name="label_timeToPayTime">Time</string>
+    <string name="title_timeToPaySelectTime">Select time</string>
+    <string name="cd_timeToPayKeyboard">Type a time</string>
+    <string name="cd_timeToPayDial">Pick a time on the dial</string>
+    <string name="action_timeToPayOk">OK</string>
+    <string name="title_sendRequestConfirm">Send Request?</string>
+    <string name="description_sendRequestConfirm">You will receive and hold the money collected</string>
+    <string name="action_sendRequest">Send Request</string>
+    <string name="error_title_cantSendRequest">Can\'t Send Request</string>
+    <string name="error_description_requestDenied">You can\'t request money in this group.</string>
+    <string name="error_description_requestEndsAt">Choose a deadline within the next 4 weeks.</string>
+    <string name="error_description_requestShares">Someone you included is no longer in the group. Check who\'s included and try again.</string>
+    <string name="error_description_requestCurrency">Requests aren\'t available in this currency yet.</string>
+    <!-- Request details, group requests spec frames 09–11, 24, 28, 29 and 33–35. -->
+    <string name="title_requestDetails">Request</string>
+    <string name="description_requestUnavailable">This request is no longer available.</string>
+    <string name="label_requestedBy">Requested by %1$s</string>
+    <string name="label_requestedByYou">Requested by you</string>
+    <string name="label_sharePaid">✓ Paid</string>
+    <string name="label_shareUnpaid">Hasn\'t paid yet</string>
+    <string name="label_shareUnpaidEnded">Didn\'t pay</string>
+    <!-- Under the member's name on the Mark as Paid sheet: "$20 · Hasn't paid yet". -->
+    <string name="label_shareUnpaidAmount">%1$s · Hasn\'t paid yet</string>
+    <string name="action_sendShare">Send %1$s</string>
+    <string name="cd_requestOptions">Request options</string>
+    <string name="cd_close">Close</string>
+    <string name="action_closeRequest">Close Request</string>
+    <string name="title_closeRequestConfirm">Close Request?</string>
+    <string name="description_closeRequestConfirm">This will stop payments. Anyone who hasn\'t paid will be marked Didn\'t pay. Payments already made won\'t be affected.</string>
+    <string name="action_markAsPaid">Mark as Paid</string>
+    <string name="title_markPaidConfirm">Mark %1$s as Paid?</string>
+    <string name="description_markPaidConfirm">Use this if %1$s paid you outside Flipcash. No money will be sent. This action cannot be reversed.</string>
+    <string name="error_title_requestClosed">Request Closed</string>
+    <string name="error_description_requestClosed">This request is no longer accepting payments.</string>
     <string name="label_chat_preview_noMessages">Nothing yet</string>
     <string name="label_isTyping">Is Typing…</string>
 
@@ -1059,6 +1264,9 @@
     <string name="label_linkCard_untitledGroup">Group Chat</string>
     <string name="action_linkCard_view">View</string>
     <string name="label_linkCard_groupUnavailable">Group Unavailable</string>
+    <string name="label_linkCard_privateGroupInvite">Private group · Invite link</string>
+    <!-- Stands in for an invite URL in a chat-list preview, a push and a reply citation: its fragment is the group's key. -->
+    <string name="label_inviteLinkPreview">Invite link</string>
     <string name="label_messageLink_kindPrivateGroup">Private group</string>
     <string name="label_messageLink_kindDirect">Direct message</string>
     <string name="label_messageLink_you">You</string>
@@ -1110,6 +1318,7 @@
     <string name="action_clearEmojiSearch">Clear search</string>
     <string name="action_chooseSkinTone">Choose skin tone</string>
     <string name="action_addReaction">Add reaction</string>
+    <string name="description_chatMediaReactWith">%1$s, your reactions: %2$s</string>
 
     <string name="label_unknownContact">Unknown Contact</string>
     <string name="title_allowFullContactAccess">Allow Full Contact Access</string>
@@ -1157,8 +1366,30 @@
     <string name="title_noCommunityCurrencies">No Community Currencies</string>
     <string name="description_noCommunityCurrencies">Buy a community currency to start or join community chats</string>
     <string name="action_exploreCurrencies">Explore Currencies</string>
-    <string name="title_newPrivateGroup">New Private Group</string>
+    <string name="title_newPrivateGroup">New Group</string>
     <string name="action_requestToJoin">Request to Join</string>
+    <!-- Opening a group invite link (nodes 12846:59, 12846:126, 12846:148, 12846:160, 12846:220, 12846:259). -->
+    <string name="subtitle_privateGroupInvited">Private group · You’ve been invited to join</string>
+    <string name="subtitle_inviteExhausted">This invite link has reached its limit.</string>
+    <string name="subtitle_inviteExpired">This invite link has expired.</string>
+    <string name="subtitle_inviteRevoked">This invite link was turned off by the host.</string>
+    <string name="action_joinGroup">Join Group</string>
+    <string name="action_leaveGroup">Leave Group</string>
+    <string name="title_inviteLinkNotFound">Link Not Found</string>
+    <string name="description_inviteLinkNotFound">This invite link isn’t valid. Ask whoever sent it for a new one.</string>
+    <string name="description_inviteGroupGone">This group no longer exists</string>
+    <string name="title_inviteBanned">You Can’t Join This Group</string>
+    <string name="description_inviteBanned">The host has removed you from this group.</string>
+    <string name="error_title_failedToJoinGroup">Couldn’t Join Group</string>
+    <string name="error_description_failedToJoinGroup">Check your connection and try again.</string>
+    <!-- Alert-bar copy: modals take no final period. The full-screen states above keep theirs. -->
+    <string name="description_inviteLinkNotFoundAlert">This invite link isn’t valid. Ask whoever sent it for a new one</string>
+    <string name="description_inviteBannedAlert">The host has removed you from this group</string>
+    <string name="error_description_failedToJoinGroupAlert">Check your connection and try again</string>
+    <string name="error_description_failedToJoinAlert">Something went wrong. Please try again</string>
+    <string name="title_cantReadGroup">Can’t read this group</string>
+    <string name="description_cantReadGroup">The invite link you used didn’t include a working key. Leave and ask the host to approve you.</string>
+    <string name="hint_cantSendHere">You can’t send messages here</string>
     <string name="action_requestSent">Request Sent</string>
     <string name="action_cancelRequest">Cancel Request</string>
     <string name="subtitle_privateGroupMembers">Private group · %1$s</string>
@@ -1207,6 +1438,12 @@
         <item quantity="one">%1$d Person Wants To Join</item>
         <item quantity="other">%1$d People Want To Join</item>
     </plurals>
+    <!-- A hosted group's Chats row while someone waits to join it (node 12824:117). -->
+    <string name="subtitle_wantsToJoin">%1$s wants to join</string>
+    <plurals name="subtitle_peopleWantToJoin">
+        <item quantity="one">%1$d person wants to join</item>
+        <item quantity="other">%1$d people want to join</item>
+    </plurals>
     <string name="subtitle_namesAnd">and</string>
     <string name="title_requestedJustNow">Requested just now</string>
     <string name="title_requestedYesterday">Requested yesterday</string>
@@ -1233,7 +1470,7 @@
     <string name="action_findByUsername">Find Someone by Username</string>
 
     <!-- Creating a public group (node 10153:22901). -->
-    <string name="title_newPublicGroup">New Public Group</string>
+    <string name="title_newPublicGroup">New Community Chat</string>
     <string name="hint_groupName">Group Name (Required)</string>
     <!-- The section label before a token is picked; it names the rule the creator is about to set. -->
     <string name="title_minimumBalanceRequired">Minimum Balance Required</string>
@@ -1261,7 +1498,7 @@
     <string name="error_description_groupCreateFailed">We couldn\'t create this group. Please try again.</string>
 
     <!-- Editing a group. Titled "Edit Group" rather than the design's "Edit Community": the app
-         calls the same thing a Group everywhere else (see title_newPublicGroup, hint_groupName). -->
+         calls the same thing a Group everywhere else (see hint_groupName). -->
     <string name="title_editGroup">Edit Group</string>
     <string name="label_editGroupName">Group name</string>
     <string name="placeholder_editGroupName">Add a name</string>
@@ -1308,6 +1545,28 @@
     <string name="error_title_groupDescriptionSaveFailed">Couldn\'t Save the Description</string>
     <string name="error_description_groupEditFailed">Try again</string>
 
+    <!-- Replacing a group's join or chat minimum balance from Edit Group's Balance Requirements
+         card. Entered on the shared amount keypad; confirmed before the call like the edits above. -->
+    <string name="title_groupJoinRequirement">Join Requirement</string>
+    <string name="title_groupChatRequirement">Chat Requirement</string>
+    <string name="description_groupJoinRequirement">People won\'t be able to join this group if their balance is less than this amount</string>
+    <string name="description_groupChatRequirement">People won\'t be able to send messages in this group if their balance is less than this amount</string>
+    <string name="prompt_title_changeGroupJoinRequirement">Change Join Requirement?</string>
+    <string name="prompt_description_changeGroupJoinRequirement">This will change who can join the group</string>
+    <string name="action_changeGroupJoinRequirement">Change Join Requirement</string>
+    <string name="prompt_title_changeGroupChatRequirement">Change Chat Requirement?</string>
+    <string name="prompt_description_changeGroupChatRequirement">This will change who can send messages in the group</string>
+    <string name="action_changeGroupChatRequirement">Change Chat Requirement</string>
+    <!-- Edit Group rules save: EditChat INVALID_RULES (also a Join at or above Chat), RULES_NOT_SATISFIED, and a Chat at or below Join. Match iOS. -->
+    <string name="error_title_groupRequirementInvalid">This Requirement Isn\'t Valid</string>
+    <string name="error_description_groupRequirementInvalid">Try a different minimum balance</string>
+    <string name="error_title_groupRequirementNotSatisfied">You Don\'t Meet This Requirement</string>
+    <string name="error_description_groupRequirementNotSatisfied">Lower the minimum balance or add funds</string>
+    <string name="error_title_groupChatMinimumTooLow">Chat Minimum Too Low</string>
+    <string name="error_description_groupChatMinimumTooLow">The chat minimum must be more than the join minimum of %1$s</string>
+    <string name="error_title_groupRequirementFailed">Couldn\'t Save the Requirement</string>
+    <string name="error_description_groupRequirementFailed">Try again</string>
+
     <!-- Handing out the group's invite link, straight after it is created (node 10127:118315). -->
     <string name="title_inviteToJoinGroup">Invite to Join Group</string>
     <string name="action_sendInviteLink">Send Invite Link</string>
@@ -1320,6 +1579,63 @@
     <string name="title_invitePeople">Invite People</string>
     <string name="action_shareInviteLink">Share</string>
     <string name="label_recentChats">Recent Chats</string>
+    <!-- Invite links for a private group's host (spec group-invites.md, nodes 12844:60 to 12844:395). -->
+    <!-- %1$s is the group title. -->
+    <string name="title_inviteToGroup">Invite to %1$s</string>
+    <string name="action_shareInviteLinkLong">Share Invite Link</string>
+    <string name="subtitle_shareInviteLink">Anyone with this link joins right away</string>
+    <string name="action_shareJoinLink">Share Join Link</string>
+    <string name="subtitle_shareJoinLink">People ask to join and you approve each one</string>
+    <string name="action_manageInvites">Manage Invites</string>
+    <string name="subtitle_manageInvites">See and revoke the invite links you\'ve made</string>
+    <string name="label_creatingInviteLink">Creating link…</string>
+    <string name="action_shareLink">Share Link</string>
+    <string name="footnote_inviteLink">Anyone with this link can join and see who\'s in the group. Share it only with people you want in the group</string>
+    <!-- A link's lines, joined with " · ". %1$s is a date such as "Nov 3". -->
+    <string name="label_inviteCreated">Created %1$s</string>
+    <string name="label_inviteExpires">Expires %1$s</string>
+    <string name="label_inviteNeverExpires">Never expires</string>
+    <string name="label_inviteJoined">%1$d joined</string>
+    <string name="label_inviteJoinedOf">%1$d of %2$d joined</string>
+    <string name="label_inviteCantShare">Can\'t share from this device</string>
+    <string name="label_inviteExpired">Expired %1$s</string>
+    <string name="label_inviteRevoked">Revoked</string>
+    <string name="label_inviteReachedLimit">Reached its limit</string>
+    <string name="label_inviteUnavailable">No longer available</string>
+    <string name="label_inviteCurrent">Current</string>
+    <string name="title_inviteLinks">Invite Links</string>
+    <string name="title_inviteLink">Invite Link</string>
+    <string name="header_inviteLinksActive">ACTIVE</string>
+    <string name="header_inviteLinksInactive">INACTIVE</string>
+    <string name="action_newInviteLink">New Link</string>
+    <string name="title_noInviteLinks">No invite links</string>
+    <string name="subtitle_noInviteLinks">Make a link to let people join without waiting for approval.</string>
+    <string name="action_revokeLink">Revoke Link</string>
+    <string name="title_revokeInviteLink">Revoke this link?</string>
+    <string name="description_revokeInviteLink">No one new can join with it. People who already joined stay in the group</string>
+    <string name="title_newInviteLink">New Invite Link</string>
+    <string name="label_inviteExpiresHeader">Expires</string>
+    <string name="label_inviteWhoCanJoin">Who can join</string>
+    <string name="label_inviteExpiry_oneDay">1 day</string>
+    <string name="label_inviteExpiry_sevenDays">7 days</string>
+    <string name="label_inviteExpiry_thirtyDays">30 days</string>
+    <string name="label_inviteExpiry_never">Never</string>
+    <string name="label_inviteUses_one">1</string>
+    <string name="label_inviteUses_five">5</string>
+    <string name="label_inviteUses_ten">10</string>
+    <string name="label_inviteUses_twentyFive">25</string>
+    <string name="label_inviteUses_noLimit">No limit</string>
+    <string name="action_createInviteLink">Create Link</string>
+    <string name="title_tooManyInviteLinks">Too Many Active Links</string>
+    <string name="description_tooManyInviteLinks">Revoke a link in Manage Invites to make another</string>
+    <string name="title_inviteLinksNotAvailable">Invite Links Aren\'t Available Yet</string>
+    <string name="description_inviteLinksNotAvailable">You can still share the group link. People who open it can ask to join, and you approve them</string>
+    <string name="action_shareGroupLink">Share Group Link</string>
+    <string name="title_inviteLinkNotCreated">Couldn\'t Create Link</string>
+    <string name="description_inviteLinkNotCreated">Something went wrong. Please try again</string>
+    <string name="title_inviteLinkNotRevoked">Couldn\'t Revoke Link</string>
+    <string name="title_inviteLinksNotLoaded">Couldn\'t Load Invite Links</string>
+    <string name="description_inviteLinksNotLoaded">Something went wrong. Please try again.</string>
     <string name="title_shareToChat">Send to</string>
     <string name="label_chats">Chats</string>
     <string name="label_suggested">Suggested</string>
@@ -1380,6 +1696,8 @@
     <string name="error_description_usernameTooShort">Usernames must be a minimum of %1$d characters</string>
     <string name="error_title_usernameMinimumBalance">%1$s Minimum Balance Required</string>
     <string name="error_description_usernameMinimumBalance">In order to stop username squatting getting a username requires a total Flipcash balance of at least %1$s</string>
+    <string name="error_title_usernameBalanceRequired">%1$s Balance Required</string>
+    <string name="error_description_usernameBalanceRequired">Setting a custom username requires a balance of %1$s or more</string>
     <string name="error_title_usernameCheckFailed">Something Went Wrong</string>
     <string name="error_description_usernameCheckFailed">Please try again</string>
 
@@ -1420,6 +1738,7 @@
     <string name="title_setProfilePicture">Set Profile Picture</string>
     <string name="title_cover">Cover</string>
     <string name="action_changeCover">Change cover</string>
+    <string name="action_addCoverPhoto">Add cover photo</string>
     <string name="error_title_coverNotAllowed">Couldn\'t Upload Your Cover</string>
     <string name="error_description_coverNotAllowed">This image isn\'t allowed as a cover. Please try a different image. If you think it was rejected in error please DM @flipcash on X</string>
     <string name="placeholder_profileDisplayName">Your Name</string>
@@ -1500,15 +1819,15 @@
     <string name="error_title_failedToReport">Something Went Wrong</string>
     <string name="error_description_failedToReport">We were unable to send your report. Please try again</string>
 
-    <string name="title_tipOnboarding">Send Your First Tip</string>
 
     <!-- You tab (tip card) -->
     <string name="action_editProfile">Edit Profile</string>
-    <string name="action_claimYourUsernameLink">Claim your username ›</string>
+    <string name="action_completeYourProfile">Complete Your Profile</string>
     <string name="action_changePhoto">Change photo</string>
+    <string name="action_addProfilePhoto">Add profile photo</string>
     <string name="label_editProfileName">Name</string>
     <string name="placeholder_editProfileName">Add a name</string>
-    <string name="action_claimUsername">Claim your username</string>
+    <string name="placeholder_editProfileUsername">Add a username</string>
     <string name="placeholder_minimumToChat">Not set</string>
     <string name="title_shareProfileToChats">Share Profile</string>
     <string name="title_shareMessageToChats">Share Message</string>
@@ -1539,8 +1858,9 @@
     <string name="title_bio">Bio</string>
     <string name="placeholder_bio">Add a bio</string>
 
-    <string name="title_featuredGroups">Favorite Public Groups</string>
-    <string name="placeholder_featuredGroups">Add groups</string>
+    <string name="title_featuredGroups">Favorite Community Chats</string>
+    <string name="text_featuredGroupsNone">None yet</string>
+    <string name="placeholder_featuredGroups">Add chats</string>
     <plurals name="value_featuredGroupCount">
         <item quantity="one">1 group</item>
         <item quantity="other">%1$s groups</item>
@@ -1584,8 +1904,9 @@
     <string name="label_marketCapChartAccessibility">Price curve for %1$s with %2$s purchased</string>
     <!-- Chat photo messages -->
     <string name="description_chatMediaClose">Close</string>
-    <string name="description_chatMediaShare">Share</string>
-    <string name="title_chatMediaShare">Share photo</string>
+    <string name="description_chatMediaSave">Save</string>
+    <string name="title_chatPhotoSaved">Saved to Photos</string>
+    <string name="error_chatPhotoSaveFailed">Couldn\'t save the photo</string>
     <string name="description_chatPhotoRemove">Remove photo</string>
     <string name="description_chatLinkPreviewRemove">Remove link preview</string>
     <string name="description_chatLinkPreviewLoading">Loading preview for %1$s</string>
@@ -1648,4 +1969,171 @@
     <string name="title_getNotified">Get Notified</string>
     <string name="description_getNotified">We\'ll let you know when your transactions complete, even if you leave the app</string>
     <string name="action_turnOnNotifications">Turn On Notifications</string>
+
+    <!-- Group send, node 11293:6918 -->
+    <string name="title_selectPeople">Select People</string>
+    <string name="header_groupSendMembers">Members</string>
+    <plurals name="action_sendToPeople">
+        <item quantity="one">Send to %1$d Person</item>
+        <item quantity="other">Send to %1$d People</item>
+    </plurals>
+    <string name="title_groupSendMaxPeople">10 People Max</string>
+    <string name="description_groupSendMaxPeople">The maximum number of people you can send to at once is 10 people</string>
+    <!-- Placeholder: the too-small-to-split alert has no design yet -->
+    <string name="error_title_groupSendTooSmall">Amount Too Small</string>
+    <plurals name="error_description_groupSendTooSmall">
+        <item quantity="one">This amount is too small to send to %1$d person. Enter a larger amount</item>
+        <item quantity="other">This amount is too small to split between %1$d people. Pick fewer people or enter a larger amount</item>
+    </plurals>
+    <plurals name="label_groupSendRecipients">
+        <item quantity="one">%1$s and %2$d Other</item>
+        <item quantity="other">%1$s and %2$d Others</item>
+    </plurals>
+    <string name="label_groupSendTo">to %1$s</string>
+    <plurals name="label_groupSendToPeople">
+        <item quantity="one">to %1$d person</item>
+        <item quantity="other">to %1$d people</item>
+    </plurals>
+    <string name="label_groupSendEach">%1$s each</string>
+    <string name="label_groupSendEachApprox">~%1$s each</string>
+    <string name="subtitle_senderSent">%1$s sent</string>
+    <string name="label_cashDetails_sent">Sent</string>
+    <string name="label_cashDetails_from">From</string>
+    <string name="label_cashDetails_to">To</string>
+    <string name="action_groupSendDetailsClose">Close</string>
+    <plurals name="label_chat_preview_groupSend_bySender">
+        <item quantity="one">%1$s sent %2$s to %3$d person</item>
+        <item quantity="other">%1$s sent %2$s to %3$d people</item>
+    </plurals>
+    <plurals name="label_chat_preview_groupSend">
+        <item quantity="one">You sent %1$s to %2$d person</item>
+        <item quantity="other">You sent %1$s to %2$d people</item>
+    </plurals>
+    <string name="alert_reaction_title">%1$s reacted to your message</string>
+    <string name="alert_boost_title">%1$s boosted their %2$s</string>
+    <plurals name="alert_several_title">
+        <item quantity="one">%1$s and %2$d other reacted</item>
+        <item quantity="other">%1$s and %2$d others reacted</item>
+    </plurals>
+    <string name="alert_someone">Someone</string>
+    <string name="action_more">More</string>
+    <string name="action_transactions">Transactions</string>
+    <string name="action_orGiveAsCash">Or Give As Cash</string>
+    <string name="subtitle_moreConvert">Convert %1$s to another community currency on Flipcash</string>
+    <string name="subtitle_moreWithdraw">Withdraw %1$s to a different Solana crypto wallet</string>
+    <string name="subtitle_moreDeposit">Deposit %1$s from a different Solana crypto wallet</string>
+    <string name="title_topCommunityChats">Top Community Chats</string>
+    <string name="title_communityLeader">Community Leader</string>
+    <!-- Community Leader row: display name, then @username when there is one. "Opens profile." only when tappable. -->
+    <string name="cd_communityLeader">Community Leader, %1$s</string>
+    <string name="cd_communityLeaderWithUsername">Community Leader, %1$s, %2$s</string>
+    <string name="cd_communityLeaderOpensProfile">%1$s. Opens profile.</string>
+    <string name="action_viewAll">View All</string>
+    <string name="title_howChatsAreRanked">How Chats Are Ranked</string>
+    <string name="description_howChatsAreRanked">Chats are ranked by the total amount of %1$s held by their members. Chats with higher combined holdings appear higher</string>
+    <string name="action_ok">OK</string>
+    <plurals name="subtitle_communityChatHoldings">
+        <item quantity="one">%1$s of %2$s held by %3$d member</item>
+        <item quantity="other">%1$s of %2$s held by %3$d members</item>
+    </plurals>
+    <plurals name="subtitle_communityChatMembers">
+        <item quantity="one">%1$d member</item>
+        <item quantity="other">%1$d members</item>
+    </plurals>
+    <string name="error_description_currencySendStaleRates">Couldn\'t get a fresh rate. Please try again</string>
+    <string name="title_selectRecipient">Select Recipient</string>
+    <string name="title_shareCurrency">Share %1$s</string>
+    <string name="title_recentChats">Recent Chats</string>
+    <!-- Notification status (Settings › Advanced › Notifications) -->
+    <string name="title_notificationStatus">Notifications</string>
+    <string name="header_notificationStatusPhone">On This Phone</string>
+    <string name="header_notificationStatusFlipcash">With Flipcash</string>
+    <string name="title_notificationStatusWorking">Notifications are working</string>
+    <string name="title_notificationStatusOff">Notifications are off</string>
+    <string name="title_notificationStatusChecking">Checking…</string>
+    <plurals name="title_notificationStatusThingsToCheck">
+        <item quantity="one">%1$d thing to check</item>
+        <item quantity="other">%1$d things to check</item>
+    </plurals>
+    <plurals name="title_notificationStatusThingsToFix">
+        <item quantity="one">%1$d thing to fix</item>
+        <item quantity="other">%1$d things to fix</item>
+    </plurals>
+    <string name="subtitle_notificationStatusCheckedJustNow">Checked just now</string>
+    <plurals name="title_notificationStatusChecksPassed">
+        <item quantity="one">%1$d check passed</item>
+        <item quantity="other">%1$d checks passed</item>
+    </plurals>
+    <string name="action_sendTestNotification">Send Test Notification</string>
+    <string name="action_sendTestNotificationAgain">Send Again</string>
+    <string name="action_shareReport">Share Report</string>
+    <string name="action_turnOn">Turn On</string>
+    <string name="action_fix">Fix</string>
+    <string name="action_tryAgain">Try Again</string>
+    <string name="action_checkAgain">Check Again</string>
+    <string name="description_notificationStatusFooter">Flipcash sends the test to every phone signed in to this account.</string>
+    <string name="description_notificationStatusTestDisabled">Turn on notifications to send a test.</string>
+    <string name="description_notificationStatusTestDisabledChannelOff">Turn on %1$s in Android settings to send a test.</string>
+    <string name="toast_notificationStatusTestSent">Test notification sent</string>
+    <string name="toast_notificationStatusTestUnreachable">Couldn\'t reach Flipcash</string>
+    <string name="toast_notificationStatusTestFailed">Couldn\'t send a test notification</string>
+
+    <string name="title_notificationCheckAllowed">Notifications Allowed</string>
+    <string name="subtitle_notificationCheckAllowed">Allowed in Android settings</string>
+    <string name="subtitle_notificationCheckNotAllowedProblem">Notifications are turned off</string>
+    <string name="subtitle_notificationCheckNotAllowed">Turned off for Flipcash in Android settings</string>
+    <string name="title_notificationCheckChat">Chat Notifications</string>
+    <string name="title_notificationCheckDeposits">Deposit Notifications</string>
+    <string name="title_notificationCheckBuySell">Buy and Sell Notifications</string>
+    <string name="title_notificationCheckGain">Price Alerts</string>
+    <string name="title_notificationCheckContacts">Contact Notifications</string>
+    <string name="title_notificationCheckGeneral">Misc. Notifications</string>
+    <string name="subtitle_notificationCheckChatOffProblem">Chat notifications are off</string>
+    <string name="subtitle_notificationCheckChatOff">Messages and replies won\'t show</string>
+    <string name="subtitle_notificationCheckDepositsOffProblem">Deposit notifications are off</string>
+    <string name="subtitle_notificationCheckDepositsOff">Deposits and withdrawals won\'t show</string>
+    <string name="subtitle_notificationCheckBuySellOffProblem">Buy and sell notifications are off</string>
+    <string name="subtitle_notificationCheckBuySellOff">Purchases and sales won\'t show</string>
+    <string name="subtitle_notificationCheckGainOffProblem">Price alerts are off</string>
+    <string name="subtitle_notificationCheckGainOff">Price moves won\'t show</string>
+    <string name="subtitle_notificationCheckContactsOffProblem">Contact notifications are off</string>
+    <string name="subtitle_notificationCheckContactsOff">You won\'t hear when contacts join</string>
+    <string name="subtitle_notificationCheckGeneralOffProblem">Misc. notifications are off</string>
+    <string name="subtitle_notificationCheckGeneralOff">Other updates from Flipcash won\'t show</string>
+    <string name="title_notificationCheckOtherCategories">Other Categories</string>
+    <!-- %1$s is a list like "Payments, gains and contacts" -->
+    <string name="subtitle_notificationCheckOtherCategories">%1$s are on</string>
+    <string name="label_notificationCategoryChat">chat</string>
+    <string name="label_notificationCategoryPayments">payments</string>
+    <string name="label_notificationCategoryGains">gains</string>
+    <string name="label_notificationCategoryContacts">contacts</string>
+    <string name="label_notificationCategoryGeneral">general updates</string>
+    <!-- Joins the last two items of a list -->
+    <string name="label_listAnd">%1$s and %2$s</string>
+    <string name="title_notificationCheckBattery">Battery Optimization</string>
+    <string name="subtitle_notificationCheckBattery">Flipcash is not optimized</string>
+    <string name="subtitle_notificationCheckBatteryOnProblem">Battery optimization is on</string>
+    <string name="subtitle_notificationCheckBatteryOn">Android may delay notifications</string>
+    <string name="title_notificationCheckBackground">Background Activity</string>
+    <!-- %1$s is a standby bucket, e.g. "Active" -->
+    <string name="subtitle_notificationCheckBackground">Not restricted · standby: %1$s</string>
+    <string name="subtitle_notificationCheckBackgroundLimited">Android is limiting Flipcash in the background</string>
+    <string name="subtitle_notificationCheckBackgroundRestrictedProblem">Background activity is restricted</string>
+    <string name="subtitle_notificationCheckBackgroundRestricted">Notifications may not arrive</string>
+    <string name="title_notificationCheckPlayServices">Google Play Services</string>
+    <string name="subtitle_notificationCheckPlayServices">Available</string>
+    <string name="subtitle_notificationCheckPlayServicesUpdate">Google Play services needs an update</string>
+    <string name="subtitle_notificationCheckPlayServicesMissingProblem">Google Play services isn\'t available</string>
+    <string name="subtitle_notificationCheckPlayServicesMissing">Push notifications need it</string>
+    <string name="title_notificationCheckRegistered">Registered for Push</string>
+    <string name="subtitle_notificationCheckRegistering">Contacting Flipcash</string>
+    <string name="subtitle_notificationCheckRegistered">Confirmed just now</string>
+    <string name="subtitle_notificationCheckNoTokenProblem">Couldn\'t get a push token from Google</string>
+    <string name="subtitle_notificationCheckTokenRejectedProblem">Flipcash rejected this phone\'s push token</string>
+    <string name="subtitle_notificationCheckUnreachableProblem">Couldn\'t reach Flipcash</string>
+    <string name="subtitle_notificationCheckUnreachable">Check your connection</string>
+    <!-- %1$s is a relative time, e.g. "2 hours ago" -->
+    <string name="subtitle_notificationCheckLastConfirmed">Last confirmed %1$s</string>
+    <string name="subtitle_notificationCheckLastConfirmedJustNow">Last confirmed just now</string>
+    <string name="subtitle_notificationCheckFailedProblem">Registration failed</string>
 </resources>

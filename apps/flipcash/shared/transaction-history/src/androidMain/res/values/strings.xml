@@ -6,6 +6,12 @@
     <string name="title_activity_sentTo">Sent to %1$s</string>
     <!-- Activity feed row title for a peer payment the user received; %1$s is the sender's display name. -->
     <string name="title_activity_receivedFrom">Received from %1$s</string>
+    <!-- Activity feed row titles for a payment that boosted a reaction; %1$s is the reaction emoji, %2$s the counterparty's display name or the chat's name. -->
+    <string name="title_activity_boostedFor">Boosted %1$s for %2$s</string>
+    <string name="title_activity_boostFrom">Boost %1$s from %2$s</string>
+    <string name="title_activity_boostedIn">Boosted %1$s in %2$s</string>
+    <string name="title_activity_boosted">Boosted %1$s</string>
+    <string name="title_activity_boostReceived">Boost %1$s received</string>
     <!-- Activity feed row title for a convert; %1$s is the source token name, %2$s the destination. -->
     <string name="title_activity_convert">%1$s → %2$s</string>
     <!-- Fee line beneath a convert's amount in the activity feed; %1$s is the formatted fee. -->
@@ -16,6 +22,10 @@
 
     <!-- Transaction details headings: what the entry was, stated in the user's own voice. -->
     <string name="title_txnDetails_youTipped">You tipped</string>
+    <string name="title_txnDetails_youBoosted">You boosted %1$s</string>
+    <string name="title_txnDetails_youBoostedIn">You boosted %1$s in %2$s</string>
+    <string name="title_txnDetails_boostReceived">Boost %1$s received</string>
+    <string name="title_txnDetails_boostReceivedIn">Boost %1$s received in %2$s</string>
     <string name="title_txnDetails_youReceived">You received</string>
     <string name="title_txnDetails_youSent">You sent</string>
     <string name="title_txnDetails_youGaveCash">You gave cash</string>
@@ -37,7 +47,6 @@
     <!-- Receipt-row labels for the account a withdrawal left for / a deposit arrived from. -->
     <string name="label_txnDetails_to">To</string>
     <string name="label_txnDetails_from">From</string>
-    <string name="label_txnDetails_currency">Currency</string>
     <string name="label_txnDetails_exchangeRate">Exchange Rate</string>
     <string name="label_txnDetails_date">Date</string>
     <string name="label_txnDetails_tokens">Tokens</string>
@@ -54,6 +63,8 @@
 
     <!-- Transaction details actions. -->
     <string name="action_txnDetails_viewInChat">View in Chat</string>
+    <string name="action_txnDetails_viewMessage">View Message</string>
+    <string name="action_txnDetails_viewRequest">View Request</string>
     <string name="action_txnDetails_viewProfile">View Profile</string>
     <string name="action_txnDetails_copyId">Copy transaction ID</string>
     <string name="action_txnDetails_cancel">Cancel</string>

@@ -171,6 +171,45 @@ sealed interface LinkCard {
     }
 
     /**
+     * A private group's invite link, `app.flipcash.com/chat/invite#s=…` (spec surface 6).
+     *
+     * Drawn like [GroupInvite], from what `GetInvite` says about the group, with the link's status
+     * where a join link states its rules. The secret is in [url]'s fragment and is the group's key,
+     * so the card names no chat until the lookup answers, nothing about it is written to disk, and
+     * [toString] leaves the URL out.
+     */
+    data class InviteLink(
+        override val url: String,
+        override val start: Int,
+        override val end: Int,
+        val state: State,
+    ) : LinkCard {
+
+        sealed interface State {
+            /** The lookup is out. Drawn as the group card's shimmer. */
+            data object Loading : State
+
+            /** No group to show: the lookup failed, or the link matches no invite. */
+            data object Unavailable : State
+
+            data class Resolved(
+                /** The chat the link admits to, for the picture's access context. */
+                val chatId: ChatId,
+                /** The group's own title, or null when it has none; the card names it then. */
+                val title: String?,
+                val picture: MediaItem?,
+                val memberCount: Long,
+                val status: Status,
+            ) : State
+        }
+
+        /** Whether the link still admits anyone, and if not, why. */
+        enum class Status { Active, Exhausted, Expired, Revoked }
+
+        override fun toString(): String = "InviteLink(start=$start, end=$end, state=$state)"
+    }
+
+    /**
      * A person's link: `flipcash.com/<handle>`, `flipcash.com/<uuid>`, or the legacy `/tip/<uuid>`.
      *
      * Built from the person's public profile only. Their tip card's colours are not read, and

@@ -44,6 +44,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
@@ -55,6 +58,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.Dp
@@ -65,6 +69,11 @@ import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.WidgetContent
+import com.flipcash.shared.chat.RequestCardState
+import com.flipcash.shared.chat.ui.request.FetchWhenAbsent
+import com.flipcash.shared.chat.ui.request.LocalPaymentRequestCards
+import com.flipcash.shared.chat.ui.request.PaymentRequestBubbleDefaults
+import com.flipcash.shared.chat.ui.request.PaymentRequestCardBody
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.LinkCard
@@ -86,14 +95,13 @@ import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.cornerRadius
 import com.getcode.theme.tiny
-import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.core.addIf
 
 enum class BubblePosition { Solo, First, Middle, Last }
 
 private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
 
-private const val CASH_CARD_WIDTH_FRACTION = 0.64f
+internal const val CASH_CARD_WIDTH_FRACTION = 0.64f
 
 /**
  * The widest a bubble or link card grows in a transcript whose rows are inset by [rowInset] on each
@@ -142,7 +150,20 @@ fun ContentBubble(
     val updateAction = LocalUpdateAppAction.current
     // A redacted placeholder is never drawn bare: it is not the message, only its shape.
     val jumbo = remember(item) { !item.redacted && item.rendersBareEmoji() }
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+    // The send time, spoken after the message so a screen reader gets it without the reveal drag.
+    // A state description rather than a content description: the row merges the bubble into its
+    // click target, and a content description there would replace the message's text, not follow it.
+    // Once per message, on its last row, as the reveal column gives it; a tombstone has no time.
+    val spokenTime = if (item.isLastRow && item.content !is MessageContent.Deleted) {
+        messageFullTime(item.timestamp)
+    } else {
+        null
+    }
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (spokenTime != null) Modifier.semantics { stateDescription = spokenTime } else Modifier),
+    ) {
         val bubbleMaxWidth = bubbleMaxWidth(
             content = item.content,
             rowWidth = maxWidth,
@@ -233,13 +254,37 @@ fun ContentBubble(
                     attention = attention,
                 )
 
-                is MessageContent.Cash -> CashBubble(
+                is MessageContent.Cash -> if (content.multiReceiver.isNotEmpty() || item.groupSendRecipients != null) GroupSendBubble(
+                    modifier = modifier,
+                    content = content,
+                    senderName = item.sender?.displayName,
+                    isFromSelf = item.isFromSelf,
+                    recipients = item.groupSendRecipients,
+                    position = position,
+                    maxWidth = bubbleMaxWidth,
+                    onClick = if (interactive) {
+                        { actionHandler(ChatAction.ViewGroupSend(item)) }
+                    } else {
+                        null
+                    },
+                    onLongClick = onLongClick?.takeIf { interactive },
+                    onDoubleClick = onDoubleClick?.takeIf { interactive },
+                    attention = attention,
+                ) else CashBubble(
                     modifier = modifier,
                     amount = content.amount,
                     tokenName = content.tokenName,
                     tokenImageUrl = content.tokenImageUrl,
                     isFromSelf = item.isFromSelf,
                     action = content.action,
+                    settledUsd = content.settledUsd(),
+                    // A one-person group send names its recipient; everyone else in the group
+                    // reads who sent it rather than "You received".
+                    paidOtherBy = if (!item.isFromSelf && content.receiver != null && item.receivedPart == null) {
+                        item.sender?.displayName ?: stringResource(R.string.title_unnamedUser)
+                    } else {
+                        null
+                    },
                     position = position,
                     maxWidth = bubbleMaxWidth,
                     // Dropped rather than ignored while the transcript is behind a backdrop: with
@@ -270,6 +315,7 @@ fun ContentBubble(
                         quote = quote,
                         onQuoteClick = onQuoteClick,
                         onMentionClick = onMentionClick,
+                        linkCard = item.linkCard,
                         interactive = interactive,
                         onLongClick = onLongClick?.takeIf { interactive },
                         onDoubleClick = onDoubleClick?.takeIf { interactive },
@@ -316,6 +362,7 @@ fun ContentBubble(
                     maxWidth = bubbleMaxWidth,
                     modifier = modifier,
                     onMentionClick = onMentionClick,
+                    linkCard = item.linkCard,
                     interactive = interactive,
                     onLongClick = onLongClick?.takeIf { interactive },
                     onDoubleClick = onDoubleClick?.takeIf { interactive },
@@ -335,6 +382,39 @@ fun ContentBubble(
                         onDoubleClick = onDoubleClick?.takeIf { interactive },
                         attention = attention,
                     )
+
+                    is WidgetContent.PaymentRequest -> {
+                        val cards = LocalPaymentRequestCards.current
+                        val state = cards?.stateOf(widget.id, item.isFromSelf, item.senderId)
+                            ?: RequestCardState.Unsupported
+                        if (cards != null) FetchWhenAbsent(widget.id, cards)
+                        if (cards == null || state == RequestCardState.Unsupported) {
+                            UndecryptableBubble(
+                                modifier = modifier,
+                                hint = item.undecryptableHint,
+                                maxWidth = bubbleMaxWidth,
+                                actionLabel = updateAction?.label,
+                                onAction = { updateAction?.onClick?.invoke() },
+                            )
+                        } else {
+                            val width = minOf(bubbleMaxWidth, PaymentRequestBubbleDefaults.WIDTH)
+                            Bubble(
+                                isFromSelf = item.isFromSelf,
+                                position = position,
+                                minWidth = width,
+                                maxWidth = width,
+                                horizontalPadding = CodeTheme.dimens.grid.x3,
+                                verticalPadding = CodeTheme.dimens.grid.x3,
+                                onClick = { cards.onOpen(widget.id) }.takeIf { interactive && state is RequestCardState.Ready },
+                                onLongClick = onLongClick?.takeIf { interactive },
+                                onDoubleClick = onDoubleClick?.takeIf { interactive },
+                                modifier = modifier,
+                                attention = attention,
+                            ) {
+                                PaymentRequestCardBody(state, cards.now)
+                            }
+                        }
+                    }
 
                     WidgetContent.Unsupported -> UndecryptableBubble(
                         modifier = modifier,
@@ -788,7 +868,7 @@ private fun BareWebCard(
  * row draws it below, on the line the receipt label already occupies.
  */
 @Composable
-private fun JumboEmoji(
+internal fun JumboEmoji(
     text: String,
     isFromSelf: Boolean,
     position: BubblePosition,
@@ -840,7 +920,7 @@ internal const val JUMBO_EMOJI_TAG = "bubble_jumbo_emoji"
  * card keeps from its neighbours: the row has no bubble for the panel to sit inside.
  */
 @Composable
-private fun BareLinkCard(
+internal fun BareLinkCard(
     card: LinkCard,
     isFromSelf: Boolean,
     position: BubblePosition,
@@ -927,6 +1007,10 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
             // The transcript's handler follows a message link in the app: a jump in place when it
             // points into this chat, a push with the way back otherwise.
             is LinkCard.Message -> uriHandler.openUri(card.url)
+            // The same handler opens the invite landing in the app, never the browser: the
+            // fragment is the group's key. The landing picks the preview, a dead-link or
+            // not-found screen, or the chat for a member.
+            is LinkCard.InviteLink -> uriHandler.openUri(card.url)
             // The chat opens it, because only the chat knows whether this reader may collect it.
             // A voucher already being claimed would only start the same claim again.
             is LinkCard.Cash -> if ((card.state as? LinkCard.Cash.State.Resolved)?.claim != LinkCard.Cash.Claim.Claiming) {
@@ -961,6 +1045,8 @@ private fun CashBubble(
     position: BubblePosition,
     maxWidth: Dp,
     action: MessageContent.Cash.Action = MessageContent.Cash.Action.SENT,
+    settledUsd: Fiat? = null,
+    paidOtherBy: String? = null,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
@@ -978,7 +1064,9 @@ private fun CashBubble(
         modifier = modifier,
         attention = attention,
     ) {
-        val exchange = LocalExchange.current
+        // The same number the bill's "You received" sheet reads: a USDF payment converts from the
+        // USD it settled at, anything else from today's rates.
+        val shown = cashInDisplayCurrency(amount, settledUsd)
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -1033,31 +1121,124 @@ private fun CashBubble(
                     MessageContent.Cash.Action.SENT -> R.string.subtitle_youSent
                 }
                 Text(
-                    text = stringResource(subtitleRes),
+                    text = paidOtherBy?.let { stringResource(R.string.subtitle_senderSent, it) }
+                        ?: stringResource(subtitleRes),
                     style = CodeTheme.typography.caption.copy(
                         fontWeight = FontWeight.Medium,
                     ),
                     color = CodeTheme.colors.textSecondary,
                 )
-                PriceWithFlag(
-                    amount = amount.formatted(),
-                    currencyCode = amount.currencyCode.name,
-                    iconSize = CodeTheme.dimens.staticGrid.x5,
-                    flag = exchange.getFlagByCurrency(amount.currencyCode.name),
-                    text = { text ->
-                        Text(
-                            text = text,
-                            style = CodeTheme.typography.displayMedium,
-                            color = CodeTheme.colors.textMain,
-                            autoSize = TextAutoSize.StepBased(
-                                minFontSize = 20.sp,
-                                maxFontSize = CodeTheme.typography.displayMedium.fontSize
-                            ),
-                            maxLines = 1,
-                        )
-                    }
+                Text(
+                    text = shown.formatted(),
+                    style = CodeTheme.typography.displayMedium,
+                    color = CodeTheme.colors.textMain,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = 20.sp,
+                        maxFontSize = CodeTheme.typography.displayMedium.fontSize
+                    ),
+                    maxLines = 1,
                 )
             }
+        }
+    }
+}
+
+/**
+ * A cash message in a group that names who it paid, node 11293:6918 frames 08 and 09, laid out as
+ * iOS's `ChatCashCardCell` lays out a group card: who sent it, the total, what each person got, the
+ * viewer's own part when they were paid, the token, and who it went to at the foot. A payment to one
+ * other member ([MessageContent.Cash.receiver]) draws the same card with no per-person line.
+ */
+@Composable
+private fun GroupSendBubble(
+    content: MessageContent.Cash,
+    senderName: String?,
+    isFromSelf: Boolean,
+    recipients: String?,
+    position: BubblePosition,
+    maxWidth: Dp,
+    onClick: (() -> Unit)?,
+    onLongClick: (() -> Unit)?,
+    onDoubleClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    attention: () -> Float = { 0f },
+) {
+    Bubble(
+        isFromSelf = isFromSelf,
+        position = position,
+        minWidth = maxWidth,
+        maxWidth = maxWidth,
+        onClick = onClick,
+        onLongClick = onLongClick,
+        onDoubleClick = onDoubleClick,
+        modifier = modifier,
+        attention = attention,
+    ) {
+        val total = cashInDisplayCurrency(content.amount, content.settledUsd())
+        val parts = content.multiReceiver
+        val secondary = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Medium)
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = CodeTheme.dimens.grid.x2),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+        ) {
+            Text(
+                text = when {
+                    isFromSelf -> stringResource(R.string.subtitle_youSent)
+                    else -> stringResource(
+                        R.string.subtitle_senderSent,
+                        senderName ?: stringResource(R.string.title_unnamedUser),
+                    )
+                },
+                style = secondary,
+                color = CodeTheme.colors.textSecondary,
+            )
+            Text(
+                text = total.formatted(),
+                style = CodeTheme.typography.displayMedium,
+                color = CodeTheme.colors.textMain,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = 20.sp,
+                    maxFontSize = CodeTheme.typography.displayMedium.fontSize
+                ),
+                maxLines = 1,
+            )
+            if (parts.size >= 2) {
+                // Uneven parts differ by one minor unit, so the smallest one with a "~" is the
+                // honest per-person figure; the vectors put the larger parts first.
+                val smallest = parts.minBy { it.nativeAmount }
+                val even = parts.all { it.nativeAmount == smallest.nativeAmount }
+                Text(
+                    text = stringResource(
+                        if (even) R.string.label_groupSendEach else R.string.label_groupSendEachApprox,
+                        content.partInDisplayCurrency(smallest).formatted(),
+                    ),
+                    style = secondary,
+                    color = CodeTheme.colors.textSecondary,
+                )
+            }
+            if (content.tokenName.isNotBlank() && !LocalInspectionMode.current) {
+                TokenIconWithName(
+                    tokenName = content.tokenName,
+                    tokenImage = content.tokenImageUrl,
+                    imageSize = CodeTheme.dimens.staticGrid.x4,
+                    spacing = CodeTheme.dimens.grid.x1,
+                    textStyle = CodeTheme.typography.caption,
+                    textColor = CodeTheme.colors.textMain,
+                )
+            }
+            Text(
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x4),
+                text = recipients
+                    ?: pluralStringResource(R.plurals.label_groupSendToPeople, parts.size, parts.size),
+                style = secondary,
+                color = CodeTheme.colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.MiddleEllipsis,
+            )
         }
     }
 }

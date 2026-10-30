@@ -22,6 +22,8 @@ import com.flipcash.services.models.nameOrHandle
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.models.LinkCard
+import com.flipcash.shared.chat.ui.forViewer
+import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -54,6 +56,7 @@ internal class MessageLinkLookup @Inject constructor(
     private val knownProfiles: UserProfileDataSource,
     private val userManager: UserManager,
     private val groups: GroupLinkLookup,
+    private val exchange: Exchange,
 ) {
     suspend operator fun invoke(card: LinkCard.Message): Result<LinkCard.Message.State> = runCatching {
         val stored = chats.observeMetadata(card.chatId).first()
@@ -206,7 +209,7 @@ internal class MessageLinkLookup @Inject constructor(
             blurHash = items.firstOrNull()?.renditions?.firstNotNullOfOrNull { it.blob?.image?.blurhash?.takeIf(String::isNotEmpty) },
         )
         is MessageContent.Cash -> LinkCard.Message.Body.Cash(
-            amount = amount.formatted(),
+            amount = forViewer(exchange.preferredRate, exchange.rates()).formatted(),
             tipped = action == MessageContent.Cash.Action.TIPPED,
         )
         is MessageContent.Widget, is MessageContent.System, MessageContent.Unsupported -> LinkCard.Message.Body.Other

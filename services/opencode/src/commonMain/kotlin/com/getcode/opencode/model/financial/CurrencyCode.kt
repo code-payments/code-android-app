@@ -371,8 +371,14 @@ enum class CurrencyCode {
                         val currencyInstance = Currency.getInstance(currency.name)
                         val usSymbol = currencyInstance.getSymbol(Locale.US)
                         val localeSymbol = currencyInstance.getSymbol(locale)
+                        // The closest locale can be one that still prefixes the country (CA$
+                        // under csw_CA), so take the symbol every locale of the region uses for it.
+                        val region = currency.getRegion()?.name
+                        val regionSymbols = Locale.getAvailableLocales()
+                            .filter { region != null && it.country.equals(region, ignoreCase = true) }
+                            .map { currencyInstance.getSymbol(it) }
 
-                        put(currency, setOf(usSymbol, localeSymbol))
+                        put(currency, setOf(usSymbol, localeSymbol) + regionSymbols)
                     } catch (e: IllegalArgumentException) {
                         // Skip currencies with no valid symbol
                     }
@@ -546,6 +552,11 @@ enum class CurrencyCode {
         get() = lookupTable[this]?.toList()?.sortedBy { it.length } ?: emptyList()
 
     val singleCharacterCurrencySymbol: String?
-        get() = lookupTable[this]?.firstOrNull { it.length == 1 }
+        get() = lookupTable[this]
+            // Some locales give an invisible mark or a letter fragment; keep real signs ($, ₦) and
+            // the Latin letters a few currencies use on their own (R, Q).
+            ?.filter { it.length == 1 && (Character.getType(it[0]) == Character.CURRENCY_SYMBOL.toInt() || it[0] in 'A'..'Z') }
+            // A CJK locale can give the full-width form (￥); prefer the ordinary one.
+            ?.minByOrNull { it[0].code in 0xFF00..0xFFEF }
 }
 

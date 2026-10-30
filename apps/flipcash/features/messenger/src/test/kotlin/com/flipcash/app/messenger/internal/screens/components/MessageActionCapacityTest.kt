@@ -59,4 +59,13 @@ class MessageActionCapacityTest {
         // rather than a menu alone, which would hide reply behind two taps on every message.
         assertEquals(1, inlineActionCapacity(barWidth = 0.dp, buttonSize = 40.dp, spacing = 10.dp))
     }
+
+    @Test
+    fun `a title that needs the room keeps it and the actions give way`() {
+        // A Pixel 7a's bar with a 130dp time and the bar's 90dp around it: three buttons, not four.
+        assertEquals(
+            3,
+            inlineActionCapacity(barWidth = 402.dp, buttonSize = 40.dp, spacing = 10.dp, reservedWidth = 220.dp),
+        )
+    }
 }

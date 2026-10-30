@@ -15,6 +15,9 @@ sealed interface ChatAction {
     /** Opens a currency's info screen. */
     data class ViewToken(val mint: Mint) : ChatAction
 
+    /** Opens who a group send ([ChatListItem.ContentBubble] with a multi-receiver cash) paid. */
+    data class ViewGroupSend(val bubble: ChatListItem.ContentBubble) : ChatAction
+
     /**
      * The group gate's Buy: opens the buy screen for [mint] straight away, so the reader comes back
      * to the gate once the buy lands. The gate sends [AddCash] instead when nothing they hold can
@@ -48,6 +51,12 @@ sealed interface ChatAction {
      * own fee sheet asks for it.
      */
     data class OpenUser(val userId: ID, val profile: UserProfile, val isOwn: Boolean) : ChatAction
+
+    /**
+     * Opens the person a tapped name in a system notice names. Where [OpenUser] arrives with the
+     * profile a card already resolved, a notice carries the id alone.
+     */
+    data class OpenUserById(val userId: ID, val isOwn: Boolean) : ChatAction
 
     /**
      * Opens whoever a tapped `@handle` names. Only the handle travels: nothing is looked up until

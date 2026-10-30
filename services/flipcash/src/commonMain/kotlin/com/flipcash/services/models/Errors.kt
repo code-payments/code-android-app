@@ -1,10 +1,15 @@
 package com.flipcash.services.models
 
 import com.flipcash.services.models.chat.BlobRejection
+import com.flipcash.services.models.chat.InviteKeyBundle
 import com.getcode.solana.keys.Checksum
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.NotifiableError
 import com.getcode.utils.UnreportedError
+import io.grpc.Status
+import io.grpc.StatusException
+import io.grpc.StatusRuntimeException
+import java.io.IOException
 
 sealed class LoginError(
     override val message: String? = null,
@@ -52,8 +57,29 @@ sealed class AddTokenError(
 ) : CodeServerError(message, cause) {
     class InvalidPushToken : AddTokenError("Invalid push token"), NotifiableError
     class Unrecognized : AddTokenError("Unrecognized"), NotifiableError
-    data class Other(override val cause: Throwable? = null) : AddTokenError(message = cause?.message, cause = cause), NotifiableError
+    data class Other(override val cause: Throwable? = null) : AddTokenError(message = cause?.message, cause = cause), NotifiableError {
+        /** The call never got an answer from the server: no network, or the channel gave up. */
+        val isTransportFailure: Boolean
+            get() = cause.hasTransportCause()
+    }
 }
+
+private fun Throwable?.hasTransportCause(codes: Set<Status.Code> = transportCodes): Boolean =
+    generateSequence(this) { it.cause }.take(8).any { it.isTransportCause(codes) }
+
+private fun Throwable.isTransportCause(codes: Set<Status.Code>): Boolean = when (this) {
+    is IOException -> true
+    is StatusException -> status.code in codes
+    is StatusRuntimeException -> status.code in codes
+    else -> false
+}
+
+private val transportCodes = setOf(Status.Code.UNAVAILABLE, Status.Code.DEADLINE_EXCEEDED)
+
+// A test push the call dropped never reached anyone, so it reads as unreachable. Registration
+// keeps CANCELLED out of transport. Coroutine cancellation never gets here: foldWithSuppression
+// rethrows it before the error is built.
+private val testPushTransportCodes = transportCodes + Status.Code.CANCELLED
 
 sealed class DeleteTokenError(
     override val message: String? = null,
@@ -61,6 +87,18 @@ sealed class DeleteTokenError(
 ) : CodeServerError(message, cause) {
     class Unrecognized : DeleteTokenError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : DeleteTokenError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class SendTestPushError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+) : CodeServerError(message, cause) {
+    class Unrecognized : SendTestPushError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SendTestPushError(message = cause?.message, cause = cause), NotifiableError {
+        /** The call never got an answer from the server: no network, the channel gave up, or the call was cancelled. */
+        val isTransportFailure: Boolean
+            get() = cause.hasTransportCause(testPushTransportCodes)
+    }
 }
 
 sealed class GetActivityFeedMessagesError(
@@ -465,6 +503,15 @@ sealed class JoinChatError(
     // The caller does not meet the chat's listener rules — a minimum balance, or staff
     // membership. Recoverable by the user, so it is deliberately not a NotifiableError.
     class RulesNotSatisfied : JoinChatError("Rules not satisfied")
+    // The creator or a moderator banned the caller from this chat. Not recoverable by the user,
+    // so deliberately not a NotifiableError.
+    class Banned : JoinChatError("Banned")
+    // The invite token matches no invite for this chat. Not recoverable by the user (the link is
+    // bad), so deliberately not a NotifiableError; likewise for the three below.
+    class InviteNotFound : JoinChatError("Invite not found")
+    class InviteExhausted : JoinChatError("Invite exhausted")
+    class InviteExpired : JoinChatError("Invite expired")
+    class InviteRevoked : JoinChatError("Invite revoked")
     class Unrecognized : JoinChatError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : JoinChatError(message = cause?.message, cause = cause), NotifiableError
 }
@@ -510,6 +557,12 @@ sealed class EditChatError(
     class DescriptionModerated(val category: ModerationResult.FlaggedCategory) : EditChatError("Description flagged: $category")
     class PictureBlobNotAccepted : EditChatError("Picture blob not accepted")
     class CoverPictureBlobNotAccepted : EditChatError("Cover picture blob not accepted")
+    // The replacement rules are malformed, or the chat is not a public group with a listener
+    // minimum balance. A client bug rather than something the user can fix, so notifiable.
+    class InvalidRules : EditChatError("Invalid rules"), NotifiableError
+    // The caller does not meet the rules they are setting. Recoverable by the user, so
+    // deliberately not a NotifiableError, matching StartChatError.RulesNotSatisfied.
+    class RulesNotSatisfied : EditChatError("Rules not satisfied")
     class Unrecognized : EditChatError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : EditChatError(message = cause?.message, cause = cause), NotifiableError
 }
@@ -828,6 +881,8 @@ sealed class EnterLobbyError(
     class LobbyFull : EnterLobbyError("Lobby full")
     // The caller is already waiting in as many lobbies as the server allows.
     class TooManyLobbies : EnterLobbyError("Too many lobbies")
+    // The caller is banned from this chat, so they cannot ask to join it.
+    class Banned : EnterLobbyError("Banned")
     class Unrecognized : EnterLobbyError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : EnterLobbyError(message = cause?.message, cause = cause), NotifiableError
 }
@@ -895,6 +950,10 @@ sealed class GetKeyEnvelopeError(
     class NotFound : GetKeyEnvelopeError("Not found")
     // The caller is a member with no envelope stored.
     class NoEnvelope : GetKeyEnvelopeError("No envelope")
+    // The caller joined with an invite and has not yet stored an envelope of their own; the server
+    // holds only the invite's copy of the chat key. Not a usable own envelope, and never to be read
+    // as one. Carries the bundle so the invite flow can open it once the invite crypto exists.
+    class InviteKeyBundleOnly(val bundle: InviteKeyBundle) : GetKeyEnvelopeError("Only an invite's key copy is stored")
     class Unrecognized : GetKeyEnvelopeError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : GetKeyEnvelopeError(message = cause?.message, cause = cause), NotifiableError
 }
@@ -962,4 +1021,163 @@ sealed class VoteError(
     class InvalidSelection : VoteError("Invalid selection")
     class Unrecognized : VoteError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : VoteError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class SilenceUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : SilenceUserError("Denied")
+    class NotFound : SilenceUserError("Not found")
+    // The target user is the chat's creator.
+    class CannotRestrictCreator : SilenceUserError("Cannot restrict the chat creator")
+    class Unrecognized : SilenceUserError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : SilenceUserError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class UnsilenceUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : UnsilenceUserError("Denied")
+    class NotFound : UnsilenceUserError("Not found")
+    class Unrecognized : UnsilenceUserError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : UnsilenceUserError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class BanUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : BanUserError("Denied")
+    class NotFound : BanUserError("Not found")
+    // The target user is the chat's creator.
+    class CannotRestrictCreator : BanUserError("Cannot restrict the chat creator")
+    class Unrecognized : BanUserError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : BanUserError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class UnbanUserError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : UnbanUserError("Denied")
+    class NotFound : UnbanUserError("Not found")
+    class Unrecognized : UnbanUserError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : UnbanUserError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetRestrictedUsersError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetRestrictedUsersError("Denied")
+    class NotFound : GetRestrictedUsersError("Not found")
+    class Unrecognized : GetRestrictedUsersError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetRestrictedUsersError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class CreatePaymentRequestError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : CreatePaymentRequestError("Denied")
+    class ChatNotSupported : CreatePaymentRequestError("Chat does not support payment requests")
+    class EncryptionNotAllowed : CreatePaymentRequestError("Encryption not allowed")
+    class EncryptionRequired : CreatePaymentRequestError("Encryption required")
+    class InvalidEndsAt : CreatePaymentRequestError("Invalid end time")
+    class InvalidShares : CreatePaymentRequestError("Invalid shares")
+    class InvalidCurrency : CreatePaymentRequestError("Invalid currency")
+    class TextModerated(val category: ModerationResult.FlaggedCategory) : CreatePaymentRequestError("Payment request text flagged: $category")
+    class Unrecognized : CreatePaymentRequestError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : CreatePaymentRequestError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetPaymentRequestError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetPaymentRequestError("Denied")
+    class NotFound : GetPaymentRequestError("Not found")
+    class Unrecognized : GetPaymentRequestError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetPaymentRequestError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetChatPaymentRequestsError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetChatPaymentRequestsError("Denied")
+    class NotFound : GetChatPaymentRequestsError("Not found")
+    class Unrecognized : GetChatPaymentRequestsError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetChatPaymentRequestsError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class ClosePaymentRequestError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : ClosePaymentRequestError("Denied")
+    class NotFound : ClosePaymentRequestError("Not found")
+    class Unrecognized : ClosePaymentRequestError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : ClosePaymentRequestError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class MarkPaymentRequestPaidError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : MarkPaymentRequestPaidError("Denied")
+    class NotFound : MarkPaymentRequestPaidError("Not found")
+    // The request is no longer open.
+    class NotOpen : MarkPaymentRequestPaidError("Not open")
+    // The user does not owe a share of this request.
+    class NotAShare : MarkPaymentRequestPaidError("Not a share")
+    class Unrecognized : MarkPaymentRequestPaidError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : MarkPaymentRequestPaidError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class CreateInviteError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : CreateInviteError("Denied")
+    class NotFound : CreateInviteError("Not found")
+    class InvalidExpiresAt : CreateInviteError("Invalid expiry")
+    class TooManyInvites : CreateInviteError("Too many invites")
+    // The key envelope's signature did not verify against the caller's key.
+    class InvalidSignature : CreateInviteError("Invalid signature"), NotifiableError
+    class Unrecognized : CreateInviteError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : CreateInviteError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetInviteError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class NotFound : GetInviteError("Not found")
+    // The caller is banned from the chat the invite leads to.
+    class Banned : GetInviteError("Banned")
+    class Unrecognized : GetInviteError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetInviteError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetChatInvitesError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetChatInvitesError("Denied")
+    class NotFound : GetChatInvitesError("Not found")
+    class Unrecognized : GetChatInvitesError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetChatInvitesError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class RevokeInviteError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : RevokeInviteError("Denied")
+    class NotFound : RevokeInviteError("Not found")
+    class Unrecognized : RevokeInviteError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : RevokeInviteError(message = cause?.message, cause = cause), NotifiableError
 }

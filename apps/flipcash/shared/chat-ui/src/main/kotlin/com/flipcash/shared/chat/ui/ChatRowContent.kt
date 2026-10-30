@@ -11,7 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
@@ -97,6 +100,31 @@ fun SubtitleText(text: String, fontStyle: FontStyle = FontStyle.Normal) {
         style = CodeTheme.typography.textSmall,
         color = CodeTheme.colors.textSecondary,
         fontStyle = fontStyle,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+/**
+ * Subtitle of a hosted group's row while someone waits to join: [request] in the unread colour,
+ * then, when the chat also has unread messages, " · " and the last message [preview] in the
+ * secondary colour. One line, cut off at the end, so the request is what stays readable.
+ */
+@Composable
+fun JoinRequestSubtitle(request: String, preview: String?) {
+    val requestColor = CodeTheme.colors.indicator
+    val previewColor = CodeTheme.colors.textSecondary
+    Text(
+        text = buildAnnotatedString {
+            withStyle(SpanStyle(color = requestColor)) { append(request) }
+            if (!preview.isNullOrEmpty()) {
+                withStyle(SpanStyle(color = previewColor)) {
+                    append(" · ")
+                    append(preview)
+                }
+            }
+        },
+        style = CodeTheme.typography.textSmall,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )

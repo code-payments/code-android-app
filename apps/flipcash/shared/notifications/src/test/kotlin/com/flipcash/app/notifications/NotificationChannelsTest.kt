@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.flipcash.services.models.NotificationCategory
+import com.flipcash.services.models.NotificationPayload
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,6 +31,74 @@ class NotificationChannelsTest {
         context = RuntimeEnvironment.getApplication()
         notificationManager = NotificationManagerCompat.from(context)
     }
+
+    @Test
+    fun `createAll creates every channel and both groups before any push arrives`() {
+        NotificationChannels.createAll(context, notificationManager)
+
+        assertEquals(
+            NotificationCategory.entries.map { NotificationChannels.channelFor(context, it).id }.toSet() +
+                NotificationChannels.CHANNEL_TEST_PUSH,
+            notificationManager.notificationChannelsCompat.map { it.id }.toSet(),
+        )
+        assertEquals(7, notificationManager.notificationChannelsCompat.size)
+        assertEquals(
+            setOf(NotificationChannels.GROUP_TRANSACTIONS, NotificationChannels.GROUP_SOCIAL),
+            notificationManager.notificationChannelGroupsCompat.map { it.id }.toSet(),
+        )
+    }
+
+    // region Test push channel
+
+    @Test
+    fun `the test push channel pops up and is named for Android settings`() {
+        val channel = NotificationChannels.testPushChannel(context)
+
+        assertEquals(NotificationChannels.CHANNEL_TEST_PUSH, channel.id)
+        assertEquals(NotificationManagerCompat.IMPORTANCE_HIGH, channel.importance)
+        assertEquals("Test Notifications", channel.name)
+        assertEquals("Test notifications you send from Settings", channel.description)
+    }
+
+    @Test
+    fun `a marked push with no payload posts on the test channel and clears the mark`() {
+        val mark = TestPushMark().apply { mark() }
+
+        val channel = NotificationChannels.channelForPush(context, payload = null, testPushMark = mark)
+
+        assertEquals(NotificationChannels.CHANNEL_TEST_PUSH, channel.id)
+        assertFalse(mark.isMarked)
+    }
+
+    @Test
+    fun `an unmarked push with no payload posts on the fallback channel`() {
+        val channel = NotificationChannels.channelForPush(context, payload = null, testPushMark = TestPushMark())
+
+        assertEquals(NotificationChannels.CHANNEL_DEFAULT, channel.id)
+    }
+
+    @Test
+    fun `a marked push with a payload posts on its category's channel and keeps the mark`() {
+        val mark = TestPushMark().apply { mark() }
+
+        val channel = NotificationChannels.channelForPush(
+            context,
+            payload = NotificationPayload(navigation = null, category = NotificationCategory.GAIN),
+            testPushMark = mark,
+        )
+
+        assertEquals(NotificationChannels.CHANNEL_GAIN, channel.id)
+        assertTrue(mark.isMarked)
+    }
+
+    @Test
+    fun `the fallback channel's description says what it carries`() {
+        val channel = NotificationChannels.channelFor(context, NotificationCategory.DEFAULT)
+
+        assertEquals("Other updates from Flipcash", channel.description)
+    }
+
+    // endregion
 
     // region Channel ID mapping
 

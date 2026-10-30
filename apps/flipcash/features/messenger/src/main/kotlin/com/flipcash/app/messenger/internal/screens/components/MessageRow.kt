@@ -41,8 +41,6 @@ import com.flipcash.shared.chat.ui.BubblePosition
 import com.getcode.ui.components.chat.TypingDots
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
@@ -73,6 +71,11 @@ import com.flipcash.shared.chat.ui.QuickReactionStripPopup
 import com.flipcash.shared.chat.ui.ReactionPillRow
 import com.flipcash.shared.chat.ui.bubbleMaxWidth
 import com.flipcash.shared.chat.ui.bubblePositionOf
+import com.flipcash.shared.chat.ui.messageTimeOfDay
+import com.flipcash.services.models.chat.MessageContent
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.style.TextAlign
+import kotlin.time.Instant
 import com.flipcash.shared.chat.ui.rememberRendersBare
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
@@ -126,6 +129,8 @@ internal fun MessageRow(
     attention: () -> Float = { 0f },
     /** Set while this row's bubble grows out of the typing dots it replaced; see [TypingHandoff]. */
     typingHandoff: TypingHandoff? = null,
+    /** The transcript's send-time reveal, shared by every row; null where there is no transcript. */
+    reveal: TimestampRevealState? = null,
 ) {
     val onAction = LocalChatActionHandler.current
     val vibrator = LocalVibrator.current
@@ -195,15 +200,6 @@ internal fun MessageRow(
         }
     }
 
-    val dimAlpha by animateFloatAsState(
-        targetValue = if (focused) 1f else 0.4f,
-        label = "messageDim",
-    )
-    val dimBlur by animateDpAsState(
-        targetValue = if (focused) 0.dp else 8.dp,
-        label = "messageBlur",
-    )
-
     // The row answers the finger before the long-press resolves: it dips while held,
     // then springs up and stays lifted for as long as it is the selected message.
     val pressed by interactionSource.collectIsPressedAsState()
@@ -229,14 +225,6 @@ internal fun MessageRow(
     // The selected message's own pills stay behind the backdrop with the rest of the transcript,
     // so they take the same dim and blur the other rows do.
     val pillsBehindBackdrop = selecting && focused
-    val pillDimAlpha by animateFloatAsState(
-        targetValue = if (pillsBehindBackdrop) 0.4f else 1f,
-        label = "pillDim",
-    )
-    val pillDimBlur by animateDpAsState(
-        targetValue = if (pillsBehindBackdrop) 8.dp else 0.dp,
-        label = "pillBlur",
-    )
 
     val swipe = rememberSwipeToReply(
         enabled = bubble != null &&
@@ -256,10 +244,7 @@ internal fun MessageRow(
     Box(
         modifier = Modifier
             .padding(bottom = bottomSpacing)
-            // Unbounded: the rectangle treatment would clip the blur at the row's own
-            // edges and leave a hard seam between neighbouring rows.
-            .blur(dimBlur, BlurredEdgeTreatment.Unbounded)
-            .graphicsLayer { alpha = dimAlpha }
+            .chatBackdrop(behind = !focused)
             // No row gestures while the backdrop is up: the rows are behind it, and a
             // press there would move the selection out from under the message the bar —
             // or the composer — is already acting on.
@@ -302,7 +287,13 @@ internal fun MessageRow(
             }
 
             is ChatListItem.SystemMessage -> Box(insertionModifier) {
-                SystemMessageRow(item.text)
+                SystemMessageRow(
+                    text = item.text,
+                    userLinks = item.userLinks,
+                    onUserClick = { userId ->
+                        onAction(ChatAction.OpenUserById(userId, isOwn = false))
+                    },
+                )
             }
 
             is ChatListItem.ContentBubble -> {
@@ -320,15 +311,33 @@ internal fun MessageRow(
                 // align to the top of the run's first bubble rather than to the top of the
                 // name line. It carries the gutter's width as a leading inset to stay on the
                 // edge it sat on when the column held it.
-                Column(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // Only the viewer's own bubbles make way for the times: received ones sit
+                        // clear of the column already, and their times join it where they are.
+                        .addIf(reveal != null && item.isFromSelf) {
+                            Modifier.graphicsLayer { translationX = -(reveal?.offsetPx() ?: 0f) }
+                        },
+                ) {
                     // A profile can arrive with no display name; drawing it would leave an empty
                     // line above the run. The avatar below still marks whose run it is.
-                    if (sender != null && runStart && sender.displayName.isNotBlank()) {
+                    val showsName = sender != null && runStart && sender.displayName.isNotBlank()
+                    // The name's top in the window, so the strip clears the name rather than
+                    // landing on it: the strip's gap is measured from the bubble otherwise.
+                    var nameTop by remember { mutableStateOf<Int?>(null) }
+                    if (sender != null && showsName) {
                         Text(
-                            modifier = Modifier.padding(
-                                start = senderNameInset(showsSenderGutter && !item.isFromSelf),
-                                bottom = CodeTheme.dimens.grid.x1,
-                            ),
+                            modifier = Modifier
+                                .addIf(onBubbleBounds != null) {
+                                    Modifier.onGloballyPositioned {
+                                        nameTop = it.boundsInWindow().roundToIntRect().top
+                                    }
+                                }
+                                .padding(
+                                    start = senderNameInset(showsSenderGutter && !item.isFromSelf),
+                                    bottom = CodeTheme.dimens.grid.x1,
+                                ),
                             text = sender.displayName,
                             style = CodeTheme.typography.caption,
                             color = CodeTheme.colors.textSecondary,
@@ -436,7 +445,11 @@ internal fun MessageRow(
                                 if (stripShown) {
                                     QuickReactionStripPopup(
                                         entries = quickReactionStrip,
-                                        bubbleBounds = stripAnchor,
+                                        bubbleBounds = stripAnchor?.let { anchor ->
+                                            nameTop?.takeIf { showsName }
+                                                ?.let { anchor.copy(top = minOf(anchor.top, it)) }
+                                                ?: anchor
+                                        },
                                         hugsTrailing = item.isFromSelf,
                                         onToggle = { emoji ->
                                             onAction(
@@ -479,8 +492,7 @@ internal fun MessageRow(
                                 BoxWithConstraints(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .blur(pillDimBlur, BlurredEdgeTreatment.Unbounded)
-                                        .graphicsLayer { alpha = pillDimAlpha }
+                                        .chatBackdrop(behind = pillsBehindBackdrop)
                                         .addIf(selecting) { Modifier.blockPointerInput() },
                                 ) {
                                     ReactionPillRow(
@@ -557,6 +569,14 @@ internal fun MessageRow(
             }
         }
 
+        if (reveal != null && bubble != null && bubble.isLastRow && bubble.content !is MessageContent.Deleted) {
+            RevealedTime(
+                sentAt = bubble.timestamp,
+                reveal = reveal,
+                modifier = Modifier.align(Alignment.CenterEnd),
+            )
+        }
+
         SwipeToReplyAffordance(
             progress = swipe::progress,
             pullBackPx = swipe::affordanceTranslationPx,
@@ -564,6 +584,40 @@ internal fun MessageRow(
         )
     }
 }
+
+/**
+ * A message's send time in the column the reveal drag opens at the trailing edge. Parked past the
+ * screen's edge and slid in by the reveal's offset, so it arrives with the bubbles moving out of
+ * its way; fades in with it, to the 60% white of the design.
+ *
+ * Silent to a screen reader: the bubble already speaks the full time, and the row merges this into
+ * its click target, where it would be read a second time.
+ */
+@Composable
+private fun RevealedTime(
+    sentAt: Instant,
+    reveal: TimestampRevealState,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        modifier = modifier
+            // The row ends at the list's inset; the column's margin is measured from the screen's edge.
+            .offset(x = CodeTheme.dimens.inset - REVEAL_COLUMN_MARGIN)
+            .width(REVEAL_COLUMN_WIDTH)
+            .graphicsLayer {
+                translationX = reveal.shiftPx - reveal.offsetPx()
+                alpha = REVEALED_TIME_ALPHA * reveal.progress()
+            }
+            .clearAndSetSemantics { },
+        text = messageTimeOfDay(sentAt),
+        style = CodeTheme.typography.caption,
+        color = Color.White,
+        textAlign = TextAlign.End,
+        maxLines = 1,
+    )
+}
+
+private const val REVEALED_TIME_ALPHA = 0.6f
 
 /**
  * The mark the swipe uncovers: a circle in the gutter the row is opening, growing and fading in as

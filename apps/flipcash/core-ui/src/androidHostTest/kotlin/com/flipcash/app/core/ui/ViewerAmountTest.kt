@@ -7,12 +7,11 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
 /**
- * An activity row leads with the viewer's own currency, so a tip denominated in someone else's has
- * to be restated — and the restated figure has to hold still, which is why a USDF payment converts
- * from the USD value it settled at rather than from today's peso.
+ * Every amount shows in the viewer's own currency, so a tip denominated in someone else's has to be
+ * restated — and the restated figure has to hold still, which is why a USDF payment converts from
+ * the USD value it settled at rather than from today's peso.
  */
 class ViewerAmountTest {
 
@@ -26,13 +25,12 @@ class ViewerAmountTest {
     private val eurRate = Rate(fx = 0.9, currency = CurrencyCode.EUR)
 
     @Test
-    fun `an amount already in the viewer's currency shows one line`() {
+    fun `an amount already in the viewer's currency is left alone`() {
         val amount = LocalFiat(usdf = usd(5.0), nativeAmount = usd(5.0))
 
         val shown = amount.forViewer(usdRate, rates = emptyMap())
 
-        assertEquals(usd(5.0), shown.viewer)
-        assertNull(shown.transferred)
+        assertEquals(usd(5.0), shown)
     }
 
     @Test
@@ -42,18 +40,16 @@ class ViewerAmountTest {
         val shown = amount.forViewer(usdRate, rates = mapOf(CurrencyCode.ARS to Rate(3_000.0, CurrencyCode.ARS)))
 
         // The peso has halved against the dollar since — the row still reads $5, not $2.50.
-        assertEquals(usd(5.0), shown.viewer)
-        assertEquals(ars(7_500.0), shown.transferred)
+        assertEquals(usd(5.0), shown)
     }
 
     @Test
     fun `a USDF tip crosses its settled dollars into whatever currency the viewer reads`() {
         val amount = LocalFiat(usdf = usd(5.0), nativeAmount = ars(7_500.0))
 
-        val shown = amount.forViewer(eurRate, rates = emptyMap())
+        val shown = amount.forViewer(eurRate, rates = mapOf(CurrencyCode.EUR to eurRate))
 
-        assertEquals(eur(4.5), shown.viewer)
-        assertEquals(ars(7_500.0), shown.transferred)
+        assertEquals(eur(4.5), shown)
     }
 
     @Test
@@ -63,8 +59,7 @@ class ViewerAmountTest {
         val shown = amount.forViewer(usdRate, rates = mapOf(CurrencyCode.ARS to Rate(1_500.0, CurrencyCode.ARS)))
 
         // `underlyingTokenAmount` holds the mint's own quarks here, not dollars, so it is ignored.
-        assertEquals(usd(5.0), shown.viewer)
-        assertEquals(ars(7_500.0), shown.transferred)
+        assertEquals(usd(5.0), shown)
     }
 
     @Test
@@ -73,8 +68,7 @@ class ViewerAmountTest {
 
         val shown = amount.forViewer(usdRate, rates = emptyMap())
 
-        assertEquals(ars(7_500.0), shown.viewer)
-        assertNull(shown.transferred)
+        assertEquals(ars(7_500.0), shown)
     }
 
     @Test
@@ -91,7 +85,16 @@ class ViewerAmountTest {
 
         val shown = amount.forViewer(usdRate, rates = mapOf(CurrencyCode.ARS to Rate(0.0, CurrencyCode.ARS)))
 
-        assertEquals(ars(7_500.0), shown.viewer)
-        assertNull(shown.transferred)
+        assertEquals(ars(7_500.0), shown)
+    }
+
+    @Test
+    fun `a stand-in display rate converts nothing`() {
+        // Before rates land the exchange stands CAD in at 1:1 with the dollar.
+        val standIn = Rate(fx = 1.0, currency = CurrencyCode.CAD)
+        val amount = LocalFiat(usdf = usd(5.0), nativeAmount = ars(7_500.0))
+
+        assertEquals(ars(7_500.0), amount.forViewer(standIn, rates = emptyMap()))
+        assertEquals(usd(5.0), usd(5.0).forViewer(standIn, rates = emptyMap()))
     }
 }

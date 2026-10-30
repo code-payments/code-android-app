@@ -30,9 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
-import com.getcode.opencode.compose.LocalExchange
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.core.addIf
 
 /**
@@ -111,8 +109,10 @@ fun ChatQuotePanel(
             )
             when (val snippet = quote.snippet) {
                 // Two lines, not one: one truncates most quoted sentences mid-clause.
+                // The quoted text is shown as a line, not a bubble, so an invite link in it reads
+                // "Invite link" rather than leaking its fragment, which is the group's key.
                 is ChatQuoteSnippet.Text -> Text(
-                    text = snippet.body,
+                    text = labelInviteLinks(snippet.body, stringResource(R.string.label_inviteLinkPreview)),
                     style = CodeTheme.typography.caption,
                     // White alphas rather than the theme's secondary, which is a blue-grey: the
                     // ground under this text is the author's colour, and a second hue muddies it.
@@ -122,7 +122,10 @@ fun ChatQuotePanel(
                 )
 
                 is ChatQuoteSnippet.Photo -> Text(
-                    text = ChatMediaText.preview(snippet.caption, stringResource(R.string.label_chat_media_photo)),
+                    text = ChatMediaText.preview(
+                        snippet.caption?.let { labelInviteLinks(it, stringResource(R.string.label_inviteLinkPreview)) },
+                        stringResource(R.string.label_chat_media_photo),
+                    ),
                     style = CodeTheme.typography.caption,
                     color = Color.White.copy(alpha = QuotePanelDefaults.snippetAlpha),
                     maxLines = QuotePanelDefaults.snippetMaxLines,
@@ -131,27 +134,15 @@ fun ChatQuotePanel(
 
                 // A quoted payment shows what identifies it, not just a number.
                 is ChatQuoteSnippet.Cash -> {
-                    val exchange = LocalExchange.current
-                    val currencyCode = snippet.amount.currencyCode.name
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(QuotePanelDefaults.cashGap),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        PriceWithFlag(
-                            amount = snippet.amount.formatted(),
-                            currencyCode = currencyCode,
-                            iconSize = QuotePanelDefaults.flagSize,
-                            flag = exchange.getFlagByCurrency(currencyCode),
-                            text = { formatted ->
-                                Text(
-                                    text = formatted,
-                                    style = CodeTheme.typography.caption,
-                                    color = Color.White.copy(
-                                        alpha = QuotePanelDefaults.amountAlpha,
-                                    ),
-                                    maxLines = 1,
-                                )
-                            },
+                        Text(
+                            text = cashInDisplayCurrency(snippet.amount, snippet.settledUsd).formatted(),
+                            style = CodeTheme.typography.caption,
+                            color = Color.White.copy(alpha = QuotePanelDefaults.amountAlpha),
+                            maxLines = 1,
                         )
                         Text(
                             text = snippet.tokenName,
@@ -215,8 +206,6 @@ private object QuotePanelDefaults {
     /** The accent bar is a rule, not a gutter, so it takes the theme's thick border. */
     val accentWidth: Dp
         @Composable get() = CodeTheme.dimens.thickBorder
-    val flagSize: Dp
-        @Composable get() = CodeTheme.dimens.staticGrid.x3
     const val groundAlpha = 0.14f
     const val snippetAlpha = 0.55f
     const val amountAlpha = 0.75f

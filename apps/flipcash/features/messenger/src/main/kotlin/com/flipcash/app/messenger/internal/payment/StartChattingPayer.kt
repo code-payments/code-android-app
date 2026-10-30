@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.payment
 
+import androidx.annotation.StringRes
 import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.AddMoneyEvents
@@ -53,7 +54,10 @@ internal interface StartChattingPayer {
     suspend fun mayProceed(onAddMoney: () -> Unit, onDiscoverCurrencies: () -> Unit): Boolean
 
     /** Over balance, with something in the account. [onAddMoney] is the alert's action. */
-    fun presentInsufficientBalance(onAddMoney: () -> Unit)
+    fun presentInsufficientBalance(
+        onAddMoney: () -> Unit,
+        @StringRes message: Int = R.string.description_insufficientBalanceToUse,
+    )
 
     /** The deposit screen to open for an "Add Money" action, or null when there is none to open. */
     suspend fun depositRoute(): AppRoute?
@@ -113,10 +117,10 @@ internal class DefaultStartChattingPayer @Inject constructor(
         return false
     }
 
-    override fun presentInsufficientBalance(onAddMoney: () -> Unit) {
+    override fun presentInsufficientBalance(onAddMoney: () -> Unit, @StringRes message: Int) {
         BottomBarManager.showInfo(
             title = resources.getString(R.string.title_insufficientBalance),
-            message = resources.getString(R.string.description_insufficientBalanceToUse),
+            message = resources.getString(message),
             actions = listOf(
                 BottomBarAction(text = resources.getString(R.string.action_addMoney)) { onAddMoney() },
             ),

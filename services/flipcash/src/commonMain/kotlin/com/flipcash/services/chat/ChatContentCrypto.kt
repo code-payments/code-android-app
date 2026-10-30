@@ -6,6 +6,7 @@ import com.flipcash.services.internal.network.extensions.asMediaItem
 import com.flipcash.services.internal.network.extensions.toMessageContent
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.getcode.chatcipher.ChatCipher
 import com.getcode.chatcipher.ChatCipherException
 import com.getcode.chatcipher.EncryptedPayload
@@ -215,11 +216,13 @@ internal fun MessageContent.isSealable(): Boolean = when (this) {
         (content.all { it is MessageContent.Text && it.isSealable() } || content.singleOrNull()?.let {
             it is MessageContent.Media && it.isSealable()
         } == true)
+    // A private group sends its payment request widget sealed, like any other message.
+    is MessageContent.Widget -> widget is WidgetContent.PaymentRequest
     else -> false
 }
 
 /**
- * The spec allows Text, Media, and a Reply of either. Media must meet [SealedMediaContract];
+ * The spec allows Text, Media, a Reply of either, and a payment request widget. Media must meet [SealedMediaContract];
  * anything else takes the same "update" path as a type this client has never heard of.
  */
 internal fun MessagingModel.Content.isRenderable(): Boolean = when (typeCase) {
@@ -233,5 +236,7 @@ internal fun MessagingModel.Content.isRenderable(): Boolean = when (typeCase) {
                 (reply.contentCount == 1 &&
                     reply.getContent(0).typeCase == MessagingModel.Content.TypeCase.MEDIA &&
                     reply.getContent(0).isRenderable()))
+    MessagingModel.Content.TypeCase.WIDGET ->
+        widget.typeCase == MessagingModel.WidgetContent.TypeCase.PAYMENT_REQUEST
     else -> false
 }

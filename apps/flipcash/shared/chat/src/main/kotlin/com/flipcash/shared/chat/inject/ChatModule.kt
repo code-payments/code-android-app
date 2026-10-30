@@ -3,7 +3,6 @@ package com.flipcash.shared.chat.inject
 import com.flipcash.shared.chat.link.LinkPreviewImages
 import com.flipcash.shared.chat.link.UploadedLinkPreviewImages
 import com.flipcash.shared.chat.ChatArchiveStore
-import com.flipcash.app.core.chat.TipHistorySource
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.HostLobbies
@@ -14,6 +13,12 @@ import com.flipcash.shared.chat.RosterUpdateSink
 import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.internal.DataStoreLobbyRequestStore
 import com.flipcash.shared.chat.internal.DmOutgoingEncryption
+import com.flipcash.shared.chat.alerts.ReactionAlertController
+import com.flipcash.shared.chat.PaymentRequestUpdateSink
+import com.flipcash.shared.chat.PaymentRequests
+import com.flipcash.shared.chat.alerts.ReactionAlertSink
+import com.flipcash.shared.chat.alerts.ReactionActorProfiles
+import com.flipcash.shared.chat.alerts.StoredReactionActorProfiles
 import com.flipcash.shared.chat.internal.MentionPoolUpdates
 import com.flipcash.shared.chat.internal.MentionSuggestionPool
 import com.flipcash.shared.chat.internal.ServerRosterSearchSource
@@ -40,11 +45,6 @@ abstract class ChatModule {
     abstract fun bindChatCoordinator(
         impl: RealChatCoordinator
     ): ChatCoordinator
-
-    @Binds
-    abstract fun bindTipHistorySource(
-        impl: ChatCoordinator
-    ): TipHistorySource
 
     @Binds
     @Singleton
@@ -98,6 +98,21 @@ abstract class ChatModule {
     internal abstract fun bindMentionPoolUpdates(
         impl: MentionSuggestionPool
     ): MentionPoolUpdates
+
+    @Binds
+    internal abstract fun bindReactionActorProfiles(
+        impl: StoredReactionActorProfiles
+    ): ReactionActorProfiles
+
+    @Binds
+    internal abstract fun bindPaymentRequestUpdateSink(
+        impl: PaymentRequests
+    ): PaymentRequestUpdateSink
+
+    @Binds
+    internal abstract fun bindReactionAlertSink(
+        impl: ReactionAlertController
+    ): ReactionAlertSink
 
     @Binds
     @IntoSet

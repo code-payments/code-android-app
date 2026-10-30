@@ -8,10 +8,20 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.chat.Invite
+import com.flipcash.services.models.chat.InviteId
+import com.flipcash.services.models.chat.InviteKeyEnvelope
+import com.flipcash.services.models.chat.InviteParameters
+import com.flipcash.services.models.chat.InvitePreview
+import com.flipcash.services.models.chat.InviteSecretEnvelope
+import com.flipcash.services.models.chat.InviteToken
+import com.flipcash.services.models.chat.InvitesPage
 import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.Lobby
 import com.flipcash.services.models.chat.LobbyPage
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.RestrictedUsersPage
+import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.MentionSuggestion
 import com.flipcash.services.models.chat.RosterPage
 import com.flipcash.services.models.chat.StartChatParameters
@@ -23,6 +33,7 @@ import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Instant
 
 @Singleton
 class ChatController @Inject constructor(
@@ -84,11 +95,15 @@ class ChatController @Inject constructor(
     suspend fun getRoster(
         chatId: ChatId,
         queryOptions: QueryOptions = QueryOptions(),
+        inviteToken: InviteToken? = null,
     ): Result<RosterPage> {
+        // With an invite token the account is optional: the token stands in for auth.
         val owner = userManager.accountCluster?.authority?.keyPair
-            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+        if (owner == null && inviteToken == null) {
+            return Result.failure(Throwable("No account cluster in UserManager"))
+        }
 
-        return repository.getRoster(owner, chatId, queryOptions)
+        return repository.getRoster(owner, chatId, queryOptions, inviteToken)
     }
 
     /**
@@ -133,11 +148,12 @@ class ChatController @Inject constructor(
         return repository.editChat(owner, chatId, parameters)
     }
 
-    suspend fun joinChat(chatId: ChatId): Result<ChatMetadata> {
+    /** Joins [chatId], with [invite] when joining a private group through a link. */
+    suspend fun joinChat(chatId: ChatId, invite: InviteParameters? = null): Result<ChatMetadata> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
-        return repository.joinChat(owner, chatId)
+        return repository.joinChat(owner, chatId, invite)
     }
 
     suspend fun leaveChat(chatId: ChatId): Result<Unit> {
@@ -210,6 +226,46 @@ class ChatController @Inject constructor(
         return repository.denyLobbyMember(owner, chatId, userId)
     }
 
+    /** Silences [userId] in [chatId] for the duration in [silence]. */
+    suspend fun silenceUser(chatId: ChatId, userId: ID, silence: SilenceState): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.silenceUser(owner, chatId, userId, silence)
+    }
+
+    /** Lifts [userId]'s silence in [chatId]. */
+    suspend fun unsilenceUser(chatId: ChatId, userId: ID): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.unsilenceUser(owner, chatId, userId)
+    }
+
+    /** Bans [userId] from [chatId]. */
+    suspend fun banUser(chatId: ChatId, userId: ID): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.banUser(owner, chatId, userId)
+    }
+
+    /** Lifts [userId]'s ban from [chatId]. */
+    suspend fun unbanUser(chatId: ChatId, userId: ID): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.unbanUser(owner, chatId, userId)
+    }
+
+    /** One page of the users silenced or banned in [chatId]. */
+    suspend fun getRestrictedUsers(chatId: ChatId, queryOptions: QueryOptions = QueryOptions()): Result<RestrictedUsersPage> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.getRestrictedUsers(owner, chatId, queryOptions)
+    }
+
     /** Stores the caller's own key envelope for [chatId]. */
     suspend fun setKeyEnvelope(chatId: ChatId, keyEnvelope: KeyEnvelope): Result<Unit> {
         val owner = userManager.accountCluster?.authority?.keyPair
@@ -224,5 +280,42 @@ class ChatController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.getKeyEnvelope(owner, chatId)
+    }
+
+    /** Creates an invite link for private group [chatId]; see [ChatRepository.createInvite]. */
+    suspend fun createInvite(
+        chatId: ChatId,
+        token: InviteToken,
+        keyEnvelope: InviteKeyEnvelope,
+        secretEnvelope: InviteSecretEnvelope,
+        maxUses: Int = 0,
+        expiresAt: Instant? = null,
+    ): Result<Invite> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.createInvite(owner, chatId, token, keyEnvelope, secretEnvelope, maxUses, expiresAt)
+    }
+
+    /** What [token]'s link leads to. Works without an account cluster: an anonymous viewer can look an invite up. */
+    suspend fun getInvite(token: InviteToken): Result<InvitePreview> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+        return repository.getInvite(owner, token)
+    }
+
+    /** One page of [chatId]'s invites. */
+    suspend fun getChatInvites(chatId: ChatId, queryOptions: QueryOptions = QueryOptions()): Result<InvitesPage> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.getChatInvites(owner, chatId, queryOptions)
+    }
+
+    /** Revokes [inviteId] on [chatId]. */
+    suspend fun revokeInvite(chatId: ChatId, inviteId: InviteId): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.revokeInvite(owner, chatId, inviteId)
     }
 }

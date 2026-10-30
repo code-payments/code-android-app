@@ -1,6 +1,6 @@
-<!-- IconPeopleCircle — "Finish Your Profile" checklist (node 9544:18148). White stroke, tinted
-     at the call site. The export carries a 50% group opacity; it is dropped here so the row's
-     own ColorFilter.tint controls the colour, matching the other tutorial icons. -->
+<!-- IconPeopleCircle — community chats (node 9544:18148). White stroke, tinted at the call site.
+     The export carries a 50% group opacity; it is dropped here so the call site's
+     ColorFilter.tint controls the colour. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
