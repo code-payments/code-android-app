@@ -74,7 +74,7 @@ fun NewChatScreen() {
                     if (hasCommunityCurrency == false) {
                         presentNoCommunityCurrencies(resources, navigator)
                     } else {
-                        analytics.track(GroupEvents.newOpened())
+                        analytics.track(GroupEvents.newOpened(null))
                         navigator.push(AppRoute.Messaging.NewGroup())
                     }
                 },
