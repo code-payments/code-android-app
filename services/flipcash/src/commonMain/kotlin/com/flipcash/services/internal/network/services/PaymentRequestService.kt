@@ -22,7 +22,7 @@ import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
 import com.flipcash.services.models.paymentrequest.PaymentRequestPage
 import com.flipcash.services.models.paymentrequest.PaymentRequestSection
-import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.utils.toValidationOrElse

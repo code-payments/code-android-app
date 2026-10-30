@@ -3,7 +3,7 @@ package com.flipcash.services.internal.repositories
 import com.flipcash.services.internal.network.services.ChatService
 import com.flipcash.services.models.JoinChatError
 import com.flipcash.services.models.chat.ChatId
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.utils.ErrorUtils
 import io.mockk.coEvery
 import io.mockk.every

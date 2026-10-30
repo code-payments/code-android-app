@@ -13,7 +13,7 @@ import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
 import com.flipcash.services.models.paymentrequest.PaymentRequestPage
 import com.flipcash.services.models.paymentrequest.PaymentRequestSection
 import com.flipcash.services.repository.PaymentRequestRepository
-import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
 import com.getcode.utils.ErrorUtils
 

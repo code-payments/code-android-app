@@ -24,6 +24,7 @@ kotlin {
             api(project(":apps:flipcash:shared:tokens:core"))
 
             implementation(project(":apps:flipcash:core"))
+            implementation(project(":apps:flipcash:core-ui"))
             implementation(project(":apps:flipcash:shared:persistence:sources"))
             implementation(project(":services:opencode"))
             implementation(project(":libs:coroutines"))
@@ -44,7 +45,6 @@ kotlin {
             implementation(project(":ui:components"))
             implementation(project(":ui:resources"))
             implementation(project(":ui:theme"))
-            implementation(project(":apps:flipcash:core-ui"))
             implementation(project(":services:flipcash"))
 
             implementation(libs.androidx.datastore)
