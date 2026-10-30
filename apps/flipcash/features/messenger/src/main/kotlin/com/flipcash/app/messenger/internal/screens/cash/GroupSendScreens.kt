@@ -252,7 +252,7 @@ internal fun GroupSendConfirmSheet(
 }
 
 /**
- * "$1.00 each" when every part, the sender's included, is equal, else "~$0.33 each" for the
+ * "$1.00 Each" when every part, the sender's included, is equal, else "~$0.33 Each" for the
  * smallest paid part; ", including You" when the sender is in the split.
  */
 @Composable
