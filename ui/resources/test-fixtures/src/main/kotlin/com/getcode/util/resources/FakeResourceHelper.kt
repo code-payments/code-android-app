@@ -37,7 +37,11 @@ class FakeResourceHelper(vararg rClasses: Class<*>) : AndroidResourceHelper {
     }
 
     override fun getString(resource: StringResource, vararg formatArgs: Any): String {
-        val template = keyOverrides[resource.key] ?: return resource.key
+        // A Compose StringResource shares its key with the Android `R.string` name, so a stub made
+        // by id also answers for the resource.
+        val template = keyOverrides[resource.key]
+            ?: nameMap.entries.firstOrNull { it.value == resource.key }?.let { overrides[it.key] }
+            ?: return resource.key
         return runCatching { template.format(*formatArgs) }.getOrDefault(template)
     }
 
