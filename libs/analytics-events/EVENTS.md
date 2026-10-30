@@ -905,11 +905,11 @@ The `Field` property on Group: Edited: what the edit changed.
 
 ### GroupInviteSheetSource
 
-The `Source` property on Group: Invite Sheet Opened. Both apps send Profile, from the group profile and the join requests screen.
+The `Source` property on Group: Invite Sheet Opened. Both apps send Profile, from the group profile and the join requests screen, and Chat, from the Your Group Is Ready card in a transcript.
 
 | Value sent | Name in code | Drift |
 |---|---|---|
-| Chat | `CHAT` | Neither app sends this today. It was Android's transcript CTA and iOS's card at the head of chat history; Android dropped its CTA in #1707 and iOS removed its card in cb036f487. |
+| Chat | `CHAT` | |
 | Profile | `PROFILE` | |
 
 ### GroupInviteMethod

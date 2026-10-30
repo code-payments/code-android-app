@@ -66,6 +66,7 @@ import com.getcode.opencode.model.core.ID
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.core.chat.PinnedMessageJump
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
@@ -183,6 +184,12 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     LaunchedEffect(privateOutsider) {
         if (privateOutsider) flowNavigator.replaceStack(listOf(ChatStep.GroupProfile))
     }
+
+    // The same standing the group profile's Share button reads, so the transcript's invite card
+    // opens the sheet that button does.
+    val inviteHost = hiltViewModel<InviteHostViewModel>()
+    val canInviteByChat by inviteHost.canInvite.collectAsStateWithLifecycle()
+    val viewerCanInvite = state.chatId?.let { canInviteByChat[it] } == true
 
     // Here rather than in the action handler because the lookup comes first: the tap only knows a
     // handle, and where it leads is the view model's to decide once the handle has an answer.
@@ -790,6 +797,15 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         onOriginsReached = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnOriginsReached(it)) },
                         onReachedNewest = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnStackCleared) },
                         hazeState = hazeState,
+                        viewerCanInvite = viewerCanInvite,
+                        onInvitePeople = {
+                            viewModel.dispatchEvent(
+                                ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.CHAT)
+                            )
+                            // The card only shows to a viewer who can invite, so this is the host
+                            // branch of the group profile's Share button; see GroupProfileScreen.
+                            navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
+                        },
                     )
                 }
             }
