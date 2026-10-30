@@ -1,6 +1,7 @@
 package com.flipcash.desktop.input
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -30,16 +31,23 @@ fun desktopKeyHandler(os: HostOs, run: (DesktopCommand) -> Boolean): (KeyEvent) 
 
 /**
  * The macOS menu bar (spec: Native per OS). Flipcash's own menu, with Settings…, is the system app
- * menu and gets its item when Settings lands (Plan 7). Items for commands that can't run yet are
+ * menu and gets its item when Settings lands (Plan 7). Edit acts on the focused text field. Items for commands that can't run yet are
  * disabled rather than hidden, so the menus keep their final shape.
  */
 @Composable
 fun FrameWindowScope.DesktopMenuBar(windowState: WindowState, run: (DesktopCommand) -> Boolean) {
     fun item(command: DesktopCommand) = { run(command); Unit }
+    val edit = remember { EditForwarder() }
     MenuBar {
         Menu("File") {
             Item("New Chat", enabled = DesktopCommand.NewChat.available,
                 shortcut = KeyShortcut(Key.N, meta = true), onClick = item(DesktopCommand.NewChat))
+        }
+        Menu("Edit") {
+            for (action in EditAction.entries) {
+                Item(action.title, shortcut = action.shortcut, onClick = { edit.forward(action) })
+                if (action == EditAction.Redo) Separator()
+            }
         }
         Menu("View") {
             Item("Chat Info", enabled = DesktopCommand.ToggleInfo.available,
