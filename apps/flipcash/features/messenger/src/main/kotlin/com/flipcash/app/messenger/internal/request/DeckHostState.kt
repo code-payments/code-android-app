@@ -102,6 +102,19 @@ internal class DeckHostState(owed: Set<ID>) {
         }
     }
 
+    /**
+     * A swipe up on the strip docks it into the pill without scrolling: the same collapse a scroll
+     * drives, by however far the finger has moved up ([deltaPx] negative) or back down.
+     */
+    fun dragDock(deltaPx: Float) {
+        if (!following) return
+        collapsePx = (collapsePx - deltaPx).coerceIn(0f, stripPx)
+        if (collapsePx >= stripPx) pin()
+    }
+
+    /** A dock swipe let go: past halfway it completes and holds for the visit, short of it the strip snaps back. */
+    suspend fun releaseDock() = settle()
+
     /** Finishes a collapse released partway, toward whichever end is nearer. */
     private suspend fun settle() {
         val from = collapsePx

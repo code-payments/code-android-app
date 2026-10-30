@@ -131,11 +131,12 @@ private fun ChatSummary.formatPreview(
 
 /**
  * The row's line for one piece of message content, or null when there is nothing worth previewing.
+ * Also the pin bar's one-line quote, which passes no attribution.
  *
  * [depth] bounds the reply unwrap below. Nothing the app sends nests a reply inside a reply, but
  * this content arrives off the wire, so a malformed chain must not recurse forever.
  */
-private fun MessageContent.previewText(
+fun MessageContent.previewText(
     sentBySelf: Boolean,
     senderName: String?,
     isGroup: Boolean,

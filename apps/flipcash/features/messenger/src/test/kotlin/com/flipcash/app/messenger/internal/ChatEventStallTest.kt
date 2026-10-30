@@ -75,6 +75,7 @@ class ChatEventStallTest {
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
     private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
+        coEvery { getPinnedMessages(any()) } returns Result.failure(IllegalStateException("no pins in this test"))
         every { observeMediaSendProgress() } returns kotlinx.coroutines.flow.emptyFlow()
     }
     private val contactCoordinator = mockk<ContactCoordinator>(relaxed = true)

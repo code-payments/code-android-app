@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.filled.Feedback
+import androidx.compose.material.icons.filled.PushPin
 import com.flipcash.app.messenger.internal.screens.openMessageShare
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -90,6 +92,8 @@ internal fun ChatTopBar(
     /** Asks the host to confirm a removal: chat, member, first name, group title. Supplied by the screen so the bar needs no Hilt. */
     onConfirmRemove: (ChatId, ID, String, String) -> Unit = { _, _, _, _ -> },
     trailing: @Composable () -> Unit = {},
+    /** Controls in the bar's end slot, which sit the same distance from the edge as back does. */
+    actions: @Composable RowScope.() -> Unit = {},
 ) {
     val bgColor = CodeTheme.colors.background
     val statusBars = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -118,7 +122,7 @@ internal fun ChatTopBar(
             label = "chat top bar",
         ) { target ->
             when (target) {
-                TopBarMode.Conversation -> ConversationTitleBar(navigator, state, chatActionHandler, trailing)
+                TopBarMode.Conversation -> ConversationTitleBar(navigator, state, chatActionHandler, trailing, actions)
                 TopBarMode.Editing -> EditingBar(dispatch)
                 is TopBarMode.Selecting -> {
                     val sender = target.selection.sender
@@ -130,6 +134,7 @@ internal fun ChatTopBar(
                     }
                     MessageSelectionBar(
                     selection = target.selection,
+                    pinned = target.selection.messageId in state.pins.pinnedIds,
                     keyboard = keyboard,
                     dispatch = dispatch,
                     // Resolved here rather than in the bar: reporting is its own top-level
@@ -209,8 +214,10 @@ private fun ConversationTitleBar(
     state: ChatViewModel.State,
     chatActionHandler: ChatActionHandler,
     trailing: @Composable () -> Unit,
+    actions: @Composable RowScope.() -> Unit,
 ) {
     AppBarWithTitle(
+        rightContents = actions,
         leftIcon = {
             // The avatar sits just past back and opens the profile, so a thumb that missed the
             // arrow landed in the dead strip before it or on the avatar. Everything before the
@@ -314,6 +321,8 @@ private fun ConversationTitleBar(
 @Composable
 private fun MessageSelectionBar(
     selection: ChatListItem.ContentBubble,
+    /** Whether the selected message is pinned, so the pin action unpins it instead. */
+    pinned: Boolean,
     keyboard: KeyboardController,
     dispatch: (ChatViewModel.Event) -> Unit,
     onShareMessage: () -> Unit,
@@ -362,6 +371,26 @@ private fun MessageSelectionBar(
                     onClick = {
                         dispatch(ChatViewModel.Event.ShareMessageRequested)
                         onShareMessage()
+                    },
+                )
+            )
+        }
+        // Granted by can_pin on a message that can be pinned; whether it pins or unpins is the
+        // chat's pinned ids', which the capability doesn't carry.
+        if (MessageCapability.Pin in capabilities) {
+            add(
+                MessageAction(
+                    label = stringResource(if (pinned) R.string.action_unpinMessage else R.string.action_pinMessage),
+                    icon = Icons.Filled.PushPin,
+                    testTag = if (pinned) "action_unpin_message" else "action_pin_message",
+                    onClick = {
+                        dispatch(
+                            if (pinned) {
+                                ChatViewModel.Event.UnpinMessage(selection.messageId)
+                            } else {
+                                ChatViewModel.Event.PinMessage(selection.messageId, body)
+                            }
+                        )
                     },
                 )
             )
