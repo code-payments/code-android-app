@@ -1,6 +1,8 @@
 package com.flipcash.app.auth
 
 import androidx.core.app.NotificationManagerCompat
+import com.flipcash.analytics.events.AccountEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.internal.accounts.AccountStore
 import com.flipcash.app.auth.internal.credentials.AccountMetadata
@@ -80,6 +82,7 @@ class AuthManagerTest {
 
     private val networkConnectivityListener = mockk<NetworkConnectivityListener>(relaxed = true)
 
+    private val analytics = RecordingAnalytics()
     private lateinit var authManager: AuthManager
 
     @Before
@@ -130,6 +133,7 @@ class AuthManagerTest {
             wrongKeyChats = wrongKeyChats,
             dispatchers = dispatchers,
             networkObserver = networkConnectivityListener,
+            analytics = analytics,
         )
     }
 
@@ -566,6 +570,7 @@ class AuthManagerTest {
 
         coVerify { credentialManager.lookup() }
         verify { persistence.openDatabase(entropy) }
+        assertEquals(listOf(AccountEvents.autoLoginComplete()), analytics.events)
     }
 
     // The trusted-website list is device-level and must outlive Log Out and Switch Accounts, both of

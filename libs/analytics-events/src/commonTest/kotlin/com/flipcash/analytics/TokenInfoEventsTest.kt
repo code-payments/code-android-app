@@ -17,6 +17,8 @@ class TokenInfoEventsTest {
                 AnalyticsEvent("Token Info: Opened From Discovery", mint),
                 AnalyticsEvent("Token Info: Opened From Chat", mint),
                 AnalyticsEvent("Token Info: Opened From Chat Gate", mint),
+                AnalyticsEvent("Token Info: Opened From Give", mint),
+                AnalyticsEvent("Token Info: Opened From Send", mint),
             ),
             listOf(
                 TokenInfoSource.DEEPLINK,
@@ -24,6 +26,8 @@ class TokenInfoEventsTest {
                 TokenInfoSource.DISCOVERY,
                 TokenInfoSource.CHAT,
                 TokenInfoSource.CHAT_GATE,
+                TokenInfoSource.GIVE,
+                TokenInfoSource.SEND,
             ).map { TokenInfoEvents.opened(it, "mint") },
         )
     }

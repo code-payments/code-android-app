@@ -2,6 +2,7 @@ package com.flipcash.app.login.router
 
 import androidx.lifecycle.viewModelScope
 import com.flipcash.analytics.Button
+import com.flipcash.analytics.events.AccountEvents
 import com.flipcash.analytics.events.ButtonEvents
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.auth.AuthManager
@@ -92,7 +93,10 @@ class LoginViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.CreateAccount>()
             .filter { createInFlight.compareAndSet(false, true) }
-            .onEach { analytics.track(ButtonEvents.tapped(Button.CREATE_ACCOUNT)) }
+            .onEach {
+                analytics.track(ButtonEvents.tapped(Button.CREATE_ACCOUNT))
+                analytics.track(AccountEvents.createAccount())
+            }
             .onEach {
                 try {
                     authManager.createAccount()

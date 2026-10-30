@@ -1886,7 +1886,11 @@ class SwapViewModel @Inject constructor(
             is SwapPurpose.Buy -> when (purpose.fundingSource) {
                 FundingSource.Phantom -> AnalyticsPurchaseMethod.PHANTOM
                 FundingSource.Coinbase -> AnalyticsPurchaseMethod.COINBASE
-                else -> AnalyticsPurchaseMethod.RESERVES
+                // A buy paid with a held currency other than USDF reserves, as iOS reports it.
+                else -> when (stateFlow.value.fundingMint) {
+                    null, Mint.usdf -> AnalyticsPurchaseMethod.RESERVES
+                    else -> AnalyticsPurchaseMethod.CURRENCY
+                }
             }
 
             else -> null

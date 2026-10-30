@@ -11,6 +11,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.play.services)
     implementation(libs.androidx.datastore)
 
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:contacts"))
@@ -28,4 +29,5 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.grpc.stub)
     testImplementation(project(":libs:coroutines:test-fixtures"))
+    testImplementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
 }
