@@ -14,7 +14,7 @@ import kotlinx.coroutines.runBlocking
 import java.awt.Dimension
 import java.lang.management.ManagementFactory
 
-private val isMac = System.getProperty("os.name").orEmpty().lowercase().startsWith("mac")
+internal val isMac = System.getProperty("os.name").orEmpty().lowercase().startsWith("mac")
 
 // Height of the macOS title bar the content runs under, which the traffic lights sit in.
 private val MacTitleBarHeight = 28.dp

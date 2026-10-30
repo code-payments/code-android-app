@@ -22,6 +22,7 @@ metro {
 dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.jetbrains.compose.material3)
+    implementation(libs.jetbrains.compose.material.icons.extended)
     implementation(project(":services:opencode"))
     implementation(project(":apps:flipcash:features:balance"))
     implementation(project(":apps:flipcash:core"))
@@ -57,6 +58,8 @@ dependencies {
     testImplementation(project(":apps:flipcash:startup-contract"))
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(compose.desktop.uiTestJUnit4)
+    testImplementation(compose.desktop.currentOs)
 }
 
 tasks.withType<Test>().configureEach {
