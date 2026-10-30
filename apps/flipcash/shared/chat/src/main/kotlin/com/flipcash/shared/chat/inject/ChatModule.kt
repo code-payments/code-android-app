@@ -28,6 +28,8 @@ import com.flipcash.shared.chat.internal.RealChatCoordinator
 import com.flipcash.shared.chat.internal.RealChatDraftStore
 import com.flipcash.shared.chat.internal.delegates.MediaSendDelegate
 import com.flipcash.shared.chat.media.ChatMediaSending
+import com.flipcash.app.persistence.sources.GroupKeyEnvelopeDataSource
+import com.flipcash.services.chat.GroupKeyEnvelopeStore
 import com.getcode.opencode.providers.SessionListener
 import dagger.Binds
 import dagger.Module
@@ -108,6 +110,11 @@ abstract class ChatModule {
     internal abstract fun bindPaymentRequestUpdateSink(
         impl: PaymentRequests
     ): PaymentRequestUpdateSink
+
+    @Binds
+    internal abstract fun bindGroupKeyEnvelopeStore(
+        impl: GroupKeyEnvelopeDataSource
+    ): GroupKeyEnvelopeStore
 
     @Binds
     internal abstract fun bindReactionAlertSink(

@@ -56,6 +56,7 @@ class ChatCoordinatorTeardownTest {
     private lateinit var archiveStore: ChatArchiveStore
     private lateinit var groupFeedDelegate: GroupFeedDelegate
     private lateinit var hostInvites: HostInvites
+    private lateinit var groupKeyEnvelopes: com.flipcash.services.chat.GroupKeyEnvelopeStore
     private lateinit var coordinator: RealChatCoordinator
 
     @Before
@@ -78,6 +79,7 @@ class ChatCoordinatorTeardownTest {
         archiveStore = mockk(relaxed = true)
         groupFeedDelegate = mockk(relaxed = true)
         hostInvites = mockk(relaxed = true)
+        groupKeyEnvelopes = mockk(relaxed = true)
         val messagingController = mockk<ChatMessagingController>(relaxed = true)
         val stateHolder = ChatStateHolder()
 
@@ -130,6 +132,7 @@ class ChatCoordinatorTeardownTest {
             reactionsDelegate = mockk(relaxed = true),
             archiveStore = archiveStore,
             hostInvites = hostInvites,
+            groupKeyEnvelopes = groupKeyEnvelopes,
         )
     }
 
@@ -187,6 +190,16 @@ class ChatCoordinatorTeardownTest {
 
         coordinator.clearCache()
         coVerify(exactly = 1) { archiveStore.clearAll() }
+    }
+
+    /** Wrapped chat keys live in the per-account database, so erasure wipes them and teardown keeps them. */
+    @Test
+    fun `clearCache drops stored key envelopes, teardown keeps them`() = runTest {
+        coordinator.teardown()
+        coVerify(exactly = 0) { groupKeyEnvelopes.clear() }
+
+        coordinator.clearCache()
+        coVerify(exactly = 1) { groupKeyEnvelopes.clear() }
     }
 
     @Test
