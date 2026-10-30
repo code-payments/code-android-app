@@ -25,12 +25,16 @@ class AccountEventsTest {
     fun propertylessEvents() {
         assertEquals(
             listOf(
+                AnalyticsEvent("Create Account", emptyMap()),
+                AnalyticsEvent("Auto-login complete", emptyMap()),
                 AnalyticsEvent("Entered Phone Number", emptyMap()),
                 AnalyticsEvent("Verified Phone Number", emptyMap()),
                 AnalyticsEvent("Linked Phone Number", emptyMap()),
                 AnalyticsEvent("Complete Onboarding", emptyMap()),
             ),
             listOf(
+                AccountEvents.createAccount(),
+                AccountEvents.autoLoginComplete(),
                 AccountEvents.enteredPhoneNumber(),
                 AccountEvents.verifiedPhoneNumber(),
                 AccountEvents.linkedPhoneNumber(),

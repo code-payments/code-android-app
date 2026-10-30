@@ -115,13 +115,15 @@ description = "The `Provider` property on the Wallet events: the wallet app the 
 PHANTOM = "Phantom"
 
 [lists.TokenInfoSource]
-description = "Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 1; Android previously sent Wallet for all three. iOS's Give and Send sources stay native until part 2."
+description = "Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 1; Android previously sent Wallet for all three. Give and Send are iOS's, from the Add More Cash prompt on the Give and Send amount screens; the event names iOS sends today are unchanged."
 [lists.TokenInfoSource.values]
 DEEPLINK = "Deeplink"
 WALLET = "Wallet"
 DISCOVERY = "Discovery"
 CHAT = "Chat"
 CHAT_GATE = { value = "Chat Gate", drift = "iOS doesn't send this source: its gate buy button pushes the buy screen and never opens Token Info. Group: Gate Funding Tapped covers that tap on both apps." }
+GIVE = { value = "Give", drift = "Android has no such flow: its Give screen sends Add Money: Opened with source Give Shortfall instead of opening Token Info." }
+SEND = { value = "Send", drift = "Android has no such flow: its Send screen has no Add More Cash prompt that opens Token Info." }
 
 [lists.MuteDuration]
 description = "The `Duration` property on Chat Muted: the mute option picked. Both apps offer the same four."
@@ -138,9 +140,9 @@ NAME = "Name"
 PICTURE = "Picture"
 
 [lists.GroupInviteSheetSource]
-description = "The `Source` property on Group: Invite Sheet Opened. Chat is Android's transcript CTA and iOS's head card."
+description = "The `Source` property on Group: Invite Sheet Opened. Both apps send Profile, from the group profile and the join requests screen."
 [lists.GroupInviteSheetSource.values]
-CHAT = "Chat"
+CHAT = { value = "Chat", drift = "Neither app sends this today. It was Android's transcript CTA and iOS's card at the head of chat history; Android dropped its CTA in #1707 and iOS removed its card in cb036f487." }
 PROFILE = "Profile"
 
 [lists.GroupInviteMethod]
@@ -155,7 +157,7 @@ description = "The `Source` property on Group: Invite Followed: what the group w
 [lists.GroupInviteSource.values]
 LINK = "Link"
 QR = "QR"
-CHAT_CARD = "Chat Card"
+CHAT_CARD = { value = "Chat Card", drift = "iOS sends this when a group card in a chat is tapped and its link names a chat other than the one on screen; a card whose link carries no chat id opens through the link path and sends Link." }
 
 [lists.GroupAccess]
 description = "The `Access` property on Group: Gate Shown: whether the viewer can join as they are."
@@ -175,6 +177,13 @@ description = "How a token is paid for, sent in the event name `Token Purchase W
 RESERVES = "Reserves"
 PHANTOM = "Phantom"
 COINBASE = "Coinbase"
+CURRENCY = "Currency"
+
+[lists.LaunchMethod]
+description = "How a currency launch is paid for, sent in the event name `Currency Launch With {method}`."
+[lists.LaunchMethod.values]
+RESERVES = "Reserves"
+CURRENCY = "Currency"
 
 [lists.DisplayNameSource]
 description = "The `Source` property on the Display Name events: the screen the name was set on."
@@ -223,6 +232,8 @@ BUY_WITH_PHANTOM = "Buy With Phantom"
 BUY_WITH_COINBASE = "Buy With Coinbase"
 BUY_WITH_OTHER_WALLET = "Buy With Other Wallet"
 SHARE_TOKEN_INFO = "Share Token Info"
+BUY_WITH_CURRENCY = { value = "Buy With Currency", drift = "iOS sends this when a buy is paid with a held currency other than USDF reserves. Android sends no Button event for that buy." }
+GIVE = { value = "Give", drift = "iOS sends this on Currency Info's Give button, which opens its send-to-person amount screen. Android's matching tile is labelled Send and sends no Button event." }
 
 # ---------------------------------------------------------------------------------------
 # Groups: blocks of properties several events send the same way.
@@ -389,7 +400,7 @@ properties = [
   { name = "Member Count", type = "count" },
   { name = "Gated", type = "yes/no" },
 ]
-description = "JoinChat returned."
+description = "JoinChat returned. Neither app sends it for a join from an invite link."
 
 [[event]]
 domain = "Group"
@@ -577,8 +588,8 @@ properties = [
   { group = "amount" },
   { name = "Error", type = "text", optional = true },
 ]
-description = "Phantom and Coinbase are Android only; part 2 decides whether iOS sends them."
-drift = "(Reserves) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks."
+description = "Phantom and Coinbase are Android only; part 2 decides whether iOS sends them. Currency is a buy paid with a held currency other than USDF reserves."
+drift = "(Reserves and Currency) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks. Android sends Reserves for a buy paid with a held currency."
 
 [[event]]
 domain = "Swap"
@@ -591,6 +602,23 @@ properties = [
   { name = "Error", type = "text", optional = true },
 ]
 drift = "iOS also sends State, and sends only Fiat and Currency of the amount, with no USDC, Quarks or Fee."
+
+# Currency launch
+
+[[event]]
+domain = "Currency Launch"
+name = "Currency Launch With {method}"
+builder = "launched"
+placeholders = { method = "LaunchMethod" }
+properties = [
+  { name = "State", type = "State" },
+  { name = "Mint", type = "text" },
+  { name = "Payment Mint", type = "text" },
+  { name = "Fiat", type = "decimal" },
+  { name = "Currency", type = "text" },
+  { name = "Error", type = "text", optional = true },
+]
+description = "A currency launch finished, on success or failure. Mint is the launched currency, Payment Mint the token that paid the launch cost, and Fiat and Currency the launch cost in the user's currency. Reserves is a launch paid with USDF; Currency is one paid with another held currency."
 
 # Scan
 
@@ -609,7 +637,7 @@ properties = [
   { name = "Time", type = "duration" },
 ]
 description = "@param tier which rung of the crop ladder decoded, 1 to 3."
-drift = "iOS sends this as Gallery Scan: Code Found, with Type {Kik, QR}, Tier as {wholeImage, quadrant, window}, Zoom, and Elapsed in seconds instead of Time in ms."
+drift = "iOS sends this as Gallery Scan: Code Found, with Type {Kik, QR}, Tier as {wholeImage, quadrant, window}, Zoom, and Elapsed in seconds instead of Time in ms. iOS will move to this event, and the Gallery Scan: Code Found series in Mixpanel ends on the iOS release that does."
 
 [[event]]
 domain = "Scan"
@@ -620,7 +648,7 @@ properties = [
   { name = "Exhausted", type = "yes/no" },
 ]
 description = "@param exhausted true when the budget ran out rather than the ladder ending."
-drift = "iOS sends this as Gallery Scan: Nothing Found, with State {Exhausted, Cancelled, Route Refused} and Elapsed in seconds instead of Time in ms and Exhausted."
+drift = "iOS sends this as Gallery Scan: Nothing Found, with State {Exhausted, Cancelled, Route Refused} and Elapsed in seconds instead of Time in ms and Exhausted. iOS will move to this event, and the Gallery Scan: Nothing Found series in Mixpanel ends on the iOS release that does."
 
 [[event]]
 domain = "Scan"
@@ -642,13 +670,14 @@ domain = "Deeplink"
 name = "Deeplink: Parse"
 builder = "parsed"
 properties = [{ name = "Type", type = "text" }]
-drift = "iOS's Type vocabulary is {Login, CashLink, EmailVerification, TokenInfo, Chat, ChatSendCash, Tip, Username, Wallet, DiscoverCurrencies, \"Sheet:<x>\"}, and iOS sends this for every link where Android sends it only on the gallery QR path."
+drift = "iOS's Type vocabulary is {Login, CashLink, EmailVerification, TokenInfo, Chat, ChatSendCash, ChatMessage, GroupInvite, Tip, Profile, Wallet, DiscoverCurrencies, \"Sheet:<x>\"}. iOS sends this for every link that resolves to an action and for no other, where Android sends it only on the gallery QR path."
 
 [[event]]
 domain = "Deeplink"
 name = "Deeplink: Parse"
 builder = "parseFailed"
 properties = [{ name = "Error", format = "Failed to parse deeplink => {url}" }]
+drift = "iOS never sends this form: it reports a parse only for links that resolve to an action."
 
 [[event]]
 domain = "Deeplink"
@@ -657,7 +686,7 @@ properties = [
   { name = "Type", type = "text" },
   { name = "Error", type = "text", optional = true },
 ]
-drift = "iOS never passes Error, and sends this for every kind where Android sends it only for a cash link."
+drift = "iOS never passes Error. It sends this for every kind except access-key and verify-email links, which never report a route, and only when a user is logged in; Android sends it only for a cash link."
 
 # Display name
 
@@ -700,6 +729,18 @@ properties = [
   { name = "Owner Public Key", type = "text", param = "owner" },
 ]
 description = "Android only; part 2 decides whether iOS sends it. iOS's Create Account fires at registration and is a different moment."
+
+[[event]]
+domain = "Account"
+name = "Create Account"
+description = "The user chose to create an account and registration began, before the server answers."
+drift = "iOS also sends Owner Public Key, a wallet identifier that isn't part of the shared contract. iOS stops sending it when it moves to this event."
+
+[[event]]
+domain = "Account"
+name = "Auto-login complete"
+builder = "autoLoginComplete"
+description = "A saved account on the device logged in at launch with no action from the user."
 
 [[event]]
 domain = "Account"
