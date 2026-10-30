@@ -19,6 +19,7 @@ public typealias PurchaseMethod = SharedCore.PurchaseMethod
 public typealias LaunchMethod = SharedCore.LaunchMethod
 public typealias WalletProvider = SharedCore.WalletProvider
 public typealias CashLinkChoice = SharedCore.CashLinkChoice
+public typealias SendContext = SharedCore.SendContext
 public typealias OnrampStep = SharedCore.OnrampStep
 public typealias MuteDuration = SharedCore.MuteDuration
 public typealias SilenceDuration = SharedCore.SilenceDuration
@@ -57,6 +58,7 @@ public typealias ButtonEvents = SharedCore.ButtonEvents
 public typealias GroupEvents = SharedCore.GroupEvents
 public typealias ProfileEvents = SharedCore.ProfileEvents
 public typealias SearchEvents = SharedCore.SearchEvents
+public typealias PaymentRequestEvents = SharedCore.PaymentRequestEvents
 
 /// A property value as the iOS sender needs it. Mixpanel is not a dependency of this
 /// package, so the app maps these to `MixpanelType` itself.

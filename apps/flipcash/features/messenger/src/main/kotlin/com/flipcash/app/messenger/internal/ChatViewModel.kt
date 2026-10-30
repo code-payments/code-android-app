@@ -3848,7 +3848,7 @@ internal class ChatViewModel @AssistedInject constructor(
                         val sentAmount = verifiedFiat.localFiat.analytics
                         when {
                             isCashLink -> TransferEvents.sendCashLink(state, sentAmount, CashLinkChoice.GROUP_CHAT, null, error)
-                            else -> TransferEvents.sentCash(state, sentAmount, error)
+                            else -> TransferEvents.sentCash(state, sentAmount, error, null, null)
                         }
                     }
 
@@ -4084,7 +4084,7 @@ internal class ChatViewModel @AssistedInject constructor(
             holdPaymentSuccess(
                 show = { dispatchEvent(Event.SendStateUpdated(success = true)) },
                 release = {
-                    analytics.track(TransferEvents.sentCash(AnalyticsState.SUCCESS, total.analytics, null))
+                    analytics.track(TransferEvents.sentCash(AnalyticsState.SUCCESS, total.analytics, null, null, null))
                     // The send state stays until the sheet has gone, so Select People doesn't flash back to
                     // the keypad on the way out. The next "$" starts a fresh one.
                     dispatchEvent(Dispatchers.Main, Event.SendComplete(total))
@@ -4092,7 +4092,7 @@ internal class ChatViewModel @AssistedInject constructor(
             )
         }.onFailure { cause ->
             dispatchEvent(Event.SendStateUpdated())
-            analytics.track(TransferEvents.sentCash(AnalyticsState.FAILURE, total.analytics, cause.analytics))
+            analytics.track(TransferEvents.sentCash(AnalyticsState.FAILURE, total.analytics, cause.analytics, null, null))
             val (title, message) = when (cause) {
                 is ComputeVerifiedFiatError.AmountBelowMinimum ->
                     R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall

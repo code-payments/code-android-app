@@ -301,11 +301,15 @@ No properties.
 
 ### Sent Cash
 
+Cash was sent to a person or to several people, or a share of a payment request was paid. `Context` says which: Direct for a send to one person, Group Send for a send to several members of a group, Payment Request for paying a share. `Recipient Count` is the number of members paid and is sent for a Group Send only.
+
 | Property | Type | Optional | Values |
 |---|---|---|---|
 | State | list | no | [State](#state) |
 | amount | group | yes | [amount](#amount) |
 | Error | text | yes | |
+| Context | list | yes | [SendContext](#sendcontext) |
+| Recipient Count | count | yes | |
 
 > **Drift:** iOS sends Exchange Rate and no USDC (see Amount).
 
@@ -318,6 +322,41 @@ No properties.
 | Error | text | yes | |
 
 > **Drift:** iOS sends Exchange Rate and no USDC (see Amount).
+
+### Sent Boost
+
+A paid reaction (boost) was confirmed, on success or failure. The amount is the whole boost, before it is split between the message's author and the group's creator. `Chat Type` is the chat the message is in.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Chat Type | list | no | [ChatType](#chattype) |
+| State | list | no | [State](#state) |
+| amount | group | yes | [amount](#amount) |
+| Error | text | yes | |
+
+## Payment Request
+
+Group payment requests: one amount asked of several members of a group chat. Paying a share is Sent Cash with `Context` set to Payment Request.
+
+### Payment Request: Created
+
+A group payment request was created, on success or failure. The amount is what each person is asked for. `Payer Count` is the number of people asked, not counting the creator.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Payer Count | count | no | |
+| State | list | no | [State](#state) |
+| amount | group | yes | [amount](#amount) |
+| Error | text | yes | |
+
+### Payment Request: Closed
+
+The creator closed a payment request before its deadline, on success or failure. A request that reaches its deadline on its own doesn't fire this.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
 
 ## Add Money
 
@@ -752,6 +791,16 @@ The `Cash Link Choice` property on Send Cash Link: how the user passed the link 
 | Copied to clipboard | `COPIED` | |
 | Shared to app | `SHARED` | |
 | Posted to group chat | `GROUP_CHAT` | |
+
+### SendContext
+
+The `Context` property on Sent Cash: which send the payment came from.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Direct | `DIRECT` | |
+| Group Send | `GROUP_SEND` | |
+| Payment Request | `PAYMENT_REQUEST` | |
 
 ### AddMoneySource
 
