@@ -1,20 +1,27 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library.compose)
+    alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.compose.compiler)
     id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.libs.currency"
-}
+kotlin {
+    android {
+        namespace = "${Gradle.codeNamespace}.libs.currency"
+        androidResources {
+            enable = true
+        }
+    }
 
-dependencies {
-    implementation(project(":ui:resources"))
-
-    implementation(libs.bundles.kotlinx.serialization)
-    implementation(libs.kotlinx.datetime)
-    implementation(libs.bundles.hilt)
-
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.test.runner)
+    sourceSets {
+        commonMain.dependencies {
+            api(project(":libs:parcelable"))
+            implementation(project(":ui:resources"))
+            implementation(libs.bundles.kotlinx.serialization)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.jetbrains.compose.runtime)
+            implementation(libs.androidx.annotation)
+            implementation(libs.javax.inject)
+        }
+    }
 }

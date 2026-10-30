@@ -25,7 +25,9 @@ import com.flipcash.shared.chat.InviteUses
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.manager.BottomBarManager
 import com.getcode.ui.components.bars.BottomBarView
+import com.getcode.util.resources.AndroidResourceHelper
 import com.getcode.util.resources.ResourceHelper
+import org.jetbrains.compose.resources.StringResource
 import com.getcode.util.resources.ResourceType
 import java.io.File
 import kotlin.time.Instant
@@ -226,10 +228,11 @@ internal fun InviteFrame2eEmpty() = ManageInvitesContent(
 )
 
 /** Strings only: a preview has no injected resources. */
-private class PreviewResources(private val context: Context) : ResourceHelper {
+private class PreviewResources(private val context: Context) : AndroidResourceHelper {
     override fun getString(resourceId: Int): String = context.getString(resourceId)
     override fun getString(resourceId: Int, vararg formatArgs: Any): String =
         context.getString(resourceId, *formatArgs)
+    override fun getString(resource: StringResource, vararg formatArgs: Any): String = ""
     override fun getRawResource(resourceId: Int): String = ""
     override fun getQuantityString(id: Int, quantity: Int, vararg formatArgs: Any, default: String): String = default
     override fun getDimension(dimenId: Int, default: Float): Float = default

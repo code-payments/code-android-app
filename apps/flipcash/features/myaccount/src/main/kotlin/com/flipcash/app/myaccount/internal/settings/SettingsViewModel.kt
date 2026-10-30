@@ -289,7 +289,7 @@ internal class SettingsViewModel @Inject constructor(
                 SettingsSection(R.string.title_settingsSectionPrivacy, listOf(Blocklist, TrustedWebsites)),
                 SettingsSection(
                     R.string.title_advancedFeatures,
-                    listOf(/* BillCustomizer, */ DeviceLogs, NotificationStatus, BetaFlags, SwitchAccount),
+                    listOf(/* BillCustomizer, */ DeviceLogs, LinkDesktop, NotificationStatus, BetaFlags, SwitchAccount),
                 ),
                 SettingsSection(
                     R.string.title_settingsSectionAccount,

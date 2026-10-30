@@ -1,0 +1,96 @@
+{
+  "description": "Phone-to-desktop link over the LAN: invite text, crypto_kx session keys, the six-digit code and the sealed seed and ack frames. See gen_device_link.py.",
+  "cases": [
+    {
+      "name": "lan-12-words",
+      "invite": "flipcash-link:1?h=192.168.1.20&p=48123&k=BveKUyVTv3TssQTfYUh9fwxUGVZFu9M6CaV9W5Jm3ho&s=_sUgkjbGPHWQncScGrll1w",
+      "host": "192.168.1.20",
+      "port": 48123,
+      "desktopPublicKey": "06f78a532553bf74ecb104df61487d7f0c54195645bbd33a09a57d5b9266de1a",
+      "desktopSecretKey": "9897dc660c9483807e828e85e8843a8f0b5a71fa7fa7911e57cbcfea27061cd8",
+      "phonePublicKey": "7cee7d3d7029de3850edcbc8b6b06e44dc4cd8a3b23a936f29c1ee6608b9b828",
+      "phoneSecretKey": "5ea66d564704cf66d7fa188a0af0fec2729ed6c602944ecb305f6ea4a52a4ece",
+      "secret": "fec5209236c63c75909dc49c1ab965d7",
+      "transcript": "666c6970636173682d6c696e6b2d763106f78a532553bf74ecb104df61487d7f0c54195645bbd33a09a57d5b9266de1a7cee7d3d7029de3850edcbc8b6b06e44dc4cd8a3b23a936f29c1ee6608b9b828fec5209236c63c75909dc49c1ab965d7",
+      "phoneToDesktop": "82b5be733101fa50aaa99d09e6fb4e339c1012ae5e5f524c57dd3f137bd478b4",
+      "desktopToPhone": "f94df86ba1b61ccf06b32a0147958ba533197c910edfb2de70978837883c9600",
+      "code": "265450",
+      "entropy": "41174807528bbed5b2a26ac66f5d3473",
+      "entropyBase64": "QRdIB1KLvtWyomrGb100cw==",
+      "sealedSeed": "6b8b996d6558ebd2e59af43cf171f158e28317fb33eb01f94b6a7788410f496c75c49131e7d02b7f378736d4cc19dcd3c6159b278d5b357a",
+      "sealedAck": "eeebf9fc022a7c16e7845f4b4c86cb24b8b1ddbd0a0486c6aeeb03a2ebb2083b97378785eac41dc89d35fb3bcdf1"
+    },
+    {
+      "name": "lan-24-words",
+      "invite": "flipcash-link:1?h=10.0.0.7&p=51000&k=q1O5O-eoLNjq4-zPIlPq_1TEqBfmvNms_cGgiyd59Go&s=iGLauo8IGnv18Ec4pq9-ZQ",
+      "host": "10.0.0.7",
+      "port": 51000,
+      "desktopPublicKey": "ab53b93be7a82cd8eae3eccf2253eaff54c4a817e6bcd9acfdc1a08b2779f46a",
+      "desktopSecretKey": "237dbe196eaf4b0f5e116e13cd448954a75455cb8bb35bca2da766f42e1ab224",
+      "phonePublicKey": "cb609a0e9fcc6ca6114647b58bddcd81813e30b4ca919552a132952296c68b05",
+      "phoneSecretKey": "64418c44786ff49dac046376034841ce9fa8b81e1e57d912c2e210aa7a0ec7d5",
+      "secret": "8862daba8f081a7bf5f04738a6af7e65",
+      "transcript": "666c6970636173682d6c696e6b2d7631ab53b93be7a82cd8eae3eccf2253eaff54c4a817e6bcd9acfdc1a08b2779f46acb609a0e9fcc6ca6114647b58bddcd81813e30b4ca919552a132952296c68b058862daba8f081a7bf5f04738a6af7e65",
+      "phoneToDesktop": "aca9e0e6b37a075c0a7490cccbd2f698e1c306f7b18bc67d7ca6f637b382c154",
+      "desktopToPhone": "0829fc1606ba542001f64145d13be2df9ca0a314a37a725bd0797eb8dd3ba003",
+      "code": "368657",
+      "entropy": "a8cfe6841fc2f081c767df1785e03b0b328033f3463b85331c4fcc506e8120cb",
+      "entropyBase64": "qM/mhB/C8IHHZ98XheA7CzKAM/NGO4UzHE/MUG6BIMs=",
+      "sealedSeed": "ab169ff6c65b4ab1a467fbd4e1dac11b393b8cd81438621eb1ef9182b278493c3d651a2e7e6b8ae25a6d287f6b876352d565fbd0a6a50410b8a4efa8380f539ad20b5af05a593cc1",
+      "sealedAck": "b9e51046ffb8b8eb837ff9fb202809b859ad9724741d368355e222b6deef21fc1072024e900bafe435d621c77675"
+    },
+    {
+      "name": "ipv6-host",
+      "invite": "flipcash-link:1?h=fe80::1&p=1&k=GeWVIsqc92ADe5heL2c3qmsUdDdq9-fAQxd6GZ06vVU&s=ng6Vmpi7qI-z4Kb31_Ca2g",
+      "host": "fe80::1",
+      "port": 1,
+      "desktopPublicKey": "19e59522ca9cf760037b985e2f6737aa6b1474376af7e7c043177a199d3abd55",
+      "desktopSecretKey": "e8205bee98a257fddc3f50aa132a2738605fd0b0ea1c447582f39ae9b1a1c4b0",
+      "phonePublicKey": "2ce067837feb34304205c112225789df4ff75ce1b217b2714207336de56d4d3c",
+      "phoneSecretKey": "4e93a941037b76e32cd4c7c1cfe72a6bb927e215e3389d849759bc0d58cbc885",
+      "secret": "9e0e959a98bba88fb3e0a6f7d7f09ada",
+      "transcript": "666c6970636173682d6c696e6b2d763119e59522ca9cf760037b985e2f6737aa6b1474376af7e7c043177a199d3abd552ce067837feb34304205c112225789df4ff75ce1b217b2714207336de56d4d3c9e0e959a98bba88fb3e0a6f7d7f09ada",
+      "phoneToDesktop": "528a2c049fcbf66bb2d6d83f9498d1a7318511834adc9290cabee8bdb76977d3",
+      "desktopToPhone": "de1896076fc5e343db85c786b4e87570747c7eee2f8bfc0e3740c70293491e8c",
+      "code": "888568",
+      "entropy": "9c60110c42f90776a024c4ff2e1fb72c",
+      "entropyBase64": "nGARDEL5B3agJMT/Lh+3LA==",
+      "sealedSeed": "184bd6a0c00f21a1940576941450b6be0d84429a81c87b110217422a2eb78426b332a513b9fb746c8d3a0fcb751e930eb400045589a63cb9",
+      "sealedAck": "44042b75c90046d71bd48f04005894b21eb5f7bee6d523b218d0c6054479e2225a28c95d378d7df7443479f6c4ea"
+    }
+  ],
+  "rejects": {
+    "seed": [
+      {
+        "why": "a flipped ciphertext byte",
+        "sealedSeed": "6b8b996d6558ebd2e59af43cf171f158e28317fb33eb01f94b6a7788410f486c75c49131e7d02b7f378736d4cc19dcd3c6159b278d5b357a"
+      },
+      {
+        "why": "a flipped tag byte",
+        "sealedSeed": "6b8b996d6558ebd2e59af43cf171f158e28317fb33eb01f94b6a7788410f496c75c49131e7d02b7f378736d4cc19dcd3c6159b278d5b357b"
+      },
+      {
+        "why": "a flipped nonce byte",
+        "sealedSeed": "6a8b996d6558ebd2e59af43cf171f158e28317fb33eb01f94b6a7788410f496c75c49131e7d02b7f378736d4cc19dcd3c6159b278d5b357a"
+      },
+      {
+        "why": "nonce only, no ciphertext",
+        "sealedSeed": "6b8b996d6558ebd2e59af43cf171f158e28317fb33eb01f9"
+      },
+      {
+        "why": "a transcript with another QR secret",
+        "sealedSeed": "6b8b996d6558ebd2e59af43cf171f158e28317fb33eb01f94b6a7788410f496c75c49131e7d02b7f378736d4cc19dcd3c6159b278d5b357a",
+        "transcript": "666c6970636173682d6c696e6b2d763106f78a532553bf74ecb104df61487d7f0c54195645bbd33a09a57d5b9266de1a7cee7d3d7029de3850edcbc8b6b06e44dc4cd8a3b23a936f29c1ee6608b9b82800000000000000000000000000000000"
+      }
+    ],
+    "invite": [
+      "flipcash-link:2?h=192.168.1.20&p=48123&k=BveKUyVTv3TssQTfYUh9fwxUGVZFu9M6CaV9W5Jm3ho&s=_sUgkjbGPHWQncScGrll1w",
+      "flipcash-link:1?h=192.168.1.20&p=0&k=BveKUyVTv3TssQTfYUh9fwxUGVZFu9M6CaV9W5Jm3ho&s=_sUgkjbGPHWQncScGrll1w",
+      "flipcash-link:1?h=192.168.1.20&p=65536&k=BveKUyVTv3TssQTfYUh9fwxUGVZFu9M6CaV9W5Jm3ho&s=_sUgkjbGPHWQncScGrll1w",
+      "flipcash-link:1?h=&p=48123&k=BveKUyVTv3TssQTfYUh9fwxUGVZFu9M6CaV9W5Jm3ho&s=_sUgkjbGPHWQncScGrll1w",
+      "flipcash-link:1?h=192.168.1.20&p=48123&k=BveKUyVTv3TssQTfYUh9fwxUGVZFu9M6CaV9W5Jm3ho",
+      "flipcash-link:1?h=192.168.1.20&p=48123&k=BveKUyVTv3TssQTfYUh9fwxUGVZFu9M6CaV9W5Jm3ho&s=AAAAAAAAAAAAAAAAAAAA",
+      "https://flipcash.com/link"
+    ]
+  }
+}

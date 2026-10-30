@@ -1,0 +1,160 @@
+package com.getcode.opencode
+
+import android.content.Context
+import com.getcode.opencode.inject.OpenCodeChannelModule
+import com.getcode.opencode.inject.OpenCodeModule
+import com.getcode.opencode.internal.domain.mapping.BillCustomizationMapper
+import com.getcode.opencode.internal.domain.mapping.HistoricalMintDataMapper
+import com.getcode.opencode.internal.domain.mapping.HolderMetricsMapper
+import com.getcode.opencode.internal.domain.mapping.MarketCapMetricsMapper
+import com.getcode.opencode.internal.domain.mapping.LaunchpadMetadataMapper
+import com.getcode.opencode.internal.domain.mapping.LiveMintDataMapper
+import com.getcode.opencode.internal.domain.mapping.MintMapper
+import com.getcode.opencode.internal.domain.mapping.SocialLinkMapper
+import com.getcode.opencode.internal.domain.mapping.SwapMetadataMapper
+import com.getcode.opencode.internal.domain.mapping.TransactionMetadataMapper
+import com.getcode.opencode.internal.domain.mapping.VmMetadataMapper
+import com.getcode.opencode.internal.network.api.AccountApi
+import com.getcode.opencode.internal.network.api.CurrencyApi
+import com.getcode.opencode.internal.network.api.MessagingApi
+import com.getcode.opencode.internal.network.api.TransactionApi
+import com.getcode.opencode.internal.network.funding.SwapFunding
+import com.getcode.opencode.internal.network.pollers.SwapPoller
+import com.getcode.opencode.internal.network.services.AccountService
+import com.getcode.opencode.internal.network.services.CurrencyService
+import com.getcode.opencode.internal.network.services.MessagingService
+import com.getcode.opencode.internal.network.services.SwapService
+import com.getcode.opencode.internal.network.services.TransactionService
+import com.getcode.opencode.repositories.AccountRepository
+import com.getcode.opencode.repositories.CurrencyRepository
+import com.getcode.opencode.repositories.EventRepository
+import com.getcode.opencode.repositories.MessagingRepository
+import com.getcode.opencode.repositories.SwapRepository
+import com.getcode.opencode.repositories.TransactionRepository
+import dagger.hilt.android.EntryPointAccessors
+
+object RepositoryFactory {
+    fun createAccountRepository(context: Context, config: ProtocolConfig): AccountRepository {
+        val appContext = context.applicationContext ?: throw IllegalStateException(
+            "applicationContext was not provided",
+        )
+
+        val module =  EntryPointAccessors.fromApplication(
+            appContext,
+            OpenCodeModule::class.java,
+        )
+
+        val api = AccountApi(OpenCodeChannelModule.provideManagedChannel(context, config))
+        val transactionApi = TransactionApi(OpenCodeChannelModule.provideManagedChannel(context, config))
+        val service = AccountService(api)
+        val transactionMetadataMapper = TransactionMetadataMapper()
+        val swapFunding = SwapFunding(transactionApi)
+        val transactionService = TransactionService(transactionApi, transactionMetadataMapper, swapFunding)
+        return module.providesAccountRepository(service, transactionService)
+    }
+
+    fun createEventRepository(context: Context, config: ProtocolConfig): EventRepository {
+        val appContext = context.applicationContext ?: throw IllegalStateException(
+            "applicationContext was not provided",
+        )
+
+        val module =  EntryPointAccessors.fromApplication(
+            appContext,
+            OpenCodeModule::class.java,
+        )
+
+
+        val bus = module.providesEventBus()
+
+        val accountController = ControllerFactory.createAccountController(context, config)
+        val transactionController = ControllerFactory.createTransactionController(context, config)
+
+        return module.providesEventRepository(
+            eventBus = bus,
+            accountController = accountController,
+            transactionController = transactionController,
+            sessionListeners = emptySet(), // TODO:
+        )
+    }
+
+    fun createMessagingRepository(context: Context, config: ProtocolConfig): MessagingRepository {
+        val appContext = context.applicationContext ?: throw IllegalStateException(
+            "applicationContext was not provided",
+        )
+
+        val module =  EntryPointAccessors.fromApplication(
+            appContext,
+            OpenCodeModule::class.java,
+        )
+
+        val api = MessagingApi(OpenCodeChannelModule.provideManagedChannel(context, config))
+        val service = MessagingService(api)
+        return module.providesMessagingRepository(service)
+    }
+
+    fun createTransactionRepository(context: Context, config: ProtocolConfig): TransactionRepository {
+        val appContext = context.applicationContext ?: throw IllegalStateException(
+            "applicationContext was not provided",
+        )
+
+        val module =  EntryPointAccessors.fromApplication(
+            appContext,
+            OpenCodeModule::class.java,
+        )
+
+        val api = TransactionApi(OpenCodeChannelModule.provideManagedChannel(context, config))
+        val transactionMetadataMapper = TransactionMetadataMapper()
+        val swapFunding = SwapFunding(api)
+        val service = TransactionService(api, transactionMetadataMapper, swapFunding)
+        return module.providesTransactionRepository(service)
+    }
+
+    fun createSwapRepository(context: Context, config: ProtocolConfig): SwapRepository {
+        val appContext = context.applicationContext ?: throw IllegalStateException(
+            "applicationContext was not provided",
+        )
+
+        val module =  EntryPointAccessors.fromApplication(
+            appContext,
+            OpenCodeModule::class.java,
+        )
+
+        val api = TransactionApi(OpenCodeChannelModule.provideManagedChannel(context, config))
+        val swapMetadataMapper = SwapMetadataMapper()
+        val service = SwapService(api, swapMetadataMapper)
+        val poller = SwapPoller(service)
+        return module.providesSwapRepository(service, poller)
+    }
+
+    fun createCurrencyRepository(
+        context: Context,
+        config: ProtocolConfig
+    ): CurrencyRepository {
+        val appContext = context.applicationContext ?: throw IllegalStateException(
+            "applicationContext was not provided",
+        )
+
+        val module =  EntryPointAccessors.fromApplication(
+            appContext,
+            OpenCodeModule::class.java,
+        )
+
+        val api = CurrencyApi(
+            managedChannel = OpenCodeChannelModule.provideManagedChannel(context, config),
+            streamingChannel = OpenCodeChannelModule.provideManagedStreamingChannel(context, config)
+        )
+        val mintMapper = MintMapper(
+            vmMetadataMapper = VmMetadataMapper(),
+            launchpadMetadataMapper = LaunchpadMetadataMapper(),
+            socialLinkMapper = SocialLinkMapper(),
+            customizationMapper = BillCustomizationMapper(),
+            holderMetricsMapper = HolderMetricsMapper(),
+            marketCapMetricsMapper = MarketCapMetricsMapper(),
+        )
+        val historicalMintDataMapper = HistoricalMintDataMapper()
+        val liveMintDataMapper = LiveMintDataMapper()
+        val verifiedStateManager = ManagerFactory.createVerifiedStateManager()
+        val service = CurrencyService(api, mintMapper, historicalMintDataMapper, liveMintDataMapper, verifiedStateManager)
+        return module.providesCurrencyRepository(service)
+    }
+}

@@ -1,25 +1,25 @@
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+
 plugins {
-    kotlin("multiplatform")
-    id("com.android.kotlin.multiplatform.library")
+    alias(libs.plugins.flipcash.kmp.library)
 }
 
+@OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
 kotlin {
-    android {
-        namespace = "com.getcode.encryption.utils"
-        compileSdk {
-            version = release(libs.versions.android.compileSdk.get().toInt()) {
-                minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
+    // jvmShared: code for both JVM targets (Android and desktop) that needs java.* or protobuf.
+    applyDefaultHierarchyTemplate {
+        common {
+            group("jvmShared") {
+                withJvm()
+                withCompilations { it.platformType == KotlinPlatformType.androidJvm }
             }
         }
-        minSdk = 29
-        withHostTest {}
     }
 
-    iosArm64()
-    iosSimulatorArm64()
-    iosX64()
-    macosArm64()
-    macosX64()
+    android {
+        namespace = "com.getcode.encryption.utils"
+        withHostTest {}
+    }
 
     sourceSets {
         commonMain {
@@ -27,10 +27,14 @@ kotlin {
                 implementation(project(":libs:encryption:base58"))
             }
         }
+        getByName("jvmSharedMain") {
+            dependencies {
+                implementation(libs.protobuf.kotlin.lite)
+                implementation(project(":libs:encryption:ed25519"))
+            }
+        }
         androidMain {
             dependencies {
-                implementation(project(":libs:encryption:ed25519"))
-                implementation(libs.protobuf.kotlin.lite)
                 implementation(libs.bundles.kotlinx.serialization)
                 implementation(libs.timber)
             }

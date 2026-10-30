@@ -24,6 +24,7 @@ import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.tokens.SwapStep
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.HiltSelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.flipcash.app.tokens.ui.SwapViewModel
 import com.getcode.opencode.model.financial.Fiat
@@ -145,7 +146,7 @@ private fun swapEntryProvider(
  */
 @Composable
 private fun ConvertDestinationSelectScreen() {
-    val selectionViewModel = hiltViewModel<SelectTokenViewModel>()
+    val selectionViewModel = hiltViewModel<HiltSelectTokenViewModel>()
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
     val purpose = viewModel.stateFlow.collectAsStateWithLifecycle().value.purpose
@@ -202,7 +203,7 @@ private fun ConvertDestinationSelectScreen() {
  */
 @Composable
 private fun BuyFundingSelectScreen() {
-    val selectionViewModel = hiltViewModel<SelectTokenViewModel>()
+    val selectionViewModel = hiltViewModel<HiltSelectTokenViewModel>()
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
     val state = viewModel.stateFlow.collectAsStateWithLifecycle().value
@@ -249,7 +250,7 @@ private fun BuyFundingSelectScreen() {
 
 @Composable
 private fun SwapPurchaseTokenSelectScreen(targetMint: Mint, amount: Fiat) {
-    val selectionViewModel = hiltViewModel<SelectTokenViewModel>()
+    val selectionViewModel = hiltViewModel<HiltSelectTokenViewModel>()
     val viewModel = flowSharedViewModel<SwapViewModel>()
     val flowNavigator = rememberFlowNavigator<SwapStep, SwapResult>()
 

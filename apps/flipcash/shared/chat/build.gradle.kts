@@ -33,9 +33,9 @@ dependencies {
     // so this module's public surface names a type from it.
     api(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:analytics"))
-    testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
+    testImplementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
     implementation(project(":services:flipcash"))
-    testImplementation(testFixtures(project(":services:flipcash")))
+    testImplementation(project(":services:flipcash:test-fixtures"))
     implementation(project(":libs:network:connectivity:public"))
     implementation(project(":libs:emojis"))
     implementation(libs.androidx.lifecycle.process)

@@ -9,8 +9,8 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
-    testImplementation(testFixtures(project(":libs:coroutines")))
-    testImplementation(testFixtures(project(":ui:resources")))
+    testImplementation(project(":libs:coroutines:test-fixtures"))
+    testImplementation(project(":ui:resources:test-fixtures"))
 
     implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:blocklist"))
@@ -18,7 +18,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:contacts"))
     implementation(project(":apps:flipcash:shared:transaction-history"))
     implementation(project(":apps:flipcash:shared:analytics"))
-    testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
+    testImplementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
     implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:google-play-billing"))
     implementation(project(":apps:flipcash:shared:featureflags"))

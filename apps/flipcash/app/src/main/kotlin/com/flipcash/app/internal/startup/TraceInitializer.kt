@@ -11,8 +11,10 @@ import com.flipcash.app.internal.debug.TestLab
 import com.flipcash.app.internal.debug.bugsnagReleaseStage
 import com.flipcash.app.updates.ReleaseStage
 import com.flipcash.app.updates.ReleaseStageProvider
+import com.getcode.utils.BuildFlags
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceManager
+import com.getcode.utils.initialize
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -28,6 +30,8 @@ class TraceInitializer: Initializer<Unit> {
     }
 
     override fun create(context: Context) {
+        BuildFlags.isDebug = BuildConfig.DEBUG
+        BuildFlags.notifyErrors = BuildConfig.NOTIFY_ERRORS
         TraceManager.initialize(context)
 
         if (BuildConfig.DEBUG) {

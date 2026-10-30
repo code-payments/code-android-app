@@ -1,0 +1,402 @@
+package com.flipcash.app.core.chat
+
+import com.getcode.libs.parcelable.Parcelable
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.GroupBalanceRole
+import com.getcode.solana.keys.Mint
+import com.getcode.navigation.FullscreenSheet
+import com.getcode.navigation.HalfSheet
+import com.getcode.navigation.Sheet
+import com.getcode.navigation.WrapContentSheet
+import com.getcode.navigation.flow.FlowStep
+import com.getcode.navigation.results.NavigationRetVal
+import com.getcode.libs.parcelable.Parcelize
+import kotlinx.serialization.Serializable
+
+@Parcelize
+@Serializable
+data object ChatSendResult : Parcelable
+
+/**
+ * The chat the invite sheet sends the viewer to once its invites are out: the first one picked.
+ *
+ * Returned rather than navigated to from the sheet, because the sheet's own navigation raced its
+ * dismissal and was dropped when the conversation's event collector was not on screen (the sheet
+ * opened from the group's profile). The screen that opened the sheet is still composed when the
+ * result arrives, so it navigates.
+ */
+@Parcelize
+@Serializable
+data class GroupInviteResult(val chatId: ChatId) : Parcelable
+
+/** What the host picked on Manage Invites' row sheet (frame 2b). */
+@Parcelize
+@Serializable
+enum class InviteLinkAction : Parcelable { Share, Revoke }
+
+/**
+ * What the host picked on New Invite Link (frame 2d): the preset names, not the presets, because
+ * this module cannot see `shared:chat`. Presets only; never a key or link.
+ */
+@Parcelize
+@Serializable
+data class NewInviteLinkChoice(val expiry: String, val uses: String) : Parcelable
+
+/** A custom paid-reaction amount, in whole US cents. */
+@Parcelize
+@Serializable
+data class ReactionBoostAmountResult(val cents: Long) : Parcelable
+
+@Serializable
+sealed interface ChatStep : FlowStep, Parcelable {
+    @Parcelize
+    @Serializable
+    data object Conversation : ChatStep
+
+    /**
+     * Amount entry for an in-chat send, presented as a bottom sheet over the conversation.
+     *
+     * A [Sheet] rather than a pushed step so the thread stays on screen behind it — the amount is
+     * being sent to the conversation you can still see, and dismissing it returns you to the
+     * message you were part-way through. The chat's [com.getcode.navigation.flow.FlowHost] runs
+     * the sheet scene strategy for this; see `ChatFlowScreen`.
+     */
+    @Parcelize
+    @Serializable
+    data object AmountEntry : ChatStep, NavigationRetVal<ChatSendResult>, Sheet
+
+    /**
+     * [AmountEntry] for a send to a private group's members, which carries on past the amount to
+     * Select People and the confirm. Presented as the share sheet ([ShareMessage]) is: full screen,
+     * closed by its X. Its steps can't be dragged away (see `GroupSendStep`), so a half-picked send
+     * isn't lost to a stray swipe.
+     */
+    @Parcelize
+    @Serializable
+    data object GroupSendAmountEntry :
+        ChatStep,
+        NavigationRetVal<ChatSendResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
+
+    /**
+     * Nodes 10329:12104 and 10330:19549 — share or copy a group's invite link, or send it to
+     * recent 1:1 chats.
+     *
+     * A sheet over the conversation rather than a screen of its own: inviting is something you do
+     * *from* the group, not a place you go. Reached from the empty transcript's CTA and from the
+     * group's profile, which is why it hangs off the chat flow rather than the create flow that
+     * used to end on it.
+     *
+     * Not a [WrapContentSheet]: the chat list can run past the screen, and a wrap-content body is
+     * measured at its full height and then clipped, taking the message bar under it off the bottom.
+     * A full sheet bounds the body, so the list scrolls and the bar stays on screen. Full screen,
+     * as on iOS, which presents it as a cover.
+     */
+    @Parcelize
+    @Serializable
+    data object InviteToGroup :
+        ChatStep,
+        NavigationRetVal<GroupInviteResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
+
+    /**
+     * Frames 1b, 1f: a private group's invite link, in the share-to-chats sheet. [inviteIdHex] null
+     * is the sheet's current link, which the first Share or Copy tap makes when there is none;
+     * otherwise it is one invite from Manage Invites (2b's Share Link).
+     *
+     * Carries the invite's id and never its link: a step is logged and saved, and the link's
+     * fragment is the secret. The sheet rebuilds the link from the host's own invites.
+     */
+    @Parcelize
+    @Serializable
+    data class ShareInviteLink(val inviteIdHex: String? = null) :
+        ChatStep,
+        NavigationRetVal<GroupInviteResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
+
+    /**
+     * Frame 2b: Share Link and Revoke Link for one invite on Manage Invites. Returns the pick and
+     * leaves the work to Manage Invites, which is still on screen beneath it and owns the revoke
+     * confirm (2c).
+     *
+     * Carries the invite's id and never its link, as [ShareInviteLink] does.
+     */
+    @Parcelize
+    @Serializable
+    data class InviteLinkActions(val inviteIdHex: String) :
+        ChatStep,
+        NavigationRetVal<InviteLinkAction>,
+        Sheet,
+        WrapContentSheet
+
+    /**
+     * Frame 2d: expiry and use-limit presets for a new invite link. Returns the chosen
+     * [NewInviteLinkChoice] and closes; Manage Invites, still beneath it, makes the link and shows
+     * the creating state. The result is presets only, never a key or link.
+     */
+    @Parcelize
+    @Serializable
+    data object NewInviteLink :
+        ChatStep,
+        NavigationRetVal<NewInviteLinkChoice>,
+        Sheet,
+        WrapContentSheet
+
+    /** Frame 2a: the invite links this host has made, Active then Inactive. Pushed, like [EditGroup]. */
+    @Parcelize
+    @Serializable
+    data object ManageInvites : ChatStep
+
+    /**
+     * Sharing one message into the viewer's other chats — [InviteToGroup]'s sheet with the
+     * message's link as what it hands out. Returns the chat picked first, as that one does.
+     *
+     * @param messageId the message's per-chat sequence, the `{seq}` in its link.
+     */
+    @Parcelize
+    @Serializable
+    data class ShareMessage(val messageId: Long) :
+        ChatStep,
+        NavigationRetVal<GroupInviteResult>,
+        Sheet,
+        com.getcode.navigation.FullscreenSheet
+
+    @Parcelize
+    @Serializable
+    data class Profile(
+        val contact: ChatParticipant,
+        val origin: ProfileOrigin = ProfileOrigin.Chat,
+    ): ChatStep
+
+    /**
+     * The group's own profile — the counterpart of [Profile] for a chat that has no counterparty.
+     *
+     * Carries nothing, because there is nothing a group can be identified by that the flow does
+     * not already hold: the screen reads the group off the conversation's view model, the same
+     * way the transcript does. [Profile] has to carry its participant because a member's profile
+     * is opened from a bubble rather than from the chat the flow was opened on.
+     */
+    @Parcelize
+    @Serializable
+    data object GroupProfile : ChatStep
+
+    /**
+     * Node 10187:110373 — what about the group can be changed, as a list of the things that can.
+     *
+     * A pushed screen rather than a sheet, unlike [InviteToGroup]: that ends on the choice it
+     * presents, while this one is a way through to another screen and has to be
+     * somewhere back can return to. Carries nothing for the same reason [GroupProfile] does not —
+     * the flow is already open on the group, and every step here reads it off the conversation's
+     * view model.
+     *
+     * Name, description, picture and cover each open their own editor and save on their own;
+     * the Balance Requirements card's rows open [EditGroupBalanceRequirement].
+     */
+    @Parcelize
+    @Serializable
+    data object EditGroup : ChatStep
+
+    /**
+     * Node 11206:60 — who is waiting to join a private group, for its creator to approve or deny.
+     * Carries nothing for the same reason [GroupProfile] does not; the lobby itself comes from the
+     * shared host-lobby store.
+     */
+    @Parcelize
+    @Serializable
+    data object JoinRequests : ChatStep
+
+    /**
+     * Android frame AC8a — the members a moderator has silenced, each with Unsilence. Host-only;
+     * carries nothing because the flow is open on the group.
+     */
+    @Parcelize
+    @Serializable
+    data object SilencedMembers : ChatStep
+
+    /** AC8b — the members a moderator has removed (banned), each with Unban. Host-only. */
+    @Parcelize
+    @Serializable
+    data object RemovedMembers : ChatStep
+
+    /**
+     * Node 11210:70 — every member of a private group, the creator pinned first with a Host tag.
+     * The roster comes from the shared roster store.
+     */
+    @Parcelize
+    @Serializable
+    data object Members : ChatStep
+
+    /** The group's title, on the same entry screen shape the profile name uses. */
+    @Parcelize
+    @Serializable
+    data object EditGroupName : ChatStep
+
+    /** The group's picture — pick, upload, then `EditChat` with the READY blob. */
+    @Parcelize
+    @Serializable
+    data object EditGroupPicture : ChatStep
+
+    /** The group's banner — the same pick, upload and `EditChat` as the picture, for the cover. */
+    @Parcelize
+    @Serializable
+    data object EditGroupCover : ChatStep
+
+    /** The group's description, up to 160 characters; emptying it clears it. */
+    @Parcelize
+    @Serializable
+    data object EditGroupDescription : ChatStep
+
+    /**
+     * One of the group's minimum balances, on the shared amount keypad — pushed from a row of
+     * [EditGroup]'s Balance Requirements card. [role] picks the listener (Join) or speaker (Chat)
+     * rule.
+     */
+    @Parcelize
+    @Serializable
+    data class EditGroupBalanceRequirement(val role: GroupBalanceRole) : ChatStep
+
+    /**
+     * The full emoji picker for a message's reaction, opened from the pill row's "+" or the
+     * quick strip's "+". A plain [Sheet] rather than [WrapContentSheet]: the picker's catalog
+     * needs the screen's height, unlike the short, fixed-content sheets above. [HalfSheet]
+     * matches iOS's `EmojiPickerSheet.presentationDetents([.medium, .large])` — it rests at half
+     * height and only grows to the expanded detent once the grid reports it has more than that to
+     * show (see `AllowSheetExpansionWhenScrollable`).
+     */
+    @Parcelize
+    @Serializable
+    data class ReactionPicker(val messageId: Long) : ChatStep, Sheet, HalfSheet
+
+    /**
+     * Boosting one of the viewer's own reactions on [messageId] with money — the Paid Reactions
+     * sheet (node 10330:18091), opened from the pill row's "$". The sheet picks which reaction from
+     * the viewer's own. Short and fixed, so it wraps its content.
+     */
+    /**
+     * Frames 03–06 — a private group's Request Money history, and the create flow behind its New
+     * Request button, on a back stack of its own. Presented as [ShareMessage] is, a full sheet
+     * with a close at its root; its steps are non-draggable, so the close is the only way out.
+     */
+    @Parcelize
+    @Serializable
+    data class RequestMoney(val chatId: ChatId) : ChatStep, Sheet, FullscreenSheet
+
+    /**
+     * Frames 09, 11, 24 and 35 — one payment request in [chatId]. [requestId] is the request's id
+     * in base58, so the step stays a plain parcelable. A full sheet like [RequestMoney], closed
+     * only from its app bar; `ChatFlowScreen` turns the drag-to-dismiss off. [pay] opens it
+     * straight into paying the viewer's share, as the deck's Pay button does.
+     */
+    @Parcelize
+    @Serializable
+    data class RequestDetails(val chatId: ChatId, val requestId: String) :
+        ChatStep,
+        Sheet,
+        FullscreenSheet
+
+    @Parcelize
+    @Serializable
+    data class ReactionBoost(
+        val chatId: ChatId,
+        val messageId: Long,
+    ) : ChatStep, Sheet, WrapContentSheet
+
+    /**
+     * The currency picker behind [ReactionBoost]'s "Pay with" pill. Opens over the Paid Reactions
+     * sheet, which stays up beneath it, and closes on a pick.
+     */
+    @Parcelize
+    @Serializable
+    data class ReactionBoostCurrency(
+        val chatId: ChatId,
+        val messageId: Long,
+    ) : ChatStep, Sheet, HalfSheet
+
+    /**
+     * The currency picker behind the send sheet's token pill on the amount step. Opens over the
+     * send sheet, which stays up beneath it, and closes on a pick.
+     */
+    @Parcelize
+    @Serializable
+    data object SendCurrency : ChatStep, Sheet, HalfSheet
+
+    /**
+     * The keypad behind [ReactionBoost]'s "…" chip, for an amount the presets don't cover. Returns
+     * the amount in whole US cents. Opens over the Paid Reactions sheet, which stays up beneath it.
+     */
+    @Parcelize
+    @Serializable
+    data class ReactionBoostAmount(
+        val chatId: ChatId,
+        val messageId: Long,
+    ) : ChatStep, NavigationRetVal<ReactionBoostAmountResult>, Sheet
+
+    /**
+     * Who reacted, and with what — opened by long-pressing a pill. A plain [Sheet] for the same
+     * reason as [ReactionPicker]: a per-emoji reactor list can run long enough to need the full
+     * sheet height rather than wrapping its content. [HalfSheet] matches iOS's
+     * `ReactorsSheet.presentationDetents([.medium, .large])`.
+     */
+    /**
+     * A group send's details (node 11293:6918, frame 10): the currency, who sent it and who it
+     * paid, by name and without amounts. Ids are hex, as the profile map keys them.
+     */
+    @Parcelize
+    @Serializable
+    data class GroupSendDetails(
+        val mint: Mint,
+        val tokenName: String,
+        val tokenImageUrl: String,
+        val senderIdHex: String?,
+        val recipientIdsHex: List<String>,
+    ) : ChatStep, Sheet, WrapContentSheet
+
+    @Parcelize
+    @Serializable
+    data class Reactors(val chatId: ChatId, val messageId: Long) : ChatStep, Sheet, HalfSheet
+}
+
+/** What opened a [ChatStep.Profile], which decides the actions it offers. */
+@Serializable
+enum class ProfileOrigin {
+    /**
+     * The chat's own title, or a member's picture or reactor row. The chat decides: a tip DM's
+     * profile is the other person in it, so it offers Mute and not Message.
+     */
+    Chat,
+
+    /**
+     * A tapped `@handle` naming someone other than the DM's counterpart. That person is not who
+     * the chat is with, so Mute would act on the wrong chat and Message and Send Cash have
+     * somewhere new to go. iOS's `UserProfileOrigin.mention`.
+     */
+    Mention,
+
+    /**
+     * A portrait in a public group's Chatting grid. Like [Mention], the person is not who the chat
+     * is with, so Mute would act on the wrong chat and opening a chat has somewhere new to go.
+     */
+    GroupMember,
+
+    /** A `flipcash.com/...` link. The default for `AppRoute.Messaging.Profile`. Blocking pops back. */
+    Link,
+
+    /** A scanned profile card. Blocking resets to the chat list, which the scan came from. */
+    Scan,
+
+    /** A username search result. Blocking resets to the chat list, like a scan. */
+    UsernameLookup,
+
+    /** A transaction's counterparty. Blocking pops back to the transaction. */
+    Transaction,
+
+    /** The Community Leader row on Currency Info. Blocking pops back to the currency, like [Link]. */
+    CommunityLeader;
+
+    /** Whether blocking from here leaves the stack to the chat list rather than popping one entry. */
+    val resetsToChatsAfterBlock: Boolean
+        get() = this == Scan || this == UsernameLookup
+}

@@ -20,6 +20,7 @@ import com.flipcash.app.core.ui.TokenBalanceStyle
 import com.flipcash.app.core.ui.TokenSelectionStyle
 import com.flipcash.app.core.ui.rememberTokenBalanceRowStyling
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.app.tokens.ui.HiltSelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
@@ -48,7 +49,7 @@ internal fun ReactionBoostCurrencySheet() {
  */
 @Composable
 internal fun CurrencyPickerContent(onPicked: () -> Unit) {
-    val viewModel = hiltViewModel<SelectTokenViewModel>()
+    val viewModel = hiltViewModel<HiltSelectTokenViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     Column(

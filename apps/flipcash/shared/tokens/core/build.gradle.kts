@@ -1,11 +1,15 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library)
+    alias(libs.plugins.flipcash.kmp.app.library)
 }
 
-android {
-    namespace = "${Gradle.flipcashNamespace}.shared.tokens.core"
-}
+kotlin {
+    android {
+        namespace = "${Gradle.flipcashNamespace}.shared.tokens.core"
+    }
 
-dependencies {
-    api(project(":services:opencode"))
+    sourceSets {
+        commonMain.dependencies {
+            api(project(":services:opencode"))
+        }
+    }
 }

@@ -111,6 +111,7 @@ rootProject.name = "Flipcash"
 
 include(
     // app containers
+    ":apps:desktop",
     ":apps:flipcash:app",
     ":apps:flipcash:benchmark",
 
@@ -118,11 +119,14 @@ include(
     ":apps:flipcash:core",
     ":apps:flipcash:core-ui",
     ":apps:flipcash:card-expand",
+    ":apps:flipcash:startup-contract",
+    ":apps:flipcash:shared:device-link",
     ":libs:test-utils",
     // shared flipcash coordinators/controllers/viewmodels/services
     ":apps:flipcash:shared:amount-entry",
     ":apps:flipcash:shared:accesskey",
     ":apps:flipcash:shared:analytics",
+    ":apps:flipcash:shared:analytics:test-fixtures",
     ":apps:flipcash:shared:appsettings",
     ":apps:flipcash:shared:authentication",
     ":apps:flipcash:shared:activityfeed",
@@ -201,12 +205,16 @@ include(
     ":libs:code-detection",
     ":libs:codes:kikcode",
     ":libs:coroutines",
+    ":libs:coroutines:test-fixtures",
+    ":libs:parcelable",
+    ":libs:currency-math:test-fixtures",
     ":libs:crypto:kin",
     ":libs:crypto:solana",
     ":libs:currency",
     ":libs:currency-math",
     ":libs:currency-math:discrete-curve",
     ":libs:datetime",
+    ":libs:device-link",
     ":libs:emojis",
     ":libs:encryption:base58",
     ":libs:encryption:chat-cipher",
@@ -252,6 +260,7 @@ include(
     ":services:opencode",
     ":services:opencode-compose",
     ":services:flipcash",
+    ":services:flipcash:test-fixtures",
     ":services:flipcash-compose",
 
     // common UI
@@ -260,6 +269,7 @@ include(
     ":ui:components",
     ":ui:navigation",
     ":ui:resources",
+    ":ui:resources:test-fixtures",
     ":ui:scanner",
     ":ui:testing",
     ":ui:theme",
@@ -284,12 +294,21 @@ include(
 // Only real modules, not the intermediate container projects that Gradle
 // auto-creates for nested paths (e.g. `:apps:flipcash:shared`) — those have no
 // build script and must not receive a `kover(project(...))` / test dependency.
+// Modules converted to Kotlin Multiplatform (src/commonMain or src/androidMain). They expose
+// `testAndroidHostTest`, not `testDebugUnitTest`, so a module converted in the desktop stack lands
+// here by its layout instead of by an entry in kmpUnitTestModules.
+val kmpLayoutModules = mutableSetOf<String>()
 val includedProjectPaths = buildList {
     fun collect(descriptor: ProjectDescriptor) {
         val hasBuildScript = descriptor.projectDir.resolve("build.gradle.kts").exists() ||
             descriptor.projectDir.resolve("build.gradle").exists()
         if (descriptor.path != ":" && hasBuildScript) {
             add(descriptor.path)
+            if (descriptor.projectDir.resolve("src/commonMain").exists() ||
+                descriptor.projectDir.resolve("src/androidMain").exists()
+            ) {
+                kmpLayoutModules.add(descriptor.path)
+            }
         }
         descriptor.children.forEach(::collect)
     }
@@ -334,10 +353,12 @@ val kmpUnitTestModules = setOf(
 // ed25519 and mnemonic excluded: both pull in the JNI-backed Ed25519Kmp Android actual for their
 // host vector tests, which can't load on the Linux CI runner (see kmpUnitTestModules). chat-cipher
 // has no host test for the same reason, plus libsodium's Android binding; its vectors run on the
-// iOS simulator in the SharedCore tests workflow and as a device test.
+// iOS simulator in the SharedCore tests workflow and as a device test. device-link is the same:
+// its protocol tests need libsodium, so they run on jvm and the iOS simulator.
 val noUnitTestModules = setOf(
     ":apps:flipcash:benchmark",
     ":kmp:shared-core",
+    ":libs:device-link",
     ":libs:encryption:chat-cipher",
     ":libs:encryption:ed25519",
     ":libs:encryption:mnemonic",
@@ -345,8 +366,11 @@ val noUnitTestModules = setOf(
 val unitTestCandidates = includedProjectPaths.filter { path ->
     unitTestPaths.any { path == it || path.startsWith("$it:") } && path !in noUnitTestModules
 }
+val kmpHostTestModules = unitTestCandidates.filter {
+    it in kmpUnitTestModules || (it in kmpLayoutModules && it !in jvmUnitTestModules)
+}
 val androidUnitTestModules = unitTestCandidates.filter {
-    it !in jvmUnitTestModules && it !in kmpUnitTestModules
+    it !in jvmUnitTestModules && it !in kmpHostTestModules
 }
 
 // Forced dependency versions for the per-project configuration below. The
@@ -375,7 +399,7 @@ run {
     val koverModulesForRoot = koverModules.toList()
     val androidUnitTestForRoot = androidUnitTestModules.toList()
     val jvmUnitTestForRoot = jvmUnitTestModules.toList()
-    val kmpUnitTestForRoot = kmpUnitTestModules.toList()
+    val kmpUnitTestForRoot = kmpHostTestModules.toList()
     val forcedDependencies = listOf(
         "org.jetbrains.kotlinx:kotlinx-serialization-core:$serializationVersion",
         "org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion",

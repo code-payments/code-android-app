@@ -10,7 +10,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.bundles.compose.ui.testing)
-    testImplementation(testFixtures(project(":ui:resources")))
+    testImplementation(project(":ui:resources:test-fixtures"))
 
     implementation(libs.bundles.haze)
     implementation(libs.compose.paging)
@@ -24,6 +24,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:common-ui"))
     implementation(project(":apps:flipcash:shared:contacts"))
+    implementation(project(":apps:flipcash:shared:device-link"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:funding"))
     implementation(project(":apps:flipcash:shared:menu"))
@@ -36,4 +37,6 @@ dependencies {
     implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions:bindings"))
     implementation(project(":ui:biometrics"))
+    implementation(project(":ui:scanner"))
+    implementation(project(":libs:code-detection"))
 }

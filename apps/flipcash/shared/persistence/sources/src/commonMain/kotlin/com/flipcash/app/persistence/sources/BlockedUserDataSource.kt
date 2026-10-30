@@ -1,0 +1,93 @@
+package com.flipcash.app.persistence.sources
+
+import androidx.paging.PagingSource
+import androidx.paging.PagingState
+import com.flipcash.app.persistence.inTransaction
+import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.entities.BlockedUserEntity
+import com.flipcash.app.persistence.entities.BlockedUserWithProfile
+import com.flipcash.app.persistence.sources.mapper.blocklist.BlockedUserEntityToProfileMapper
+import com.flipcash.app.persistence.sources.mapper.blocklist.BlockedUserToEntityMapper
+import com.flipcash.app.persistence.sources.mapper.blocklist.ResolvedBlockedUser
+import com.flipcash.app.core.blocklist.BlockedUserProfile
+import com.getcode.opencode.model.core.ID
+import com.getcode.utils.hexEncodedString
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class BlockedUserDataSource @Inject constructor(
+    private val toEntityMapper: BlockedUserToEntityMapper,
+    private val toProfileMapper: BlockedUserEntityToProfileMapper,
+) {
+
+    private val db: FlipcashDatabase?
+        get() = FlipcashDatabase.getInstance()
+
+    /** Room-backed paging source for the cached blocklist; empty until the DB is initialized. */
+    fun observe(): PagingSource<Int, BlockedUserWithProfile> {
+        return db?.blockedUserDao()?.observePaged() ?: object : PagingSource<Int, BlockedUserWithProfile>() {
+            override fun getRefreshKey(state: PagingState<Int, BlockedUserWithProfile>): Int? = null
+            override suspend fun load(params: LoadParams<Int>): LoadResult<Int, BlockedUserWithProfile> =
+                LoadResult.Error(IllegalStateException("Database not initialized"))
+        }
+    }
+
+    /** Whether [userId] is blocked; `false` until the database is initialized. */
+    fun observeIsBlocked(userId: ID): Flow<Boolean> =
+        db?.blockedUserDao()?.observeIsBlocked(userId.hexEncodedString()) ?: flowOf(false)
+
+    fun toProfile(entity: BlockedUserWithProfile): BlockedUserProfile = toProfileMapper.map(entity)
+
+    suspend fun upsert(resolved: List<ResolvedBlockedUser>) {
+        val database = db ?: return
+        database.inTransaction {
+            database.blockedUserDao().upsert(resolved.map { toEntityMapper.map(it) })
+            resolved.forEach { database.writeProfile(it) }
+        }
+    }
+
+    /** Atomically replaces the cached blocklist — a single Room invalidation, no empty flicker. */
+    suspend fun replaceAll(resolved: List<ResolvedBlockedUser>) {
+        val database = db ?: return
+        database.inTransaction {
+            database.blockedUserDao().replaceAll(resolved.map { toEntityMapper.map(it) })
+            resolved.forEach { database.writeProfile(it) }
+        }
+    }
+
+    suspend fun clear() {
+        db?.blockedUserDao()?.deleteAll()
+    }
+
+    /**
+     * Records a block the user just made, so [observeIsBlocked] flips without waiting for the next
+     * blocklist refresh. Only the blocklist row is written; the profile fills in on refresh.
+     */
+    suspend fun insert(userId: ID, blockedAtEpochMs: Long) {
+        db?.blockedUserDao()?.upsert(
+            listOf(BlockedUserEntity(userId.hexEncodedString(), blockedAtEpochMs))
+        )
+    }
+
+    suspend fun delete(userId: ID) {
+        db?.blockedUserDao()?.delete(userId.hexEncodedString())
+    }
+
+    /**
+     * Writes the blocked user's name + avatar into the shared `user_profiles` table without
+     * disturbing any richer profile already cached from a chat (the blocklist only resolves
+     * those two fields). A null profile means the fetch failed, so the cached name stays rather
+     * than being blanked. See [com.flipcash.app.persistence.dao.UserProfileDao.upsertNameAndAvatar].
+     */
+    private suspend fun FlipcashDatabase.writeProfile(resolved: ResolvedBlockedUser) {
+        userProfileDao().upsertNameAndAvatar(
+            userIdHex = resolved.blocked.userId.hexEncodedString(),
+            displayName = resolved.profile?.displayName,
+            profilePicture = resolved.profile?.profilePicture,
+            username = resolved.profile?.username,
+        )
+    }
+}

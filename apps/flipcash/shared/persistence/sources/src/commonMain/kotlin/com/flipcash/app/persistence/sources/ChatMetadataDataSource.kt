@@ -1,0 +1,302 @@
+package com.flipcash.app.persistence.sources
+
+import androidx.paging.PagingSource
+import com.flipcash.app.persistence.inTransaction
+import com.flipcash.app.persistence.FlipcashDatabase
+import com.flipcash.app.persistence.entities.ChatMetadataEntity
+import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatRules
+import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MediaItem
+import com.flipcash.services.models.chat.PinSummary
+import com.flipcash.services.models.chat.ViewerState
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class ChatMetadataDataSource @Inject constructor(
+    private val mapper: ChatEntityMapper,
+) {
+
+    private val db: FlipcashDatabase?
+        get() = FlipcashDatabase.getInstance()
+
+    fun observeAll(): Flow<List<ChatMetadataEntity>> =
+        db?.chatMetadataDao()?.observeAll() ?: emptyFlow()
+
+    /**
+     * Titles of the chats the viewer is a member of, keyed by chat-id hex. Chats without a title
+     * (DMs) and chats the viewer has left are absent.
+     *
+     * The database is resolved at collection time: the per-user DB is created at login, and a
+     * `@Singleton` consumer builds this flow before then. [observeAll] captures the null DB once and
+     * stays empty, which is why this does not wrap it.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun observeMemberTitles(): Flow<Map<String, String>> =
+        FlipcashDatabase.observeInstance()
+            .flatMapLatest { database ->
+                database?.chatMetadataDao()?.observeAll()?.map { rows ->
+                    rows.filter { it.isMember && !it.title.isNullOrBlank() }
+                        .associate { it.chatIdHex to it.title.orEmpty() }
+                } ?: flowOf(emptyMap())
+            }
+            .distinctUntilChanged()
+
+    /** One chat's row by [chatId], re-emitted on change; `null` while it is not stored. */
+    fun observeById(chatId: ChatId): Flow<ChatMetadataEntity?> =
+        db?.chatMetadataDao()?.observeById(mapper.chatIdHex(chatId)) ?: emptyFlow()
+
+    /**
+     * The merged feed of [chatTypes] as a Paging source.
+     *
+     * Unlike every other read here, a closed database cannot answer with an empty result: Paging
+     * would present that as "no conversations" and stop asking. An error keeps the list in its
+     * loading state and lets the caller retry once the database is open.
+     */
+    fun observeFeedPaged(chatTypes: List<ChatType>): PagingSource<Int, ChatMetadataEntity> =
+        db?.chatMetadataDao()?.observeFeedPaged(chatTypes.map { it.name })
+            ?: emptyPagingSource()
+
+    /** The chats of [chatType] this device still considers the user a member of, keyed by hex. */
+    suspend fun getChatIdsOfType(chatType: ChatType): List<String> =
+        db?.chatMetadataDao()?.getChatIdsOfType(chatType.name).orEmpty()
+
+    /** Whether this device still counts the viewer a member of [chatId]; false when it is not stored. */
+    suspend fun isMember(chatId: ChatId): Boolean =
+        db?.chatMetadataDao()?.getById(mapper.chatIdHex(chatId))?.isMember ?: false
+
+    suspend fun setMembership(chatId: ChatId, isMember: Boolean) {
+        setMembership(mapper.chatIdHex(chatId), isMember)
+    }
+
+    suspend fun setMembership(chatIdHex: String, isMember: Boolean) {
+        db?.chatMetadataDao()?.updateMembership(chatIdHex, isMember)
+    }
+
+    /**
+     * Records that the viewer is no longer in [chatId] and drops what was kept to read it offline:
+     * its group key envelopes (every own key) and its payment requests. The row itself stays, as a
+     * chat you have left is still one you can be shown, so this is the point where the chat's
+     * data goes rather than a row delete. One transaction, so a reader never sees the chat left
+     * with its key still stored.
+     */
+    suspend fun removeFromChat(chatId: ChatId) {
+        removeFromChat(mapper.chatIdHex(chatId))
+    }
+
+    suspend fun removeFromChat(chatIdHex: String) {
+        val database = db ?: return
+        database.inTransaction {
+            database.chatMetadataDao().updateMembership(chatIdHex, false)
+            database.groupKeyEnvelopeDao().deleteForChat(chatIdHex)
+            database.paymentRequestDao().deleteForChat(chatIdHex)
+        }
+    }
+
+    /** The roster version already applied to [chatId]; 0 when the chat is not stored yet. */
+    suspend fun getRosterVersion(chatId: ChatId): Long =
+        db?.chatMetadataDao()?.getRosterVersion(mapper.chatIdHex(chatId)) ?: 0L
+
+    suspend fun updateRoster(chatId: ChatId, memberCount: Long, rosterVersion: Long) {
+        db?.chatMetadataDao()?.updateRosterIfNewer(
+            chatIdHex = mapper.chatIdHex(chatId),
+            memberCount = memberCount,
+            rosterVersion = rosterVersion,
+        )
+    }
+
+    /** The viewer-state version already applied to [chatId]; 0 when the chat is not stored yet. */
+    suspend fun getViewerStateVersion(chatId: ChatId): Long =
+        db?.chatMetadataDao()?.getViewerStateVersion(mapper.chatIdHex(chatId)) ?: 0L
+
+    /**
+     * Stores [viewerState] if its version beats the stored one, and drops it otherwise. Stream
+     * delivery is unordered, so the newest state is the one with the highest version, not the one
+     * that arrived last.
+     */
+    suspend fun updateViewerState(chatId: ChatId, viewerState: ViewerState) {
+        db?.chatMetadataDao()?.updateViewerStateIfNewer(
+            chatIdHex = mapper.chatIdHex(chatId),
+            muteUntilEpochMs = mapper.muteUntilEpochMs(viewerState.mute),
+            muteForever = mapper.isMuteForever(viewerState.mute),
+            canEdit = viewerState.permissions.canEdit,
+            canInvite = viewerState.permissions.canInvite,
+            version = viewerState.version,
+            canSilence = viewerState.permissions.moderation.canSilence,
+            canBan = viewerState.permissions.moderation.canBan,
+            silenceUntilEpochMs = mapper.silenceUntilEpochMs(viewerState.restrictions?.silence),
+            silenceForever = mapper.isSilenceForever(viewerState.restrictions?.silence),
+        )
+    }
+
+    /** Stores the moderation grants a fresh read of [chatId] reported, ahead of any version gate. */
+    suspend fun updateModerationGrants(chatId: ChatId, canSilence: Boolean, canBan: Boolean) {
+        db?.chatMetadataDao()?.updateModerationGrants(mapper.chatIdHex(chatId), canSilence, canBan)
+    }
+
+    /** Forgets the viewer state for [chatId], version included. Leaving a chat clears its mute. */
+    suspend fun clearViewerState(chatId: ChatId) {
+        db?.chatMetadataDao()?.clearViewerState(mapper.chatIdHex(chatId))
+    }
+
+    /** The hex a [chatId] is keyed by. Callers comparing against [getChatIdsOfType] need it. */
+    fun chatIdHex(chatId: ChatId): String = mapper.chatIdHex(chatId)
+
+    /** The pin summary stored for [chatId]; null when the chat is not stored or never had a pin. */
+    suspend fun getPinSummary(chatId: ChatId): PinSummary? =
+        db?.chatMetadataDao()?.getById(mapper.chatIdHex(chatId))?.let { mapper.toMetadata(it, emptyList(), null).pinSummary }
+
+    /**
+     * Applies a `PinsChanged` summary only if its version is strictly newer than the stored one
+     * (none stored = 0). False when it was stale, or the chat is not stored yet.
+     */
+    suspend fun updatePinSummary(chatId: ChatId, summary: PinSummary): Boolean =
+        db?.chatMetadataDao()?.applyPinsChanged(
+            chatIdHex = mapper.chatIdHex(chatId),
+            count = summary.count,
+            version = summary.version,
+            latestPin = summary.latestEncoded,
+        ).let { it != null && it > 0 }
+
+    suspend fun upsert(metadata: ChatMetadata) {
+        val dao = db?.chatMetadataDao() ?: return
+        dao.upsert(mapper.toEntity(metadata))
+    }
+
+    /**
+     * Writes a fresh server read of a chat the caller may have left. GetChat doesn't return the
+     * caller's membership, so the stored value stands instead of [upsert]'s `true`.
+     */
+    suspend fun upsertKeepingMembership(metadata: ChatMetadata) {
+        val dao = db?.chatMetadataDao() ?: return
+        val isMember = dao.getById(mapper.chatIdHex(metadata.chatId))?.isMember ?: false
+        dao.upsert(mapper.toEntity(metadata, isMember = isMember))
+    }
+
+    suspend fun upsert(metadatas: List<ChatMetadata>) {
+        val dao = db?.chatMetadataDao() ?: return
+        dao.upsert(metadatas.map { mapper.toEntity(it) })
+    }
+
+    suspend fun getLastActivity(chatId: ChatId): Long? =
+        db?.chatMetadataDao()?.getLastActivity(mapper.chatIdHex(chatId))
+
+    suspend fun updateLastActivity(chatId: ChatId, epochMs: Long) {
+        db?.chatMetadataDao()?.updateLastActivity(mapper.chatIdHex(chatId), epochMs)
+    }
+
+    suspend fun getLastMessageId(chatId: ChatId): Long? =
+        db?.chatMetadataDao()?.getLastMessageId(mapper.chatIdHex(chatId))
+
+    suspend fun updateLastMessageId(chatId: ChatId, messageId: Long) {
+        db?.chatMetadataDao()?.updateLastMessageId(mapper.chatIdHex(chatId), messageId)
+    }
+
+    /**
+     * Records what a catch-up learned about [chatId] in one write: the event cursor [latestEventSequence]
+     * (0 for none) and the [newest] message it carried (null for none). Only advances; see
+     * [ChatMetadataDao.applyCatchUp][com.flipcash.app.persistence.dao.ChatMetadataDao.applyCatchUp].
+     */
+    suspend fun applyCatchUp(chatId: ChatId, latestEventSequence: Long, newest: ChatMessage?) {
+        if (latestEventSequence <= 0L && newest == null) return
+        db?.chatMetadataDao()?.applyCatchUp(
+            chatIdHex = mapper.chatIdHex(chatId),
+            latestEventSequence = latestEventSequence,
+            messageId = newest?.messageId ?: 0L,
+            timestampEpochMs = newest?.timestamp?.toEpochMilliseconds() ?: 0L,
+        )
+    }
+
+    suspend fun updateLatestEventSequence(chatId: ChatId, sequence: Long) {
+        db?.chatMetadataDao()?.updateLatestEventSequence(mapper.chatIdHex(chatId), sequence)
+    }
+
+    suspend fun getLatestEventSequence(chatId: ChatId): Long =
+        db?.chatMetadataDao()?.getLatestEventSequence(mapper.chatIdHex(chatId)) ?: 0L
+
+    suspend fun getChatType(chatId: ChatId): ChatType {
+        val stored = db?.chatMetadataDao()?.getChatType(mapper.chatIdHex(chatId))
+        return ChatType.entries.firstOrNull { it.name == stored } ?: ChatType.UNKNOWN
+    }
+
+    /** Whether [chatId] is a stored private group, whose content is sealed under the chat key. */
+    suspend fun isPrivate(chatId: ChatId): Boolean = privacyOf(chatId) == true
+
+    /** Whether [chatId] is a private group, or null when it is not stored on this device. */
+    suspend fun privacyOf(chatId: ChatId): Boolean? =
+        observeById(chatId).firstOrNull()?.isPrivate
+
+    /** [chatId]'s group name, or null when the chat is a DM or is not stored on this device. */
+    suspend fun getTitle(chatId: ChatId): String? =
+        db?.chatMetadataDao()?.getTitle(mapper.chatIdHex(chatId))
+
+    /** Applies a `MetadataUpdate.TitleChanged` for [chatId]. See ChatMetadataDao.updateTitle. */
+    suspend fun updateTitle(chatId: ChatId, title: String) {
+        db?.chatMetadataDao()?.updateTitle(mapper.chatIdHex(chatId), title)
+    }
+
+    /**
+     * Applies a `MetadataUpdate.DescriptionChanged` for [chatId]. An empty [description] clears
+     * it. See ChatMetadataDao.updateDescription.
+     */
+    suspend fun updateDescription(chatId: ChatId, description: String) {
+        db?.chatMetadataDao()?.updateDescription(mapper.chatIdHex(chatId), description.takeIf { it.isNotEmpty() })
+    }
+
+    /** Applies a `MetadataUpdate.PictureChanged` for [chatId]. See ChatMetadataDao.updatePicture. */
+    suspend fun updatePicture(chatId: ChatId, picture: MediaItem) {
+        db?.chatMetadataDao()?.updatePicture(mapper.chatIdHex(chatId), picture)
+    }
+
+    /** Applies a `MetadataUpdate.CoverPictureChanged` for [chatId]. See ChatMetadataDao.updateCoverPicture. */
+    suspend fun updateCoverPicture(chatId: ChatId, coverPicture: MediaItem) {
+        db?.chatMetadataDao()?.updateCoverPicture(mapper.chatIdHex(chatId), coverPicture)
+    }
+
+    /** Applies a `MetadataUpdate.RulesChanged` for [chatId]. See ChatMetadataDao.updateRules. */
+    suspend fun updateRules(chatId: ChatId, rules: ChatRules) {
+        db?.chatMetadataDao()?.updateRules(mapper.chatIdHex(chatId), mapper.rulesSerialized(rules))
+    }
+
+    suspend fun getAnalyticsCountedThrough(chatId: ChatId): Long =
+        db?.chatMetadataDao()?.getAnalyticsCountedThrough(mapper.chatIdHex(chatId)) ?: 0L
+
+    suspend fun advanceAnalyticsCountedThrough(chatId: ChatId, messageId: Long) {
+        db?.chatMetadataDao()?.advanceAnalyticsCountedThrough(mapper.chatIdHex(chatId), messageId)
+    }
+
+    suspend fun setHidden(chatId: ChatId, hidden: Boolean) {
+        db?.chatMetadataDao()?.updateHidden(mapper.chatIdHex(chatId), hidden)
+    }
+
+    suspend fun exists(chatId: ChatId): Boolean =
+        db?.chatMetadataDao()?.getById(mapper.chatIdHex(chatId)) != null
+
+    fun toMetadata(
+        entity: ChatMetadataEntity,
+        members: List<ChatMember>,
+        lastMessage: ChatMessage?,
+    ): ChatMetadata = mapper.toMetadata(entity, members, lastMessage)
+
+    suspend fun clear() {
+        db?.chatMetadataDao()?.deleteAll()
+    }
+
+    private fun emptyPagingSource() = object : PagingSource<Int, ChatMetadataEntity>() {
+        override fun getRefreshKey(state: androidx.paging.PagingState<Int, ChatMetadataEntity>): Int? = null
+        override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ChatMetadataEntity> =
+            LoadResult.Error(Exception("Database not initialized"))
+    }
+}

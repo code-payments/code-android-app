@@ -9,14 +9,14 @@ android {
 dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
-    testImplementation(testFixtures(project(":ui:resources")))
+    testImplementation(project(":ui:resources:test-fixtures"))
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.robolectric)
 
     implementation(libs.kotlin.stdlib)
     implementation(project(":apps:flipcash:shared:amount-entry"))
     implementation(project(":apps:flipcash:shared:analytics"))
-    testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
+    testImplementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
     implementation(project(":apps:flipcash:shared:featureflags"))
     implementation(project(":apps:flipcash:shared:session"))
     implementation(project(":apps:flipcash:shared:tokens"))

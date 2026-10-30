@@ -86,12 +86,18 @@ android {
     buildTypes {
         getByName("release") {
             resValue("string", "applicationId", appNamespace)
+            buildConfigField("Boolean", "NOTIFY_ERRORS", "true")
             isMinifyEnabled = !skipExpensiveReleaseTasks
             isShrinkResources = !skipExpensiveReleaseTasks
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         getByName("debug") {
             resValue("string", "applicationId", appNamespace)
+            buildConfigField(
+                "Boolean",
+                "NOTIFY_ERRORS",
+                tryReadProperty(rootProject.rootDir, "NOTIFY_ERRORS", "false")
+            )
             signingConfig = signingConfigs.getByName("contributors")
 
             val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanStrictOrNull() ?: false
@@ -370,4 +376,5 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
     testImplementation(libs.robolectric)
+    testImplementation(project(":apps:flipcash:startup-contract"))
 }

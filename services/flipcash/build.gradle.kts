@@ -1,81 +1,68 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library)
-    id("com.google.devtools.ksp")
+    alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.kotlin.ksp)
     id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.services.flipcash"
-
-    defaultConfig {
-        consumerProguardFiles("consumer-rules.pro")
-
-        buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
-        buildConfigField(
-            "String",
-            "GOOGLE_CLOUD_PROJECT_NUMBER",
-            "\"${tryReadProperty(rootProject.rootDir, "GOOGLE_CLOUD_PROJECT_NUMBER", "-1L")}\""
-        )
+kotlin {
+    android {
+        namespace = "${Gradle.codeNamespace}.services.flipcash"
+        optimization {
+            consumerKeepRules.apply {
+                publish = true
+                file("consumer-rules.pro")
+            }
+        }
     }
 
-    buildFeatures {
-        buildConfig = true
-    }
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.flipcash2.client.protocol)
+            api(project(":libs:network:jwt"))
+            api(project(":services:opencode"))
+            implementation(project(":ui:resources"))
+            // `api`: ChatContentCrypto and ChatKeySource name ChatCipher and its KeyPair.
+            api(project(":libs:encryption:chat-cipher"))
 
-    testFixtures {
-        enable = true
+            implementation(libs.bundles.hilt.common)
+            implementation(libs.kotlinx.serialization.json)
+            implementation(libs.grpc.okhttp)
+            implementation(libs.grpc.kotlin)
+            implementation(libs.grpc.protobuf.lite)
+            implementation(libs.grpc.stub)
+            implementation(libs.protobuf.validate.runtime)
+            implementation(libs.androidx.paging.common)
+            implementation(libs.okhttp)
+            implementation(libs.event.bus)
+        }
+        androidMain.dependencies {
+            implementation(libs.grpc.android)
+            implementation(libs.androidx.lifecycle.runtime)
+            implementation(libs.androidx.lifecycle.process)
+            implementation(libs.mixpanel)
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.installations)
+            implementation(libs.play.integrity)
+            implementation(libs.fingerprint.pro)
+            implementation(libs.hilt.android)
+
+            // Not imported by this module; kept so the app's runtime classpath is unchanged.
+            implementation(libs.androidx.room.runtime)
+            implementation(libs.androidx.room.ktx)
+            implementation(libs.androidx.room.paging)
+            implementation(libs.androidx.paging.runtime)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.bundles.unit.testing)
+            implementation(project(":services:flipcash:test-fixtures"))
+        }
     }
 }
 
 dependencies {
-    implementation(libs.flipcash2.client.protocol)
-    api(project(":libs:network:jwt"))
-    api(project(":services:opencode"))
-    implementation(project(":ui:resources"))
-    // `api`: ChatContentCrypto and ChatKeySource name ChatCipher and its KeyPair.
-    api(project(":libs:encryption:chat-cipher"))
-    testFixturesImplementation(project(":libs:encryption:chat-cipher"))
-
-    implementation(libs.javax.inject)
-
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.javax.inject)
-
-    implementation(libs.grpc.android)
-    implementation(libs.grpc.okhttp)
-    implementation(libs.grpc.kotlin)
-    implementation(libs.grpc.protobuf.lite)
-    implementation(libs.grpc.stub)
-    implementation(libs.protobuf.validate.runtime)
-    implementation(libs.androidx.lifecycle.runtime)
-    implementation(libs.androidx.lifecycle.process)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.paging)
-    implementation(libs.okhttp)
-    implementation(libs.mixpanel)
-
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.installations)
-
-    implementation(libs.play.integrity)
-
-    implementation(libs.androidx.paging.runtime)
-
-    ksp(libs.androidx.room.compiler)
-
-    implementation(libs.fingerprint.pro)
-
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.test.runner)
-
-    implementation(libs.hilt.android)
-    ksp(libs.hilt.android.compiler)
-    ksp(libs.hilt.compiler)
-
-    implementation(libs.event.bus)
-
-    testImplementation(kotlin("test"))
-    testImplementation(libs.bundles.unit.testing)
+    add("kspAndroid", libs.hilt.android.compiler)
+    add("kspAndroid", libs.hilt.compiler)
+    add("kspJvm", libs.dagger.compiler)
+    add("jvmMainImplementation", libs.dagger)
 }

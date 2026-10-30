@@ -88,6 +88,16 @@ sealed interface FeatureFlag<T: Any> {
         override val persistLogOut: Boolean = false
     }
 
+    /** Settings > Link a Desktop: hands this account's seed to a desktop over the LAN. */
+    @FeatureFlagMarker
+    data object LinkDesktop: FeatureFlag<Boolean> {
+        override val key: String = "link_desktop_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+    }
+
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -107,6 +117,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.BillTextures -> "Bill Textures"
         FeatureFlag.BackgroundReset -> "Background Reset"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
+        FeatureFlag.LinkDesktop -> "Link a Desktop"
     }
 
 val FeatureFlag<*>.message: String
@@ -117,4 +128,5 @@ val FeatureFlag<*>.message: String
         FeatureFlag.BillTextures -> "When enabled, you'll gain the ability to select textures for bills during currency creation"
         FeatureFlag.BackgroundReset -> "Automatically returns the app to the camera screen after a period of inactivity with the app in the background"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
+        FeatureFlag.LinkDesktop -> "When enabled, Settings shows Link a Desktop, which sends this account to the Flipcash desktop app over your local network"
     }

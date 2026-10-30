@@ -58,6 +58,7 @@ class LoginViewModelCreateAccountTest {
         BottomBarManager.clear()
         mockkStatic(android.util.Base64::class)
         every { android.util.Base64.encodeToString(any(), any()) } answers { java.util.Base64.getEncoder().encodeToString(firstArg()) }
+        every { android.util.Base64.encode(any<ByteArray>(), any()) } answers { java.util.Base64.getEncoder().encode(firstArg<ByteArray>()) }
         // LoginViewModel.init checks the stored account list on construction.
         whenever(authManager.accounts).thenReturn(accountStore)
     }

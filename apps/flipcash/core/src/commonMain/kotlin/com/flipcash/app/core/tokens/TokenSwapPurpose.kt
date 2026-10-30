@@ -1,0 +1,45 @@
+package com.flipcash.app.core.tokens
+
+import com.getcode.libs.parcelable.Parcelable
+import com.getcode.solana.keys.Mint
+import com.getcode.libs.parcelable.Parcelize
+import kotlinx.serialization.Serializable
+
+/**
+ * Represents the intent or specific action behind a token swap operation.
+ *
+ * This sealed interface defines the possible directions of a trade, carrying the necessary context
+ * (such as the specific [Mint]) required to initialize or execute the swap.
+ *
+ * @see Buy Represents a purchase intent (e.g., swapping base currency for a specific token).
+ * @see Sell Represents a liquidation intent (e.g., swapping a specific token back to base currency).
+ */
+@Serializable
+enum class FundingSource {
+    Flexible,
+    Phantom,
+    Coinbase,
+}
+
+@Serializable
+@Parcelize
+sealed interface SwapPurpose : Parcelable {
+    val mint: Mint
+    sealed interface BalanceIncrease
+    sealed interface BalanceDecrease
+    @Serializable data class Buy(
+        override val mint: Mint,
+        val fundingSource: FundingSource = FundingSource.Flexible,
+    ) : SwapPurpose, BalanceIncrease
+    @Serializable data class Sell(override val  mint: Mint) : SwapPurpose, BalanceDecrease
+
+    /**
+     * Converts one held currency directly into another. [mint] is the *source* currency the amount
+     * is entered in (so balance/limit semantics match [Sell]); [destinationMint] is what the user
+     * receives.
+     */
+    @Serializable data class Convert(
+        override val mint: Mint,
+        val destinationMint: Mint,
+    ) : SwapPurpose, BalanceDecrease
+}

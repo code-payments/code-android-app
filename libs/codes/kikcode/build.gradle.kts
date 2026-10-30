@@ -1,6 +1,5 @@
 plugins {
-    kotlin("multiplatform")
-    id("com.android.kotlin.multiplatform.library")
+    alias(libs.plugins.flipcash.kmp.library)
     alias(libs.plugins.flipcash.kmp.test.fixtures)
 }
 
@@ -13,20 +12,8 @@ testFixtures {
 kotlin {
     android {
         namespace = "com.getcode.codes.kikcode"
-        compileSdk {
-            version = release(libs.versions.android.compileSdk.get().toInt()) {
-                minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
-            }
-        }
-        minSdk = 29
         withHostTest {}
     }
-
-    iosArm64()
-    iosSimulatorArm64()
-    iosX64()
-    macosArm64()
-    macosX64()
 
     sourceSets {
         commonMain {

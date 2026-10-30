@@ -1,16 +1,22 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library)
+    alias(libs.plugins.flipcash.kmp.app.library)
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.util.locale"
-}
+kotlin {
+    android {
+        namespace = "${Gradle.codeNamespace}.util.locale"
+    }
 
-dependencies {
-    implementation(project(":libs:datetime"))
-    implementation(project(":libs:currency"))
-    implementation(libs.okhttp)
-    api(libs.androidx.annotation)
-    api(libs.kotlin.stdlib)
-    api(libs.kotlinx.coroutines.core)
+    sourceSets {
+        commonMain.dependencies {
+            implementation(project(":libs:datetime"))
+            implementation(project(":libs:currency"))
+            api(libs.androidx.annotation)
+            api(libs.kotlin.stdlib)
+            api(libs.kotlinx.coroutines.core)
+        }
+        androidMain.dependencies {
+            implementation(libs.okhttp)
+        }
+    }
 }

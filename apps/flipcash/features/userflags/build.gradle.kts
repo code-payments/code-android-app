@@ -10,4 +10,5 @@ dependencies {
     implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":apps:flipcash:shared:region-selection:core"))
     implementation(project(":libs:messaging"))
+    implementation(libs.jetbrains.compose.components.resources)
 }

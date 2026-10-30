@@ -13,6 +13,7 @@ import com.getcode.util.resources.AndroidContentReader
 import com.getcode.util.resources.AndroidResources
 import com.getcode.util.resources.AndroidSettingsHelper
 import com.getcode.util.resources.ContentReader
+import com.getcode.util.resources.AndroidResourceHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.SettingsHelper
 import dagger.Module
@@ -43,9 +44,14 @@ object AppModule {
     ): ContentReader = AndroidContentReader(context)
 
     @Provides
-    fun providesResourceHelper(
+    fun providesAndroidResourceHelper(
         @ApplicationContext context: Context,
-    ): ResourceHelper = AndroidResources(context)
+    ): AndroidResourceHelper = AndroidResources(context)
+
+    @Provides
+    fun providesResourceHelper(
+        resources: AndroidResourceHelper,
+    ): ResourceHelper = resources
 
     @Provides
     fun providesSettingsHelper(

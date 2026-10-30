@@ -1,0 +1,166 @@
+package com.getcode.ui.components.text
+
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterHorizontally
+import androidx.compose.ui.Alignment.Companion.CenterVertically
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import org.jetbrains.compose.resources.painterResource
+import com.getcode.util.resources.Res
+import com.getcode.util.resources.painterForResId
+import com.getcode.util.resources.ic_kin_brand
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
+import com.getcode.theme.White
+import com.getcode.theme.bolded
+import com.getcode.ui.components.ConnectionStatus
+import androidx.compose.foundation.clickable
+import com.getcode.ui.utils.ConstraintMode
+import com.getcode.utils.network.LocalNetworkObserver
+import com.getcode.utils.network.NetworkState
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun AmountArea(
+    modifier: Modifier = Modifier,
+    amountPrefix: String? = null,
+    amountText: String,
+    amountSuffix: String? = null,
+    placeholder: String = "0",
+    captionText: String? = null,
+    isAltCaption: Boolean = false,
+    isAltCaptionKinIcon: Boolean = true,
+    altCaptionColor: Color? = null,
+    currencyResId: Int? = null,
+    isClickable: Boolean = true,
+    isLoading: Boolean = false,
+    isAnimated: Boolean = false,
+    animateDigits: Boolean = false,
+    decimalPlaces: Int = 2,
+    textStyle: TextStyle = CodeTheme.typography.displayMedium.bolded(),
+    uiModel: AmountAnimatedInputUiModel? = null,
+    networkState: NetworkState = LocalNetworkObserver.current.state.value,
+    horizontalAlignment: Alignment.Horizontal = CenterHorizontally,
+    /** Colour for the currency prefix and un-entered placeholder digits. */
+    contentColor: Color = White,
+    onClick: () -> Unit = {}
+) {
+    Column(
+        modifier
+            .let { if (isClickable) it.clickable { onClick() } else it },
+        horizontalAlignment = horizontalAlignment
+    ) {
+        if (!isLoading) {
+            Row(
+                verticalAlignment = CenterVertically
+            ) {
+                if (!isAnimated) {
+                    if (animateDigits) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = CenterVertically,
+                        ) {
+                            AmountLeadingIcons(
+                                currencyResId = currencyResId,
+                                isClickable = isClickable,
+                            )
+                            AnimatedNumberText(
+                                value = "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}",
+                                style = textStyle.copy(textAlign = TextAlign.Center),
+                                color = White,
+                                constraintMode = ConstraintMode.AutoSize(CodeTheme.typography.displaySmall)
+                            )
+                        }
+                    } else {
+                        AmountText(
+                            currencyResId = currencyResId,
+                            amountText = "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}",
+                            isClickable = isClickable,
+                            textStyle = textStyle,
+                        )
+                    }
+                } else {
+                    AmountTextAnimated(
+                        uiModel = uiModel,
+                        currencyResId = currencyResId,
+                        placeholder = placeholder,
+                        amountPrefix = amountPrefix.orEmpty(),
+                        amountSuffix = amountSuffix.orEmpty(),
+                        textStyle = textStyle,
+                        isClickable = isClickable,
+                        totalDecimals = decimalPlaces,
+                        contentColor = contentColor,
+                        horizontalArrangement = if (horizontalAlignment == Alignment.Start) {
+                            Arrangement.Start
+                        } else {
+                            Arrangement.Center
+                        },
+                    )
+                }
+            }
+        }
+        ValueHint(
+            modifier = Modifier.align(horizontalAlignment),
+            showIcon = isAltCaption && isAltCaptionKinIcon,
+            iconColor = altCaptionColor ?: CodeTheme.colors.brandLight,
+            captionColor = if (isAltCaption) (altCaptionColor ?: CodeTheme.colors.errorText) else CodeTheme.colors.textSecondary,
+            captionText = captionText,
+            networkState = networkState
+        )
+    }
+}
+
+@Composable
+private fun ValueHint(
+    modifier: Modifier = Modifier,
+    showIcon: Boolean = true,
+    iconColor: Color = CodeTheme.colors.textSecondary,
+    captionText: String?,
+    captionColor: Color = CodeTheme.colors.textSecondary,
+    networkState: NetworkState? = null
+) {
+    Row(
+        modifier = Modifier
+            .wrapContentHeight()
+            .then(modifier),
+        verticalAlignment = CenterVertically
+    ) {
+        if (showIcon) {
+            Image(
+                modifier = Modifier
+                    .padding(end = CodeTheme.dimens.staticGrid.x1)
+                    .requiredSize(CodeTheme.dimens.staticGrid.x2),
+                painter = painterResource(Res.drawable.ic_kin_brand),
+                colorFilter = ColorFilter.tint(iconColor),
+                contentDescription = ""
+            )
+        }
+        if (networkState?.connected == false) {
+            ConnectionStatus(state = networkState)
+        } else if (captionText != null) {
+            Text(
+                text = captionText,
+                color = captionColor,
+                style = CodeTheme.typography.textSmall.copy(
+                    textAlign = TextAlign.Center
+                )
+            )
+        }
+    }
+}

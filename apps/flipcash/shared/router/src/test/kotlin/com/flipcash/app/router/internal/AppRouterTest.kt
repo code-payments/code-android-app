@@ -27,6 +27,7 @@ import com.getcode.utils.BreadcrumbSink
 import com.getcode.utils.ErrorReporter
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceManager
+import com.getcode.utils.initialize
 import com.getcode.utils.TraceType
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

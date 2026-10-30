@@ -54,7 +54,7 @@ class DefaultStartChattingPayerTest {
     }
     private val analytics = RecordingAnalytics()
     private val resources = mockk<ResourceHelper>(relaxed = true) {
-        every { getString(any()) } answers { "res:${firstArg<Int>()}" }
+        every { getString(any<Int>()) } answers { "res:${firstArg<Int>()}" }
     }
 
     private fun payer() = DefaultStartChattingPayer(

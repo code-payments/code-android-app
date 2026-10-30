@@ -1,6 +1,7 @@
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+
 plugins {
-    kotlin("multiplatform")
-    id("com.android.kotlin.multiplatform.library")
+    alias(libs.plugins.flipcash.kmp.library)
     alias(libs.plugins.flipcash.kmp.test.fixtures)
 }
 
@@ -10,24 +11,23 @@ testFixtures {
     packageName = "com.getcode.crypt"
 }
 
+@OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
 kotlin {
-    android {
-        namespace = "com.getcode.encryption.mnemonic"
-        compileSdk {
-            version = release(libs.versions.android.compileSdk.get().toInt()) {
-                minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
+    // jvmShared: key and phrase types for both JVM targets (Android and desktop).
+    applyDefaultHierarchyTemplate {
+        common {
+            group("jvmShared") {
+                withJvm()
+                withCompilations { it.platformType == KotlinPlatformType.androidJvm }
             }
         }
-        minSdk = 29
+    }
+
+    android {
+        namespace = "com.getcode.encryption.mnemonic"
         withHostTest {}
         withDeviceTest {}
     }
-
-    iosArm64()
-    iosSimulatorArm64()
-    iosX64()
-    macosArm64()
-    macosX64()
 
     sourceSets {
         commonMain {
@@ -45,10 +45,14 @@ kotlin {
                 implementation(libs.kotlinx.serialization.json)
             }
         }
-        androidMain {
+        getByName("jvmSharedMain") {
             dependencies {
                 // Legacy vendored Base58 codec (fromEntropyB58/getBase58EncodedEntropy).
                 implementation(project(":libs:encryption:base58"))
+            }
+        }
+        androidMain {
+            dependencies {
                 // Domain.kt uses android.net.Uri.
                 implementation(libs.androidx.core)
             }

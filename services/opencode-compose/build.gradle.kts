@@ -1,26 +1,17 @@
 plugins {
-    alias(libs.plugins.flipcash.android.library.compose)
+    alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.compose.compiler)
 }
 
-android {
-    namespace = "${Gradle.codeNamespace}.services.opencode.compose"
-
-    defaultConfig {
-        consumerProguardFiles("consumer-rules.pro")
-
-        buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
-        buildConfigField(
-            "String",
-            "GOOGLE_CLOUD_PROJECT_NUMBER",
-            "\"${tryReadProperty(rootProject.rootDir, "GOOGLE_CLOUD_PROJECT_NUMBER", "-1L")}\""
-        )
+kotlin {
+    android {
+        namespace = "${Gradle.codeNamespace}.services.opencode.compose"
     }
 
-    buildFeatures {
-        buildConfig = true
+    sourceSets {
+        commonMain.dependencies {
+            api(project(":services:opencode"))
+            implementation(libs.jetbrains.compose.runtime)
+        }
     }
-}
-
-dependencies {
-    api(project(":services:opencode"))
 }
