@@ -32,9 +32,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.flipcash.app.messenger.internal.screens.LinkPillFrame
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White
 import com.getcode.theme.White08
 import com.getcode.theme.White50
 import com.getcode.ui.components.AppBarDefaults
@@ -81,10 +83,12 @@ internal fun InviteHostSheetContent(
                 title = stringResource(R.string.label_approveNewMembers),
                 subtitle = {
                     ApproveCrossfade(approve = state.approve) { on ->
-                        SubtitleText(
-                            stringResource(
+                        Text(
+                            text = stringResource(
                                 if (on) R.string.subtitle_approveNewMembersOn else R.string.subtitle_approveNewMembersOff
-                            )
+                            ),
+                            style = cardNoteStyle(),
+                            color = CardNoteColor,
                         )
                     }
                 },
@@ -111,6 +115,17 @@ private val LinkCardPadding = 14.dp
 private val LinkPillHeight = 30.dp
 
 private const val ApproveFadeMillis = 220
+
+// iOS's host card, which is the reference: the link is Medium 14, and the caption and the switch's
+// subtitles Medium 13 at white 0.68. The theme's Avenir draws Medium as Demi, so these start from
+// the styles on the true Medium face.
+@Composable
+private fun pillLinkStyle() = CodeTheme.typography.textMessage.copy(fontSize = 14.sp, lineHeight = 18.sp)
+
+@Composable
+private fun cardNoteStyle() = CodeTheme.typography.caption.copy(fontSize = 13.sp, lineHeight = 18.sp)
+
+private val CardNoteColor = White.copy(alpha = 0.68f)
 
 /**
  * Crossfades what Approve New Members changes, and animates any change in height. [content] gets
@@ -205,8 +220,8 @@ private fun LinkCard(
                 Text(
                     modifier = Modifier.fillMaxWidth().padding(top = CodeTheme.dimens.grid.x3),
                     text = caption,
-                    style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary,
+                    style = cardNoteStyle(),
+                    color = CardNoteColor,
                     textAlign = TextAlign.Center,
                 )
             }
@@ -218,7 +233,7 @@ private fun LinkCard(
 private fun PillText(text: String) {
     Text(
         text = text,
-        style = CodeTheme.typography.textMedium,
+        style = pillLinkStyle(),
         color = CodeTheme.colors.textMain,
         maxLines = 1,
         // No wrap: a link breaks at its slashes and hyphens, and maxLines would clip what follows.
