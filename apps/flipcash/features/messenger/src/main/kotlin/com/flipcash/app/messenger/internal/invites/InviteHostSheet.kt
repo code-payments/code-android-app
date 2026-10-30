@@ -1,12 +1,19 @@
 package com.flipcash.app.messenger.internal.invites
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -72,16 +79,22 @@ internal fun InviteHostSheetContent(
             SheetRow(
                 modifier = Modifier.testTag(InviteHostApproveTag),
                 title = stringResource(R.string.label_approveNewMembers),
-                subtitle = stringResource(
-                    if (state.approve) R.string.subtitle_approveNewMembersOn else R.string.subtitle_approveNewMembersOff
-                ),
+                subtitle = {
+                    ApproveCrossfade(approve = state.approve) { on ->
+                        SubtitleText(
+                            stringResource(
+                                if (on) R.string.subtitle_approveNewMembersOn else R.string.subtitle_approveNewMembersOff
+                            )
+                        )
+                    }
+                },
                 onClick = { onApproveChanged(!state.approve) },
             ) {
                 CodeToggleSwitch(checked = state.approve, onCheckedChange = onApproveChanged)
             }
             SheetRow(
                 title = stringResource(R.string.action_manageInvites),
-                subtitle = stringResource(R.string.subtitle_manageInvitesRow),
+                subtitle = { SubtitleText(stringResource(R.string.subtitle_manageInvitesRow)) },
                 onClick = onManageInvites,
             ) {
                 Icon(imageVector = Icons.Outlined.Menu, contentDescription = null, tint = CodeTheme.colors.textMain)
@@ -97,6 +110,31 @@ private val LinkPillColor = Color(0x0FFFFFFF)
 private val LinkCardPadding = 14.dp
 private val LinkPillHeight = 30.dp
 
+private const val ApproveFadeMillis = 220
+
+/**
+ * Crossfades what Approve New Members changes, and animates any change in height. [content] gets
+ * the switch state it draws, so the outgoing text keeps the old one while it fades.
+ */
+@Composable
+private fun ApproveCrossfade(
+    approve: Boolean,
+    modifier: Modifier = Modifier,
+    contentAlignment: Alignment = Alignment.TopStart,
+    content: @Composable (approve: Boolean) -> Unit,
+) {
+    AnimatedContent(
+        targetState = approve,
+        modifier = modifier,
+        contentAlignment = contentAlignment,
+        transitionSpec = {
+            fadeIn(tween(ApproveFadeMillis)) togetherWith fadeOut(tween(ApproveFadeMillis)) using
+                SizeTransform(clip = false) { _, _ -> tween(ApproveFadeMillis) }
+        },
+        label = "approve-new-members",
+    ) { content(it) }
+}
+
 /** The pill, Share Link, and the caption: how many joined and when it ends, or that people ask. */
 @Composable
 private fun LinkCard(
@@ -110,7 +148,6 @@ private fun LinkCard(
             .clip(CodeTheme.shapes.medium)
             .background(White08)
             .padding(LinkCardPadding),
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         LinkPillFrame(
@@ -118,9 +155,13 @@ private fun LinkCard(
             color = LinkPillColor,
             verticalPadding = CodeTheme.dimens.grid.x1,
         ) {
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+            ApproveCrossfade(
+                approve = state.approve,
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart,
+            ) { approve ->
                 when {
-                    state.approve -> state.plainUrl?.let { PillText(plainLinkText(it)) }
+                    approve -> state.plainUrl?.let { PillText(plainLinkText(it)) }
                     invite is InviteLinkState.Ready -> PillText(elideInviteUrl(invite.url))
                     invite == InviteLinkState.Creating -> Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -140,6 +181,7 @@ private fun LinkCard(
                 }
             }
         }
+        Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
         CodeButton(
             modifier = Modifier.fillMaxWidth().testTag(InviteHostShareTag),
             text = stringResource(R.string.action_shareLink),
@@ -148,23 +190,26 @@ private fun LinkCard(
             enabled = !state.creating,
             onClick = onShare,
         )
-        val caption = when {
-            state.approve -> stringResource(R.string.label_joinLinkAsksToJoin)
-            invite is InviteLinkState.Ready -> stringResource(
-                R.string.label_inviteJoinedThenEnds,
-                JoinedCount(invite.useCount, invite.maxUses).label(),
-                (invite.expiresAt?.let(LinkStatus::Expires) ?: LinkStatus.NeverExpires).label(),
-            )
-            else -> null
-        }
-        if (caption != null) {
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = caption,
-                style = CodeTheme.typography.textSmall,
-                color = CodeTheme.colors.textSecondary,
-                textAlign = TextAlign.Center,
-            )
+        // The spacing above the caption goes with it, so a card with no caption ends at the button.
+        ApproveCrossfade(approve = state.approve, modifier = Modifier.fillMaxWidth()) { approve ->
+            val caption = when {
+                approve -> stringResource(R.string.label_joinLinkAsksToJoin)
+                invite is InviteLinkState.Ready -> stringResource(
+                    R.string.label_inviteJoinedThenEnds,
+                    JoinedCount(invite.useCount, invite.maxUses).label(),
+                    (invite.expiresAt?.let(LinkStatus::Expires) ?: LinkStatus.NeverExpires).label(),
+                )
+                else -> null
+            }
+            if (caption != null) {
+                Text(
+                    modifier = Modifier.fillMaxWidth().padding(top = CodeTheme.dimens.grid.x3),
+                    text = caption,
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }
@@ -187,7 +232,7 @@ private fun PillText(text: String) {
 @Composable
 private fun SheetRow(
     title: String,
-    subtitle: String,
+    subtitle: @Composable () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     trailing: @Composable () -> Unit,
@@ -204,8 +249,13 @@ private fun SheetRow(
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
             Text(text = title, style = CodeTheme.typography.textMedium, color = CodeTheme.colors.textMain)
-            Text(text = subtitle, style = CodeTheme.typography.textSmall, color = CodeTheme.colors.textSecondary)
+            subtitle()
         }
         trailing()
     }
+}
+
+@Composable
+private fun SubtitleText(text: String) {
+    Text(text = text, style = CodeTheme.typography.textSmall, color = CodeTheme.colors.textSecondary)
 }
