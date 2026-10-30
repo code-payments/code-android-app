@@ -1583,12 +1583,16 @@
     <!-- %1$s is the group title. -->
     <string name="title_inviteToGroup">Invite to %1$s</string>
     <string name="action_shareInviteLinkLong">Share Invite Link</string>
-    <string name="subtitle_shareInviteLink">Anyone with this link joins right away</string>
-    <string name="action_shareJoinLink">Share Join Link</string>
-    <string name="subtitle_shareJoinLink">People ask to join and you approve each one</string>
     <string name="action_manageInvites">Manage Invites</string>
-    <string name="subtitle_manageInvites">See and revoke the invite links you\'ve made</string>
     <string name="label_creatingInviteLink">Creating link…</string>
+    <!-- The host sheet's link card and rows (spec group-invites.md surface 1, frame 1m). -->
+    <!-- The card's caption, joined with " · ": how many joined, then when the link ends. -->
+    <string name="label_inviteJoinedThenEnds">%1$s · %2$s</string>
+    <string name="label_joinLinkAsksToJoin">People who open this link ask to join</string>
+    <string name="label_approveNewMembers">Approve New Members</string>
+    <string name="subtitle_approveNewMembersOff">Anyone with the link joins right away</string>
+    <string name="subtitle_approveNewMembersOn">You approve each person</string>
+    <string name="subtitle_manageInvitesRow">Make more links with an expiry or a use limit</string>
     <string name="action_shareLink">Share Link</string>
     <string name="footnote_inviteLink">Anyone with this link can join and see who\'s in the group. Share it only with people you want in the group</string>
     <!-- A link's lines, joined with " · ". %1$s is a date such as "Nov 3". -->
@@ -1863,10 +1867,14 @@
     <string name="label_profileCardFileNameFallback">Profile Card</string>
     <string name="error_title_tipCardExportFailed">Couldn\'t Export</string>
     <string name="error_description_tipCardExportFailed">We were unable to export your tip code. Please try again</string>
-    <string name="action_showGroupCard">Show Group Card</string>
+    <string name="action_showGroupCard">Show QR Code</string>
     <string name="label_groupCardTitleFallback">Group Chat</string>
     <string name="label_groupCardFileName">Join %1$s</string>
     <string name="label_groupCardFileNameFallback">Group Card</string>
+    <string name="label_groupCardScanToJoin">Scan to join</string>
+    <string name="label_groupCardLinkExpires">Link expires %1$s</string>
+    <string name="label_groupCardLinkNeverExpires">Link never expires</string>
+    <string name="footnote_groupCardInviteLink">Anyone who scans this card joins without approval until the link expires or you revoke it.</string>
     <string name="error_description_groupCardExportFailed">We were unable to export your group code. Please try again</string>
 
     <!-- Bio editor. The count under the field is code points left of 160. -->

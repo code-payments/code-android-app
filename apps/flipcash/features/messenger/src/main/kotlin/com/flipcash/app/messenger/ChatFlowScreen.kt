@@ -43,6 +43,7 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
+import com.flipcash.app.core.chat.InviteHostAction
 import com.flipcash.app.core.chat.InviteLinkAction
 import com.flipcash.app.core.chat.NewInviteLinkChoice
 import com.flipcash.app.core.chat.PinnedMessageJump
@@ -54,6 +55,8 @@ import com.flipcash.app.messenger.internal.invites.NewInviteLinkContent
 import com.flipcash.app.messenger.internal.invites.toChoice
 import com.flipcash.app.messenger.internal.invites.InviteLinkActionsViewModel
 import com.flipcash.app.messenger.internal.invites.InviteLinkViewModel
+import com.flipcash.app.messenger.internal.invites.InviteHostSheetContent
+import com.flipcash.app.messenger.internal.invites.InviteHostSheetViewModel
 import com.flipcash.app.messenger.internal.invites.ManageInvitesScreen
 import com.flipcash.app.messenger.internal.screens.EmojiPickerViewModel
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
@@ -198,6 +201,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.NewInviteLink> {
         FlowNewInviteLinkSheet()
+    }
+    annotatedEntry<ChatStep.InviteHost> {
+        FlowInviteHostSheet()
     }
     annotatedEntry<ChatStep.InviteLinkActions> { step ->
         FlowInviteLinkActionsSheet(step.inviteIdHex)
@@ -559,20 +565,20 @@ private fun FlowGroupInviteSheet() {
         // The card is drawn over this sheet, which stays open beneath it.
         onShowCard = (state.subject as? ChatSubject.Group)?.let { group ->
             {
-                keyboard.hideIfVisible {
-                    navigator.push(
-                        AppRoute.Menu.GroupCard(
-                            chatId = group.chatId,
-                            title = group.groupTitle,
-                            picture = group.picture,
-                            memberCount = group.memberCount,
-                        )
-                    )
-                }
+                state.shareableGroupInviteUrl?.let { inviteViewModel.handOverPlainCard(group.chatId, it) }
+                keyboard.hideIfVisible { navigator.push(group.cardRoute()) }
             }
         },
     )
 }
+
+/** The group's scan card. Its link goes through [com.flipcash.shared.chat.GroupCardLinks], never this route. */
+private fun ChatSubject.Group.cardRoute() = AppRoute.Menu.GroupCard(
+    chatId = chatId,
+    title = groupTitle,
+    picture = picture,
+    memberCount = memberCount,
+)
 
 /**
  * [ChatStep.ShareInviteLink]: the invite sheet's invite variant (frames 1b, 1f). The tap on Share Invite
@@ -616,6 +622,14 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?) {
         onMessageChanged = inviteViewModel::onMessageChanged,
         onInvite = linkViewModel::onSend,
         onDismiss = dismissSheet,
+        // The card is drawn over this sheet and encodes its invite link, handed over in memory.
+        onShowCard = (state.subject as? ChatSubject.Group)?.let { group ->
+            {
+                if (linkViewModel.handOverCard()) keyboard.hideIfVisible {
+                    navigator.push(group.cardRoute())
+                }
+            }
+        },
         inviteEffects = linkViewModel.effects,
         onInviteEffect = { effect ->
             when (effect) {
@@ -634,6 +648,45 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?) {
                 else -> Unit
             }
         },
+    )
+}
+
+/**
+ * [ChatStep.InviteHost]: frame 1m on the app's sheet scene. Share Link and Manage Invites return
+ * the pick and close it, and the screen beneath opens the next sheet, as 2b does.
+ */
+@Composable
+private fun FlowInviteHostSheet() {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val hostViewModel = hiltViewModel<InviteHostSheetViewModel>()
+    val hostState by hostViewModel.state.collectAsStateWithLifecycle()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val resultBack = resultBackNavigator<InviteHostAction>(exit = dismissSheet)
+    val group = state.subject as? ChatSubject.Group
+
+    LaunchedEffect(hostViewModel, state.chatId) {
+        state.chatId?.let(hostViewModel::open)
+    }
+    LaunchedEffect(hostViewModel) {
+        hostViewModel.effects.collect { effect ->
+            when (effect) {
+                InviteHostSheetViewModel.Effect.ShareInvite -> resultBack.returnValue(InviteHostAction.ShareInvite)
+                InviteHostSheetViewModel.Effect.ShareJoin -> resultBack.returnValue(InviteHostAction.ShareJoin)
+                InviteHostSheetViewModel.Effect.OpenManageInvites ->
+                    resultBack.returnValue(InviteHostAction.ManageInvites)
+                InviteHostSheetViewModel.Effect.Close -> dismissSheet()
+            }
+        }
+    }
+
+    InviteHostSheetContent(
+        groupName = group?.groupTitle.orEmpty(),
+        state = hostState,
+        onShare = hostViewModel::onShare,
+        onApproveChanged = hostViewModel::onApproveChanged,
+        onManageInvites = hostViewModel::onManageInvites,
+        onDismiss = dismissSheet,
     )
 }
 
