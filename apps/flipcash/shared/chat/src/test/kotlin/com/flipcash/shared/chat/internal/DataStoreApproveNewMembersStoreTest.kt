@@ -1,15 +1,20 @@
 package com.flipcash.shared.chat.internal
 
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import com.flipcash.services.models.chat.ChatId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import java.io.IOException
 import kotlin.io.path.createTempDirectory
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -36,6 +41,18 @@ class DataStoreApproveNewMembersStoreTest {
 
     @Test
     fun `the switch is off until set`() = runBlocking {
+        assertFalse(store.observe(moony).first())
+    }
+
+    @Test
+    fun `the switch is off when the store cannot be read`() = runBlocking {
+        val broken = object : DataStore<Preferences> {
+            override val data: Flow<Preferences> = flow { throw IOException("unreadable") }
+            override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences) =
+                throw IOException("unwritable")
+        }
+        val store = DataStoreApproveNewMembersStore(broken, owners = owner, currentOwner = { owner.value })
+
         assertFalse(store.observe(moony).first())
     }
 

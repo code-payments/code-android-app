@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.flipcash.services.models.chat.ChatId
@@ -12,9 +13,11 @@ import com.flipcash.shared.chat.ApproveNewMembersStore
 import com.getcode.utils.hexEncodedString
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -43,7 +46,8 @@ internal class DataStoreApproveNewMembersStore(
     override fun observe(chatId: ChatId): Flow<Boolean> =
         combine(
             owners.distinctUntilChanged(),
-            dataStore.data,
+            // A store that cannot be read leaves the switch off: off is the default for every group.
+            dataStore.data.catch { if (it is IOException) emit(emptyPreferences()) else throw it },
         ) { owner, prefs ->
             owner != null && chatId.bytes.toHexString() in prefs[key(owner)].orEmpty()
         }.distinctUntilChanged()
