@@ -4,7 +4,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.awt.Dimension
 import java.awt.Rectangle
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -28,9 +30,18 @@ class WindowStateStore(private val file: Path) {
     fun load(): SavedWindow? =
         if (!file.exists()) null else runCatching { json.decodeFromString<SavedWindow>(file.readText()) }.getOrNull()
 
+    /**
+     * Writes [w] through a temp file and a rename, so a crash mid-write leaves the old file. A failure
+     * (read-only home, full disk, a locked file) is logged and dropped: losing the window's place must
+     * never stop the window closing.
+     */
     fun save(w: SavedWindow) {
-        file.parent?.createDirectories()
-        file.writeText(json.encodeToString(SavedWindow.serializer(), w))
+        runCatching {
+            file.parent?.createDirectories()
+            val tmp = file.resolveSibling(file.fileName.toString() + ".tmp")
+            tmp.writeText(json.encodeToString(SavedWindow.serializer(), w))
+            Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+        }.onFailure { System.err.println("window state not saved: $it") }
     }
 }
 

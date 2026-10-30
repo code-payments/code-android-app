@@ -66,15 +66,24 @@ fun main() {
             DesktopNavState().apply { if (saved?.contextPaneOpen == true) context = ContextContent.Wallet }
         }
         val awtWindowRef = remember { java.util.concurrent.atomic.AtomicReference<java.awt.Window?>() }
+        // The floating bounds, kept while maximized or full screen so un-maximizing returns to them.
+        val lastFloating = remember {
+            java.util.concurrent.atomic.AtomicReference(saved?.let { Rectangle(it.x, it.y, it.width, it.height) })
+        }
         fun current(): SavedWindow? {
-            val b = awtWindowRef.get()?.bounds ?: return null
+            // A minimized window reports nonsense bounds (about -32000,-32000 on Windows); keep the last good save.
+            if (windowState.isMinimized) return null
+            val awt = awtWindowRef.get() ?: return null
+            if (windowState.placement == WindowPlacement.Floating) lastFloating.set(awt.bounds)
+            val b = lastFloating.get() ?: awt.bounds
             return SavedWindow(
                 x = b.x,
                 y = b.y,
                 width = b.width,
                 height = b.height,
-                maximized = windowState.placement == WindowPlacement.Maximized,
-                contextPaneOpen = nav.context == ContextContent.Wallet,
+                maximized = windowState.placement != WindowPlacement.Floating,
+                // Before linking there is no Wallet to show; carry the saved choice forward.
+                contextPaneOpen = if (signedIn) nav.context == ContextContent.Wallet else saved?.contextPaneOpen == true,
             )
         }
         fun run(command: DesktopCommand): Boolean =
@@ -82,8 +91,11 @@ fun main() {
         Window(
             onCloseRequest = {
                 // Debounced saves can miss a move made just before quitting.
-                current()?.let(windowStore::save)
-                exitApplication()
+                try {
+                    current()?.let(windowStore::save)
+                } finally {
+                    exitApplication()
+                }
             },
             title = "Flipcash",
             state = windowState,
@@ -95,7 +107,7 @@ fun main() {
                 configureChrome()
             }
             LaunchedEffect(Unit) {
-                snapshotFlow { listOf(windowState.position, windowState.size, windowState.placement, nav.context) }
+                snapshotFlow { listOf(windowState.position, windowState.size, windowState.placement, windowState.isMinimized, nav.context) }
                     .drop(1)
                     .debounce(500)
                     .collect { current()?.let(windowStore::save) }

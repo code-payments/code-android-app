@@ -49,6 +49,14 @@ class DesktopCommandsTest {
     }
 
     @Test
+    fun `alt and altgr are never commands`() {
+        // AltGr arrives as Ctrl+Alt on Windows and types characters on many layouts.
+        assertNull(commandFor(Key.N, meta = false, ctrl = true, shift = false, os = HostOs.Windows, alt = true))
+        assertNull(commandFor(Key.I, meta = true, ctrl = false, shift = false, os = HostOs.Mac, alt = true))
+        assertNull(commandFor(Key.Escape, meta = false, ctrl = false, shift = false, os = HostOs.Mac, alt = true))
+    }
+
+    @Test
     fun `toggle info opens and closes info`() {
         val nav = DesktopNavState()
         assertTrue(nav.perform(DesktopCommand.ToggleInfo, ContextPaneMode.Column))

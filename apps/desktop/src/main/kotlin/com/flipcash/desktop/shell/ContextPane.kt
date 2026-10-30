@@ -4,6 +4,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import com.getcode.theme.CodeTheme
 
 /**
  * What the context pane shows for [content]. Wallet is the real wallet; the rest are placeholders
@@ -39,8 +51,22 @@ fun ContextPane(
             is ContextContent.Unavailable -> PlaceholderPane(
                 title = content.name,
                 blockedBy = "This screen has no desktop build yet.",
-                onBack = { nav.back() },
+                onBack = nav::closeContext,
             )
+        }
+        // Every context pane can be closed: a column has no Esc, and at compact widths the pane
+        // covers the toolbar and footer that opened it.
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(8.dp)
+                .size(32.dp)
+                .clip(CircleShape)
+                .clickable(role = Role.Button, onClick = nav::closeContext)
+                .testTag("context_close"),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Outlined.Close, contentDescription = "Close", tint = CodeTheme.colors.textSecondary, modifier = Modifier.size(20.dp))
         }
     }
 }

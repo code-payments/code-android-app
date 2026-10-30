@@ -23,12 +23,20 @@ enum class HostOs {
 
 /**
  * The command for a key press: ⌘ on macOS, Ctrl on Windows and Linux, the same letter on each.
- * Shift, or the other platform's modifier, makes it something else. Esc needs no modifier.
+ * Shift, Alt, or the other platform's modifier, makes it something else. Esc needs no modifier.
  */
-fun commandFor(key: Key, meta: Boolean, ctrl: Boolean, shift: Boolean, os: HostOs): DesktopCommand? {
-    if (key == Key.Escape) return if (!meta && !ctrl && !shift) DesktopCommand.Escape else null
+fun commandFor(
+    key: Key,
+    meta: Boolean,
+    ctrl: Boolean,
+    shift: Boolean,
+    os: HostOs,
+    alt: Boolean = false,
+): DesktopCommand? {
+    if (key == Key.Escape) return if (!meta && !ctrl && !shift && !alt) DesktopCommand.Escape else null
     val primary = if (os == HostOs.Mac) meta && !ctrl else ctrl && !meta
-    if (!primary || shift) return null
+    // Alt (AltGr arrives as Ctrl+Alt on Windows) types characters on many layouts; never a command.
+    if (!primary || shift || alt) return null
     return when (key) {
         Key.K -> DesktopCommand.Search
         Key.N -> DesktopCommand.NewChat

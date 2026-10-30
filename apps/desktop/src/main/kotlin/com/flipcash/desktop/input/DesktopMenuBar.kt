@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.isShiftPressed
@@ -21,7 +22,7 @@ private val menuCommands = setOf(DesktopCommand.NewChat, DesktopCommand.ToggleIn
 /** The window's key handling: a key press becomes a [DesktopCommand], unless the menu bar already handles it. */
 fun desktopKeyHandler(os: HostOs, run: (DesktopCommand) -> Boolean): (KeyEvent) -> Boolean = handler@{ event ->
     if (event.type != KeyEventType.KeyDown) return@handler false
-    val command = commandFor(event.key, event.isMetaPressed, event.isCtrlPressed, event.isShiftPressed, os)
+    val command = commandFor(event.key, event.isMetaPressed, event.isCtrlPressed, event.isShiftPressed, os, event.isAltPressed)
         ?: return@handler false
     if (os == HostOs.Mac && command in menuCommands) return@handler false
     run(command)

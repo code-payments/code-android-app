@@ -24,6 +24,16 @@ class WindowStateStoreTest {
     }
 
     @Test
+    fun `a failed save does not throw and keeps the old file`() {
+        val w = SavedWindow(10, 20, 1280, 800, maximized = false, contextPaneOpen = true)
+        store.save(w)
+        // A directory where the temp file should go makes the write fail.
+        Files.createDirectory(file.resolveSibling("window.json.tmp"))
+        store.save(w.copy(x = 99))
+        assertEquals(w, store.load())
+    }
+
+    @Test
     fun `missing file loads as null`() {
         assertNull(store.load())
     }
