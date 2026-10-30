@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.request
 
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.tokens.TokenCoordinator
@@ -103,6 +104,7 @@ class RequestDetailsInsufficientFundsTest {
         exchange = exchange,
         userManager = userManager,
         resources = resources,
+        analytics = RecordingAnalytics(),
     ).also { it.open(ChatId(ByteArray(1)), "2") }
 
     @Test

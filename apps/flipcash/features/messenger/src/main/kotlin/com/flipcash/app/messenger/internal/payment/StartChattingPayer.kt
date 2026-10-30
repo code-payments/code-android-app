@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal.payment
 import androidx.annotation.StringRes
 import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.Amount
+import com.flipcash.analytics.SendContext
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.AddMoneyEvents
 import com.flipcash.analytics.events.TransferEvents
@@ -191,7 +192,7 @@ internal class DefaultStartChattingPayer @Inject constructor(
         val sent = { state: AnalyticsState, amount: Amount, error: String? ->
             when (action) {
                 TipAction.TIP -> TransferEvents.sentTip(state, amount, error)
-                TipAction.SEND -> TransferEvents.sentCash(state, amount, error, null, null)
+                TipAction.SEND -> TransferEvents.sentCash(state, amount, error, SendContext.DIRECT, null)
             }
         }
         analytics.track(

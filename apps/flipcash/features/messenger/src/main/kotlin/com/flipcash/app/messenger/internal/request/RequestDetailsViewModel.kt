@@ -5,6 +5,10 @@ import com.getcode.view.PaymentSuccessHoldDuration
 import com.getcode.view.holdPaymentSuccess
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.PaymentRequestEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.internal.errors.showNetworkError
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
@@ -69,6 +73,7 @@ internal class RequestDetailsViewModel @Inject constructor(
     private val exchange: Exchange,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalytics,
 ) : ViewModel() {
 
     sealed interface Sheet {
@@ -172,6 +177,7 @@ internal class RequestDetailsViewModel @Inject constructor(
         exchange = exchange,
         userManager = userManager,
         resources = resources,
+        analytics = analytics,
         openScreen = { route -> effects.trySend(Effect.OpenScreen(route)) },
         onNothingToPay = { _state.update { it.copy(hasPaymentIntent = false) } },
     )
@@ -194,7 +200,16 @@ internal class RequestDetailsViewModel @Inject constructor(
 
     fun close() {
         val id = _state.value.requestId ?: return
-        runCreatorAction { requests.close(id) }
+        runCreatorAction {
+            requests.close(id).also { result ->
+                analytics.track(
+                    PaymentRequestEvents.closed(
+                        if (result.isSuccess) AnalyticsState.SUCCESS else AnalyticsState.FAILURE,
+                        result.exceptionOrNull()?.analytics,
+                    ),
+                )
+            }
+        }
     }
 
     /** A tap on a row: only the creator, on an open request, on someone else's unpaid share. */

@@ -5,6 +5,7 @@ import com.getcode.view.PaymentSuccessHoldDuration
 import com.getcode.view.holdPaymentSuccess
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.SendContext
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.app.analytics.FlipcashAnalytics
@@ -319,7 +320,7 @@ internal class CurrencySendViewModel @Inject constructor(
                     show = { _state.update { it.copy(sendProgress = LoadingSuccessState(success = true)) } },
                     release = {
                         analytics.track(
-                            TransferEvents.sentCash(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null, null, null)
+                            TransferEvents.sentCash(AnalyticsState.SUCCESS, verifiedFiat.localFiat.analytics, null, SendContext.DIRECT, null)
                         )
                         _done.trySend(Unit)
                     },
@@ -331,7 +332,7 @@ internal class CurrencySendViewModel @Inject constructor(
                         AnalyticsState.FAILURE,
                         verifiedFiat.localFiat.analytics,
                         cause.analytics,
-                        null,
+                        SendContext.DIRECT,
                         null,
                     )
                 )

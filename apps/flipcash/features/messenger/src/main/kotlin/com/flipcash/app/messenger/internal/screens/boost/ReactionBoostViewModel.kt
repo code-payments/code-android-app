@@ -1,6 +1,11 @@
 package com.flipcash.app.messenger.internal.screens.boost
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.ChatType as AnalyticsChatType
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.TransferEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.analytics
 import com.flipcash.app.messenger.internal.payment.ReactionBoostPayer
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -11,6 +16,7 @@ import com.flipcash.shared.chat.MessageReactions
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.flipcash.shared.payments.boost.BoostChat
 import com.flipcash.shared.payments.boost.ReactionBoostPlan
+import com.flipcash.shared.payments.boost.centsToUsd
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
 import com.getcode.utils.TraceType
@@ -51,6 +57,7 @@ internal class ReactionBoostViewModel @Inject constructor(
     private val payer: ReactionBoostPayer,
     private val splitResolver: ReactionBoostSplitResolver,
     startChattingPayer: StartChattingPayer,
+    private val analytics: FlipcashAnalytics,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<ReactionBoostViewModel.State, ReactionBoostViewModel.Event>(
     initialState = State(),
@@ -213,13 +220,30 @@ internal class ReactionBoostViewModel @Inject constructor(
                 totalCents = cents,
                 onAddMoney = { dispatchEvent(Event.AddMoney) },
             ).onSuccess {
+                trackBoost(metadata?.type, cents, AnalyticsState.SUCCESS, null)
                 dispatchEvent(Event.SendProgressChanged(LoadingSuccessState(success = true)))
                 delay(SUCCESS_HOLD_MS)
                 dispatchEvent(Event.Completed)
-            }.onFailure {
+            }.onFailure { cause ->
+                // A PaymentBlocked is a pre-flight stop (minimum, balance, limit, no account) that the
+                // user was already told about; no payment was attempted.
+                if (cause !is StartChattingPayer.PaymentBlocked) {
+                    trackBoost(metadata?.type, cents, AnalyticsState.FAILURE, cause.analytics)
+                }
                 dispatchEvent(Event.SendProgressChanged(LoadingSuccessState()))
             }
         }
+    }
+
+    private fun trackBoost(type: ChatType?, totalCents: Long, state: AnalyticsState, error: String?) {
+        analytics.track(
+            TransferEvents.sentBoost(
+                type?.analytics ?: AnalyticsChatType.UNKNOWN,
+                state,
+                centsToUsd(totalCents).analytics,
+                error,
+            ),
+        )
     }
 
     private fun notSent(reason: String) {
