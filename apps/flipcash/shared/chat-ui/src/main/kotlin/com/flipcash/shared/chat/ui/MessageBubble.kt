@@ -1216,7 +1216,7 @@ private fun GroupSendBubble(
                 val even = parts.all { it.nativeAmount == smallest.nativeAmount }
                 Text(
                     text = stringResource(
-                        if (even) R.string.label_groupSendEach else R.string.label_groupSendEachApprox,
+                        if (even) R.string.label_groupBubbleEach else R.string.label_groupBubbleEachApprox,
                         content.partInDisplayCurrency(smallest).formatted(),
                     ),
                     style = secondary,
