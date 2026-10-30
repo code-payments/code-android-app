@@ -49,7 +49,7 @@ hilt = "2.59.2"
 hilt-jetpack = "1.4.0"
 compose-multiplatform = "1.12.1"
 # JetBrains publishes material3 and the extended icons on their own lines; the icons stopped at 1.7.3.
-compose-multiplatform-material3 = "1.12.0-alpha03"
+compose-multiplatform-material3 = "1.13.0-beta01"
 compose-multiplatform-icons = "1.7.3"
 okhttp = "5.5.0"
 retrofit = "3.0.0"
