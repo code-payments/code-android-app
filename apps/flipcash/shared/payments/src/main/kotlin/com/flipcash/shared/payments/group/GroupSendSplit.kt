@@ -49,13 +49,9 @@ object GroupSendSplit {
     const val MAX_RECIPIENTS = 10
     const val MINIMUM_PART_UNITS = 1L
 
-    /**
-     * @param maxRecipients the most the total may be split between. A split that includes the sender
-     * counts one more than the people paid, so it allows [MAX_RECIPIENTS] + 1.
-     */
-    fun split(totalUnits: Long, recipients: Int, maxRecipients: Int = MAX_RECIPIENTS): GroupSendPlan {
+    fun split(totalUnits: Long, recipients: Int): GroupSendPlan {
         if (recipients <= 0) return GroupSendPlan.NoRecipients
-        if (recipients > maxRecipients) return GroupSendPlan.TooManyRecipients
+        if (recipients > MAX_RECIPIENTS) return GroupSendPlan.TooManyRecipients
         val base = totalUnits / recipients
         if (base < MINIMUM_PART_UNITS) return GroupSendPlan.PartBelowMinimum
         val leftover = totalUnits % recipients
@@ -64,23 +60,16 @@ object GroupSendSplit {
 
     /**
      * A split that the sender is part of but is not paid: [totalUnits] is divided between the
-     * [paid] members and the sender, who is checked at 0-based position [viewerAt] in check order
-     * (null when not checked), then the sender's part is dropped. The result's parts are the paid
-     * members', in check order. The too-small and recipient-count rules apply to the split with the
-     * sender in it, which may be [MAX_RECIPIENTS] + 1.
+     * [paid] members and the sender, whose part is always the last share, so they never take an
+     * extra unit. The sender's part is then dropped: the result's parts are the paid members',
+     * in check order. [includeViewer] false is a plain split. The sender counts toward
+     * [MAX_RECIPIENTS], and in the too-small rule.
      */
-    fun splitWithViewer(totalUnits: Long, paid: Int, viewerAt: Int?): GroupSendPlan {
+    fun splitWithViewer(totalUnits: Long, paid: Int, includeViewer: Boolean): GroupSendPlan {
         if (paid <= 0) return GroupSendPlan.NoRecipients
-        val split = split(
-            totalUnits,
-            paid + if (viewerAt != null) 1 else 0,
-            maxRecipients = MAX_RECIPIENTS + if (viewerAt != null) 1 else 0,
-        )
-        if (split !is GroupSendPlan.Pay || viewerAt == null) return split
-        return GroupSendPlan.Pay(
-            parts = split.parts.filterIndexed { i, _ -> i != viewerAt },
-            viewerPart = split.parts[viewerAt],
-        )
+        val split = split(totalUnits, paid + if (includeViewer) 1 else 0)
+        if (split !is GroupSendPlan.Pay || !includeViewer) return split
+        return GroupSendPlan.Pay(parts = split.parts.dropLast(1), viewerPart = split.parts.last())
     }
 
     /** [fiat] in its currency's minor unit, rounded half-up to that unit. */

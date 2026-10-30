@@ -34,14 +34,13 @@ internal data class GroupSendState(
 
     /**
      * The parts to pay, once [total] is known and someone other than the sender is checked: the
-     * total is split between everyone checked, the sender included, in check order, then the
+     * total is split between everyone checked, the sender included as the last share, then the
      * sender's part is dropped.
      */
     val plan: GroupSendPlan
         get() {
             val total = total ?: return GroupSendPlan.NoRecipients
-            val viewerAt = selected.indexOf(viewerId).takeIf { it >= 0 }
-            return GroupSendSplit.splitWithViewer(GroupSendSplit.minorUnits(total), paid.size, viewerAt)
+            return GroupSendSplit.splitWithViewer(GroupSendSplit.minorUnits(total), paid.size, includesViewer)
         }
 
     /** Who Select People lists: the roster without the sender, who has a "You" row of their own. */
@@ -53,11 +52,11 @@ internal data class GroupSendState(
 
     /**
      * [selected] with [member] checked or unchecked, or null when checking them would make an 11th
-     * paid member. The sender does not count toward the cap: they are not paid.
+     * person. The sender counts toward the cap, as a share of the split.
      */
     fun toggled(member: ID): List<ID>? = when {
         member in selected -> selected.filterNot { it == member }
-        member != viewerId && paid.size >= GroupSendSplit.MAX_RECIPIENTS -> null
+        selected.size >= GroupSendSplit.MAX_RECIPIENTS -> null
         else -> selected.plusElement(member)
     }
 }

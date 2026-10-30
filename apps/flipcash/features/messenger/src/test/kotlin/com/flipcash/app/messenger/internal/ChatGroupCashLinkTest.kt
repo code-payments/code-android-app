@@ -517,12 +517,12 @@ class ChatGroupCashLinkTest {
     }
 
     @Test
-    fun `You checked first takes the extra cent and the others are paid the smaller parts`() = runTest(mainCoroutineRule.dispatcher) {
+    fun `You is the last share whatever order it was checked in, so the others take the extra cent`() = runTest(mainCoroutineRule.dispatcher) {
         val vm = createViewModel()
         selectingPeople(vm, total = 1.0)
         vm.checkYou(); vm.checkMember(0); vm.checkMember(1)
 
-        assertEquals(GroupSendPlan.Pay(listOf(33L, 33L), viewerPart = 34L), vm.stateFlow.value.groupSend?.plan)
+        assertEquals(GroupSendPlan.Pay(listOf(34L, 33L), viewerPart = 33L), vm.stateFlow.value.groupSend?.plan)
         assertEquals(listOf(roster[0].userId, roster[1].userId), vm.stateFlow.value.groupSend?.paid)
     }
 
@@ -541,16 +541,16 @@ class ChatGroupCashLinkTest {
     }
 
     @Test
-    fun `ten others plus You is allowed and an 11th other is not`() = runTest(mainCoroutineRule.dispatcher) {
+    fun `You counts toward the cap so nine others plus You is the most`() = runTest(mainCoroutineRule.dispatcher) {
         val vm = createViewModel()
         selectingPeople(vm, total = 20.0)
         vm.checkYou()
-        vm.check(11)
+        vm.check(10)
         advanceUntilIdle()
 
         val groupSend = vm.stateFlow.value.groupSend
-        assertEquals(10, groupSend?.paid?.size)
-        assertEquals(11, groupSend?.selected?.size)
+        assertEquals(9, groupSend?.paid?.size)
+        assertEquals(10, groupSend?.selected?.size)
         assertTrue(groupSend?.plan is GroupSendPlan.Pay)
         assertEquals(1, BottomBarManager.messages.value.size)
     }

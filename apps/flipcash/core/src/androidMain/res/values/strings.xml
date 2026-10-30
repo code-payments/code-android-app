@@ -2011,10 +2011,10 @@
         <item quantity="one">to %1$d person</item>
         <item quantity="other">to %1$d people</item>
     </plurals>
-    <string name="label_groupSendEach">%1$s each</string>
-    <string name="label_groupSendEachApprox">~%1$s each</string>
-    <string name="label_groupSendEachIncludingYou">%1$s each, including You</string>
-    <string name="label_groupSendEachApproxIncludingYou">~%1$s each, including You</string>
+    <string name="label_groupSendEach">%1$s Each</string>
+    <string name="label_groupSendEachApprox">~%1$s Each</string>
+    <string name="label_groupSendEachIncludingYou">%1$s Each, including You</string>
+    <string name="label_groupSendEachApproxIncludingYou">~%1$s Each, including You</string>
     <string name="subtitle_senderSent">%1$s sent</string>
     <string name="label_cashDetails_sent">Sent</string>
     <string name="label_cashDetails_from">From</string>

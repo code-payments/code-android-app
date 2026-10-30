@@ -62,12 +62,12 @@ class GroupSendSplitVectorsTest {
     @Test
     fun `every You vector`() {
         val vectors = fixture.getJSONArray("youVectors")
-        assertEquals(11, vectors.length())
+        assertEquals(9, vectors.length())
         for (i in 0 until vectors.length()) {
             val v = vectors.getJSONObject(i)
             val name = v.getString("name")
             val total = cents(v.getString("total"))
-            val plan = GroupSendSplit.splitWithViewer(total, v.getInt("recipients"), v.getInt("youAt"))
+            val plan = GroupSendSplit.splitWithViewer(total, v.getInt("recipients"), includeViewer = true)
 
             if (v.has("expectedError")) {
                 val error = when (val rule = v.getString("expectedError")) {
