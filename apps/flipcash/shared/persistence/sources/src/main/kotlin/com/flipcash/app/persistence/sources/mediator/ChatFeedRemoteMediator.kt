@@ -146,7 +146,7 @@ class ChatFeedRemoteMediator(
     }
 
     /**
-     * Clears the membership of any group this device holds that a complete pass did not return.
+     * Clears the membership of any group (and drops its key envelope and payment requests) this device holds that a complete pass did not return.
      *
      * The event stream is the primary path — `MemberLeft` naming the recipient, and `LeaveChat`
      * clearing it optimistically. This is the backstop for a removal that happened while the
@@ -157,7 +157,7 @@ class ChatFeedRemoteMediator(
         if (ChatType.GROUP !in chatTypes) return
         for (chatIdHex in metadataDataSource.getChatIdsOfType(ChatType.GROUP)) {
             if (chatIdHex in seenGroupIds) continue
-            metadataDataSource.setMembership(chatIdHex, isMember = false)
+            metadataDataSource.removeFromChat(chatIdHex)
         }
     }
 }

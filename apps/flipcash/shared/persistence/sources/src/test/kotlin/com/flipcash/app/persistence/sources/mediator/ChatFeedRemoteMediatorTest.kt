@@ -174,12 +174,12 @@ class ChatFeedRemoteMediatorTest {
         groupReturns(page(stillThere, hasMore = false))
         coEvery { metadataDataSource.chatIdHex(stillThere.chatId) } returns "01"
         coEvery { metadataDataSource.getChatIdsOfType(ChatType.GROUP) } returns listOf("01", "02")
-        coEvery { metadataDataSource.setMembership(any<String>(), any()) } just Runs
+        coEvery { metadataDataSource.removeFromChat(any<String>()) } just Runs
 
         mediator().load(LoadType.REFRESH, state)
 
-        coVerify { metadataDataSource.setMembership("02", false) }
-        coVerify(exactly = 0) { metadataDataSource.setMembership("01", false) }
+        coVerify { metadataDataSource.removeFromChat("02") }
+        coVerify(exactly = 0) { metadataDataSource.removeFromChat("01") }
     }
 
     /**
@@ -196,6 +196,6 @@ class ChatFeedRemoteMediatorTest {
         mediator().load(LoadType.REFRESH, state)
 
         coVerify(exactly = 0) { metadataDataSource.getChatIdsOfType(any()) }
-        coVerify(exactly = 0) { metadataDataSource.setMembership(any<String>(), any()) }
+        coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<String>()) }
     }
 }
