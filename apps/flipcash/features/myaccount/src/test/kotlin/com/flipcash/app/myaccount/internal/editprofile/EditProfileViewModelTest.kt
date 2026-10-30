@@ -3,7 +3,10 @@ package com.flipcash.app.myaccount.internal.editprofile
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.exchange.Exchange
 import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.AnalyticsEvent
+import com.flipcash.analytics.events.ProfileEvents
 import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
@@ -60,7 +63,9 @@ class EditProfileViewModelTest {
         BottomBarManager.clear()
     }
 
-    private fun TestScope.viewModel(): EditProfileViewModel {
+    private fun TestScope.viewModel(
+        analytics: FlipcashAnalytics = mockk<FlipcashAnalytics>(relaxed = true),
+    ): EditProfileViewModel {
         val userManager = mockk<UserManager>(relaxed = true)
         every { userManager.state } returns MutableStateFlow(UserManager.State())
         val userFlags = mockk<UserFlagsCoordinator>(relaxed = true)
@@ -74,7 +79,7 @@ class EditProfileViewModelTest {
             tipPayments = mockk<TipPaymentDelegate>(relaxed = true),
             featuredGroups = featuredGroups,
             purchaseMethodController = purchaseMethodController,
-            analytics = mockk<FlipcashAnalytics>(relaxed = true),
+            analytics = analytics,
             resources = FakeResourceHelper(),
             exchange = mockk<Exchange> {
                 every { preferredRate } returns Rate.oneToOne
@@ -82,6 +87,15 @@ class EditProfileViewModelTest {
             },
             dispatchers = TestDispatchers(testScheduler),
         )
+    }
+
+    @Test
+    fun `opening the screen sends Edit Profile Viewed once`() = runTest(mainCoroutineRule.dispatcher) {
+        val analytics = RecordingAnalytics()
+        viewModel(analytics)
+        advanceUntilIdle()
+
+        assertEquals(listOf<AnalyticsEvent>(ProfileEvents.editProfileViewed()), analytics.events)
     }
 
     private fun locked() = UsernameGate.Locked(

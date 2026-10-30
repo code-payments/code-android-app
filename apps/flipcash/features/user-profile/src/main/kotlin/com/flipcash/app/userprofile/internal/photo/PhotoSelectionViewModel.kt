@@ -1,5 +1,8 @@
 package com.flipcash.app.userprofile.internal.photo
 
+import com.flipcash.analytics.ProfileField
+import com.flipcash.analytics.events.ProfileEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
@@ -64,6 +67,7 @@ class PhotoSelectionViewModel @AssistedInject constructor(
     private val imagePreparer: ImageUploadPreparer,
     private val resources: ResourceHelper,
     val contentReader: ContentReader,
+    private val analytics: FlipcashAnalytics,
     @Assisted val slot: Slot,
 ) : BaseViewModel<PhotoSelectionViewModel.State, PhotoSelectionViewModel.Event>(
     initialState = State(
@@ -225,6 +229,14 @@ class PhotoSelectionViewModel @AssistedInject constructor(
             }
             .onResult(
                 onSuccess = { _ ->
+                    analytics.track(
+                        ProfileEvents.fieldSaved(
+                            when (slot) {
+                                Slot.Avatar -> ProfileField.PHOTO
+                                Slot.Cover -> ProfileField.COVER
+                            }
+                        )
+                    )
                     viewModelScope.launch {
                         dispatchEvent(Event.UpdateProcessingState(success = true))
                         delay(500.milliseconds)

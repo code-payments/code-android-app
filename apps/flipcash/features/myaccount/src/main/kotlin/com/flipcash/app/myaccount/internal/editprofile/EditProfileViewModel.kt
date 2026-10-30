@@ -5,6 +5,7 @@ import com.flipcash.app.core.ui.forViewer
 import androidx.lifecycle.viewModelScope
 import com.flipcash.analytics.AddMoneySource
 import com.flipcash.analytics.events.AddMoneyEvents
+import com.flipcash.analytics.events.ProfileEvents
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
@@ -93,6 +94,7 @@ internal class EditProfileViewModel @Inject constructor(
     }
 
     init {
+        analytics.track(ProfileEvents.editProfileViewed())
         val profile = userManager.state
             .filter { it.authState is AuthState.Ready }
             .map { it.userProfile }

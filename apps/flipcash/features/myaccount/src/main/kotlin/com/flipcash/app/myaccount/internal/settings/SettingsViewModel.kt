@@ -2,6 +2,8 @@ package com.flipcash.app.myaccount.internal.settings
 
 import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.events.ProfileEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.AuthManager
@@ -49,6 +51,7 @@ internal class SettingsViewModel @Inject constructor(
     releaseStageProvider: ReleaseStageProvider,
     private val resources: ResourceHelper,
     private val authManager: AuthManager,
+    private val analytics: FlipcashAnalytics,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SettingsViewModel.State, SettingsViewModel.Event>(
     initialState = State(),
@@ -119,6 +122,7 @@ internal class SettingsViewModel @Inject constructor(
     }
 
     init {
+        analytics.track(ProfileEvents.settingsViewed())
         dispatchEvent(Event.OnAppVersionUpdated(versionInfo))
 
         combine(

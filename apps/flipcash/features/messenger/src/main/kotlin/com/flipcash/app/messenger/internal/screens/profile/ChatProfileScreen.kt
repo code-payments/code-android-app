@@ -305,6 +305,7 @@ internal fun PersonProfileScreen(
                                 anchorHeight = menuAnchorHeight,
                                 onDismiss = { menuOpen = false },
                                 onItem = { item ->
+                                    viewModel.dispatchEvent(ChatProfileViewModel.Event.MenuActionPicked(item))
                                     when (item) {
                                         ChatProfileAction.Block ->
                                             viewModel.dispatchEvent(ChatProfileViewModel.Event.BlockUser)

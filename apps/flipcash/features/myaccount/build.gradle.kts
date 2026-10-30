@@ -16,6 +16,7 @@ dependencies {
     implementation(libs.compose.paging)
 
     implementation(project(":apps:flipcash:shared:analytics"))
+    testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
     implementation(project(":apps:flipcash:shared:appsettings"))
     implementation(project(":apps:flipcash:shared:appupdates"))
     implementation(project(":apps:flipcash:shared:authentication"))

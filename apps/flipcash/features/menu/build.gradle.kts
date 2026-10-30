@@ -16,6 +16,7 @@ dependencies {
     implementation(libs.bundles.haze)
 
     implementation(project(":apps:flipcash:shared:analytics"))
+    testImplementation(testFixtures(project(":apps:flipcash:shared:analytics")))
     implementation(project(":apps:flipcash:shared:appupdates"))
     implementation(project(":apps:flipcash:shared:authentication"))
     implementation(project(":apps:flipcash:shared:bills"))

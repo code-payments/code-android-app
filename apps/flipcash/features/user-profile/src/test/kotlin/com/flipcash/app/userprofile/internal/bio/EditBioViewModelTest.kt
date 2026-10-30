@@ -1,5 +1,9 @@
 package com.flipcash.app.userprofile.internal.bio
 
+import com.flipcash.analytics.AnalyticsEvent
+import com.flipcash.analytics.ProfileField
+import com.flipcash.analytics.events.ProfileEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.services.controllers.ProfileController
@@ -36,6 +40,7 @@ class EditBioViewModelTest {
 
     private val userManager = mockk<UserManager>(relaxed = true)
     private val profileController = mock<ProfileController>()
+    private val analytics = RecordingAnalytics()
 
     private fun profile(bio: String) = UserProfile.Empty.copy(bio = bio)
 
@@ -45,6 +50,7 @@ class EditBioViewModelTest {
             userManager = userManager,
             profileController = profileController,
             resources = FakeResourceHelper(),
+            analytics = analytics,
             dispatchers = TestDispatchers(testScheduler),
         )
     }
@@ -160,5 +166,63 @@ class EditBioViewModelTest {
         advanceUntilIdle()
 
         verify(profileController).setBio("")
+    }
+
+    @Test
+    fun `a saved bio sends Profile Field Saved for the bio`() = runTest(mainCoroutineRule.dispatcher) {
+        whenever(profileController.setBio(any())).thenReturn(Result.success(Unit))
+        val vm = viewModel("Hello")
+        advanceUntilIdle()
+        vm.type { replace(0, length, "New bio") }
+        advanceUntilIdle()
+
+        vm.dispatchEvent(EditBioViewModel.Event.Save)
+        advanceUntilIdle()
+
+        assertEquals(listOf<AnalyticsEvent>(ProfileEvents.fieldSaved(ProfileField.BIO)), analytics.events)
+    }
+
+    @Test
+    fun `a moderated bio sends only Bio Moderation Failed`() = runTest(mainCoroutineRule.dispatcher) {
+        whenever(profileController.setBio(any())).thenReturn(
+            Result.failure(SetBioError.FailedModerated(ModerationResult.FlaggedCategory.OTHER))
+        )
+        val vm = viewModel("Hello")
+        advanceUntilIdle()
+        vm.type { replace(0, length, "Something rude") }
+        advanceUntilIdle()
+
+        vm.dispatchEvent(EditBioViewModel.Event.Save)
+        advanceUntilIdle()
+
+        assertEquals(listOf<AnalyticsEvent>(ProfileEvents.bioModerationFailed()), analytics.events)
+    }
+
+    @Test
+    fun `an invalid bio sends nothing`() = runTest(mainCoroutineRule.dispatcher) {
+        whenever(profileController.setBio(any())).thenReturn(Result.failure(SetBioError.InvalidBio()))
+        val vm = viewModel("Hello")
+        advanceUntilIdle()
+        vm.type { replace(0, length, "x") }
+        advanceUntilIdle()
+
+        vm.dispatchEvent(EditBioViewModel.Event.Save)
+        advanceUntilIdle()
+
+        assertEquals(emptyList<AnalyticsEvent>(), analytics.events)
+    }
+
+    @Test
+    fun `a generic bio save failure sends nothing`() = runTest(mainCoroutineRule.dispatcher) {
+        whenever(profileController.setBio(any())).thenReturn(Result.failure(IllegalStateException("boom")))
+        val vm = viewModel("Hello")
+        advanceUntilIdle()
+        vm.type { replace(0, length, "x") }
+        advanceUntilIdle()
+
+        vm.dispatchEvent(EditBioViewModel.Event.Save)
+        advanceUntilIdle()
+
+        assertEquals(emptyList<AnalyticsEvent>(), analytics.events)
     }
 }

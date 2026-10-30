@@ -1,5 +1,8 @@
 package com.flipcash.app.userprofile.internal.username
 
+import com.flipcash.analytics.ProfileField
+import com.flipcash.analytics.events.ProfileEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.getcode.opencode.exchange.Exchange
 import com.flipcash.app.core.ui.forViewer
 import androidx.compose.foundation.text.input.TextFieldState
@@ -52,6 +55,7 @@ class UsernameEntryViewModel @Inject constructor(
     private val userFlags: UserFlagsCoordinator,
     private val resources: ResourceHelper,
     private val exchange: Exchange,
+    private val analytics: FlipcashAnalytics,
 ) : BaseViewModel<UsernameEntryViewModel.State, UsernameEntryViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -158,6 +162,9 @@ class UsernameEntryViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
             .map { stateFlow.value.usernameFieldState.text.toString() }
             .map { username -> profileController.setUsername(username) }
+            .onEach { result ->
+                result.onSuccess { analytics.track(ProfileEvents.fieldSaved(ProfileField.USERNAME)) }
+            }
             .onResult(
                 onSuccess = {
                     viewModelScope.launch {

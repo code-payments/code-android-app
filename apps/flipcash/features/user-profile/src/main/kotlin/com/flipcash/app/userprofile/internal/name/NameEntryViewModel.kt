@@ -1,5 +1,7 @@
 package com.flipcash.app.userprofile.internal.name
 
+import com.flipcash.analytics.ProfileField
+import com.flipcash.analytics.events.ProfileEvents
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.lifecycle.viewModelScope
@@ -169,6 +171,10 @@ class NameEntryViewModel @Inject constructor(
                         DisplayNameEvents.set(event.source.analytics)
                     }
                     analytics.track(analyticsEvent)
+                    // Onboarding and tip-card setup are already counted by Display Name: Set.
+                    if (event.source == DisplayNameSource.MyAccount) {
+                        analytics.track(ProfileEvents.fieldSaved(ProfileField.NAME))
+                    }
                 }
                 result
             }.onResult(

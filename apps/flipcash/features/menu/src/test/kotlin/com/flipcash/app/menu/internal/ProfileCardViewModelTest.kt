@@ -1,5 +1,8 @@
 package com.flipcash.app.menu.internal
 
+import com.flipcash.analytics.AnalyticsEvent
+import com.flipcash.analytics.events.ProfileEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.bill.Scannable
 import com.flipcash.app.core.share.TipCodeExporter
@@ -55,6 +58,7 @@ class ProfileCardViewModelTest {
             tipCodeExporter = exporter,
             shareable = mockk<ShareSheetController>(relaxed = true),
             resources = resources,
+            analytics = RecordingAnalytics(),
         )
         vm.download()
         BottomBarManager.messages.value.first().actions.first().onClick()
@@ -82,5 +86,23 @@ class ProfileCardViewModelTest {
     @Test
     fun `a blank name falls back to the generic name`() = runTest(mainCoroutineRule.dispatcher) {
         assertEquals("Profile Card", exportedBaseName("   "))
+    }
+
+    @Test
+    fun `opening the card sends Card Shown even when the card fails to load`() = runTest(mainCoroutineRule.dispatcher) {
+        val tipping = mockk<TippingCoordinator>()
+        coEvery { tipping.profileCard(any()) } returns Result.failure(IllegalStateException("offline"))
+        val analytics = RecordingAnalytics()
+
+        ProfileCardViewModel(
+            userId = listOf<Byte>(1),
+            tippingCoordinator = tipping,
+            tipCodeExporter = exporter,
+            shareable = mockk<ShareSheetController>(relaxed = true),
+            resources = resources,
+            analytics = analytics,
+        )
+
+        assertEquals(listOf<AnalyticsEvent>(ProfileEvents.cardShown()), analytics.events)
     }
 }
