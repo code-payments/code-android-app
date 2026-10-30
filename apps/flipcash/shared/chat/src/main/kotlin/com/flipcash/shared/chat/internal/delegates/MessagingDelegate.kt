@@ -33,6 +33,9 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.Pin
+import com.flipcash.services.models.chat.PinSummary
+import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.PointerType
@@ -49,6 +52,7 @@ import com.flipcash.shared.chat.internal.SenderResolver
 import com.flipcash.shared.chat.ChatMembership
 import com.flipcash.shared.chat.MessagingOperations
 import com.flipcash.shared.chat.PendingMutation
+import com.flipcash.shared.chat.PinnedMessages
 import com.flipcash.shared.chat.UnreadBoundary
 import com.flipcash.shared.chat.internal.ChatStateHolder
 import com.flipcash.shared.chat.internal.OutgoingEncryption
@@ -418,6 +422,46 @@ class MessagingDelegate @Inject constructor(
 
     override suspend fun peekMessage(chatId: ChatId, messageId: Long): Result<ChatMessage> =
         messagingController.getMessage(chatId, messageId, ViewMode.FULL_OR_REDACTED)
+
+    override suspend fun getPinnedMessages(chatId: ChatId): Result<PinnedMessages> = runCatching {
+        val pins = mutableListOf<Pin>()
+        var token: PagingToken? = null
+        var version: Long? = null
+        do {
+            val page = chatController.getPinnedMessages(
+                chatId,
+                QueryOptions(token = token),
+                ViewMode.FULL_OR_REDACTED,
+            ).getOrThrow()
+            pins += page.pins
+            // The first page's: a later page read after another pin landed must not claim a version
+            // whose pins this list doesn't hold.
+            if (version == null) version = page.pinSummary.version
+            token = page.pagingToken
+        } while (page.hasMore && token != null)
+        PinnedMessages(
+            pins = pins.map { pin -> pin.copy(message = readablePinned(chatId, pin.message)) },
+            version = version ?: 0,
+        )
+    }
+
+    /** The stored copy, opened on upsert, when there is one; otherwise [message] opened the way [readMessage] does. */
+    private suspend fun readablePinned(chatId: ChatId, message: ChatMessage): ChatMessage {
+        messageDataSource.getMessage(chatId, message.messageId)?.let { return it }
+        val opener = incoming
+        val selfId = userManager.accountId
+        if (opener == null || selfId == null || message.content.singleOrNull() !is MessageContent.Encrypted) {
+            return message
+        }
+        val peerId = if (message.senderId == selfId) getOtherMember(chatId)?.userId else null
+        return opener.open(chatId, selfId, peerId, listOf(message), stored = { null }).single()
+    }
+
+    override suspend fun pinMessage(chatId: ChatId, messageId: Long): Result<PinSummary> =
+        chatController.pinMessage(chatId, messageId)
+
+    override suspend fun unpinMessage(chatId: ChatId, messageId: Long): Result<PinSummary> =
+        chatController.unpinMessage(chatId, messageId)
 
     /** Text, photos and replies to either are what DMs encrypt; anything else keeps the server's body. */
     private fun MessageContent.pushText(): String? = when (this) {

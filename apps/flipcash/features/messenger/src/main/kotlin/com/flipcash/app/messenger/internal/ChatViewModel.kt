@@ -7,6 +7,7 @@ import com.flipcash.shared.chat.ui.settledUsd
 import com.flipcash.shared.chat.ui.partFor
 import com.flipcash.shared.chat.media.ChatPhoto
 import com.flipcash.services.models.chat.MediaItemRendition
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.LinkPreview
 import com.flipcash.shared.chat.ui.linkPreview
 import android.content.ClipboardManager
@@ -98,6 +99,12 @@ import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.ViewerState
+import com.flipcash.services.models.chat.Pin
+import com.flipcash.services.models.PinMessageError
+import com.flipcash.app.messenger.internal.pins.ChatPins
+import com.flipcash.app.messenger.internal.pins.WaitingPin
+import com.flipcash.app.messenger.internal.pins.PinnedRow
+import com.flipcash.shared.chat.ui.previewText
 import com.flipcash.services.models.chat.isActiveAt
 import com.flipcash.services.models.chat.silence
 import com.flipcash.services.models.chat.isDmAddressable
@@ -327,6 +334,9 @@ internal class ChatViewModel @AssistedInject constructor(
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
+    /** The highest pin summary version heard of; a read follows any that passes the held list. */
+    private val pinVersionHeard = MutableStateFlow<Long?>(null)
+
 
     /**
      * Whether the transcript may be drawn. Saved link previews load at app start, but a chat opened
@@ -382,6 +392,12 @@ internal class ChatViewModel @AssistedInject constructor(
          * needs the deadline this keeps.
          */
         val viewerState: ViewerState? = null,
+        /** The chat's pins, read on open and again whenever the stored summary moves past them. */
+        val pins: ChatPins = ChatPins(),
+        /** Which visible pin the bar shows, newest first. A tap jumps to it and steps to the next older. */
+        val pinBarIndex: Int = 0,
+        /** The message the server refused at the pin cap; the pinned list quotes it while it waits for a slot. */
+        val waitingPin: WaitingPin? = null,
         /**
          * The clock a timed silence is read against. A silence lapses with no event, so [silence]
          * compares the deadline to this and a timer bumps it at the deadline.
@@ -654,6 +670,10 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         val participant: ChatParticipant?
             get() = subject?.asParticipant()
+
+        /** `can_pin`: the creator of a group while a member, either member of a DM. Read, never derived from the type. */
+        val canPin: Boolean
+            get() = viewerState?.permissions?.canPin == true
 
         /**
          * Cash sent here pays members rather than posting a cash link. Private groups only: they
@@ -987,6 +1007,26 @@ internal class ChatViewModel @AssistedInject constructor(
 
         /** This chat's viewer state moved, from the stream or from the viewer's own request. */
         data class OnViewerStateResolved(val viewerState: ViewerState?) : Event
+
+        /** A read of the chat's pins came back, made at summary [version]. */
+        data class PinsRead(val pins: List<Pin>, val version: Long) : Event
+
+        /** The transcript's stored copies of the pinned messages, keyed by message id. */
+        data class PinnedCopiesStored(val messages: Map<Long, ChatMessage>) : Event
+
+        /** The stored pin summary moved; its count says whether there is anything to wait for. */
+        data class PinSummaryChanged(val count: Int) : Event
+
+        /** Pin [messageId]; [quote] names it in the full-list header if the chat is at its cap. */
+        data class PinMessage(val messageId: Long, val quote: String?) : Event
+        /** Unpin [messageId]; once it succeeds, [pinAfter] takes the freed slot (the list opened full). */
+        data class UnpinMessage(val messageId: Long, val pinAfter: Long? = null) : Event
+
+        /** The server refused a pin with `TOO_MANY_PINS`: the screen opens the list to make room for it. */
+        data class PinCapReached(val waiting: WaitingPin) : Event
+
+        /** The pin bar was tapped: jump to the pin it shows and step to the next older one. */
+        data object PinBarTapped : Event
 
         /** A timed silence reached its deadline; nothing else says so. */
         data object SilenceLapsed : Event
@@ -1336,6 +1376,8 @@ internal class ChatViewModel @AssistedInject constructor(
         val canBan: Boolean,
         /** The group's creator, whom no moderation action may name. */
         val creatorId: ID?,
+        /** `can_pin`, read from the viewer state for DMs and groups alike. */
+        val canPin: Boolean,
     )
 
     /**
@@ -1554,6 +1596,7 @@ internal class ChatViewModel @AssistedInject constructor(
                         canSilence = it.chatType == ChatType.GROUP && moderation?.canSilence == true,
                         canBan = it.chatType == ChatType.GROUP && moderation?.canBan == true,
                         creatorId = (it.subject as? ChatSubject.Group)?.creator,
+                        canPin = it.canPin,
                     )
                 }.distinctUntilChanged(),
                 ::ViewerGates,
@@ -1587,12 +1630,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     // message is still in the page: its key, and so the next page's, are unchanged.
                     if (content.paysRequestShare) return@flatMapIndexed emptyList()
 
-                    val enriched = if (content is MessageContent.Cash && content.tokenName.isBlank()) {
-                        val token = tokenCoordinator.getTokenMetadata(content.mint).getOrNull()?.token
-                        if (token != null) {
-                            content.copy(tokenName = token.name, tokenImageUrl = token.imageUrl)
-                        } else content
-                    } else content
+                    val enriched = content.withTokenMetadata()
 
                     // Resolved here, next to the token-metadata lookup, because this is the one
                     // place in the transcript that already does async per-item work. A citation of
@@ -1698,6 +1736,7 @@ internal class ChatViewModel @AssistedInject constructor(
                             canSilence = facts.canSilence,
                             canBan = facts.canBan,
                             creatorId = facts.creatorId,
+                            canPin = facts.canPin,
                         ),
                         quote = quote,
                         sender = sender,
@@ -3409,6 +3448,14 @@ internal class ChatViewModel @AssistedInject constructor(
             }
             .launchIn(viewModelScope)
 
+        // A jump that can't land says so: a pin or a link to a message the server no longer
+        // returns would otherwise be a tap that does nothing.
+        eventFlow.filterIsInstance<Event.JumpUnreachable>()
+            .onEach { toastController.showToast(R.string.title_messageUnreachable, replacePrevious = true) }
+            .launchIn(viewModelScope)
+
+        observePins()
+
         // Only distanceFromNewest, not resolveJump: an origin was on screen when its quote was
         // tapped, so one no longer stored has gone from the chat, and is skipped rather than fetched.
         eventFlow.filterIsInstance<Event.ReturnToOrigin>()
@@ -4200,6 +4247,209 @@ internal class ChatViewModel @AssistedInject constructor(
      * device never stored is paged in from the server first, back from the oldest stored message so
      * the transcript stays contiguous; a link to old history is the usual case.
      */
+    /**
+     * Pins are read with `GetPinnedMessages` on open and read again whenever a newer
+     * `PinSummary.version` is heard of: from the stored summary, which the event stream advances on
+     * `PinsChanged`, or from the viewer's own pin or unpin. The list is never patched from an event.
+     * A summary missing from a feed read leaves the stored one alone, so it never clears pins here.
+     */
+    private fun observePins() {
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatId -> chatCoordinator.observeMetadata(chatId) }
+            .mapNotNull { it?.metadata?.pinSummary }
+            .distinctUntilChanged()
+            .onEach { summary ->
+                dispatchEvent(Event.PinSummaryChanged(summary.count))
+                notePinVersion(summary.version)
+            }
+            .launchIn(viewModelScope)
+
+        // Restarted by each newer version, so a read overtaken by another pin is dropped for the next.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatId -> pinVersionHeard.map { chatId to it } }
+            .filter { (_, heard) -> stateFlow.value.pins.let { !it.loaded || it.isStale(heard) } }
+            .mapLatest { (chatId, _) ->
+                chatCoordinator.getPinnedMessages(chatId)
+                    .onSuccess { dispatchEvent(Event.PinsRead(it.pins, it.version)) }
+                    .onFailure { trace(tag = "Pins", message = "Pin read failed", error = it, type = TraceType.Error) }
+            }
+            .launchIn(viewModelScope)
+
+        // A delete or edit of a pinned message moves no pin version; its stored copy shows it.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatId ->
+                combine(
+                    chatCoordinator.observeMessages(chatId),
+                    stateFlow.map { it.pins.pinnedIds }.distinctUntilChanged(),
+                ) { messages, ids -> messages.filter { it.messageId in ids }.associateBy { it.messageId } }
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.PinnedCopiesStored(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.PinMessage>()
+            .onEach { event -> pin(event.messageId, event.quote) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.UnpinMessage>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                chatCoordinator.unpinMessage(chatId, event.messageId)
+                    .onSuccess { summary ->
+                        notePinVersion(summary.version)
+                        // The list opened full: the slot just freed goes to the message that was waiting.
+                        event.pinAfter?.let { waiting -> pin(waiting, quote = null, waited = true) }
+                    }
+                    .onFailure { toastController.showToast(R.string.title_unpinFailed, replacePrevious = true) }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.PinBarTapped>()
+            .onEach {
+                // The reducer has already stepped the bar on, so the pin it showed is one back.
+                val state = stateFlow.value
+                val shown = state.pins.visible.getOrNull(
+                    (state.pinBarIndex - 1).mod(state.pins.visible.size.coerceAtLeast(1))
+                ) ?: return@onEach
+                dispatchEvent(Event.JumpToMessage(shown.messageId))
+            }
+            .launchIn(viewModelScope)
+
+    }
+
+    private fun notePinVersion(version: Long) {
+        pinVersionHeard.update { heard -> maxOf(heard ?: version, version) }
+    }
+
+    /**
+     * The pin bar's one line for [pin]: the chat list's preview of the message, with no
+     * attribution. Null when there is nothing readable to quote, which the bar says as an
+     * encrypted message.
+     */
+    internal fun pinPreview(pin: Pin): String? {
+        val isGroup = stateFlow.value.chatType == ChatType.GROUP
+        return pin.message.content.firstNotNullOfOrNull { content ->
+            content.previewText(
+                sentBySelf = false,
+                senderName = null,
+                isGroup = isGroup,
+                tokensByMint = emptyMap(),
+                resources = resources,
+                exchange = exchange,
+                paymentRequests = emptyMap(),
+            ) { null }
+        }
+    }
+
+    /**
+     * The pin bar's quote for [pin], built the way the composer's reply strip quotes a message so
+     * the two read alike. A message with nothing readable quotes as an encrypted message.
+     */
+    internal suspend fun pinQuote(pin: Pin): ChatQuote {
+        val quote = pin.message.toQuote()
+        val unreadable = pinPreview(pin) == null &&
+            (quote.snippet as? ChatQuoteSnippet.Text)?.body.isNullOrEmpty()
+        return if (unreadable) {
+            quote.copy(snippet = ChatQuoteSnippet.Text(resources.getString(R.string.label_pinnedEncryptedMessage)))
+        } else {
+            quote
+        }
+    }
+
+    /** A cash message names its token only by mint; the bubble's header needs the name and image. */
+    private suspend fun MessageContent.withTokenMetadata(): MessageContent {
+        if (this !is MessageContent.Cash || tokenName.isNotBlank()) return this
+        val token = tokenCoordinator.getTokenMetadata(mint).getOrNull()?.token ?: return this
+        return copy(tokenName = token.name, tokenImageUrl = token.imageUrl)
+    }
+
+    /**
+     * The pinned list's rows, drawn with the transcript's bubble, so a pinned message reads the same
+     * as it does in place: cash gets its token and the viewer's side of the payment the same way.
+     */
+    internal suspend fun pinnedRows(pins: ChatPins): List<PinnedRow> {
+        val selfId = userManager.accountId
+        return pins.visible.mapNotNull { pin ->
+            val message = pin.message
+            val content = message.content.firstOrNull()?.withTokenMetadata() ?: return@mapNotNull null
+            PinnedRow(
+                pin = pin,
+                bubble = ChatListItem.ContentBubble(
+                    messageId = message.messageId,
+                    contentIndex = 0,
+                    content = content,
+                    isFromSelf = message.isFromSelf,
+                    timestamp = message.timestamp,
+                    isEdited = message.lastEditedTs != null,
+                    receivedPart = (content as? MessageContent.Cash)?.partFor(selfId),
+                    groupSendRecipients = (content as? MessageContent.Cash)
+                        ?.takeIf { stateFlow.value.chatType == ChatType.GROUP }
+                        ?.let { groupSendRecipients(it, senderProfiles.value) },
+                ),
+                sender = pinPerson(message.senderId),
+                pinnedByName = if (pin.pinnedBy == selfId) {
+                    resources.getString(R.string.label_pinnedByYou)
+                } else {
+                    pinPerson(pin.pinnedBy).displayName
+                },
+                spoken = pinPreview(pin),
+            )
+        }
+    }
+
+    /**
+     * A member as a pinned row shows them: the viewer's own, a group member's profile, or a DM's other
+     * member. The viewer reads as "You" but their avatar keeps their own initials.
+     */
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun pinPerson(userId: ID?): SenderIdentity {
+        val state = stateFlow.value
+        val id = userId ?: emptyList()
+        if (userId != null && userId == userManager.accountId) {
+            val profile = userManager.profile
+            return SenderIdentity(
+                userId = id,
+                displayName = resources.getString(R.string.title_you),
+                picture = profile?.profilePicture,
+                initialsName = profile?.let { nameOrHandle(it.displayName, it.handle) },
+            )
+        }
+        if (state.chatType != ChatType.GROUP) {
+            (state.participant as? ChatParticipant.TipUser)?.let { other ->
+                return SenderIdentity(
+                    userId = id,
+                    displayName = other.name ?: resources.getString(R.string.title_unnamedUser),
+                    picture = other.profile.profilePicture,
+                    initialsName = other.name,
+                )
+            }
+        }
+        val person = groupSendPerson(userId?.hexEncodedString())
+        return SenderIdentity(userId = id, displayName = person.name, picture = person.profile?.profilePicture)
+    }
+
+    /**
+     * Pins [messageId]. [waited] is set when it is the message the full list was opened for; the
+     * list closes on its own once the fresh read shows it pinned.
+     */
+    private suspend fun pin(messageId: Long, quote: String?, waited: Boolean = false) {
+        val chatId = stateFlow.value.chatId ?: return
+        chatCoordinator.pinMessage(chatId, messageId)
+            .onSuccess { summary -> notePinVersion(summary.version) }
+            .onFailure { error ->
+                // At the cap the list opens to make room. If it was already open for this message, a
+                // concurrent pin took the slot: say so and leave the list up for another try.
+                if (error is PinMessageError.TooManyPins && !waited) {
+                    dispatchEvent(Event.PinCapReached(WaitingPin(messageId, quote)))
+                } else {
+                    toastController.showToast(R.string.title_pinNotAdded, replacePrevious = true)
+                }
+            }
+    }
+
     private suspend fun resolveJump(chatId: ChatId, messageId: Long) {
         val distance = chatCoordinator.distanceFromNewest(chatId, messageId)
             ?: if (chatCoordinator.loadHistoryThrough(chatId, messageId)) {
@@ -4334,6 +4584,24 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.OnViewerStateResolved -> { state ->
                     state.copy(viewerState = event.viewerState, silenceClock = kotlin.time.Clock.System.now())
                 }
+                is Event.PinsRead -> { state ->
+                    val pins = state.pins.read(event.pins, event.version)
+                    // A pin that left can take the bar's place out from under it; start over at the newest.
+                    val index = state.pinBarIndex.takeIf { it < pins.visible.size } ?: 0
+                    state.copy(pins = pins, pinBarIndex = index)
+                }
+                is Event.PinnedCopiesStored -> { state ->
+                    val pins = state.pins.copy(stored = event.messages)
+                    val index = state.pinBarIndex.takeIf { it < pins.visible.size } ?: 0
+                    state.copy(pins = pins, pinBarIndex = index)
+                }
+                is Event.PinSummaryChanged -> { state ->
+                    state.copy(pins = state.pins.copy(summaryCount = event.count))
+                }
+                is Event.PinMessage -> { state -> state.copy(selection = null, confirmingDelete = false) }
+                is Event.UnpinMessage -> { state -> state.copy(selection = null, confirmingDelete = false) }
+                is Event.PinCapReached -> { state -> state.copy(waitingPin = event.waiting) }
+                Event.PinBarTapped -> { state -> state.copy(pinBarIndex = state.pins.stepAfter(state.pinBarIndex)) }
                 Event.SilenceLapsed -> { state -> state.copy(silenceClock = kotlin.time.Clock.System.now()) }
                 Event.SilenceLifted -> { state -> state }
                 Event.CopyInviteLink,

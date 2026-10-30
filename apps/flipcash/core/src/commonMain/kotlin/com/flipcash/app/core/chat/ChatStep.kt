@@ -42,6 +42,11 @@ enum class InviteLinkAction : Parcelable { Share, Revoke }
 @Serializable
 data class NewInviteLinkChoice(val expiry: String, val uses: String) : Parcelable
 
+/** The pinned message tapped in [ChatStep.PinnedMessages]: the chat jumps to it once the list closes. */
+@Parcelize
+@Serializable
+data class PinnedMessageJump(val messageId: Long) : Parcelable
+
 /** A custom paid-reaction amount, in whole US cents. */
 @Parcelize
 @Serializable
@@ -357,6 +362,21 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data class Reactors(val chatId: ChatId, val messageId: Long) : ChatStep, Sheet, HalfSheet
+
+    /**
+     * The chat's pinned messages, newest first (L1). The pins are the conversation's, read when the
+     * chat opened; the route names the chat only. [pinAfterUnpin] is set when it opened because the
+     * chat is at its pin cap (L1b): that message is pinned once an unpin frees a slot.
+     *
+     * Returns the tapped row as a [PinnedMessageJump]; the conversation jumps to it.
+     */
+    @Parcelize
+    @Serializable
+    data class PinnedMessages(val chatId: ChatId, val pinAfterUnpin: Long? = null) :
+        ChatStep,
+        NavigationRetVal<PinnedMessageJump>,
+        Sheet,
+        HalfSheet
 }
 
 /** What opened a [ChatStep.Profile], which decides the actions it offers. */

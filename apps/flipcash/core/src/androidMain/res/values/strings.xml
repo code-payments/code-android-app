@@ -1832,6 +1832,21 @@
     <string name="title_shareProfileToChats">Share Profile</string>
     <string name="title_shareMessageToChats">Share Message</string>
     <string name="action_forwardMessage">Forward</string>
+    <string name="action_pinMessage">Pin</string>
+    <string name="action_unpinMessage">Unpin</string>
+    <string name="action_jumpToMessage">Jump to message</string>
+    <string name="title_pinnedMessage">Pinned message</string>
+    <string name="cd_pinnedMessageFrom">Pinned message from %1$s: %2$s</string>
+    <string name="label_pinnedEncryptedMessage">Encrypted message</string>
+    <string name="title_pinnedMessages">Pinned Messages</string>
+    <string name="label_pinnedBy">Pinned by %1$s · %2$s</string>
+    <string name="label_pinnedByYou">you</string>
+    <string name="label_pinsFull">Pinned messages are full. Unpin one to pin \"%1$s\"</string>
+    <string name="label_pinsFullUntitled">Pinned messages are full. Unpin one to pin this message</string>
+    <string name="title_pinNotAdded">Couldn\'t pin message</string>
+    <string name="title_unpinFailed">Couldn\'t unpin message</string>
+    <string name="title_messageUnreachable">Couldn\'t find that message</string>
+    <string name="cd_openPinnedMessages">Pinned messages</string>
     <!-- Who the share sheet is for: display name, then @handle -->
     <string name="action_showProfileCard">Show Profile Card</string>
     <string name="action_copyLink">Copy Link</string>

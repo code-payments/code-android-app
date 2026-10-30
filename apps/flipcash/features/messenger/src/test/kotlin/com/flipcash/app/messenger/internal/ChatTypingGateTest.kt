@@ -58,6 +58,7 @@ class ChatTypingGateTest {
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
     private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
+        coEvery { getPinnedMessages(any()) } returns Result.failure(IllegalStateException("no pins in this test"))
         every { observeMediaSendProgress() } returns kotlinx.coroutines.flow.emptyFlow()
         // No load ever lands; a relaxed Flow completes empty and fails the open's first { }.
         every { newestPageLoads() } returns MutableSharedFlow()

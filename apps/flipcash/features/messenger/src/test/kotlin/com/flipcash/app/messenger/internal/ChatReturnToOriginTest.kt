@@ -61,6 +61,7 @@ class ChatReturnToOriginTest {
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
     private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
+        coEvery { getPinnedMessages(any()) } returns Result.failure(IllegalStateException("no pins in this test"))
         every { observeMediaSendProgress() } returns kotlinx.coroutines.flow.emptyFlow()
         // No load ever lands unless a test emits one.
         every { newestPageLoads() } returns MutableSharedFlow()

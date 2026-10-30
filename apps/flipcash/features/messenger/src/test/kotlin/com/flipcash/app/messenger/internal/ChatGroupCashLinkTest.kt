@@ -86,6 +86,7 @@ class ChatGroupCashLinkTest {
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
     private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
+        coEvery { getPinnedMessages(any()) } returns Result.failure(IllegalStateException("no pins in this test"))
         coEvery { sampleChatters(any()) } returns Result.failure(IllegalStateException("not sampled"))
         every { observeMediaSendProgress() } returns kotlinx.coroutines.flow.emptyFlow()
     }

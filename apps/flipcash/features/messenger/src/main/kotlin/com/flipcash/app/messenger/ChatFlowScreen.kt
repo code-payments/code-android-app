@@ -13,6 +13,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -44,6 +45,10 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.core.chat.InviteLinkAction
 import com.flipcash.app.core.chat.NewInviteLinkChoice
+import com.flipcash.app.core.chat.PinnedMessageJump
+import com.flipcash.app.messenger.internal.pins.PinnedRow
+import com.flipcash.app.messenger.internal.pins.pinnedListDone
+import com.flipcash.app.messenger.internal.screens.components.PinnedMessagesSheet
 import com.flipcash.app.messenger.internal.invites.InviteLinkActions
 import com.flipcash.app.messenger.internal.invites.NewInviteLinkContent
 import com.flipcash.app.messenger.internal.invites.toChoice
@@ -333,6 +338,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.Reactors> { step ->
         FlowReactorsScreen(step.chatId, step.messageId)
+    }
+    annotatedEntry<ChatStep.PinnedMessages> { step ->
+        FlowPinnedMessagesSheet(step.pinAfterUnpin)
     }
 }
 
@@ -834,6 +842,39 @@ private fun FlowReactionPickerScreen(messageId: Long) {
             dismissSheet()
         },
         onDismiss = dismissSheet,
+    )
+}
+
+/**
+ * [ChatStep.PinnedMessages]: the conversation's pins on the app's sheet scene (L1, L1c, and L1b when
+ * [pinAfterUnpin] is set). The pins are the conversation's own, so this reads its view model; a
+ * tapped row closes the sheet and returns to the conversation as a [PinnedMessageJump].
+ */
+@Composable
+private fun FlowPinnedMessagesSheet(pinAfterUnpin: Long?) {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val resultBack = resultBackNavigator<PinnedMessageJump>(exit = dismissSheet)
+
+    // Built off the main thread: a cash row looks up its token before it can draw.
+    val rows by produceState<List<PinnedRow>?>(null, state.pins) { value = viewModel.pinnedRows(state.pins) }
+    // The last rows stay up while the sheet slides away, so it never empties on the way out.
+    var shownRows by remember { mutableStateOf<List<PinnedRow>>(emptyList()) }
+    rows?.takeIf { it.isNotEmpty() }?.let { shownRows = it }
+
+    // The last unpin, or the waiting message landing in the slot it freed, leaves nothing to do here.
+    val done = state.pins.pinnedListDone(pinAfterUnpin)
+    LaunchedEffect(done) { if (done) dismissSheet() }
+
+    PinnedMessagesSheet(
+        rows = shownRows,
+        canUnpin = state.canPin,
+        full = pinAfterUnpin != null,
+        fullQuote = state.waitingPin?.takeIf { it.messageId == pinAfterUnpin }?.quote,
+        onOpen = { resultBack.returnValue(PinnedMessageJump(it)) },
+        onUnpin = { viewModel.dispatchEvent(ChatViewModel.Event.UnpinMessage(it, pinAfter = pinAfterUnpin)) },
+        onClose = { dismissSheet() },
     )
 }
 

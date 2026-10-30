@@ -251,6 +251,10 @@ internal fun RequestDeckStrip(
     onCycle: () -> Unit,
     onPay: (PaymentRequest) -> Unit,
     onHeightChange: (Int) -> Unit,
+    /** A swipe up on the strip, by however far it moved: docks it into the pill without a scroll. */
+    onDock: (Float) -> Unit,
+    /** The dock swipe let go. */
+    onDockReleased: suspend () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var shown by remember { mutableStateOf(deck) }
@@ -283,6 +287,8 @@ internal fun RequestDeckStrip(
                 onExpand = onExpand,
                 onCycle = onCycle,
                 onPay = onPay,
+                onDock = onDock,
+                onDockReleased = onDockReleased,
             )
         }
     }
@@ -306,8 +312,8 @@ private val DeckPlacement.deckStyle: DeckStyle
 
 /**
  * The front request with up to two cards peeking beneath it, in one of the deck's placements.
- * Swipe down cycles; tap expands. Shown while [transition] is at [style], whose scope its front
- * card moves between placements in.
+ * Swipe down cycles; tap expands. On the strip a swipe up docks it ([onDock]). Shown while
+ * [transition] is at [style], whose scope its front card moves between placements in.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -320,6 +326,8 @@ private fun DeckStack(
     onExpand: () -> Unit,
     onCycle: () -> Unit,
     onPay: (PaymentRequest) -> Unit,
+    onDock: ((Float) -> Unit)? = null,
+    onDockReleased: (suspend () -> Unit)? = null,
 ) {
     transition.AnimatedVisibility(
         visible = { it == style },
@@ -342,6 +350,9 @@ private fun DeckStack(
         val pillHeightPx = with(density) { geometry.height.toPx() }
         val canCycle = deck.size > 1
         val pillWidth = remember(scope) { PillWidth(scope) }
+        // A drag that starts upward from rest docks the strip for the whole gesture, back down
+        // included; one that starts downward cycles, as it always has.
+        var docking by remember { mutableStateOf(false) }
 
         val label = deckLabel(deck, now, viewerId, strip)
         val nextLabel = stringResource(R.string.action_nextRequest)
@@ -464,6 +475,11 @@ private fun DeckStack(
                     .draggable(
                         orientation = Orientation.Vertical,
                         state = rememberDraggableState { delta ->
+                            if (onDock != null && (docking || delta < 0f && drag.value <= 0f)) {
+                                docking = true
+                                onDock(delta)
+                                return@rememberDraggableState
+                            }
                             scope.launch {
                                 val value = drag.value
                                 val next = if (!canCycle) {
@@ -481,6 +497,11 @@ private fun DeckStack(
                             }
                         },
                         onDragStopped = { velocity ->
+                            if (docking) {
+                                docking = false
+                                onDockReleased?.invoke()
+                                return@draggable
+                            }
                             val past = drag.value > pillHeightPx * CYCLE_THRESHOLD || velocity > FLING_VELOCITY
                             if (canCycle && past) {
                                 // Hand over on release: the card that rose becomes the front and the

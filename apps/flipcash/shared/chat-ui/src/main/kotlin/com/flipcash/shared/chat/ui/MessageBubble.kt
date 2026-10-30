@@ -135,6 +135,8 @@ private val EDITED_MARKER_GAP = 6.dp
  * @param attention how strongly this bubble is currently being pointed at, 0f to 1f — the flash a
  * jump leaves on the message it landed on. A lambda because it is read while drawing: an animation
  * running through it repaints the bubble without recomposing it or the list carrying it.
+ * @param leading whether the bubble sits at the leading edge whoever sent it, as in a list of
+ * messages lifted out of the transcript; it keeps its own style either way.
  */
 @Composable
 fun ContentBubble(
@@ -142,6 +144,7 @@ fun ContentBubble(
     position: BubblePosition,
     modifier: Modifier = Modifier,
     interactive: Boolean = true,
+    leading: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
     attention: () -> Float = { 0f },
@@ -192,7 +195,7 @@ fun ContentBubble(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = if (item.isFromSelf) Arrangement.End else Arrangement.Start,
+            horizontalArrangement = if (item.isFromSelf && !leading) Arrangement.End else Arrangement.Start,
         ) {
             // The card row of a split message, bare whatever the message around it carries -- a
             // text or a reply alike. The rows either side of it hold the prose.
