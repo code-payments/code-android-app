@@ -51,7 +51,7 @@ internal const val InviteHostShareTag = "invite-host-share"
 
 /**
  * Frame 1m (spec surface 1): the link card, Approve New Members and Manage Invites, with no
- * navigation or view model so previews and tests can draw it. Copy Link and Show Group Card are on
+ * navigation or view model so previews and tests can draw it. Copy Link and Show QR Code are on
  * the Invite People sheet that Share Link opens; revoking is in Manage Invites.
  */
 @Composable

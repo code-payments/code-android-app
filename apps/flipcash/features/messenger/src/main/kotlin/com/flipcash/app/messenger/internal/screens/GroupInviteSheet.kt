@@ -166,7 +166,7 @@ internal fun CodeNavigator.openMessageShare(messageId: Long) {
     }
 }
 
-/** Test id of the Show Group Card tile. */
+/** Test id of the Show QR Code tile. */
 internal const val GroupCardTileTag = "group-card-tile"
 
 /** A group's tile, for either link, carries [GroupCardTileTag]; the profile tile has none. */
