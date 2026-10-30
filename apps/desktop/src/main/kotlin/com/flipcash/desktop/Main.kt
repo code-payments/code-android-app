@@ -1,6 +1,11 @@
 package com.flipcash.desktop
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
@@ -25,6 +30,9 @@ import com.flipcash.desktop.shell.WindowChrome
 import com.flipcash.desktop.window.SavedWindow
 import com.flipcash.desktop.window.WindowStateStore
 import com.flipcash.desktop.window.fitTo
+import com.flipcash.desktop.window.installTallTitleBar
+import com.flipcash.desktop.window.titleBarHitTest
+import com.jetbrains.WindowDecorations.CustomTitleBar
 import dev.zacsweers.metro.createGraph
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.debounce
@@ -38,9 +46,14 @@ import java.lang.management.ManagementFactory
 
 internal val isMac = System.getProperty("os.name").orEmpty().lowercase().startsWith("mac")
 
-// The standard macOS title bar the content runs under. Its traffic lights sit near the top edge, so
-// the sidebar meets that edge flush rather than putting its rounded corner under them.
+// The standard macOS title bar the content runs under, when the runtime can't make it taller. Its
+// traffic lights sit near the top edge, so the sidebar meets that edge flush rather than putting its
+// rounded corner under them.
 private val MacChrome = WindowChrome(titleBarHeight = 28.dp, controlsWidth = 72.dp, flushSidebar = true)
+
+/** The tall title bar: the traffic lights centre in the 52-tall title row the sidebar and toolbar share. */
+private fun tallChrome(bar: CustomTitleBar) =
+    WindowChrome(titleBarHeight = DesktopDimens.TitleRowHeight, controlsWidth = bar.leftInset.dp)
 
 private val MinWindow = Dimension(DesktopDimens.MinWindowWidth.value.toInt(), DesktopDimens.MinWindowHeight.value.toInt())
 
@@ -91,6 +104,7 @@ fun main() {
                 sidebarHidden = nav.sidebarHidden,
             )
         }
+        var titleBar by remember { mutableStateOf<CustomTitleBar?>(null) }
         fun run(command: DesktopCommand): Boolean =
             nav.perform(command, nav.contextPaneModeAt(widthClassFor(windowState.size.width)))
         Window(
@@ -110,6 +124,7 @@ fun main() {
             LaunchedEffect(Unit) {
                 awtWindowRef.set(window)
                 configureChrome()
+                if (isMac) titleBar = installTallTitleBar(window, DesktopDimens.TitleRowHeight.value)
             }
             LaunchedEffect(Unit) {
                 snapshotFlow { listOf(windowState.position, windowState.size, windowState.placement, windowState.isMinimized, nav.context, nav.sidebarHidden) }
@@ -117,8 +132,16 @@ fun main() {
                     .debounce(500)
                     .collect { current()?.let(windowStore::save) }
             }
-            CompositionLocalProvider(LocalWindowChrome provides if (isMac) MacChrome else WindowChrome()) {
-                DesktopApp(graph, signedIn, nav)
+            val bar = titleBar
+            val chrome = when {
+                bar != null -> tallChrome(bar)
+                isMac -> MacChrome
+                else -> WindowChrome()
+            }
+            CompositionLocalProvider(LocalWindowChrome provides chrome) {
+                Box(if (bar != null) Modifier.titleBarHitTest(bar) else Modifier) {
+                    DesktopApp(graph, signedIn, nav)
+                }
             }
             LaunchedEffect(Unit) {
                 val sinceJvmStart = System.currentTimeMillis() -

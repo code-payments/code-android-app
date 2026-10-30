@@ -48,7 +48,7 @@ class WindowStateStore(private val file: Path) {
 }
 
 // The strip a user drags the window by. If none of it is on a screen, the window can't be moved back.
-private const val TitleBarHeight = 28
+private const val TitleBarHeight = 52
 
 /**
  * Fits the saved window to the [screens] now attached (usable bounds, without the dock or taskbar):

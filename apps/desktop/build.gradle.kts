@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.coil3)
     implementation(libs.coil3.network)
     implementation(libs.event.bus)
+    implementation(libs.jbr.api)
 
     testImplementation(project(":apps:flipcash:startup-contract"))
     testImplementation(libs.kotlin.test.junit)

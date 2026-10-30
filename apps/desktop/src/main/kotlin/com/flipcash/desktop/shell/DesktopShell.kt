@@ -94,10 +94,15 @@ fun DesktopShell(
         // The floating list belongs to the rail; it can't outlive it.
         LaunchedEffect(sidebarMode) { if (sidebarMode != SidebarMode.Rail) nav.sidebarPeek = false }
 
-        val listColumn: @Composable (Modifier, Boolean) -> Unit = { m, withToggle ->
+        // topInset is how far below the window's top edge the slot starts; the title row is measured
+        // from the window, so the toggle lines up with the traffic lights and the toolbar.
+        val listColumn: @Composable (Modifier, Boolean, Dp) -> Unit = { m, withToggle, topInset ->
             Column(m.testTag("sidebar")) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(DesktopDimens.TitleRowHeight).padding(end = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(DesktopDimens.TitleRowHeight - topInset)
+                        .padding(bottom = topInset, end = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Spacer(Modifier.weight(1f))
@@ -107,10 +112,10 @@ fun DesktopShell(
                 footer(Modifier.fillMaxWidth())
             }
         }
-        val railColumn: @Composable (Modifier) -> Unit = { m ->
+        val railColumn: @Composable (Modifier, Dp) -> Unit = { m, topInset ->
             Column(m.testTag("rail"), horizontalAlignment = Alignment.CenterHorizontally) {
                 // The traffic lights take the top row on macOS; the toggle and search sit under them.
-                Spacer(Modifier.height(chrome.titleBarHeight))
+                Spacer(Modifier.height((chrome.titleBarHeight - topInset).coerceAtLeast(0.dp)))
                 SidebarToggle(nav::toggleSidebar)
                 Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
                     Icon(Icons.Outlined.Search, contentDescription = "Search", tint = CodeTheme.colors.textSecondary, modifier = Modifier.size(20.dp))
@@ -142,7 +147,7 @@ fun DesktopShell(
             when {
                 shown != null -> contextPane(shown, Modifier.fillMaxSize().testTag("context_overlay"))
                 nav.compactShowsChat -> mainWithToolbar(Modifier.fillMaxSize(), true) { nav.compactShowsChat = false }
-                else -> listColumn(Modifier.fillMaxSize(), false)
+                else -> listColumn(Modifier.fillMaxSize(), false, 0.dp)
             }
             return@BoxWithConstraints
         }
@@ -151,7 +156,7 @@ fun DesktopShell(
         Box(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxSize()) {
                 when (sidebarMode) {
-                    SidebarMode.List -> SidebarSlot(listWidth, floatingSidebar, hazeState, chrome) { m -> listColumn(m, true) }
+                    SidebarMode.List -> SidebarSlot(listWidth, floatingSidebar, hazeState, chrome) { m, top -> listColumn(m, true, top) }
                     SidebarMode.Rail -> {
                         val scope = rememberCoroutineScope()
                         var resting by remember { mutableStateOf<Job?>(null) }
@@ -210,7 +215,7 @@ fun DesktopShell(
                         .onPointerEvent(PointerEventType.Exit) { nav.sidebarPeek = false }
                         .testTag("sidebar_peek"),
                     elevated = true,
-                ) { m -> listColumn(m, true) }
+                ) { m, top -> listColumn(m, true, top) }
             }
         }
     }
@@ -228,11 +233,11 @@ private fun SidebarSlot(
     chrome: WindowChrome,
     modifier: Modifier = Modifier,
     elevated: Boolean = false,
-    content: @Composable (Modifier) -> Unit,
+    content: @Composable (Modifier, topInset: Dp) -> Unit,
 ) {
     if (!floating) {
         Row(modifier.width(width).fillMaxHeight()) {
-            content(Modifier.weight(1f).fillMaxHeight().background(CodeTheme.colors.background))
+            content(Modifier.weight(1f).fillMaxHeight().background(CodeTheme.colors.background), 0.dp)
             PaneDivider()
         }
         return
@@ -243,13 +248,15 @@ private fun SidebarSlot(
     } else {
         RoundedCornerShape(16.dp)
     }
+    val top = if (chrome.flushSidebar) 0.dp else inset
     Box(modifier.width(width + inset).fillMaxHeight()) {
         content(
             Modifier
-                .padding(start = inset, end = inset, bottom = inset, top = if (chrome.flushSidebar) 0.dp else inset)
+                .padding(start = inset, end = inset, bottom = inset, top = top)
                 .fillMaxSize()
                 .then(if (elevated) Modifier.shadow(24.dp, shape) else Modifier)
                 .floatingGlass(hazeState, shape),
+            top,
         )
     }
 }
