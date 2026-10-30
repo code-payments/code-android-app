@@ -149,7 +149,7 @@ internal data class NewRequestDraft(
 internal fun splitTotal(total: Fiat, shares: List<ID>, creator: ID): List<NewShare>? {
     if (shares.isEmpty()) return null
     val unit = total.smallestUnit.quarks.coerceAtLeast(1L)
-    val units = Math.round(total.quarks.toDouble() / unit)
+    val units = total.quarks / unit
     val count = shares.size.toLong()
     if (units < count) return null
     val base = units / count
