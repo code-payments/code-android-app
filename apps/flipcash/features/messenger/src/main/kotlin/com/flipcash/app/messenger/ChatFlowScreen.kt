@@ -496,13 +496,15 @@ private fun FlowGroupSelectPeople(viewModel: ChatViewModel, onSendComplete: () -
         onBack = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
         onToggle = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(it.userId)) },
         onSend = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed) },
+        you = state.groupSendViewer,
+        buttonEnabled = groupSend.paid.isNotEmpty(),
         title = stringResource(R.string.title_splitBetween),
         buttonText = stringResource(R.string.action_next),
     )
     if (groupSend.stage == GroupSendState.Stage.Confirm) {
         GroupSendConfirmSheet(
             groupSend = groupSend,
-            recipients = groupSend.selected.mapNotNull { id -> candidates.find { it.userId == id } },
+            recipients = groupSend.paid.mapNotNull { id -> candidates.find { it.userId == id } },
             swipePay = SwipePayUiState(
                 token = state.token,
                 progress = state.sendProgress,

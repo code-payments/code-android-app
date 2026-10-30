@@ -80,6 +80,8 @@ internal fun GroupSelectPeopleContent(
     buttonEnabled: Boolean = selected.isNotEmpty(),
     /** Shown as "You" rather than by name, for a list the viewer is on. */
     viewerId: ID? = null,
+    /** The sender's own row, first, for a split they can take a part of. Null leaves it out. */
+    you: ChatMember? = null,
 ) {
     val selectedIds = selected.toSet()
     CodeScaffold(
@@ -104,7 +106,7 @@ internal fun GroupSelectPeopleContent(
         },
     ) { innerPadding ->
         val unknownName = stringResource(R.string.title_unnamedUser)
-        val you = stringResource(R.string.label_selectPeople_you)
+        val youLabel = stringResource(R.string.label_selectPeople_you)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -121,11 +123,21 @@ internal fun GroupSelectPeopleContent(
                     color = CodeTheme.colors.textSecondary,
                 )
             }
+            if (you != null) {
+                item(key = "you") {
+                    MemberCheckRow(
+                        member = you,
+                        name = youLabel,
+                        selected = you.userId in selectedIds,
+                        onClick = { onToggle(you) },
+                    )
+                }
+            }
             items(candidates, key = { it.userId }) { member ->
                 MemberCheckRow(
                     member = member,
                     name = if (member.userId == viewerId) {
-                        you
+                        youLabel
                     } else {
                         chatterName(member.userProfile.displayName, member.userProfile.username, unknownName)
                     },

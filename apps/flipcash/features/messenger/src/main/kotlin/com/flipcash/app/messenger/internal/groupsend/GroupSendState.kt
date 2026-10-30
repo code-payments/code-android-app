@@ -21,21 +21,51 @@ internal data class GroupSendState(
 ) {
     enum class Stage { Amount, People, Confirm }
 
-    /** The parts to pay, once [total] is known and someone is checked. */
-    val plan: GroupSendPlan
-        get() = total?.let { GroupSendSplit.split(GroupSendSplit.minorUnits(it), selected.size) }
-            ?: GroupSendPlan.NoRecipients
+    /**
+     * Who is paid: [selected] without the sender. The sender can be checked to take a part of the
+     * split, but the contract requires every receiver to be another member.
+     */
+    val paid: List<ID>
+        get() = selected.filterNot { it == viewerId }
 
-    /** Who Select People lists: the roster without the sender, who never pays themselves. */
+    /** Whether the sender is checked, which counts them in the split without paying them. */
+    val includesViewer: Boolean
+        get() = viewerId != null && viewerId in selected
+
+    /**
+     * The parts to pay, once [total] is known and someone other than the sender is checked: the
+     * total is split between everyone checked, the sender included, in check order, then the
+     * sender's part is dropped.
+     */
+    val plan: GroupSendPlan
+        get() {
+            val total = total ?: return GroupSendPlan.NoRecipients
+            if (paid.isEmpty()) return GroupSendPlan.NoRecipients
+            val split = GroupSendSplit.split(
+                GroupSendSplit.minorUnits(total),
+                selected.size,
+                maxRecipients = GroupSendSplit.MAX_RECIPIENTS + if (includesViewer) 1 else 0,
+            )
+            if (split !is GroupSendPlan.Pay) return split
+            return GroupSendPlan.Pay(
+                split.parts.filterIndexed { i, _ -> selected[i] != viewerId }
+            )
+        }
+
+    /** Who Select People lists: the roster without the sender, who has a "You" row of their own. */
     fun candidates(roster: List<ChatMember>): List<ChatMember> =
         roster.filter { it.userId != viewerId }.distinctBy { it.userId }
 
+    /** The sender's own row, from the roster, when they are in it. */
+    fun viewer(roster: List<ChatMember>): ChatMember? = roster.find { it.userId == viewerId }
+
     /**
-     * [selected] with [member] checked or unchecked, or null when checking them would make an 11th.
+     * [selected] with [member] checked or unchecked, or null when checking them would make an 11th
+     * paid member. The sender does not count toward the cap: they are not paid.
      */
     fun toggled(member: ID): List<ID>? = when {
         member in selected -> selected.filterNot { it == member }
-        selected.size >= GroupSendSplit.MAX_RECIPIENTS -> null
+        member != viewerId && paid.size >= GroupSendSplit.MAX_RECIPIENTS -> null
         else -> selected.plusElement(member)
     }
 }

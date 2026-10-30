@@ -41,9 +41,13 @@ object GroupSendSplit {
     const val MAX_RECIPIENTS = 10
     const val MINIMUM_PART_UNITS = 1L
 
-    fun split(totalUnits: Long, recipients: Int): GroupSendPlan {
+    /**
+     * @param maxRecipients the most the total may be split between. A split that includes the sender
+     * counts one more than the people paid, so it allows [MAX_RECIPIENTS] + 1.
+     */
+    fun split(totalUnits: Long, recipients: Int, maxRecipients: Int = MAX_RECIPIENTS): GroupSendPlan {
         if (recipients <= 0) return GroupSendPlan.NoRecipients
-        if (recipients > MAX_RECIPIENTS) return GroupSendPlan.TooManyRecipients
+        if (recipients > maxRecipients) return GroupSendPlan.TooManyRecipients
         val base = totalUnits / recipients
         if (base < MINIMUM_PART_UNITS) return GroupSendPlan.PartBelowMinimum
         val leftover = totalUnits % recipients

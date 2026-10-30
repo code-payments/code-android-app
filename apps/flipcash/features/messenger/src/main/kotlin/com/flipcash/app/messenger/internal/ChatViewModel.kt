@@ -175,6 +175,7 @@ import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.group.GroupSendPaymentDelegate
 import com.flipcash.shared.payments.group.GroupSendPlan
+import com.flipcash.shared.payments.group.GroupSendSplit
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
 import com.getcode.libs.emojis.reactions.EmojiDrawability
@@ -685,6 +686,8 @@ internal class ChatViewModel @AssistedInject constructor(
         /** Who Select People lists: the roster, or what this device knows of it, less the viewer. */
         val groupSendCandidates: List<ChatMember>
             get() = groupSend?.candidates(members.ifEmpty { knownMembers }).orEmpty()
+        val groupSendViewer: ChatMember?
+            get() = groupSend?.viewer(members.ifEmpty { knownMembers })
 
         // Opening the participant's profile (the entry point to blocking) is the tip arm's answer
         // alone. Asking the subject rather than comparing chat types means a new arm has to say.
@@ -4118,14 +4121,15 @@ internal class ChatViewModel @AssistedInject constructor(
         val chatId = stateFlow.value.chatId ?: return@launch
         val token = stateFlow.value.token ?: return@launch
         val owner = userManager.accountCluster ?: return@launch
-        // The confirm sheet can change the token after the amount step checked the balance.
-        if (checkBalanceLimit(total)) return@launch
+        // The sender pays the parts of everyone but themselves, which can be less than the total
+        // entered. The confirm sheet can change the token, so this is the only balance check.
+        if (checkBalanceLimit(GroupSendSplit.fiat(plan.parts.sum(), total.currencyCode))) return@launch
 
         dispatchEvent(Event.SendStateUpdated(loading = true))
 
         val result = groupSendPayments.send(
             chatId = chatId,
-            recipients = groupSend.selected,
+            recipients = groupSend.paid,
             plan = plan,
             currency = total.currencyCode,
             token = token,
@@ -4136,7 +4140,7 @@ internal class ChatViewModel @AssistedInject constructor(
             holdPaymentSuccess(
                 show = { dispatchEvent(Event.SendStateUpdated(success = true)) },
                 release = {
-                    analytics.track(TransferEvents.sentCash(AnalyticsState.SUCCESS, total.analytics, null, SendContext.GROUP_SEND, groupSend.selected.size))
+                    analytics.track(TransferEvents.sentCash(AnalyticsState.SUCCESS, total.analytics, null, SendContext.GROUP_SEND, groupSend.paid.size))
                     // The send state stays until the sheet has gone, so Select People doesn't flash back to
                     // the keypad on the way out. The next "$" starts a fresh one.
                     dispatchEvent(Dispatchers.Main, Event.SendComplete(total))
@@ -4144,7 +4148,7 @@ internal class ChatViewModel @AssistedInject constructor(
             )
         }.onFailure { cause ->
             dispatchEvent(Event.SendStateUpdated())
-            analytics.track(TransferEvents.sentCash(AnalyticsState.FAILURE, total.analytics, cause.analytics, SendContext.GROUP_SEND, groupSend.selected.size))
+            analytics.track(TransferEvents.sentCash(AnalyticsState.FAILURE, total.analytics, cause.analytics, SendContext.GROUP_SEND, groupSend.paid.size))
             val (title, message) = when (cause) {
                 is ComputeVerifiedFiatError.AmountBelowMinimum ->
                     R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
