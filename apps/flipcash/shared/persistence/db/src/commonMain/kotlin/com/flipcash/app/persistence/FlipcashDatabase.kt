@@ -27,6 +27,8 @@ import com.flipcash.app.persistence.dao.ContactDao
 import com.flipcash.app.persistence.dao.CurrencyCreatorDraftDao
 import com.flipcash.app.persistence.dao.LinkPreviewDao
 import com.flipcash.app.persistence.dao.MessageDao
+import com.flipcash.app.persistence.dao.GroupKeyEnvelopeDao
+import com.flipcash.app.persistence.dao.PaymentRequestDao
 import com.flipcash.app.persistence.dao.PendingMediaDao
 import com.flipcash.app.persistence.dao.TokenDao
 import com.flipcash.app.persistence.dao.UserProfileDao
@@ -41,6 +43,8 @@ import com.flipcash.app.persistence.entities.ContactSyncStateEntity
 import com.flipcash.app.persistence.entities.CurrencyCreatorDraftEntity
 import com.flipcash.app.persistence.entities.LinkPreviewEntity
 import com.flipcash.app.persistence.entities.MessageEntity
+import com.flipcash.app.persistence.entities.GroupKeyEnvelopeEntity
+import com.flipcash.app.persistence.entities.PaymentRequestEntity
 import com.flipcash.app.persistence.entities.PendingMediaEntity
 import com.flipcash.app.persistence.entities.SocialLinkEntity
 import com.flipcash.app.persistence.entities.TokenEntity
@@ -70,6 +74,8 @@ import kotlin.jvm.Synchronized
         UserProfileEntity::class,
         LinkPreviewEntity::class,
         PendingMediaEntity::class,
+        PaymentRequestEntity::class,
+        GroupKeyEnvelopeEntity::class,
     ],
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = FlipcashDatabase.Migration1To2::class),
@@ -130,8 +136,16 @@ import kotlin.jvm.Synchronized
         // chat_metadata moderation: can_silence, can_ban (default 0), silence_until_epoch_ms
         // (nullable), silence_forever (default 0)
         AutoMigration(from = 46, to = 47),
+        // chat_metadata pin summary: pin_count, pin_version (default 0), latest_pin (nullable blob)
+        AutoMigration(from = 47, to = 48),
+        // The payment_requests table. An AutoMigration rather than the destructive fallback, like
+        // the other tables here, so a version bump never drops the stored requests.
+        AutoMigration(from = 48, to = 49), // payment_requests table
+        // The group_key_envelopes table: wrapped chat keys, so a private group opens offline. An
+        // AutoMigration for the same reason as payment_requests.
+        AutoMigration(from = 49, to = 50), // group_key_envelopes table
     ],
-    version = 47,
+    version = 50,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 @ConstructedBy(FlipcashDatabaseConstructor::class)
@@ -150,6 +164,8 @@ abstract class FlipcashDatabase : RoomDatabase() {
     abstract fun userProfileDao(): UserProfileDao
     abstract fun linkPreviewDao(): LinkPreviewDao
     abstract fun pendingMediaDao(): PendingMediaDao
+    abstract fun paymentRequestDao(): PaymentRequestDao
+    abstract fun groupKeyEnvelopeDao(): GroupKeyEnvelopeDao
 
     class Migration1To2 : Migration(1, 2), AutoMigrationSpec {
         override fun migrate(connection: SQLiteConnection) {

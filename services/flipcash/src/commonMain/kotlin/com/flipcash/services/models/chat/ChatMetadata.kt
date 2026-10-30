@@ -42,4 +42,7 @@ data class ChatMetadata(
     // public groups gated on a single Flipcash-launched currency above a server-side minimum
     // holder count. No change events: refresh by refetching the chat.
     val holdingsSummary: HoldingsSummary? = null,
+    // Pins summary. Null when unset on the wire; feed/list RPCs may leave it unset even when
+    // pins exist, so an unset value must never clear a summary already held -- fetch with GetChat.
+    val pinSummary: PinSummary? = null,
 )

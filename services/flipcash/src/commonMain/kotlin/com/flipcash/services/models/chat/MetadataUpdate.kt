@@ -21,4 +21,7 @@ sealed interface MetadataUpdate {
     // A group chat's rules were edited; replaces the cached rules wholesale. Best-effort
     // delivery, same caveat as TitleChanged.
     data class RulesChanged(val newRules: ChatRules) : MetadataUpdate
+    // A message was pinned or unpinned. [summary] is always present and compared by
+    // PinSummary.version (keep the greater). [change] is null if the server sent none.
+    data class PinsChanged(val change: PinChange?, val summary: PinSummary) : MetadataUpdate
 }

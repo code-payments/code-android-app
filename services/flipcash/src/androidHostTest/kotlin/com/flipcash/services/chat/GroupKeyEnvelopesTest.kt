@@ -38,7 +38,8 @@ class GroupKeyEnvelopesTest {
         override suspend fun peerPublicKey(userId: ID): Result<ByteArray> = error("unused")
     }
     private val controller = mockk<ChatController>()
-    private val envelopes = GroupKeyEnvelopes(FakeChatCipher, FakeInviteCipher(), keys, controller, WrongKeyChats())
+    private val store = InMemoryGroupKeyEnvelopeStore()
+    private val envelopes = GroupKeyEnvelopes(FakeChatCipher, FakeInviteCipher(), keys, controller, WrongKeyChats(), store)
 
     @Test
     fun `storeNewKey stores a self-wrapped envelope`() = runTest {
@@ -109,7 +110,7 @@ class GroupKeyEnvelopesTest {
         override suspend fun peerPublicKey(userId: ID): Result<ByteArray> =
             if (userId == creatorId) Result.success(creatorKeys.publicKey) else Result.failure(IOException("unknown"))
     }
-    private val memberEnvelopes = GroupKeyEnvelopes(FakeChatCipher, inviteCipher, memberSource, controller, wrongKeyChats)
+    private val memberEnvelopes = GroupKeyEnvelopes(FakeChatCipher, inviteCipher, memberSource, controller, wrongKeyChats, store)
     private val groupKey = ByteArray(32) { 5 }
 
     private fun stored(wrapper: KeyPair, recipient: ByteArray, wrappedBy: ID?): StoredKeyEnvelope {
@@ -200,7 +201,7 @@ class GroupKeyEnvelopesTest {
             override fun ownUserId() = creatorId
             override suspend fun peerPublicKey(userId: ID): Result<ByteArray> = error("unused")
         }
-        val creatorEnvelopes = GroupKeyEnvelopes(FakeChatCipher, FakeInviteCipher(), creatorSource, controller, WrongKeyChats())
+        val creatorEnvelopes = GroupKeyEnvelopes(FakeChatCipher, FakeInviteCipher(), creatorSource, controller, WrongKeyChats(), store)
         coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(GetKeyEnvelopeError.NoEnvelope())
         coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
         coEvery { controller.setKeyEnvelope(chatId, any()) } returns Result.success(Unit)
@@ -298,7 +299,7 @@ class GroupKeyEnvelopesTest {
             override fun ownUserId() = memberId
             override suspend fun peerPublicKey(userId: ID): Result<ByteArray> = Result.failure(IOException("offline"))
         }
-        val envelopes = GroupKeyEnvelopes(FakeChatCipher, inviteCipher, offline, controller, wrongKeyChats)
+        val envelopes = GroupKeyEnvelopes(FakeChatCipher, inviteCipher, offline, controller, wrongKeyChats, store)
         coEvery { controller.getKeyEnvelope(chatId) } returns
             Result.failure(bundle(wrappedByPublicKey = PublicKey(creatorKeys.publicKey.toList())))
         coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
@@ -359,5 +360,227 @@ class GroupKeyEnvelopesTest {
 
         memberEnvelopes.key(chatId).getOrThrow()
         assertFalse(chatId in wrongKeyChats.chats.value)
+    }
+
+    // Persistence: the envelope is stored as fetched, and the stored row follows the in-memory key.
+
+    private val rowKey get() = chatId.bytes.toList() to memberPk.toList()
+    private fun restarted() = GroupKeyEnvelopes(FakeChatCipher, inviteCipher, memberSource, controller, wrongKeyChats, store)
+
+    private fun selfWrapped() = stored(memberKeys, memberPk, memberId)
+
+    @Test
+    fun `a network fetch stores the envelope as returned`() = runTest {
+        val fetched = selfWrapped()
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.success(fetched)
+
+        memberEnvelopes.key(chatId).getOrThrow()
+
+        assertEquals(fetched, store.rows[rowKey])
+    }
+
+    @Test
+    fun `the stored row holds the wrapped envelope and never the unwrapped key`() = runTest {
+        val fetched = selfWrapped()
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.success(fetched)
+
+        memberEnvelopes.key(chatId).getOrThrow()
+
+        val row = store.rows.getValue(rowKey)
+        assertContentEquals(fetched.envelope.nonce, row.envelope.nonce)
+        assertContentEquals(fetched.envelope.ciphertext, row.envelope.ciphertext)
+        assertFalse(row.envelope.nonce.contentEquals(groupKey))
+        assertFalse(row.envelope.ciphertext.contentEquals(groupKey))
+        assertTrue(row.wrappedBy == null || row.wrappedBy == memberId)
+    }
+
+    @Test
+    fun `a stored envelope opens after a restart with the network failing`() = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.success(selfWrapped())
+        memberEnvelopes.key(chatId).getOrThrow()
+
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(GetKeyEnvelopeError.Other(IOException("offline")))
+        coEvery { controller.getChat(chatId, any()) } returns Result.failure(IOException("offline"))
+
+        assertContentEquals(groupKey, restarted().key(chatId).getOrThrow())
+        coVerify(exactly = 1) { controller.getKeyEnvelope(chatId) }
+    }
+
+    @Test
+    fun `a stored creator-wrapped envelope that can't be checked offline is kept and the fetch failure returned`() = runTest {
+        val creatorWrapped = stored(creatorKeys, memberPk, creatorId)
+        store.rows[rowKey] = creatorWrapped
+        coEvery { controller.getChat(chatId, any()) } returns Result.failure(IOException("offline"))
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(GetKeyEnvelopeError.Other(IOException("offline")))
+
+        assertTrue(memberEnvelopes.key(chatId).isFailure)
+        assertEquals(creatorWrapped, store.rows[rowKey])
+    }
+
+    @Test
+    fun `a network fetch replaces the stored envelope`() = runTest {
+        store.rows[rowKey] = stored(creatorKeys, memberPk, creatorId)
+        // The stored creator-wrapped copy opens and is re-wrapped: the self-wrapped copy replaces it.
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+        val rewrapped = slot<KeyEnvelope>()
+        coEvery { controller.setKeyEnvelope(chatId, capture(rewrapped)) } returns Result.success(Unit)
+
+        memberEnvelopes.key(chatId).getOrThrow()
+
+        assertEquals(rewrapped.captured, store.rows[rowKey]?.envelope)
+        coVerify(exactly = 0) { controller.getKeyEnvelope(any()) }
+    }
+
+    @Test
+    fun `a stored envelope that fails to unwrap falls back to the network and is replaced`() = runTest {
+        val impostor = KeyPair(publicKey = ByteArray(32) { 99.toByte() }, privateKey = ByteArray(64))
+        store.rows[rowKey] = stored(impostor, memberPk, memberId)
+        val fetched = selfWrapped()
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.success(fetched)
+
+        assertContentEquals(groupKey, memberEnvelopes.key(chatId).getOrThrow())
+
+        coVerify(exactly = 1) { controller.getKeyEnvelope(chatId) }
+        assertEquals(fetched, store.rows[rowKey])
+    }
+
+    @Test
+    fun `a stored envelope in an unknown scheme is dropped and the network used`() = runTest {
+        val sealed = selfWrapped().envelope
+        store.rows[rowKey] = StoredKeyEnvelope(KeyEnvelope(99, sealed.nonce, sealed.ciphertext), wrappedBy = null)
+        val fetched = selfWrapped()
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.success(fetched)
+
+        memberEnvelopes.key(chatId).getOrThrow()
+
+        assertEquals(fetched, store.rows[rowKey])
+    }
+
+    @Test
+    fun `a stored envelope wrapped by a stranger is dropped and the network used`() = runTest {
+        store.rows[rowKey] = stored(creatorKeys, memberPk, List(16) { 9 })
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+        val fetched = selfWrapped()
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.success(fetched)
+
+        memberEnvelopes.key(chatId).getOrThrow()
+
+        assertEquals(fetched, store.rows[rowKey])
+    }
+
+    @Test
+    fun `an untrusted fetched envelope clears the stored row`() = runTest {
+        val impostor = KeyPair(publicKey = ByteArray(32) { 99.toByte() }, privateKey = ByteArray(64))
+        store.rows[rowKey] = stored(impostor, memberPk, memberId)
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.success(stored(impostor, memberPk, memberId))
+
+        assertTrue(memberEnvelopes.key(chatId).exceptionOrNull() is UntrustedEnvelope)
+        assertEquals(null, store.rows[rowKey])
+    }
+
+    @Test
+    fun `a wrong-key invite bundle clears the stored row`() = runTest {
+        store.rows[rowKey] = stored(memberKeys, memberPk, List(16) { 9 }) // fails the wrapper check
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(bundle(wrappedBy = List(16) { 9 }))
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+
+        assertTrue(memberEnvelopes.key(chatId).isFailure)
+        assertTrue(chatId in wrongKeyChats.chats.value)
+        assertEquals(null, store.rows[rowKey])
+    }
+
+    @Test
+    fun `an invite bundle's copy is replaced by the member's own stored envelope`() = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(bundle())
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+        val rewrapped = slot<KeyEnvelope>()
+        coEvery { controller.setKeyEnvelope(chatId, capture(rewrapped)) } returns Result.success(Unit)
+
+        memberEnvelopes.key(chatId).getOrThrow()
+
+        assertEquals(rewrapped.captured, store.rows[rowKey]?.envelope)
+        assertContentEquals(memberPk + memberPk + groupKey, store.rows.getValue(rowKey).envelope.ciphertext)
+    }
+
+    @Test
+    fun `an invite bundle whose own copy can't be stored leaves no stored row`() = runTest {
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(bundle())
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+        coEvery { controller.setKeyEnvelope(chatId, any()) } returns Result.failure(IOException("offline"))
+
+        assertContentEquals(groupKey, memberEnvelopes.key(chatId).getOrThrow())
+        assertEquals(null, store.rows[rowKey])
+    }
+
+    @Test
+    fun `NO_ENVELOPE clears a stored row for a non-creator`() = runTest {
+        store.rows[rowKey] = stored(impostorKeys(), memberPk, memberId)
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(GetKeyEnvelopeError.NoEnvelope())
+        coEvery { controller.getChat(chatId, any()) } returns Result.success(metadata(creatorId))
+
+        assertTrue(memberEnvelopes.key(chatId).isFailure)
+        assertEquals(null, store.rows[rowKey])
+    }
+
+    private fun impostorKeys() = KeyPair(publicKey = ByteArray(32) { 99.toByte() }, privateKey = ByteArray(64))
+
+    @Test
+    fun `a failed fetch other than a refusal keeps the stored row`() = runTest {
+        // A stored creator-wrapped copy that needs the network to check, with the network down.
+        val kept = stored(creatorKeys, memberPk, creatorId)
+        store.rows[rowKey] = kept
+        coEvery { controller.getChat(chatId, any()) } returns Result.failure(IOException("offline"))
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.failure(GetKeyEnvelopeError.Other(IOException("offline")))
+
+        assertTrue(memberEnvelopes.key(chatId).isFailure)
+        assertEquals(kept, store.rows[rowKey])
+    }
+
+    @Test
+    fun `storeNewKey stores the creator's envelope`() = runTest {
+        val sent = slot<KeyEnvelope>()
+        coEvery { controller.setKeyEnvelope(chatId, capture(sent)) } returns Result.success(Unit)
+
+        envelopes.storeNewKey(chatId).getOrThrow()
+
+        val row = store.rows[chatId.bytes.toList() to creatorKeys.publicKey.toList()]
+        assertEquals(sent.captured, row?.envelope)
+        assertFalse(row!!.envelope.ciphertext.contentEquals(FakeChatCipher.newGroupKey()))
+    }
+
+    @Test
+    fun `storeNewKey replaces an older stored envelope`() = runTest {
+        val rowKey = chatId.bytes.toList() to creatorKeys.publicKey.toList()
+        store.rows[rowKey] = stored(creatorKeys, creatorKeys.publicKey, null)
+        val sent = slot<KeyEnvelope>()
+        coEvery { controller.setKeyEnvelope(chatId, capture(sent)) } returns Result.success(Unit)
+
+        envelopes.storeNewKey(chatId).getOrThrow()
+
+        assertEquals(sent.captured, store.rows[rowKey]?.envelope)
+    }
+
+    @Test
+    fun `ALREADY_SET on storeNewKey clears the stored row`() = runTest {
+        val rowKey = chatId.bytes.toList() to creatorKeys.publicKey.toList()
+        store.rows[rowKey] = stored(creatorKeys, creatorKeys.publicKey, null)
+        coEvery { controller.setKeyEnvelope(chatId, any()) } returns Result.failure(SetKeyEnvelopeError.AlreadySet())
+
+        assertTrue(envelopes.storeNewKey(chatId).isSuccess)
+        assertEquals(null, store.rows[rowKey])
+    }
+
+    @Test
+    fun `a failing store never costs the key`() = runTest {
+        val broken = object : GroupKeyEnvelopeStore {
+            override suspend fun load(chatId: ChatId, ownPublicKey: ByteArray): StoredKeyEnvelope? = error("db")
+            override suspend fun save(chatId: ChatId, ownPublicKey: ByteArray, envelope: StoredKeyEnvelope) = error("db")
+            override suspend fun delete(chatId: ChatId, ownPublicKey: ByteArray) = error("db")
+            override suspend fun clear() = error("db")
+        }
+        coEvery { controller.getKeyEnvelope(chatId) } returns Result.success(selfWrapped())
+
+        val opened = GroupKeyEnvelopes(FakeChatCipher, inviteCipher, memberSource, controller, wrongKeyChats, broken)
+        assertContentEquals(groupKey, opened.key(chatId).getOrThrow())
     }
 }

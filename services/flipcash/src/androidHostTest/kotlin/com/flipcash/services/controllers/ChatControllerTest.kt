@@ -22,6 +22,8 @@ import com.flipcash.services.models.chat.Lobby
 import com.flipcash.services.models.chat.LobbyPage
 import com.flipcash.services.models.chat.StoredKeyEnvelope
 import com.flipcash.services.models.chat.MuteState
+import com.flipcash.services.models.chat.PinSummary
+import com.flipcash.services.models.chat.PinsPage
 import com.flipcash.services.models.chat.RestrictedUsersPage
 import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.RosterPage
@@ -681,6 +683,19 @@ private class FakeChatRepository : ChatRepository {
         chatId: ChatId,
         queryOptions: QueryOptions,
     ): Result<RestrictedUsersPage> = Result.success(RestrictedUsersPage(emptyList(), null, false))
+
+    override suspend fun pinMessage(owner: Ed25519.KeyPair, chatId: ChatId, messageId: Long): Result<PinSummary> =
+        Result.success(PinSummary())
+
+    override suspend fun unpinMessage(owner: Ed25519.KeyPair, chatId: ChatId, messageId: Long): Result<PinSummary> =
+        Result.success(PinSummary())
+
+    override suspend fun getPinnedMessages(
+        owner: Ed25519.KeyPair,
+        chatId: ChatId,
+        queryOptions: QueryOptions,
+        viewMode: ViewMode,
+    ): Result<PinsPage> = Result.success(PinsPage(emptyList(), PinSummary(), null, false))
 
     override suspend fun denyLobbyMember(owner: Ed25519.KeyPair, chatId: ChatId, userId: ID): Result<Unit> {
         lastChatId = chatId

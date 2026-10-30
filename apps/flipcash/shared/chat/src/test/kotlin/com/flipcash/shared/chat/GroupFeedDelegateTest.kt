@@ -248,6 +248,24 @@ class GroupFeedDelegateTest {
     }
 
     @Test
+    fun `a successful leave drops the chat's key envelope and payment requests`() = runTest {
+        coEvery { controller.leaveChat(chatId) } returns Result.success(Unit)
+
+        subject.leave(chatId)
+
+        coVerify(exactly = 1) { metadataDataSource.removeFromChat(chatId) }
+    }
+
+    @Test
+    fun `a failed leave keeps the chat's key envelope and payment requests`() = runTest {
+        coEvery { controller.leaveChat(chatId) } returns Result.failure(Throwable("unreachable"))
+
+        subject.leave(chatId)
+
+        coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<ChatId>()) }
+    }
+
+    @Test
     fun `a failed leave puts the chat back`() = runTest {
         coEvery { controller.leaveChat(chatId) } returns Result.failure(Throwable("unreachable"))
 
@@ -320,7 +338,7 @@ class GroupFeedDelegateTest {
 
         subject.applyRosterChanges(chatId, listOf(change))
 
-        coVerify { metadataDataSource.setMembership(chatId, isMember = false) }
+        coVerify { metadataDataSource.removeFromChat(chatId) }
     }
 
     @Test
@@ -333,6 +351,7 @@ class GroupFeedDelegateTest {
         subject.applyRosterChanges(chatId, listOf(change))
 
         coVerify(exactly = 0) { metadataDataSource.setMembership(any<ChatId>(), any()) }
+        coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<ChatId>()) }
         coVerify { rosterStateHolder.apply(chatId, listOf(change)) }
     }
 }

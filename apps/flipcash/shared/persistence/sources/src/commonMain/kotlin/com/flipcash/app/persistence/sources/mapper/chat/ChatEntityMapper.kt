@@ -40,7 +40,9 @@ import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.Reactor
 import com.flipcash.services.models.chat.ReactionSummary
+import com.flipcash.services.models.chat.PinSummary
 import com.flipcash.services.models.chat.RosterSummary
+import com.flipcash.services.models.chat.fromStored
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.ClientMessageId
 import com.getcode.opencode.model.core.ID
@@ -107,6 +109,9 @@ class ChatEntityMapper @Inject constructor() {
             creatorHex = metadata.creator?.hexEncodedString(),
             useE2ee = metadata.useE2ee,
             isPrivate = metadata.isPrivate,
+            pinCount = metadata.pinSummary?.count ?: 0,
+            pinVersion = metadata.pinSummary?.version ?: 0,
+            latestPin = metadata.pinSummary?.latestEncoded,
         )
     }
 
@@ -141,8 +146,14 @@ class ChatEntityMapper @Inject constructor() {
             creator = entity.creatorHex?.hexToIdExt(),
             useE2ee = entity.useE2ee,
             isPrivate = entity.isPrivate,
+            pinSummary = entity.toPinSummary(),
         )
     }
+
+    /** The pin summary stored on the row; null for a chat that has never had a pin. */
+    private fun ChatMetadataEntity.toPinSummary(): PinSummary? =
+        if (pinVersion == 0L && pinCount == 0 && latestPin == null) null
+        else PinSummary.fromStored(pinCount, pinVersion, latestPin)
 
     /** The `mute_until_epoch_ms` column a [mute] writes; null for forever and for no mute. */
     fun muteUntilEpochMs(mute: MuteState?): Long? =
