@@ -382,7 +382,7 @@ class ChatGroupCashLinkTest {
     }
 
     @Test
-    fun `a private group's amount moves on to Select People without the viewer`() = runTest(mainCoroutineRule.dispatcher) {
+    fun `a private group's amount moves on to Select People with the viewer first`() = runTest(mainCoroutineRule.dispatcher) {
         val vm = createViewModel()
         selectingPeople(vm, total = 2.0)
         advanceUntilIdle()
@@ -390,7 +390,8 @@ class ChatGroupCashLinkTest {
         val state = vm.stateFlow.value
         assertEquals(GroupSendState.Stage.People, state.groupSend?.stage)
         assertEquals(Fiat(2.0), state.groupSend?.total)
-        assertEquals(roster.map { it.userId }, state.groupSendCandidates.map { it.userId })
+        assertEquals(listOf(viewerId) + roster.map { it.userId }, state.groupSendCandidates.map { it.userId })
+        assertEquals(false, state.groupSend?.includesSender)
         coVerify(exactly = 0) { chatCashLinks.sendToChat(any(), any(), any(), any()) }
     }
 
@@ -443,5 +444,53 @@ class ChatGroupCashLinkTest {
         }
         coVerify(exactly = 0) { chatCashLinks.sendToChat(any(), any(), any(), any()) }
         assertTrue(events.any { it is ChatViewModel.Event.SendComplete })
+    }
+
+    @Test
+    fun `checking You splits with the sender, who keeps the last share`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        selectingPeople(vm, total = 5.0)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(viewerId))
+        vm.check(4)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            groupSendPayments.send(
+                chatId = chatId,
+                recipients = roster.take(4).map { it.userId },
+                plan = GroupSendPlan.Pay(listOf(100, 100, 100, 100), kept = 100),
+                currency = CurrencyCode.USD,
+                token = token,
+                source = any(),
+            )
+        }
+    }
+
+    @Test
+    fun `You counts toward the ten`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        selectingPeople(vm, total = 20.0)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(viewerId))
+        vm.check(10)
+        advanceUntilIdle()
+
+        val groupSend = vm.stateFlow.value.groupSend
+        assertEquals(roster.take(9).map { it.userId }, groupSend?.selected)
+        assertEquals(true, groupSend?.includesSender)
+        assertEquals(1, BottomBarManager.messages.value.size)
+    }
+
+    @Test
+    fun `You alone sends nothing`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        selectingPeople(vm, total = 5.0)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(viewerId))
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
+        advanceUntilIdle()
+
+        assertEquals(GroupSendState.Stage.People, vm.stateFlow.value.groupSend?.stage)
+        assertEquals(emptyList(), vm.stateFlow.value.groupSend?.selected)
     }
 }

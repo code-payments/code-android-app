@@ -28,11 +28,12 @@ class GroupSendSplitVectorsTest {
     @Test
     fun `every vector`() {
         val vectors = fixture.getJSONArray("vectors")
-        assertEquals(14, vectors.length())
+        assertEquals(23, vectors.length())
         for (i in 0 until vectors.length()) {
             val v = vectors.getJSONObject(i)
             val name = v.getString("name")
-            val plan = GroupSendSplit.split(cents(v.getString("total")), v.getInt("recipients"))
+            val includesSender = v.optBoolean("includesSender", false)
+            val plan = GroupSendSplit.split(cents(v.getString("total")), v.getInt("recipients"), includesSender)
 
             if (v.has("expectedError")) {
                 val error = when (val rule = v.getString("expectedError")) {
@@ -51,12 +52,26 @@ class GroupSendSplitVectorsTest {
 
             val parts = v.getJSONArray("parts")
             assertEquals((0 until parts.length()).map { cents(parts.getString(it)) }, pay.parts, name)
+            assertEquals(v.optString("kept").ifEmpty { null }?.let(::cents), pay.kept, name)
+            if (includesSender) assertEquals(cents(v.getString("sent")), pay.sent, name)
 
-            if (v.has("eachLabel")) {
-                val each = "$" + BigDecimal.valueOf(pay.smallest, 2).toPlainString() + " Each"
-                assertEquals(v.getString("eachLabel"), if (pay.isEven) each else "~$each", name)
-            }
+            assertEquals(v.optString("eachLabel").ifEmpty { null }, pay.takeIf { it.shares.size > 1 }?.let(::eachLabel), name)
         }
+    }
+
+    // Not in the fixture: the paid parts are equal but the sender's is a cent less, so "~" must
+    // come from the sender's share. 5 cents between You and 2 pays 2 and 2 and keeps 1.
+    @Test
+    fun `the sender's smaller share makes the label approximate`() {
+        val pay = assertIs<GroupSendPlan.Pay>(GroupSendSplit.split(5, 2, includesSender = true))
+        assertEquals(listOf(2L, 2L), pay.parts)
+        assertEquals(1L, pay.kept)
+        assertEquals("~$0.01 Each", eachLabel(pay))
+    }
+
+    private fun eachLabel(pay: GroupSendPlan.Pay): String {
+        val each = "$" + BigDecimal.valueOf(pay.smallest, 2).toPlainString() + " Each"
+        return if (pay.isEven) each else "~$each"
     }
 
     @Test

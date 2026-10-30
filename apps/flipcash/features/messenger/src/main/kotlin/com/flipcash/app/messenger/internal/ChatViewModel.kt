@@ -682,7 +682,7 @@ internal class ChatViewModel @AssistedInject constructor(
         val sendsToMembers: Boolean
             get() = chatType == ChatType.GROUP && (subject as? ChatSubject.Group)?.isPrivate == true
 
-        /** Who Select People lists: the roster, or what this device knows of it, less the viewer. */
+        /** Who Select People lists: the roster, or what this device knows of it, the viewer first. */
         val groupSendCandidates: List<ChatMember>
             get() = groupSend?.candidates(members.ifEmpty { knownMembers }).orEmpty()
 
@@ -4056,15 +4056,15 @@ internal class ChatViewModel @AssistedInject constructor(
         eventFlow.filterIsInstance<Event.OnGroupSendMemberToggled>()
             .onEach { (member) ->
                 val groupSend = stateFlow.value.groupSend ?: return@onEach
-                val selected = groupSend.toggled(member)
-                if (selected == null) {
+                val toggled = groupSend.toggled(member)
+                if (toggled == null) {
                     BottomBarManager.showInfo(
                         title = resources.getString(R.string.title_groupSendMaxPeople),
                         message = resources.getString(R.string.description_groupSendMaxPeople),
                     )
                     return@onEach
                 }
-                update { it.copy(selected = selected) }
+                update { toggled }
             }.launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.OnGroupSendBack>()
@@ -4088,8 +4088,8 @@ internal class ChatViewModel @AssistedInject constructor(
                         title = resources.getString(R.string.error_title_groupSendTooSmall),
                         message = resources.getQuantityString(
                             R.plurals.error_description_groupSendTooSmall,
-                            groupSend.selected.size,
-                            groupSend.selected.size,
+                            groupSend.shares,
+                            groupSend.shares,
                         ),
                     )
                     GroupSendPlan.NoRecipients, GroupSendPlan.TooManyRecipients -> Unit

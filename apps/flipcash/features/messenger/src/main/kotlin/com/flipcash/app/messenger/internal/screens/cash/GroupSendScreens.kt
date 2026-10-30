@@ -65,8 +65,9 @@ import com.getcode.ui.theme.CodeScaffold
 import com.getcode.view.LoadingSuccessState
 
 /**
- * Select People, node 11293:6918: the group's members less the sender, checked one by one in the
- * order that decides the split. There is no Select All.
+ * Select People, node 11293:6918: the group's members, checked one by one in the order that decides
+ * the split. There is no Select All; the sender's "You" row takes its place, as the first of
+ * [candidates] when [viewerId] is set.
  */
 @Composable
 internal fun GroupSelectPeopleContent(
@@ -196,8 +197,9 @@ internal fun GroupSendConfirmSheet(
     swipePay: SwipePayUiState,
     actions: SwipePayActions,
 ) {
+    // The total entered, not what is sent: with You checked, the sender's part stays behind.
     val total = groupSend.total ?: return
-    val parts = (groupSend.plan as? GroupSendPlan.Pay)?.parts ?: return
+    val plan = groupSend.plan as? GroupSendPlan.Pay ?: return
     val unknownName = stringResource(R.string.title_unnamedUser)
 
     SwipePaySheet(
@@ -226,9 +228,9 @@ internal fun GroupSendConfirmSheet(
                     style = CodeTheme.typography.displayMedium,
                     color = CodeTheme.colors.textMain,
                 )
-                if (parts.size >= 2) {
+                if (plan.shares.size >= 2) {
                     Text(
-                        text = eachLabel(parts, total.currencyCode),
+                        text = eachLabel(plan, total.currencyCode),
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
                     )
@@ -238,11 +240,14 @@ internal fun GroupSendConfirmSheet(
     )
 }
 
-/** "$1.00 Each" when the parts are equal, else "~$0.33 Each" for the smallest. */
+/**
+ * "$1.00 Each" when the shares are equal, else "~$0.33 Each" for the smallest. The sender's kept
+ * share counts: You + 1 on $5.00 is "$2.50 Each".
+ */
 @Composable
-private fun eachLabel(parts: List<Long>, currency: CurrencyCode): String {
-    val smallest = GroupSendSplit.fiat(parts.min(), currency).formatted()
-    return if (parts.distinct().size == 1) stringResource(R.string.label_groupSendEach, smallest)
+private fun eachLabel(plan: GroupSendPlan.Pay, currency: CurrencyCode): String {
+    val smallest = GroupSendSplit.fiat(plan.smallest, currency).formatted()
+    return if (plan.isEven) stringResource(R.string.label_groupSendEach, smallest)
     else stringResource(R.string.label_groupSendEachApprox, smallest)
 }
 
