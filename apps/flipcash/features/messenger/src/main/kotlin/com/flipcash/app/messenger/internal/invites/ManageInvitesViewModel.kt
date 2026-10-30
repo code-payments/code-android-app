@@ -2,6 +2,9 @@ package com.flipcash.app.messenger.internal.invites
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.messenger.internal.trackInviteLinkCreated
+import com.flipcash.app.messenger.internal.trackInviteLinkRevoked
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.HostInvite
@@ -28,6 +31,7 @@ import kotlin.time.Clock
 internal class ManageInvitesViewModel @Inject constructor(
     private val hostInvites: HostInvites,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalytics,
 ) : ViewModel() {
 
     data class State(
@@ -88,6 +92,7 @@ internal class ManageInvitesViewModel @Inject constructor(
         val chatId = chatId ?: return
         viewModelScope.launch {
             hostInvites.revoke(chatId, invite.invite.id)
+                .also { analytics.trackInviteLinkRevoked(it) }
                 .onSuccess { publish(chatId) }
                 .onFailure { error ->
                     if (error.isLostInviteAccess()) {
@@ -108,7 +113,7 @@ internal class ManageInvitesViewModel @Inject constructor(
         if (_state.value.creating) return
         _state.update { it.copy(creating = true) }
         viewModelScope.launch {
-            when (val result = hostInvites.create(chatId, settings)) {
+            when (val result = hostInvites.create(chatId, settings).also { analytics.trackInviteLinkCreated(it) }) {
                 is InviteCreation.Created -> {
                     _state.update { it.copy(creating = false) }
                     publish(chatId)

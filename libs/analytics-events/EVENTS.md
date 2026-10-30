@@ -58,9 +58,11 @@ Group chats. `Member Count` is the member count before the action, from what the
 
 ### Group: New Opened
 
-The New Group form opened.
+The New Group form opened. Type says whether the user tapped Create a New Group or Create a New Community Chat.
 
-No properties.
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Type | list | yes | [GroupType](#grouptype) |
 
 ### Group: Created
 
@@ -160,6 +162,79 @@ The group info (profile) screen opened.
 |---|---|---|---|
 | Member Count | count | no | |
 | Is Member | yes/no | no | |
+
+### Group: Invite Link Created
+
+CreateInvite returned for a private group's invite link, from New Link in Manage Invites or when Share Invite Link makes one because none exists.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Group: Invite Link Revoked
+
+RevokeInvite returned after the host confirmed Revoke Link.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Group: Join Request Approved
+
+A host tapped Approve on a join request and the admit call returned.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Group: Join Request Denied
+
+A host tapped Deny on a join request and the deny call returned.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Group: Member Silenced
+
+A host picked a silence option for a member and the call returned. The member can still read the group but can't send messages.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Duration | list | no | [SilenceDuration](#silenceduration) |
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+### Group: Member Removed
+
+A host confirmed Remove on a member and the ban call returned. Both apps remove a member by banning them.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+
+## Search
+
+The Chats search screen.
+
+### Search: Opened
+
+The Chats search screen opened.
+
+No properties.
+
+### Search: Result Tapped
+
+A result row was tapped on the Chats search screen. Tapping a section's See all is not a result.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Result Type | list | no | [SearchResultType](#searchresulttype) |
 
 ## Transfer
 
@@ -349,6 +424,32 @@ The Phantom deeplink flow.
 ### Token Info: Opened From {source}
 
 `{source}` in the name is one of [TokenInfoSource](#tokeninfosource).
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Mint | text | no | |
+
+### Token Info: Tile Tapped
+
+An action tile was tapped on Currency Info. It counts the tap, not whether the Send, Buy or Transactions screen completed.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Tile | list | no | [CurrencyInfoTile](#currencyinfotile) |
+| Mint | text | no | |
+
+### Token Info: More Option Picked
+
+A row was picked in the More sheet on Currency Info.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Option | list | no | [CurrencyInfoMoreOption](#currencyinfomoreoption) |
+| Mint | text | no | |
+
+### Token Info: Community Chat Tapped
+
+A community chat row was tapped on Currency Info, in the Top Community Chats preview or its View All list.
 
 | Property | Type | Optional | Values |
 |---|---|---|---|
@@ -700,13 +801,14 @@ The `Provider` property on the Wallet events: the wallet app the flow goes throu
 
 ### TokenInfoSource
 
-Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 1; Android previously sent Wallet for all three. Give and Send are iOS's, from the Add More Cash prompt on the Give and Send amount screens; the event names iOS sends today are unchanged.
+Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 1; Android previously sent Wallet for all three. Give and Send are iOS's, from the Add More Cash prompt on the Give and Send amount screens; the event names iOS sends today are unchanged. Search is a result tapped on the Chats search screen.
 
 | Value sent | Name in code | Drift |
 |---|---|---|
 | Deeplink | `DEEPLINK` | |
 | Wallet | `WALLET` | |
 | Discovery | `DISCOVERY` | |
+| Search | `SEARCH` | |
 | Chat | `CHAT` | |
 | Chat Gate | `CHAT_GATE` | iOS doesn't send this source: its gate buy button pushes the buy screen and never opens Token Info. Group: Gate Funding Tapped covers that tap on both apps. |
 | Give | `GIVE` | Android has no such flow: its Give screen sends Add Money: Opened with source Give Shortfall instead of opening Token Info. |
@@ -722,6 +824,26 @@ The `Duration` property on Chat Muted: the mute option picked. Both apps offer t
 | 8 Hours | `EIGHT_HOURS` | |
 | 1 Week | `ONE_WEEK` | |
 | Always | `ALWAYS` | |
+
+### SilenceDuration
+
+The `Duration` property on Group: Member Silenced: the silence option picked. Both apps offer these four. The last reads Forever here, where MuteDuration reads Always.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| 1 Hour | `ONE_HOUR` | |
+| 8 Hours | `EIGHT_HOURS` | |
+| 1 Week | `ONE_WEEK` | |
+| Forever | `FOREVER` | |
+
+### GroupType
+
+The `Type` property on Group: New Opened: which New Chat row was tapped. Private is Create a New Group; Community is Create a New Community Chat.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Private | `PRIVATE` | |
+| Community | `COMMUNITY` | |
 
 ### GroupField
 
@@ -778,6 +900,39 @@ The `Method` property on Group: Gate Funding Tapped: the funding button tapped o
 |---|---|---|
 | Buy Token | `BUY_TOKEN` | |
 | Add Cash | `ADD_CASH` | |
+
+### SearchResultType
+
+The `Result Type` property on Search: Result Tapped: the kind of result row. Chat covers direct messages and groups, and the recent chats shown before anything is typed.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Chat | `CHAT` | |
+| Currency | `CURRENCY` | |
+| Message | `MESSAGE` | |
+| Link | `LINK` | |
+
+### CurrencyInfoTile
+
+The `Tile` property on Token Info: Tile Tapped: the action tile tapped on Currency Info. Which tiles show depends on whether the currency is held.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Send | `SEND` | |
+| Buy | `BUY` | |
+| Buy In | `BUY_IN` | |
+| Transactions | `TRANSACTIONS` | |
+| More | `MORE` | |
+
+### CurrencyInfoMoreOption
+
+The `Option` property on Token Info: More Option Picked: the row picked in the More sheet.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Convert | `CONVERT` | |
+| Withdraw | `WITHDRAW` | |
+| Deposit | `DEPOSIT` | |
 
 ### PurchaseMethod
 

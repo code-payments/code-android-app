@@ -115,11 +115,12 @@ description = "The `Provider` property on the Wallet events: the wallet app the 
 PHANTOM = "Phantom"
 
 [lists.TokenInfoSource]
-description = "Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 1; Android previously sent Wallet for all three. Give and Send are iOS's, from the Add More Cash prompt on the Give and Send amount screens; the event names iOS sends today are unchanged."
+description = "Where Token Info was opened from. Discovery, Chat and Chat Gate are new in part 1; Android previously sent Wallet for all three. Give and Send are iOS's, from the Add More Cash prompt on the Give and Send amount screens; the event names iOS sends today are unchanged. Search is a result tapped on the Chats search screen."
 [lists.TokenInfoSource.values]
 DEEPLINK = "Deeplink"
 WALLET = "Wallet"
 DISCOVERY = "Discovery"
+SEARCH = "Search"
 CHAT = "Chat"
 CHAT_GATE = { value = "Chat Gate", drift = "iOS doesn't send this source: its gate buy button pushes the buy screen and never opens Token Info. Group: Gate Funding Tapped covers that tap on both apps." }
 GIVE = { value = "Give", drift = "Android has no such flow: its Give screen sends Add Money: Opened with source Give Shortfall instead of opening Token Info." }
@@ -132,6 +133,20 @@ ONE_HOUR = "1 Hour"
 EIGHT_HOURS = "8 Hours"
 ONE_WEEK = "1 Week"
 ALWAYS = "Always"
+
+[lists.SilenceDuration]
+description = "The `Duration` property on Group: Member Silenced: the silence option picked. Both apps offer these four. The last reads Forever here, where MuteDuration reads Always."
+[lists.SilenceDuration.values]
+ONE_HOUR = "1 Hour"
+EIGHT_HOURS = "8 Hours"
+ONE_WEEK = "1 Week"
+FOREVER = "Forever"
+
+[lists.GroupType]
+description = "The `Type` property on Group: New Opened: which New Chat row was tapped. Private is Create a New Group; Community is Create a New Community Chat."
+[lists.GroupType.values]
+PRIVATE = "Private"
+COMMUNITY = "Community"
 
 [lists.GroupField]
 description = "The `Field` property on Group: Edited: what the edit changed."
@@ -170,6 +185,30 @@ description = "The `Method` property on Group: Gate Funding Tapped: the funding 
 [lists.GroupGateFunding.values]
 BUY_TOKEN = "Buy Token"
 ADD_CASH = "Add Cash"
+
+[lists.SearchResultType]
+description = "The `Result Type` property on Search: Result Tapped: the kind of result row. Chat covers direct messages and groups, and the recent chats shown before anything is typed."
+[lists.SearchResultType.values]
+CHAT = "Chat"
+CURRENCY = "Currency"
+MESSAGE = "Message"
+LINK = "Link"
+
+[lists.CurrencyInfoTile]
+description = "The `Tile` property on Token Info: Tile Tapped: the action tile tapped on Currency Info. Which tiles show depends on whether the currency is held."
+[lists.CurrencyInfoTile.values]
+SEND = "Send"
+BUY = "Buy"
+BUY_IN = "Buy In"
+TRANSACTIONS = "Transactions"
+MORE = "More"
+
+[lists.CurrencyInfoMoreOption]
+description = "The `Option` property on Token Info: More Option Picked: the row picked in the More sheet."
+[lists.CurrencyInfoMoreOption.values]
+CONVERT = "Convert"
+WITHDRAW = "Withdraw"
+DEPOSIT = "Deposit"
 
 [lists.PurchaseMethod]
 description = "How a token is paid for, sent in the event name `Token Purchase With {method}`."
@@ -265,6 +304,7 @@ MESSAGES = "Messages Received"
 
 [domains]
 Wallet = "The Phantom deeplink flow."
+Search = "The Chats search screen."
 Swap = "Buying and selling a token."
 Scan = "The gallery scan path, and the tip card."
 Group = "Group chats. `Member Count` is the member count before the action, from what the screen already holds. `Gate Mint` is left out when the group has no token gate. `Error` is the RPC's result name as the proto spells it, such as RulesNotSatisfied, or Network for a transport failure."
@@ -324,7 +364,8 @@ properties = [
 [[event]]
 domain = "Group"
 name = "Group: New Opened"
-description = "The New Group form opened."
+properties = [{ name = "Type", type = "GroupType", optional = true }]
+description = "The New Group form opened. Type says whether the user tapped Create a New Group or Create a New Community Chat."
 
 [[event]]
 domain = "Group"
@@ -420,6 +461,74 @@ properties = [
   { name = "Is Member", type = "yes/no" },
 ]
 description = "The group info (profile) screen opened."
+
+[[event]]
+domain = "Group"
+name = "Group: Invite Link Created"
+properties = [
+  { name = "State", type = "State" },
+  { name = "Error", type = "text", optional = true },
+]
+description = "CreateInvite returned for a private group's invite link, from New Link in Manage Invites or when Share Invite Link makes one because none exists."
+
+[[event]]
+domain = "Group"
+name = "Group: Invite Link Revoked"
+properties = [
+  { name = "State", type = "State" },
+  { name = "Error", type = "text", optional = true },
+]
+description = "RevokeInvite returned after the host confirmed Revoke Link."
+
+[[event]]
+domain = "Group"
+name = "Group: Join Request Approved"
+properties = [
+  { name = "State", type = "State" },
+  { name = "Error", type = "text", optional = true },
+]
+description = "A host tapped Approve on a join request and the admit call returned."
+
+[[event]]
+domain = "Group"
+name = "Group: Join Request Denied"
+properties = [
+  { name = "State", type = "State" },
+  { name = "Error", type = "text", optional = true },
+]
+description = "A host tapped Deny on a join request and the deny call returned."
+
+[[event]]
+domain = "Group"
+name = "Group: Member Silenced"
+properties = [
+  { name = "Duration", type = "SilenceDuration" },
+  { name = "State", type = "State" },
+  { name = "Error", type = "text", optional = true },
+]
+description = "A host picked a silence option for a member and the call returned. The member can still read the group but can't send messages."
+
+[[event]]
+domain = "Group"
+name = "Group: Member Removed"
+properties = [
+  { name = "State", type = "State" },
+  { name = "Error", type = "text", optional = true },
+]
+description = "A host confirmed Remove on a member and the ban call returned. Both apps remove a member by banning them."
+
+# Search
+
+[[event]]
+domain = "Search"
+name = "Search: Opened"
+description = "The Chats search screen opened."
+
+[[event]]
+domain = "Search"
+name = "Search: Result Tapped"
+properties = [{ name = "Result Type", type = "SearchResultType" }]
+description = "A result row was tapped on the Chats search screen. Tapping a section's See all is not a result."
 
 # Transfers
 
@@ -575,6 +684,30 @@ name = "Token Info: Opened From {source}"
 builder = "opened"
 placeholders = { source = "TokenInfoSource" }
 properties = [{ name = "Mint", type = "text" }]
+
+[[event]]
+domain = "Token Info"
+name = "Token Info: Tile Tapped"
+properties = [
+  { name = "Tile", type = "CurrencyInfoTile" },
+  { name = "Mint", type = "text" },
+]
+description = "An action tile was tapped on Currency Info. It counts the tap, not whether the Send, Buy or Transactions screen completed."
+
+[[event]]
+domain = "Token Info"
+name = "Token Info: More Option Picked"
+properties = [
+  { name = "Option", type = "CurrencyInfoMoreOption" },
+  { name = "Mint", type = "text" },
+]
+description = "A row was picked in the More sheet on Currency Info."
+
+[[event]]
+domain = "Token Info"
+name = "Token Info: Community Chat Tapped"
+properties = [{ name = "Mint", type = "text" }]
+description = "A community chat row was tapped on Currency Info, in the Top Community Chats preview or its View All list."
 
 # Swap
 

@@ -1,5 +1,9 @@
 package com.flipcash.app.tokens.ui
 
+import com.flipcash.analytics.events.TokenInfoEvents
+import com.flipcash.app.analytics.RecordingAnalytics
+import com.flipcash.app.analytics.analytics
+import com.flipcash.analytics.CurrencyInfoMoreOption
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.funding.PurchaseMethodController
@@ -55,6 +59,7 @@ class TokenInfoViewModelConvertTest {
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
     private val exchange = mockk<Exchange>(relaxed = true)
     private val accountController = mockk<AccountController>(relaxed = true)
+    private val analytics = RecordingAnalytics()
     private val balances = MutableStateFlow<List<TokenWithBalance>>(emptyList())
 
     private val other = Mint(ByteArray(32) { 2 }.toList())
@@ -103,6 +108,7 @@ class TokenInfoViewModelConvertTest {
             communityController = mockk<com.flipcash.services.controllers.CommunityController> {
                 io.mockk.coEvery { getCommunity(any()) } returns Result.failure(Throwable("none"))
             },
+            analytics = analytics,
             dispatchers = TestDispatchers(testScheduler),
         )
         vm.dispatchEvent(TokenInfoViewModel.Event.OnMintProvided(mint))
@@ -164,5 +170,50 @@ class TokenInfoViewModelConvertTest {
             balances.value = listOf(held(Mint.usdf, 5.0))
             val vm = openToken(other)
             assertTrue(vm.stateFlow.value.canConvert)
+        }
+
+    @Test
+    fun `Convert from the More sheet sends More Option Picked when it proceeds`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            balances.value = listOf(held(Mint.usdf, 5.0), held(other, 2.0))
+            val vm = openToken(Mint.usdf)
+
+            vm.dispatchEvent(TokenInfoViewModel.Event.OnConvert)
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(TokenInfoEvents.moreOptionPicked(CurrencyInfoMoreOption.CONVERT, Mint.usdf.analytics)),
+                analytics.events,
+            )
+        }
+
+    @Test
+    fun `a Convert that is a no-op sends nothing`() = runTest(mainCoroutineRule.dispatcher) {
+        balances.value = listOf(held(Mint.usdf, 5.0))
+        val vm = openToken(Mint.usdf)
+
+        vm.dispatchEvent(TokenInfoViewModel.Event.OnConvert)
+        advanceUntilIdle()
+
+        assertTrue(analytics.events.isEmpty(), analytics.events.toString())
+    }
+
+    @Test
+    fun `Withdraw and Deposit each send More Option Picked from their row`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val vm = openToken(other)
+            vm.dispatchEvent(TokenInfoViewModel.Event.OnMore)
+            advanceUntilIdle()
+            assertTrue(analytics.events.isEmpty(), "opening More is not a pick")
+
+            val actions = BottomBarManager.messages.value.last().actions
+            actions.single { it.testTag == "more_action_withdraw" }.onClick()
+            actions.single { it.testTag == "more_action_deposit" }.onClick()
+
+            assertEquals(
+                listOf(CurrencyInfoMoreOption.WITHDRAW, CurrencyInfoMoreOption.DEPOSIT)
+                    .map { TokenInfoEvents.moreOptionPicked(it, other.analytics) },
+                analytics.events,
+            )
         }
 }

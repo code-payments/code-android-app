@@ -3295,7 +3295,9 @@ internal class ChatViewModel @AssistedInject constructor(
                 if (userId in stateFlow.value.joinRequestCalls) return@onEach
                 dispatchEvent(Event.JoinRequestCallChanged(userId, JoinRequestCall.Approve))
                 viewModelScope.launch {
-                    hostLobbies.approve(chatId, event.member).onFailure {
+                    hostLobbies.approve(chatId, event.member).also {
+                        analytics.trackJoinRequestApproved(it)
+                    }.onFailure {
                         trace("failed to admit lobby member - ${it.localizedMessage}")
                         BottomBarManager.showError(
                             title = resources.getString(R.string.error_title_failedToApproveJoinRequest),
@@ -3314,7 +3316,9 @@ internal class ChatViewModel @AssistedInject constructor(
                 if (userId in stateFlow.value.joinRequestCalls) return@onEach
                 dispatchEvent(Event.JoinRequestCallChanged(userId, JoinRequestCall.Deny))
                 viewModelScope.launch {
-                    hostLobbies.deny(chatId, userId).onFailure {
+                    hostLobbies.deny(chatId, userId).also {
+                        analytics.trackJoinRequestDenied(it)
+                    }.onFailure {
                         trace("failed to deny lobby member - ${it.localizedMessage}")
                         BottomBarManager.showError(
                             title = resources.getString(R.string.error_title_failedToDenyJoinRequest),

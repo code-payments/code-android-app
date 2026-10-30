@@ -3,7 +3,9 @@ package com.flipcash.app.messenger.internal.invites
 import android.content.ClipboardManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.extensions.setSensitiveText
+import com.flipcash.app.messenger.internal.trackInviteLinkCreated
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.HostInvite
@@ -63,6 +65,7 @@ internal class InviteLinkViewModel @Inject constructor(
     private val hostInvites: HostInvites,
     private val resources: ResourceHelper,
     private val clipboardManager: ClipboardManager,
+    private val analytics: FlipcashAnalytics,
 ) : ViewModel() {
 
     enum class Action { Share, Copy, Send }
@@ -160,7 +163,7 @@ internal class InviteLinkViewModel @Inject constructor(
     }
 
     private suspend fun create(chatId: ChatId) {
-        when (val result = hostInvites.currentOrCreate(chatId)) {
+        when (val result = hostInvites.currentOrCreate(chatId).also { analytics.trackInviteLinkCreated(it) }) {
             is InviteCreation.Created -> {
                 val link = result.invite.toState()
                 _state.update { it.copy(link = link) }

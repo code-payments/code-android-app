@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.features.messenger.R
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.shared.chat.GroupRosters
@@ -27,6 +28,7 @@ internal class MemberModerationViewModel @Inject constructor(
     private val chatController: ChatController,
     private val resources: ResourceHelper,
     private val groupRosters: GroupRosters,
+    private val analytics: FlipcashAnalytics,
 ) : ViewModel() {
 
     /**
@@ -52,7 +54,9 @@ internal class MemberModerationViewModel @Inject constructor(
         viewModelScope.launch {
             // The alert closes on the tap and this scope can go with the screen before the answer lands.
             withContext(NonCancellable) {
-                chatController.banUser(chatId, userId).onSuccess {
+                chatController.banUser(chatId, userId).also {
+                    analytics.trackMemberRemoved(it)
+                }.onSuccess {
                     groupRosters.remove(chatId, userId)
                 }.onFailure {
                     trace("failed to remove member - ${it.localizedMessage}")
