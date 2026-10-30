@@ -8,7 +8,6 @@ import com.flipcash.app.core.extensions.setSensitiveText
 import com.flipcash.app.messenger.internal.trackInviteLinkCreated
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.shared.chat.ApproveNewMembersStore
 import com.flipcash.shared.chat.GroupCardLinks
 import com.flipcash.shared.chat.HostInvite
 import com.flipcash.shared.chat.HostInvites
@@ -69,7 +68,6 @@ internal class InviteLinkViewModel @Inject constructor(
     private val clipboardManager: ClipboardManager,
     private val analytics: FlipcashAnalytics,
     private val cardLinks: GroupCardLinks,
-    private val approveStore: ApproveNewMembersStore,
 ) : ViewModel() {
 
     enum class Action { Share, Copy, Send }
@@ -198,12 +196,8 @@ internal class InviteLinkViewModel @Inject constructor(
                 _state.update { it.copy(link = InviteLinkState.None) }
                 showInviteLinksNotAvailable(
                     resources,
-                    onShareJoinLink = {
-                        // Open 10: the host who hits this turns Approve new members on, so the
-                        // host sheet shows the plain link next time rather than sending them back here.
-                        viewModelScope.launch { approveStore.set(chatId, true) }
-                        _effects.trySend(Effect.OpenJoinLink)
-                    },
+                    // 1e: share the plain link this once, leaving Approve New Members off.
+                    onShareJoinLink = { _effects.trySend(Effect.OpenJoinLink) },
                     onCancel = { _effects.trySend(Effect.Close) },
                 )
             }

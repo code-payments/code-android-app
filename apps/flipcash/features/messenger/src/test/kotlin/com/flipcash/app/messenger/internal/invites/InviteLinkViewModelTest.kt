@@ -11,7 +11,6 @@ import com.flipcash.services.models.GetChatInvitesError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Invite
 import com.flipcash.services.models.chat.InviteId
-import com.flipcash.shared.chat.ApproveNewMembersStore
 import com.flipcash.shared.chat.GroupCardLinks
 import com.flipcash.shared.chat.HostInvite
 import com.flipcash.shared.chat.HostInvites
@@ -28,9 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -80,16 +77,8 @@ class InviteLinkViewModelTest {
 
     private val analytics = RecordingAnalytics()
 
-    private val approved = mutableSetOf<ChatId>()
-    private val approveStore = object : ApproveNewMembersStore {
-        override fun observe(chatId: ChatId): Flow<Boolean> = flowOf(chatId in approved)
-        override suspend fun set(chatId: ChatId, on: Boolean) {
-            if (on) approved += chatId else approved -= chatId
-        }
-    }
-
     private fun viewModel() =
-        InviteLinkViewModel(hostInvites, resources, clipboard, analytics, GroupCardLinks(), approveStore)
+        InviteLinkViewModel(hostInvites, resources, clipboard, analytics, GroupCardLinks())
 
     private var seed = 1
     private fun hostInvite(url: String?, useCount: Long = 0, maxUses: Long = 0): HostInvite {
@@ -209,18 +198,6 @@ class InviteLinkViewModelTest {
         message.actions.first().onClick()
         assertEquals(InviteLinkViewModel.Effect.OpenManageInvites, model.effects.first())
         assertEquals(InviteLinkState.None, model.state.value.link)
-    }
-
-    @Test
-    fun `not available turns Approve new members on and opens the plain link`() = runTest {
-        coEvery { hostInvites.currentOrCreate(chatId) } returns InviteCreation.NotAvailable
-        val model = viewModel()
-        model.open(chatId, null)
-
-        BottomBarManager.messages.value.single().actions.first().onClick()
-
-        assertEquals(InviteLinkViewModel.Effect.OpenJoinLink, model.effects.first())
-        assertTrue(chatId in approved)
     }
 
     @Test

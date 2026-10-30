@@ -161,14 +161,11 @@ internal class InviteHostSheetViewModel @Inject constructor(
             }
             InviteCreation.NotAvailable -> {
                 _state.update { it.copy(invite = InviteLinkState.None) }
-                // 1e (Open 10): its button turns Approve new members on, so the host isn't sent
-                // back here on the next open, and shares the plain link it now shows.
+                // 1e: its button shares the plain link this once. Approve New Members stays as it
+                // was; only the host's tap on the switch turns it on.
                 showInviteLinksNotAvailable(
                     resources,
-                    onShareJoinLink = {
-                        onApproveChanged(true)
-                        _effects.trySend(Effect.ShareJoin)
-                    },
+                    onShareJoinLink = { _effects.trySend(Effect.ShareJoin) },
                 )
                 null
             }
