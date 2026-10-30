@@ -2,7 +2,9 @@ package com.flipcash.app.userprofile.internal.name
 
 import com.flipcash.analytics.AnalyticsEvent
 import com.flipcash.analytics.PropertyValue
+import com.flipcash.analytics.ProfileField
 import com.flipcash.analytics.events.DisplayNameEvents
+import com.flipcash.analytics.events.ProfileEvents
 import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.DisplayNameSource
@@ -96,9 +98,55 @@ class NameEntryViewModelTest {
                 AnalyticsEvent(
                     "Display Name Updated",
                     mapOf("Source" to PropertyValue.Text("My Account")),
-                )
+                ),
+                ProfileEvents.fieldSaved(ProfileField.NAME),
             ),
             analytics.events,
         )
+    }
+
+    @Test
+    fun `a name saved from My Account also sends Profile Field Saved`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        every { userManager.state } returns MutableStateFlow(UserManager.State())
+        every { userManager.profile } returns null
+        whenever(profileController.setDisplayName(any())).thenReturn(Result.success<String?>(null))
+
+        createViewModel().dispatchEvent(NameEntryViewModel.Event.CheckName(DisplayNameSource.MyAccount))
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                DisplayNameEvents.set(DisplayNameSource.MyAccount.analytics),
+                ProfileEvents.fieldSaved(ProfileField.NAME),
+            ),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `a name saved from tip card setup sends no Profile Field Saved`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        every { userManager.state } returns MutableStateFlow(UserManager.State())
+        every { userManager.profile } returns null
+        whenever(profileController.setDisplayName(any())).thenReturn(Result.success<String?>(null))
+
+        createViewModel().dispatchEvent(NameEntryViewModel.Event.CheckName(DisplayNameSource.TipCardSetup))
+        advanceUntilIdle()
+
+        assertEquals(listOf<AnalyticsEvent>(DisplayNameEvents.set(DisplayNameSource.TipCardSetup.analytics)), analytics.events)
+    }
+
+    @Test
+    fun `a failed save from My Account sends nothing`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        every { userManager.state } returns MutableStateFlow(UserManager.State())
+        every { userManager.profile } returns null
+        whenever(profileController.setDisplayName(any())).thenReturn(Result.failure<String?>(IllegalStateException("nope")))
+
+        createViewModel().dispatchEvent(NameEntryViewModel.Event.CheckName(DisplayNameSource.MyAccount))
+        advanceUntilIdle()
+
+        assertEquals(emptyList<AnalyticsEvent>(), analytics.events)
     }
 }

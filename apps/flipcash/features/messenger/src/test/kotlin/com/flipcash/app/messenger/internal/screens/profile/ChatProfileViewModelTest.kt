@@ -1,5 +1,10 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
+import com.flipcash.analytics.AnalyticsEvent
+import com.flipcash.analytics.ProfileMenuAction
+import com.flipcash.analytics.ProfilePinnedAction as PinnedButton
+import com.flipcash.analytics.events.ProfileEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.blocklist.BlocklistCoordinator
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.MainCoroutineRule
@@ -88,6 +93,8 @@ class ChatProfileViewModelTest {
         coEvery { mayProceed(any(), any()) } returns true
     }
 
+    private val analytics = RecordingAnalytics()
+
     private fun viewModel() = ChatProfileViewModel(
         contactCoordinator = mockk<ContactCoordinator>(relaxed = true),
         userManager = userManager,
@@ -102,6 +109,7 @@ class ChatProfileViewModelTest {
         startChattingPayer = payer,
         chatController = chatController,
         featuredGroupsStore = featuredGroupsStore,
+        analytics = analytics,
     )
 
     private fun openFull(model: ChatProfileViewModel) =
@@ -625,4 +633,106 @@ class ChatProfileViewModelTest {
 
         assertEquals(onBo, next)
     }
+
+    // region analytics
+
+    private fun pinnedTapSends(expected: PinnedButton) {
+        assertEquals(listOf<AnalyticsEvent>(ProfileEvents.pinnedButtonTapped(expected)), analytics.events)
+    }
+
+    @Test
+    fun `tapping start chatting sends Pinned Button Tapped`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        val model = viewModel()
+        openFull(model)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped)
+
+        pinnedTapSends(PinnedButton.START_CHATTING)
+    }
+
+    @Test
+    fun `tapping open chat sends Pinned Button Tapped`() = runTest {
+        members.value = listOf(mockk<ChatMember>())
+        val model = viewModel()
+        openFull(model)
+        assertEquals(ProfilePinnedAction.OpenChat, model.stateFlow.value.pinnedAction)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped)
+
+        pinnedTapSends(PinnedButton.OPEN_CHAT)
+    }
+
+    @Test
+    fun `tapping the pinned unblock sends Pinned Button Tapped and no menu action`() = runTest {
+        blocked.value = true
+        val model = viewModel()
+        openFull(model)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped)
+
+        pinnedTapSends(PinnedButton.UNBLOCK)
+    }
+
+    @Test
+    fun `tapping with no pinned button sends nothing`() = runTest {
+        val model = viewModel()
+        openFull(model)
+        assertNull(model.stateFlow.value.pinnedAction)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped)
+
+        assertEquals(emptyList<AnalyticsEvent>(), analytics.events)
+    }
+
+    @Test
+    fun `tapping while the chat is opening sends nothing`() = runTest {
+        fee.value = Fiat(1, CurrencyCode.USD)
+        coEvery { payer.pay(any(), any(), any(), any()) } returns Result.success(dmChatId)
+        val model = viewModel()
+        openFull(model)
+        model.dispatchEvent(ChatProfileViewModel.Event.ConfirmStartChatting)
+        advanceTimeBy(1_000)
+        assertEquals(ProfilePinnedAction.OpeningChat, model.stateFlow.value.pinnedAction)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.PinnedActionTapped)
+
+        assertEquals(emptyList<AnalyticsEvent>(), analytics.events)
+    }
+
+    @Test
+    fun `menu Mute, Report, Block and Unblock each send Menu Action`() = runTest {
+        val model = viewModel()
+        openFull(model)
+
+        listOf(
+            ChatProfileAction.Mute,
+            ChatProfileAction.Report,
+            ChatProfileAction.Block,
+            ChatProfileAction.Unblock,
+        ).forEach { model.dispatchEvent(ChatProfileViewModel.Event.MenuActionPicked(it)) }
+
+        assertEquals(
+            listOf<AnalyticsEvent>(
+                ProfileEvents.menuAction(ProfileMenuAction.MUTE),
+                ProfileEvents.menuAction(ProfileMenuAction.REPORT),
+                ProfileEvents.menuAction(ProfileMenuAction.BLOCK),
+                ProfileEvents.menuAction(ProfileMenuAction.UNBLOCK),
+            ),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `menu Silence and Remove send nothing`() = runTest {
+        val model = viewModel()
+        openFull(model)
+
+        model.dispatchEvent(ChatProfileViewModel.Event.MenuActionPicked(ChatProfileAction.Silence))
+        model.dispatchEvent(ChatProfileViewModel.Event.MenuActionPicked(ChatProfileAction.Remove))
+
+        assertEquals(emptyList<AnalyticsEvent>(), analytics.events)
+    }
+
+    // endregion
 }

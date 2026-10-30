@@ -1,5 +1,8 @@
 package com.flipcash.app.userprofile.internal.mintip
 
+import com.flipcash.analytics.ProfileField
+import com.flipcash.analytics.events.ProfileEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.flipcash.core.R
@@ -50,6 +53,7 @@ internal class MinimumTipEntryViewModel @Inject constructor(
     private val profileController: ProfileController,
     userManager: UserManager,
     tipPaymentDelegate: TipPaymentDelegate,
+    private val analytics: FlipcashAnalytics,
 ) : BaseViewModel<MinimumTipEntryViewModel.State, MinimumTipEntryViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -183,6 +187,7 @@ internal class MinimumTipEntryViewModel @Inject constructor(
                 dispatchEvent(Event.UpdateSavingState(loading = true))
                 profileController.setMinDmChatInitFee(event.amount)
                     .onSuccess {
+                        analytics.track(ProfileEvents.fieldSaved(ProfileField.MINIMUM))
                         viewModelScope.launch {
                             dispatchEvent(Event.UpdateSavingState(success = true))
                             delay(SuccessHoldDuration)

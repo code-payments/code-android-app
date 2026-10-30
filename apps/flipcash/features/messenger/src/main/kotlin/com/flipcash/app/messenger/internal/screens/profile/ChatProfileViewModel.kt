@@ -1,6 +1,10 @@
 package com.flipcash.app.messenger.internal.screens.profile
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.analytics.ProfileMenuAction
+import com.flipcash.analytics.ProfilePinnedAction as PinnedButton
+import com.flipcash.analytics.events.ProfileEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.blocklist.BlocklistCoordinator
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.AppRoute
@@ -69,6 +73,7 @@ internal class ChatProfileViewModel @Inject constructor(
     private val startChattingPayer: StartChattingPayer,
     private val chatController: ChatController,
     private val featuredGroupsStore: FeaturedGroupsStore,
+    private val analytics: FlipcashAnalytics,
 ) : BaseViewModel<ChatProfileViewModel.State, ChatProfileViewModel.Event>(
     initialState = State(selfId = userManager.accountId),
     updateStateForEvent = updateStateForEvent,
@@ -181,6 +186,9 @@ internal class ChatProfileViewModel @Inject constructor(
 
         /** The pinned button was tapped; what it does is [State.pinnedAction]'s. */
         data object PinnedActionTapped : Event
+
+        /** A row of the profile menu was tapped; the screen routes it separately. */
+        data class MenuActionPicked(val action: ChatProfileAction) : Event
         data object Unblock : Event
         /** The slide on the fee sheet was confirmed. */
         data object ConfirmStartChatting : Event
@@ -380,12 +388,36 @@ internal class ChatProfileViewModel @Inject constructor(
             .onEach {
                 val state = stateFlow.value
                 when (val action = state.pinnedAction) {
-                    ProfilePinnedAction.Unblock -> dispatchEvent(Event.Unblock)
-                    ProfilePinnedAction.OpenChat -> state.dmChatId?.let { dispatchEvent(Event.OpenChat(it)) }
-                    is ProfilePinnedAction.StartChatting -> startChatting()
+                    ProfilePinnedAction.Unblock -> {
+                        analytics.track(ProfileEvents.pinnedButtonTapped(PinnedButton.UNBLOCK))
+                        dispatchEvent(Event.Unblock)
+                    }
+                    ProfilePinnedAction.OpenChat -> {
+                        analytics.track(ProfileEvents.pinnedButtonTapped(PinnedButton.OPEN_CHAT))
+                        state.dmChatId?.let { dispatchEvent(Event.OpenChat(it)) }
+                    }
+                    is ProfilePinnedAction.StartChatting -> {
+                        analytics.track(ProfileEvents.pinnedButtonTapped(PinnedButton.START_CHATTING))
+                        startChatting()
+                    }
                     ProfilePinnedAction.OpeningChat, null -> Unit
                 }
             }
+            .launchIn(viewModelScope)
+
+        // Silence and Remove are group moderation, not in the Profile menu list, so they send nothing.
+        eventFlow
+            .filterIsInstance<Event.MenuActionPicked>()
+            .mapNotNull { event ->
+                when (event.action) {
+                    ChatProfileAction.Mute -> ProfileMenuAction.MUTE
+                    ChatProfileAction.Report -> ProfileMenuAction.REPORT
+                    ChatProfileAction.Block -> ProfileMenuAction.BLOCK
+                    ChatProfileAction.Unblock -> ProfileMenuAction.UNBLOCK
+                    ChatProfileAction.Silence, ChatProfileAction.Remove -> null
+                }
+            }
+            .onEach { analytics.track(ProfileEvents.menuAction(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -553,6 +585,7 @@ internal class ChatProfileViewModel @Inject constructor(
                 is Event.BlockConfirmed,
                 is Event.BlockSuccessful,
                 Event.PinnedActionTapped,
+                is Event.MenuActionPicked,
                 Event.Unblock,
                 Event.ConfirmStartChatting,
                 Event.PresentDepositOptions,

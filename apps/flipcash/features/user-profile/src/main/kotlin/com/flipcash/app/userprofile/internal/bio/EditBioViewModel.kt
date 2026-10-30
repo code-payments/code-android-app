@@ -1,5 +1,8 @@
 package com.flipcash.app.userprofile.internal.bio
 
+import com.flipcash.analytics.ProfileField
+import com.flipcash.analytics.events.ProfileEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshotFlow
@@ -31,6 +34,7 @@ internal class EditBioViewModel @Inject constructor(
     userManager: UserManager,
     private val profileController: ProfileController,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalytics,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<EditBioViewModel.State, EditBioViewModel.Event>(
     initialState = State(),
@@ -83,6 +87,7 @@ internal class EditBioViewModel @Inject constructor(
                 dispatchEvent(Event.UpdateProcessingState(loading = true))
                 profileController.setBio(draft.text.trim())
                     .onSuccess {
+                        analytics.track(ProfileEvents.fieldSaved(ProfileField.BIO))
                         viewModelScope.launch {
                             dispatchEvent(Event.UpdateProcessingState(success = true))
                             delay(500.milliseconds)
@@ -100,7 +105,11 @@ internal class EditBioViewModel @Inject constructor(
     // The text is kept in every case so the user can reword it rather than retype it.
     private fun handleSaveFailure(cause: Throwable) {
         when (cause) {
-            is SetBioError.FailedModerated -> dispatchEvent(Event.OnFailed(BioError.Moderated))
+            is SetBioError.FailedModerated -> {
+                analytics.track(ProfileEvents.bioModerationFailed())
+                dispatchEvent(Event.OnFailed(BioError.Moderated))
+            }
+
             is SetBioError.InvalidBio,
             is ValidationException -> dispatchEvent(Event.OnFailed(BioError.Invalid))
 

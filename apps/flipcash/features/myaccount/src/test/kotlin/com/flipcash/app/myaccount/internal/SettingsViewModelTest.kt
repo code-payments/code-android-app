@@ -1,5 +1,9 @@
 package com.flipcash.app.myaccount.internal
 
+import com.flipcash.analytics.AnalyticsEvent
+import com.flipcash.analytics.events.ProfileEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.MainCoroutineRule
@@ -168,7 +172,9 @@ class SettingsViewModelTest {
 
     private val featureFlags = mockk<FeatureFlagController>(relaxed = true)
 
-    private fun TestScope.createViewModel(): SettingsViewModel {
+    private fun TestScope.createViewModel(
+        analytics: FlipcashAnalytics = RecordingAnalytics(),
+    ): SettingsViewModel {
         val userFlags = mockk<UserFlagsCoordinator>(relaxed = true)
         val resolved = mockk<ResolvedUserFlags>(relaxed = true) {
             every { isStaff } returns ResolvedFlag(serverValue = false, override = FieldOverride.None)
@@ -189,6 +195,7 @@ class SettingsViewModelTest {
             releaseStageProvider = mockk<ReleaseStageProvider>(relaxed = true),
             resources = FakeResourceHelper(),
             authManager = mockk<AuthManager>(relaxed = true),
+            analytics = analytics,
             dispatchers = TestDispatchers(testScheduler),
         )
     }
@@ -252,4 +259,13 @@ class SettingsViewModelTest {
     }
 
     // endregion
+
+    @Test
+    fun `opening the screen sends Settings Viewed once`() = runTest(mainCoroutineRule.dispatcher) {
+        val analytics = RecordingAnalytics()
+        createViewModel(analytics)
+        advanceUntilIdle()
+
+        assertEquals(listOf<AnalyticsEvent>(ProfileEvents.settingsViewed()), analytics.events)
+    }
 }

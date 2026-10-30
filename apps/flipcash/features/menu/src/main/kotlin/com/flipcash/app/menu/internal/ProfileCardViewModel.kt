@@ -1,5 +1,7 @@
 package com.flipcash.app.menu.internal
 
+import com.flipcash.analytics.events.ProfileEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -30,6 +32,7 @@ internal class ProfileCardViewModel @AssistedInject constructor(
     private val tipCodeExporter: TipCodeExporter,
     private val shareable: ShareSheetController,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalytics,
 ) : ViewModel() {
 
     /** Null until the card resolves. */
@@ -37,6 +40,7 @@ internal class ProfileCardViewModel @AssistedInject constructor(
         private set
 
     init {
+        analytics.track(ProfileEvents.cardShown())
         viewModelScope.launch {
             tippingCoordinator.profileCard(userId).onSuccess { card = it }
         }

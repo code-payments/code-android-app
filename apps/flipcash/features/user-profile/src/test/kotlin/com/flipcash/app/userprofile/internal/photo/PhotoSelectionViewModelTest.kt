@@ -89,6 +89,8 @@ class PhotoSelectionViewModelTest {
         unmockkStatic(MimeTypeMap::class)
     }
 
+    private val analytics = com.flipcash.app.analytics.RecordingAnalytics()
+
     private fun TestScope.viewModel(slot: PhotoSelectionViewModel.Slot): PhotoSelectionViewModel {
         every { userManager.profile } returns UserProfile.Empty.copy(
             profilePicture = avatar,
@@ -108,6 +110,7 @@ class PhotoSelectionViewModelTest {
             imagePreparer = imagePreparer,
             resources = FakeResourceHelper(),
             contentReader = contentReader,
+            analytics = analytics,
             slot = slot,
         )
     }
@@ -261,5 +264,57 @@ class PhotoSelectionViewModelTest {
             "error_title_imageNotAllowed",
             failUploadWith(PhotoSelectionViewModel.Slot.Avatar, rejection(RejectionReason.UNKNOWN)),
         )
+    }
+
+    @Test
+    fun `a saved avatar sends Profile Field Saved for the photo`() = runTest(mainCoroutineRule.dispatcher) {
+        stubUpload()
+        whenever(profileController.setProfilePicture(any())).thenReturn(Result.success(avatar))
+        val vm = viewModel(PhotoSelectionViewModel.Slot.Avatar)
+        advanceUntilIdle()
+
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.OnImageCached(pick, "image/jpeg"))
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.CheckImage)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf<com.flipcash.analytics.AnalyticsEvent>(
+                com.flipcash.analytics.events.ProfileEvents.fieldSaved(com.flipcash.analytics.ProfileField.PHOTO)
+            ),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `a saved cover sends Profile Field Saved for the cover`() = runTest(mainCoroutineRule.dispatcher) {
+        stubUpload()
+        whenever(profileController.setCoverPicture(any())).thenReturn(Result.success(cover))
+        val vm = viewModel(PhotoSelectionViewModel.Slot.Cover)
+        advanceUntilIdle()
+
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.OnImageCached(pick, "image/jpeg"))
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.CheckImage)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf<com.flipcash.analytics.AnalyticsEvent>(
+                com.flipcash.analytics.events.ProfileEvents.fieldSaved(com.flipcash.analytics.ProfileField.COVER)
+            ),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `a rejected cover sends nothing`() = runTest(mainCoroutineRule.dispatcher) {
+        stubUpload()
+        whenever(profileController.setCoverPicture(any())).thenReturn(Result.failure(SetCoverPictureError.BlobRejected()))
+        val vm = viewModel(PhotoSelectionViewModel.Slot.Cover)
+        advanceUntilIdle()
+
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.OnImageCached(pick, "image/jpeg"))
+        vm.dispatchEvent(PhotoSelectionViewModel.Event.CheckImage)
+        advanceUntilIdle()
+
+        assertEquals(emptyList<com.flipcash.analytics.AnalyticsEvent>(), analytics.events)
     }
 }
