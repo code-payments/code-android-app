@@ -17,11 +17,11 @@ import com.flipcash.desktop.input.HostOs
 import com.flipcash.desktop.input.desktopKeyHandler
 import com.flipcash.desktop.input.perform
 import com.flipcash.desktop.shell.ContextContent
-import com.flipcash.desktop.shell.contextPaneModeFor
 import com.flipcash.desktop.shell.widthClassFor
 import com.flipcash.desktop.shell.DesktopDimens
 import com.flipcash.desktop.shell.DesktopNavState
-import com.flipcash.desktop.shell.LocalTitleBarInset
+import com.flipcash.desktop.shell.LocalWindowChrome
+import com.flipcash.desktop.shell.WindowChrome
 import com.flipcash.desktop.window.SavedWindow
 import com.flipcash.desktop.window.WindowStateStore
 import com.flipcash.desktop.window.fitTo
@@ -38,8 +38,9 @@ import java.lang.management.ManagementFactory
 
 internal val isMac = System.getProperty("os.name").orEmpty().lowercase().startsWith("mac")
 
-// Height of the macOS title bar the content runs under, which the traffic lights sit in.
-private val MacTitleBarHeight = 28.dp
+// The standard macOS title bar the content runs under. Its traffic lights sit near the top edge, so
+// the sidebar meets that edge flush rather than putting its rounded corner under them.
+private val MacChrome = WindowChrome(titleBarHeight = 28.dp, controlsWidth = 72.dp, flushSidebar = true)
 
 private val MinWindow = Dimension(DesktopDimens.MinWindowWidth.value.toInt(), DesktopDimens.MinWindowHeight.value.toInt())
 
@@ -63,7 +64,10 @@ fun main() {
         )
         // Only Wallet comes back open; Info, You and a currency belong to what was on screen then.
         val nav = remember {
-            DesktopNavState().apply { if (saved?.contextPaneOpen == true) context = ContextContent.Wallet }
+            DesktopNavState().apply {
+                if (saved?.contextPaneOpen == true) context = ContextContent.Wallet
+                sidebarHidden = saved?.sidebarHidden == true
+            }
         }
         val awtWindowRef = remember { java.util.concurrent.atomic.AtomicReference<java.awt.Window?>() }
         // The floating bounds, kept while maximized or full screen so un-maximizing returns to them.
@@ -84,10 +88,11 @@ fun main() {
                 maximized = windowState.placement != WindowPlacement.Floating,
                 // Before linking there is no Wallet to show; carry the saved choice forward.
                 contextPaneOpen = if (signedIn) nav.context == ContextContent.Wallet else saved?.contextPaneOpen == true,
+                sidebarHidden = nav.sidebarHidden,
             )
         }
         fun run(command: DesktopCommand): Boolean =
-            nav.perform(command, contextPaneModeFor(widthClassFor(windowState.size.width)))
+            nav.perform(command, nav.contextPaneModeAt(widthClassFor(windowState.size.width)))
         Window(
             onCloseRequest = {
                 // Debounced saves can miss a move made just before quitting.
@@ -101,18 +106,18 @@ fun main() {
             state = windowState,
             onPreviewKeyEvent = desktopKeyHandler(HostOs.current, ::run),
         ) {
-            if (isMac) DesktopMenuBar(windowState, ::run)
+            if (isMac) DesktopMenuBar(windowState, nav.sidebarHidden, ::run)
             LaunchedEffect(Unit) {
                 awtWindowRef.set(window)
                 configureChrome()
             }
             LaunchedEffect(Unit) {
-                snapshotFlow { listOf(windowState.position, windowState.size, windowState.placement, windowState.isMinimized, nav.context) }
+                snapshotFlow { listOf(windowState.position, windowState.size, windowState.placement, windowState.isMinimized, nav.context, nav.sidebarHidden) }
                     .drop(1)
                     .debounce(500)
                     .collect { current()?.let(windowStore::save) }
             }
-            CompositionLocalProvider(LocalTitleBarInset provides if (isMac) MacTitleBarHeight else 0.dp) {
+            CompositionLocalProvider(LocalWindowChrome provides if (isMac) MacChrome else WindowChrome()) {
                 DesktopApp(graph, signedIn, nav)
             }
             LaunchedEffect(Unit) {
@@ -145,6 +150,7 @@ private fun FrameWindowScope.configureChrome() {
     if (isMac) {
         window.rootPane.putClientProperty("apple.awt.fullWindowContent", true)
         window.rootPane.putClientProperty("apple.awt.transparentTitleBar", true)
-        window.rootPane.putClientProperty("apple.awt.windowTitleVisible", true)
+        // The toolbar names the chat; the window title would sit over it.
+        window.rootPane.putClientProperty("apple.awt.windowTitleVisible", false)
     }
 }

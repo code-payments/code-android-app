@@ -31,7 +31,7 @@ fun ContextPane(
     val back: (() -> Unit)? = if (content is ContextContent.Currency && content.from != null) {
         { nav.back() }
     } else null
-    Box(modifier.padding(top = LocalTitleBarInset.current)) {
+    Box(modifier.padding(top = LocalWindowChrome.current.titleBarHeight)) {
         when (content) {
             ContextContent.Wallet -> wallet(Modifier)
             ContextContent.Info -> PlaceholderPane(

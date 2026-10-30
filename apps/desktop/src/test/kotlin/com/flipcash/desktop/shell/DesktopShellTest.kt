@@ -15,13 +15,16 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashTheme
 import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 // The test window is 1024 x 768, so at the wide widths these tests use the trailing controls sit
 // outside it; the click goes through the node's action rather than a pointer.
@@ -70,21 +73,55 @@ class DesktopShellTest {
     }
 
     @Test
-    fun `wallet overlays main below 1100 and survives a resize`() = shell(1280.dp) {
+    fun `wallet takes a column beside a rail at 1000 and the list returns when it closes`() = shell(1280.dp) {
         onNodeWithTag("footer_balance").click()
-        onNodeWithTag("context_pane").assertExists()
         width = 1000.dp
         waitForIdle()
-        onNodeWithTag("context_overlay").assertExists()
+        onNodeWithTag("context_pane").assertExists()
+        onNodeWithTag("rail").assertExists()
+        onNodeWithTag("sidebar").assertDoesNotExist()
         onNodeWithTag("fake_Wallet").assertExists()
-        assertEquals(ContextContent.Wallet, nav.context)
+        nav.closeContext()
+        waitForIdle()
+        onNodeWithTag("sidebar").assertExists()
+        onNodeWithTag("rail").assertDoesNotExist()
     }
 
     @Test
-    fun `scrim closes the overlay`() = shell(1000.dp) {
+    fun `wallet floats over the chat below 840 without dimming it, and esc closes it`() = shell(700.dp) {
         onNodeWithTag("footer_balance").click()
-        onNodeWithTag("context_scrim").click()
+        onNodeWithTag("context_overlay").assertExists()
+        onNodeWithTag("context_scrim").assertDoesNotExist()
+        assertTrue(nav.onEscape(nav.contextPaneModeAt(WidthClass.Medium)))
+        waitForIdle()
         onNodeWithTag("context_overlay").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the toggle hides the list, and the toolbar's toggle brings it back`() = shell(1280.dp) {
+        onNodeWithTag("sidebar_toggle").click()
+        onNodeWithTag("sidebar").assertDoesNotExist()
+        onNodeWithTag("rail").assertDoesNotExist()
+        width = 1000.dp
+        waitForIdle()
+        onNodeWithTag("sidebar").assertDoesNotExist()
+        onNodeWithTag("sidebar_toggle").click()
+        onNodeWithTag("sidebar").assertExists()
+    }
+
+    @Test
+    fun `resting on the rail floats the list, and leaving it folds back`() = shell(1000.dp) {
+        nav.openWallet()
+        waitForIdle()
+        onNodeWithTag("rail").performMouseInput { moveTo(center) }
+        waitUntil(2_000) { nav.sidebarPeek }
+        onNodeWithTag("sidebar_peek").assertExists()
+        onNodeWithTag("sidebar_peek").performMouseInput {
+            moveTo(center)
+            moveTo(Offset(width + 200f, centerY))
+        }
+        waitUntil(2_000) { !nav.sidebarPeek }
+        onNodeWithTag("sidebar_peek").assertDoesNotExist()
     }
 
     @Test
@@ -102,7 +139,7 @@ class DesktopShellTest {
     }
 
     @Test
-    fun `no rail or tab bar at any width`() = shell(500.dp) {
+    fun `no rail without an open pane, and no tab bar at any width`() = shell(500.dp) {
         for (w in listOf(500.dp, 700.dp, 1000.dp, 1280.dp)) {
             width = w
             waitForIdle()

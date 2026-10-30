@@ -97,4 +97,44 @@ class DesktopNavStateTest {
         assertFalse(s.compactShowsChat)
         assertFalse(s.back())
     }
+
+    @Test
+    fun `hiding the sidebar sticks when a pane opens and closes`() {
+        val s = DesktopNavState()
+        s.toggleSidebar()
+        s.openWallet()
+        assertEquals(SidebarMode.Hidden, s.sidebarModeAt(WidthClass.Expanded))
+        s.closeContext()
+        assertEquals(SidebarMode.Hidden, s.sidebarModeAt(WidthClass.Wide))
+        s.toggleSidebar()
+        assertEquals(SidebarMode.List, s.sidebarModeAt(WidthClass.Wide))
+    }
+
+    @Test
+    fun `closing the pane brings the list back from the rail`() {
+        val s = DesktopNavState()
+        s.openWallet()
+        assertEquals(SidebarMode.Rail, s.sidebarModeAt(WidthClass.Expanded))
+        assertEquals(ContextPaneMode.Column, s.contextPaneModeAt(WidthClass.Expanded))
+        s.closeContext()
+        assertEquals(SidebarMode.List, s.sidebarModeAt(WidthClass.Expanded))
+    }
+
+    @Test
+    fun `escape folds the floating list before it closes a pane`() {
+        val s = DesktopNavState()
+        s.openWallet()
+        s.sidebarPeek = true
+        assertTrue(s.onEscape(ContextPaneMode.Overlay))
+        assertFalse(s.sidebarPeek)
+        assertEquals(ContextContent.Wallet, s.context)
+    }
+
+    @Test
+    fun `picking a chat folds the floating list`() {
+        val s = DesktopNavState()
+        s.sidebarPeek = true
+        s.openChat()
+        assertFalse(s.sidebarPeek)
+    }
 }

@@ -81,4 +81,25 @@ class DesktopCommandsTest {
             assertFalse(nav.perform(c, ContextPaneMode.Column))
         }
     }
+
+    @Test
+    fun `hide sidebar is control command S on mac and control shift S elsewhere`() {
+        assertEquals(DesktopCommand.ToggleSidebar, commandFor(Key.S, meta = true, ctrl = true, shift = false, os = HostOs.Mac))
+        assertNull(commandFor(Key.S, meta = true, ctrl = false, shift = false, os = HostOs.Mac))
+        assertNull(commandFor(Key.S, meta = true, ctrl = true, shift = true, os = HostOs.Mac))
+        for (os in listOf(HostOs.Windows, HostOs.Linux)) {
+            assertEquals(DesktopCommand.ToggleSidebar, commandFor(Key.S, meta = false, ctrl = true, shift = true, os = os))
+            assertNull(commandFor(Key.S, meta = false, ctrl = true, shift = false, os = os))
+            assertNull(commandFor(Key.S, meta = false, ctrl = true, shift = true, os = os, alt = true))
+        }
+    }
+
+    @Test
+    fun `toggle sidebar hides and shows it`() {
+        val nav = DesktopNavState()
+        assertTrue(nav.perform(DesktopCommand.ToggleSidebar, ContextPaneMode.Column))
+        assertTrue(nav.sidebarHidden)
+        nav.perform(DesktopCommand.ToggleSidebar, ContextPaneMode.Column)
+        assertFalse(nav.sidebarHidden)
+    }
 }

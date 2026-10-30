@@ -38,7 +38,6 @@ fun PlaceholderPane(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(top = LocalTitleBarInset.current)
             .padding(16.dp)
             .testTag("placeholder_$title"),
     ) {

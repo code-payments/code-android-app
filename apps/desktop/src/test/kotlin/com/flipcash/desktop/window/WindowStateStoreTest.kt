@@ -39,6 +39,12 @@ class WindowStateStoreTest {
     }
 
     @Test
+    fun `a file saved before the sidebar toggle loads with the sidebar shown`() {
+        file.writeText("""{"x":1,"y":2,"width":1040,"height":760,"maximized":false,"contextPaneOpen":true}""")
+        assertEquals(SavedWindow(1, 2, 1040, 760, maximized = false, contextPaneOpen = true, sidebarHidden = false), store.load())
+    }
+
+    @Test
     fun `corrupt file loads as null`() {
         file.writeText("{not json")
         assertNull(store.load())

@@ -36,6 +36,29 @@ class DesktopNavState {
     /** Below 600 the window shows the list or the chat; true while it shows the chat. */
     var compactShowsChat: Boolean by mutableStateOf(false)
 
+    /** The user hid the chat list (toggle, View → Hide Sidebar). Sticky, and saved with the window. */
+    var sidebarHidden: Boolean by mutableStateOf(false)
+
+    /** The full list floating over the chat while the pointer rests on the rail. */
+    var sidebarPeek: Boolean by mutableStateOf(false)
+
+    fun sidebarModeAt(widthClass: WidthClass): SidebarMode =
+        sidebarModeFor(widthClass, contextOpen = context != null, hidden = sidebarHidden)
+
+    fun contextPaneModeAt(widthClass: WidthClass): ContextPaneMode =
+        contextPaneModeFor(widthClass, sidebarModeAt(widthClass))
+
+    fun toggleSidebar() {
+        sidebarHidden = !sidebarHidden
+        sidebarPeek = false
+    }
+
+    /** A chat picked from the list: compact shows it, and a floating list folds back to the rail. */
+    fun openChat() {
+        compactShowsChat = true
+        sidebarPeek = false
+    }
+
     fun toggleInfo() {
         context = if (context == ContextContent.Info) null else ContextContent.Info
     }
@@ -77,8 +100,15 @@ class DesktopNavState {
         context = null
     }
 
-    /** Esc closes the context pane only when it slides over the main pane; a column stays put. */
+    /**
+     * Esc folds a floating list back to the rail, else closes the context pane when it floats over the
+     * main pane; a column stays put.
+     */
     fun onEscape(mode: ContextPaneMode): Boolean {
+        if (sidebarPeek) {
+            sidebarPeek = false
+            return true
+        }
         if (mode != ContextPaneMode.Overlay || context == null) return false
         context = null
         return true

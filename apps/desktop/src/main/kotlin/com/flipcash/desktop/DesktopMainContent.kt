@@ -20,6 +20,7 @@ import com.flipcash.desktop.shell.ContextPane
 import com.flipcash.desktop.shell.ConversationPlaceholder
 import com.flipcash.desktop.shell.DesktopNavState
 import com.flipcash.desktop.shell.DesktopShell
+import com.flipcash.desktop.shell.RailFooter
 import com.flipcash.desktop.shell.SidebarFooter
 import com.flipcash.desktop.shell.WalletPane
 import com.flipcash.shared.common.ui.ContactAvatar
@@ -62,7 +63,7 @@ fun DesktopMainContent(
                 DesktopShell(
                     nav = nav,
                     floatingSidebar = isMac,
-                    sidebar = { m -> ChatListPlaceholder(onOpenChat = { nav.compactShowsChat = true }, modifier = m) },
+                    sidebar = { m -> ChatListPlaceholder(onOpenChat = nav::openChat, modifier = m) },
                     main = { m -> ConversationPlaceholder(m) },
                     context = { content, m ->
                         ContextPane(
@@ -70,6 +71,16 @@ fun DesktopMainContent(
                             nav = nav,
                             wallet = { wm -> WalletPane(nav, walletViewModel, tokenViewModel, wm) },
                             modifier = m,
+                        )
+                    },
+                    railFooter = { m ->
+                        RailFooter(
+                            balance = balance,
+                            onYou = nav::openYou,
+                            onWallet = nav::openWallet,
+                            onSettings = onSettings,
+                            modifier = m,
+                            avatar = { am -> ContactAvatar(photoUri = null, displayName = displayName, modifier = am) },
                         )
                     },
                     footer = { m ->

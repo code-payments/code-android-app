@@ -5,7 +5,7 @@ import com.flipcash.desktop.shell.ContextPaneMode
 import com.flipcash.desktop.shell.DesktopNavState
 
 /** What the window's shortcuts and menu items do (spec: Keyboard shortcuts). */
-enum class DesktopCommand { Search, NewChat, ToggleInfo, Back, Settings, OpenInNewWindow, Escape }
+enum class DesktopCommand { Search, NewChat, ToggleInfo, ToggleSidebar, Back, Settings, OpenInNewWindow, Escape }
 
 enum class HostOs {
     Mac, Windows, Linux;
@@ -24,6 +24,7 @@ enum class HostOs {
 /**
  * The command for a key press: ⌘ on macOS, Ctrl on Windows and Linux, the same letter on each.
  * Shift, Alt, or the other platform's modifier, makes it something else. Esc needs no modifier.
+ * Hiding the sidebar is ⌃⌘S on macOS, as in Finder and Notes, and Ctrl+Shift+S elsewhere.
  */
 fun commandFor(
     key: Key,
@@ -34,6 +35,10 @@ fun commandFor(
     alt: Boolean = false,
 ): DesktopCommand? {
     if (key == Key.Escape) return if (!meta && !ctrl && !shift && !alt) DesktopCommand.Escape else null
+    if (key == Key.S && !alt) {
+        val sidebar = if (os == HostOs.Mac) meta && ctrl && !shift else ctrl && shift && !meta
+        if (sidebar) return DesktopCommand.ToggleSidebar
+    }
     val primary = if (os == HostOs.Mac) meta && !ctrl else ctrl && !meta
     // Alt (AltGr arrives as Ctrl+Alt on Windows) types characters on many layouts; never a command.
     if (!primary || shift || alt) return null
@@ -55,6 +60,7 @@ fun commandFor(
  */
 fun DesktopNavState.perform(command: DesktopCommand, mode: ContextPaneMode): Boolean = when (command) {
     DesktopCommand.ToggleInfo -> { toggleInfo(); true }
+    DesktopCommand.ToggleSidebar -> { toggleSidebar(); true }
     DesktopCommand.Back -> back()
     DesktopCommand.Escape -> onEscape(mode)
     DesktopCommand.Search, DesktopCommand.NewChat, DesktopCommand.OpenInNewWindow, DesktopCommand.Settings -> false
@@ -62,4 +68,5 @@ fun DesktopNavState.perform(command: DesktopCommand, mode: ContextPaneMode): Boo
 
 /** Whether [perform] does anything for [command] yet; the menu bar greys out the rest. */
 val DesktopCommand.available: Boolean
-    get() = this == DesktopCommand.ToggleInfo || this == DesktopCommand.Back || this == DesktopCommand.Escape
+    get() = this == DesktopCommand.ToggleInfo || this == DesktopCommand.ToggleSidebar ||
+        this == DesktopCommand.Back || this == DesktopCommand.Escape

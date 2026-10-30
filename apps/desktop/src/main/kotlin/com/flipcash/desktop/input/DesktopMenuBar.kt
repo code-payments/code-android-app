@@ -18,7 +18,7 @@ import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.input.key.KeyShortcut
 
 /** The commands the macOS menu bar owns; their shortcuts reach the app through the menu, not as key events. */
-private val menuCommands = setOf(DesktopCommand.NewChat, DesktopCommand.ToggleInfo, DesktopCommand.Search)
+private val menuCommands = setOf(DesktopCommand.NewChat, DesktopCommand.ToggleInfo, DesktopCommand.ToggleSidebar, DesktopCommand.Search)
 
 /** The window's key handling: a key press becomes a [DesktopCommand], unless the menu bar already handles it. */
 fun desktopKeyHandler(os: HostOs, run: (DesktopCommand) -> Boolean): (KeyEvent) -> Boolean = handler@{ event ->
@@ -35,7 +35,11 @@ fun desktopKeyHandler(os: HostOs, run: (DesktopCommand) -> Boolean): (KeyEvent) 
  * disabled rather than hidden, so the menus keep their final shape.
  */
 @Composable
-fun FrameWindowScope.DesktopMenuBar(windowState: WindowState, run: (DesktopCommand) -> Boolean) {
+fun FrameWindowScope.DesktopMenuBar(
+    windowState: WindowState,
+    sidebarHidden: Boolean,
+    run: (DesktopCommand) -> Boolean,
+) {
     fun item(command: DesktopCommand) = { run(command); Unit }
     val edit = remember { EditForwarder() }
     MenuBar {
@@ -50,6 +54,8 @@ fun FrameWindowScope.DesktopMenuBar(windowState: WindowState, run: (DesktopComma
             }
         }
         Menu("View") {
+            Item(if (sidebarHidden) "Show Sidebar" else "Hide Sidebar", enabled = DesktopCommand.ToggleSidebar.available,
+                shortcut = KeyShortcut(Key.S, meta = true, ctrl = true), onClick = item(DesktopCommand.ToggleSidebar))
             Item("Chat Info", enabled = DesktopCommand.ToggleInfo.available,
                 shortcut = KeyShortcut(Key.I, meta = true), onClick = item(DesktopCommand.ToggleInfo))
             Item("Search", enabled = DesktopCommand.Search.available,

@@ -21,6 +21,8 @@ data class SavedWindow(
     val height: Int,
     val maximized: Boolean,
     val contextPaneOpen: Boolean,
+    /** The user hid the chat list. Defaults so a file saved before the toggle existed still loads. */
+    val sidebarHidden: Boolean = false,
 )
 
 /** Reads and writes [SavedWindow] as JSON in [file]. A missing or unreadable file loads as null. */
