@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -35,7 +36,7 @@ import com.flipcash.app.messenger.internal.screens.LinkPillFrame
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
-import com.getcode.theme.White05
+import com.getcode.theme.White08
 import com.getcode.theme.White50
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
@@ -107,6 +108,9 @@ internal fun InviteHostSheetContent(
     }
 }
 
+// Figma 1m's pill sits darker than the card around it; no theme token is white at 0.06.
+private val LinkPillColor = Color(0x0FFFFFFF)
+
 /** The pill with ⋯, Share Link, and the caption: how many joined and when it ends, or that people ask. */
 @Composable
 private fun LinkCard(
@@ -122,12 +126,12 @@ private fun LinkCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(CodeTheme.shapes.medium)
-            .background(White05)
+            .background(White08)
             .padding(CodeTheme.dimens.grid.x3),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        LinkPillFrame {
+        LinkPillFrame(color = LinkPillColor) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 when {
                     state.approve -> state.plainUrl?.let { PillText(plainLinkText(it)) }
@@ -233,7 +237,7 @@ private fun MoreMenu(
 @Composable
 private fun MenuItem(
     text: String,
-    color: androidx.compose.ui.graphics.Color = CodeTheme.colors.textMain,
+    color: Color = CodeTheme.colors.textMain,
     onClick: () -> Unit,
 ) {
     DropdownMenuItem(
@@ -269,7 +273,7 @@ private fun SheetRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(CodeTheme.shapes.medium)
-            .background(White05)
+            .background(White08)
             .clickable(onClick = onClick)
             .padding(CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically,

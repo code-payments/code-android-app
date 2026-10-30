@@ -34,6 +34,10 @@ data class GroupInviteResult(val chatId: ChatId) : Parcelable
 @Serializable
 enum class InviteLinkAction : Parcelable { Share, Revoke }
 
+/** What the host's Invite sheet (frame 1m) hands back to the screen beneath it to open. */
+@Parcelize
+enum class InviteHostAction : Parcelable { ShareInvite, ShareJoin, ManageInvites }
+
 /**
  * What the host picked on New Invite Link (frame 2d): the preset names, not the presets, because
  * this module cannot see `shared:chat`. Presets only; never a key or link.
@@ -126,6 +130,7 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Serializable
     data object InviteHost :
         ChatStep,
+        NavigationRetVal<InviteHostAction>,
         Sheet,
         WrapContentSheet
 

@@ -42,6 +42,7 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
+import com.flipcash.app.core.chat.InviteHostAction
 import com.flipcash.app.core.chat.InviteLinkAction
 import com.flipcash.app.core.chat.NewInviteLinkChoice
 import com.flipcash.app.messenger.internal.invites.InviteLinkActions
@@ -60,7 +61,6 @@ import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsViewModel
 import com.flipcash.app.messenger.internal.screens.ShareToChatsSubject
 import com.flipcash.app.messenger.internal.screens.openGroupInvite
-import com.flipcash.app.messenger.internal.screens.openInviteLinkShare
 import com.flipcash.app.messenger.internal.request.ChatRequestsViewModel
 import com.flipcash.app.messenger.internal.request.RequestDetailsScreen
 import com.flipcash.app.messenger.internal.request.RequestMoneyScreen
@@ -644,9 +644,9 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?) {
 }
 
 /**
- * [ChatStep.InviteHost]: frames 1m to 1m″ on the app's sheet scene. Share Link closes it for the
- * Invite People sheet on the card's link; Show Group Card draws the card over it, as the Invite
- * People sheet does.
+ * [ChatStep.InviteHost]: frames 1m to 1m″ on the app's sheet scene. Share Link and Manage Invites
+ * return the pick and close it, and the screen beneath opens the next sheet, as 2b does; Show
+ * Group Card draws the card over it, as the Invite People sheet does.
  */
 @Composable
 private fun FlowInviteHostSheet() {
@@ -655,8 +655,8 @@ private fun FlowInviteHostSheet() {
     val hostViewModel = hiltViewModel<InviteHostSheetViewModel>()
     val hostState by hostViewModel.state.collectAsStateWithLifecycle()
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val resultBack = resultBackNavigator<InviteHostAction>(exit = dismissSheet)
     val navigator = LocalCodeNavigator.current
-    val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
     val group = state.subject as? ChatSubject.Group
 
     LaunchedEffect(hostViewModel, state.chatId) {
@@ -665,19 +665,11 @@ private fun FlowInviteHostSheet() {
     LaunchedEffect(hostViewModel) {
         hostViewModel.effects.collect { effect ->
             when (effect) {
-                InviteHostSheetViewModel.Effect.ShareInvite -> {
-                    dismissSheet()
-                    navigator.openInviteLinkShare()
-                }
-                InviteHostSheetViewModel.Effect.ShareJoin -> {
-                    dismissSheet()
-                    navigator.openGroupInvite()
-                }
+                InviteHostSheetViewModel.Effect.ShareInvite -> resultBack.returnValue(InviteHostAction.ShareInvite)
+                InviteHostSheetViewModel.Effect.ShareJoin -> resultBack.returnValue(InviteHostAction.ShareJoin)
                 InviteHostSheetViewModel.Effect.ShowCard -> group?.let { navigator.push(it.cardRoute()) }
-                InviteHostSheetViewModel.Effect.OpenManageInvites -> {
-                    dismissSheet()
-                    flowNavigator.navigateTo(ChatStep.ManageInvites)
-                }
+                InviteHostSheetViewModel.Effect.OpenManageInvites ->
+                    resultBack.returnValue(InviteHostAction.ManageInvites)
                 InviteHostSheetViewModel.Effect.CopyJoin ->
                     viewModel.dispatchEvent(ChatViewModel.Event.CopyInviteLink)
                 InviteHostSheetViewModel.Effect.Close -> dismissSheet()

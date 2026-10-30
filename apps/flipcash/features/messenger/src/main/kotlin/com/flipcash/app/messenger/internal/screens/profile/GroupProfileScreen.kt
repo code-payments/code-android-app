@@ -82,6 +82,7 @@ import com.flipcash.app.messenger.internal.rememberMutedLabel
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.messenger.internal.screens.openGroupInvite
+import com.flipcash.app.messenger.internal.screens.openInviteHost
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -262,7 +263,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                                 // A host sees the link card sheet (frame 1m); a member without
                                 // can_invite keeps the single join link.
                                 if (canInvite) {
-                                    navigator.push(ChatStep.InviteHost)
+                                    navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
                                 } else {
                                     navigator.openGroupInvite()
                                 }

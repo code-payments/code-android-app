@@ -72,6 +72,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.GroupInviteResult
+import com.flipcash.app.core.chat.InviteHostAction
 import com.flipcash.app.core.media.rememberMediaUrl
 import com.flipcash.app.core.share.SharePreviewImage
 import com.flipcash.app.core.share.TipCodePreview
@@ -137,6 +138,21 @@ internal fun CodeNavigator.openInviteLinkShare(inviteIdHex: String? = null) {
     navigateForResult<GroupInviteResult>(ChatStep.ShareInviteLink(inviteIdHex)) { result ->
         if (result is NavResultOrCanceled.ReturnValue) {
             navigate(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(result.value.chatId)))
+        }
+    }
+}
+
+/**
+ * Opens the host's Invite sheet (frame 1m). It returns what to open next and closes, and the next
+ * sheet opens from here, once it is gone; [onManageInvites] opens Manage Invites in the chat flow.
+ */
+internal fun CodeNavigator.openInviteHost(onManageInvites: () -> Unit) {
+    navigateForResult<InviteHostAction>(ChatStep.InviteHost) { result ->
+        if (result !is NavResultOrCanceled.ReturnValue) return@navigateForResult
+        when (result.value) {
+            InviteHostAction.ShareInvite -> openInviteLinkShare()
+            InviteHostAction.ShareJoin -> openGroupInvite()
+            InviteHostAction.ManageInvites -> onManageInvites()
         }
     }
 }
@@ -620,12 +636,16 @@ internal fun PlainLinkPill(url: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-internal fun LinkPillFrame(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+internal fun LinkPillFrame(
+    modifier: Modifier = Modifier,
+    color: Color = White05,
+    content: @Composable RowScope.() -> Unit,
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(CodeTheme.shapes.extraSmall)
-            .background(White05)
+            .background(color)
             .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
