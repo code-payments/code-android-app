@@ -1,6 +1,6 @@
 package com.flipcash.app.userprofile.internal.username
 
-import com.flipcash.services.models.MaxUsernameLength
+import com.flipcash.services.models.MaxClaimableUsernameLength
 import com.flipcash.services.models.MinUsernameLength
 import kotlin.test.Test
 import kotlin.test.assertIs
@@ -25,12 +25,12 @@ class LengthComplaintTest {
 
     @Test
     fun `exactly the maximum passes`() {
-        assertNull(lengthComplaint("a".repeat(MaxUsernameLength)))
+        assertNull(lengthComplaint("a".repeat(MaxClaimableUsernameLength)))
     }
 
     @Test
     fun `one character past the maximum is too long`() {
-        assertIs<LengthComplaint.TooLong>(lengthComplaint("a".repeat(MaxUsernameLength + 1)))
+        assertIs<LengthComplaint.TooLong>(lengthComplaint("a".repeat(MaxClaimableUsernameLength + 1)))
     }
 
     // The charset is the input transformation's job, not this one's — a handle of the right length

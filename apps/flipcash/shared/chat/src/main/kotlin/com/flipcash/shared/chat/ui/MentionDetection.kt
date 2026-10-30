@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.ui
 
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.isUsernameShaped
 
 /**
  * One `@handle` found in message text: the span it occupies, covering the `@` and the handle, and
@@ -33,14 +34,20 @@ fun detectMentions(text: String, links: List<DetectedUrl>): List<DetectedMention
         val start = mention.range.first
         val end = mention.range.last + 1
         if (links.any { it.start < end && start < it.end }) return@mapNotNull null
-        DetectedMention(start = start, end = end, username = handle.value.lowercase())
+        val username = handle.value.lowercase()
+        if (!username.isUsernameShaped()) return@mapNotNull null
+        DetectedMention(start = start, end = end, username = username)
     }.toList()
 }
 
 // The preceding character is matched and left out of the mention's range, as iOS does for want of
 // a lookbehind in Swift Regex, so the two platforms run one pattern.
+//
+// The handle's length is not bounded here: the candidate is any run of handle characters, and
+// `detectMentions` confirms each against `common.v1.Username` via `isUsernameShaped()` (on the
+// lowercased text, since usernames are stored lowercase), so the contract owns the 2..30 bound.
 private val MENTION_PATTERN =
-    Regex("""(?:^|[^A-Za-z0-9_.@])(@([A-Za-z0-9_]{2,15}))(?![A-Za-z0-9_@])""")
+    Regex("""(?:^|[^A-Za-z0-9_.@])(@([A-Za-z0-9_]+))(?![A-Za-z0-9_@])""")
 
 /**
  * The mentions in the text this content's bubble draws, as offsets into that text: the body of a

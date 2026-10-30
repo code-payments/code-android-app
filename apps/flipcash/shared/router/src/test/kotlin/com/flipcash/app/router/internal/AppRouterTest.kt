@@ -771,10 +771,17 @@ class AppRouterTest {
 
     @Test
     fun `classify ignores a vanity path that isn't shaped like a handle`() {
-        // Too short, too long, and outside the server's charset.
+        // Too short, too long, and outside the contract's charset.
         assertNull(router.classify(DeepLink("https://flipcash.com/a")))
-        assertNull(router.classify(DeepLink("https://flipcash.com/sixteencharacter")))
+        assertNull(router.classify(DeepLink("https://flipcash.com/${"a".repeat(31)}")))
         assertNull(router.classify(DeepLink("https://flipcash.com/sally.streamer")))
+    }
+
+    @Test
+    fun `classify opens a vanity handle past the claim cap`() {
+        val type = router.classify(DeepLink("https://flipcash.com/ted_livingston_2"))
+        assertIs<DeeplinkType.Profile>(type)
+        assertEquals(ProfileAddress.ByUsername("ted_livingston_2"), type.address)
     }
 
     @Test

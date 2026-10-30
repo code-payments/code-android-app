@@ -1,6 +1,6 @@
 package com.flipcash.app.userprofile.internal.username
 
-import com.flipcash.services.models.MaxUsernameLength
+import com.flipcash.services.models.MaxClaimableUsernameLength
 import com.flipcash.services.models.MinUsernameLength
 
 /**
@@ -13,12 +13,12 @@ import com.flipcash.services.models.MinUsernameLength
  */
 internal sealed class LengthComplaint(message: String) : IllegalArgumentException(message) {
     class TooShort : LengthComplaint("Username shorter than $MinUsernameLength characters")
-    class TooLong : LengthComplaint("Username longer than $MaxUsernameLength characters")
+    class TooLong : LengthComplaint("Username longer than $MaxClaimableUsernameLength characters")
 }
 
 /** The complaint [username] would earn on submit, or null when its length is acceptable. */
 internal fun lengthComplaint(username: String): LengthComplaint? = when {
     username.length < MinUsernameLength -> LengthComplaint.TooShort()
-    username.length > MaxUsernameLength -> LengthComplaint.TooLong()
+    username.length > MaxClaimableUsernameLength -> LengthComplaint.TooLong()
     else -> null
 }
