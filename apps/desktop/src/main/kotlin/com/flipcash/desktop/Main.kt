@@ -11,7 +11,14 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.flipcash.desktop.input.DesktopCommand
+import com.flipcash.desktop.input.DesktopMenuBar
+import com.flipcash.desktop.input.HostOs
+import com.flipcash.desktop.input.desktopKeyHandler
+import com.flipcash.desktop.input.perform
 import com.flipcash.desktop.shell.ContextContent
+import com.flipcash.desktop.shell.contextPaneModeFor
+import com.flipcash.desktop.shell.widthClassFor
 import com.flipcash.desktop.shell.DesktopDimens
 import com.flipcash.desktop.shell.DesktopNavState
 import com.flipcash.desktop.shell.LocalTitleBarInset
@@ -38,6 +45,8 @@ private val MinWindow = Dimension(DesktopDimens.MinWindowWidth.value.toInt(), De
 
 @OptIn(FlowPreview::class)
 fun main() {
+    // Swing menus go in the window unless this is set before AWT starts; macOS apps use the screen menu bar.
+    if (isMac) System.setProperty("apple.laf.useScreenMenuBar", "true")
     val graph = createGraph<DesktopGraph>()
     val signedIn = runBlocking {
         graph.startup()
@@ -68,6 +77,8 @@ fun main() {
                 contextPaneOpen = nav.context == ContextContent.Wallet,
             )
         }
+        fun run(command: DesktopCommand): Boolean =
+            nav.perform(command, contextPaneModeFor(widthClassFor(windowState.size.width)))
         Window(
             onCloseRequest = {
                 // Debounced saves can miss a move made just before quitting.
@@ -76,7 +87,9 @@ fun main() {
             },
             title = "Flipcash",
             state = windowState,
+            onPreviewKeyEvent = desktopKeyHandler(HostOs.current, ::run),
         ) {
+            if (isMac) DesktopMenuBar(windowState, ::run)
             LaunchedEffect(Unit) {
                 awtWindowRef.set(window)
                 configureChrome()

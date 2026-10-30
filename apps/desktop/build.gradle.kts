@@ -77,6 +77,11 @@ val devMnemonic = tryReadProperty(rootProject.rootDir, "flipcash.test.mnemonic",
 compose.desktop {
     application {
         mainClass = "com.flipcash.desktop.MainKt"
+        // Names the macOS app menu and Dock item when run from Gradle; a packaged app takes packageName.
+        // -Xdock is a macOS-only JVM flag, so other hosts must not get it.
+        if (System.getProperty("os.name").lowercase().startsWith("mac")) {
+            jvmArgs += listOf("-Xdock:name=Flipcash", "-Dapple.awt.application.name=Flipcash")
+        }
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Flipcash"
