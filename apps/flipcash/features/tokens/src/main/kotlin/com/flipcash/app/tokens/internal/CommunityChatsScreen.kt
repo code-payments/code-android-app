@@ -14,7 +14,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.tokens.ui.trackCommunityChatTapped
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.tokens.internal.components.info.CommunityChatRow
 import com.flipcash.app.tokens.ui.CommunityChatsViewModel
@@ -31,6 +33,7 @@ fun CommunityChatsScreen(mint: Mint) {
     val viewModel = hiltViewModel<CommunityChatsViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
+    val analytics = rememberAnalytics()
 
     LaunchedEffect(viewModel, mint) { viewModel.load(mint) }
 
@@ -60,6 +63,7 @@ fun CommunityChatsScreen(mint: Mint) {
                     holdings = entry.holdings,
                     currencyName = state.currencyName,
                     onClick = {
+                        analytics.trackCommunityChatTapped(mint)
                         navigator.push(
                             AppRoute.Messaging.Chat(
                                 identifier = ChatIdentifier.ByChatId(entry.chat.chatId),

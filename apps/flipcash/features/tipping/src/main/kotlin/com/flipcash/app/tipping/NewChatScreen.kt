@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.analytics.GroupType
 import com.flipcash.analytics.events.GroupEvents
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
@@ -63,7 +64,10 @@ fun NewChatScreen() {
             ChoiceRow(
                 label = stringResource(R.string.action_createPrivateGroup),
                 icon = R.drawable.ic_group_3,
-                onClick = { navigator.push(AppRoute.Messaging.NewGroup(isPrivate = true)) },
+                onClick = {
+                    analytics.track(GroupEvents.newOpened(GroupType.PRIVATE))
+                    navigator.push(AppRoute.Messaging.NewGroup(isPrivate = true))
+                },
             )
             ChoiceRow(
                 label = stringResource(R.string.action_createPublicGroup),
@@ -74,7 +78,7 @@ fun NewChatScreen() {
                     if (hasCommunityCurrency == false) {
                         presentNoCommunityCurrencies(resources, navigator)
                     } else {
-                        analytics.track(GroupEvents.newOpened(null))
+                        analytics.track(GroupEvents.newOpened(GroupType.COMMUNITY))
                         navigator.push(AppRoute.Messaging.NewGroup())
                     }
                 },

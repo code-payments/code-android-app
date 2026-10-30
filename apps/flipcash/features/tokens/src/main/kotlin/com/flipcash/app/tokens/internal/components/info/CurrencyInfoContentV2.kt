@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.money.formattedAppreciation
@@ -69,6 +70,8 @@ import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.tokens.ui.CurrencyActionTile
 import com.flipcash.app.tokens.ui.TopCommunityChatsPreviewCount
 import com.flipcash.app.tokens.ui.currencyActionTiles
+import com.flipcash.app.tokens.ui.trackCommunityChatTapped
+import com.flipcash.app.tokens.ui.trackTileTapped
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.SocialLink
@@ -109,6 +112,7 @@ internal fun CurrencyInfoContentV2(
     onHeroBounds: (Rect) -> Unit = {},
     dispatch: (TokenInfoViewModel.Event) -> Unit,
 ) {
+    val analytics = rememberAnalytics()
     val inset = CodeTheme.dimens.inset
     val grid = CodeTheme.dimens.grid
 
@@ -272,6 +276,7 @@ internal fun CurrencyInfoContentV2(
                                 holdings = entry.holdings,
                                 currencyName = token.name,
                                 onClick = {
+                                    analytics.trackCommunityChatTapped(token.address)
                                     dispatch(
                                         TokenInfoViewModel.Event.OpenScreen(
                                             AppRoute.Messaging.Chat(
@@ -420,6 +425,7 @@ private fun CurrencyActionTiles(
     dispatch: (TokenInfoViewModel.Event) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val analytics = rememberAnalytics()
     Row(
         modifier = modifier,
         // Node 11622:1609, drawn at 0.65: 5.2 gaps, i.e. 8dp.
@@ -445,6 +451,7 @@ private fun CurrencyActionTiles(
                     )
                 },
                 onClick = {
+                    analytics.trackTileTapped(tile, tokenMint)
                     when (tile) {
                         CurrencyActionTile.Send -> dispatch(
                             TokenInfoViewModel.Event.OpenScreen(AppRoute.Sheets.CurrencySend(tokenMint))

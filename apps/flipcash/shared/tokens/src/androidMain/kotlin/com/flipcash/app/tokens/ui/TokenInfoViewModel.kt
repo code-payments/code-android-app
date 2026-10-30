@@ -1,6 +1,7 @@
 package com.flipcash.app.tokens.ui
 
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
@@ -58,6 +59,7 @@ class TokenInfoViewModel @Inject constructor(
     private val purchaseMethodController: PurchaseMethodController,
     private val feedCoordinator: ActivityFeedCoordinator,
     private val communityController: CommunityController,
+    private val analytics: FlipcashAnalytics,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<TokenInfoViewModel.State, TokenInfoViewModel.Event>(
     initialState = State(),
@@ -368,6 +370,7 @@ class TokenInfoViewModel @Inject constructor(
                 // The tile is disabled when this is false; checked again here so nothing else can
                 // open a Convert out of Dollars with no destination.
                 if (!stateFlow.value.canConvert) return@onEach
+                analytics.trackMoreOptionPicked(MoreRow.Convert, mint)
 
                 // Dollars is the default landing spot; when Dollars *is* the source the swap
                 // view model substitutes the user's largest other holding.
@@ -471,6 +474,7 @@ class TokenInfoViewModel @Inject constructor(
                         iconRes = R.drawable.ic_menu_withdraw,
                         testTag = "more_action_withdraw",
                         onClick = {
+                            analytics.trackMoreOptionPicked(MoreRow.Withdraw, mint)
                             dispatchEvent(
                                 Event.OpenScreen(AppRoute.Transfers.Withdrawal(preselectedMint = mint))
                             )
@@ -484,6 +488,7 @@ class TokenInfoViewModel @Inject constructor(
                         // Dollars opens the add-money options (debit card, Phantom, other wallet);
                         // any other currency opens its own deposit address.
                         onClick = {
+                            analytics.trackMoreOptionPicked(MoreRow.Deposit, mint)
                             if (mint == Mint.usdf) {
                                 dispatchEvent(Event.PresentDepositOptions)
                             } else {

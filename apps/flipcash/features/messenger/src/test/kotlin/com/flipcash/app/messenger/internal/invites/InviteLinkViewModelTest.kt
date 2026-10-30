@@ -1,5 +1,8 @@
 package com.flipcash.app.messenger.internal.invites
 
+import com.flipcash.analytics.State as AnalyticsState
+import com.flipcash.analytics.events.GroupEvents
+import com.flipcash.app.analytics.RecordingAnalytics
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
@@ -71,7 +74,9 @@ class InviteLinkViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel() = InviteLinkViewModel(hostInvites, resources, clipboard)
+    private val analytics = RecordingAnalytics()
+
+    private fun viewModel() = InviteLinkViewModel(hostInvites, resources, clipboard, analytics)
 
     private var seed = 1
     private fun hostInvite(url: String?, useCount: Long = 0, maxUses: Long = 0): HostInvite {
@@ -274,5 +279,37 @@ class InviteLinkViewModelTest {
         assertFalse(ready.toString().contains("secret"))
         assertFalse(InviteLinkViewModel.Effect.Share("https://x/chat/invite#s=secret").toString().contains("secret"))
         assertFalse(InviteLinkViewModel.Effect.Send("https://x/chat/invite#s=secret").toString().contains("secret"))
+    }
+
+    @Test
+    fun `making the link because none exists sends Invite Link Created`() = runTest {
+        coEvery { hostInvites.currentOrCreate(chatId) } returns
+            InviteCreation.Created(hostInvite("https://x/chat/invite#s=new"))
+        val model = viewModel()
+        model.open(chatId, null)
+
+        assertEquals(
+            listOf(GroupEvents.inviteLinkCreated(state = AnalyticsState.SUCCESS, error = null)),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `a refused create sends Invite Link Created with its error`() = runTest {
+        coEvery { hostInvites.currentOrCreate(chatId) } returns InviteCreation.TooMany
+        viewModel().open(chatId, null)
+
+        assertEquals(
+            listOf(GroupEvents.inviteLinkCreated(state = AnalyticsState.FAILURE, error = "TooManyInvites")),
+            analytics.events,
+        )
+    }
+
+    @Test
+    fun `opening on a link that exists makes none and sends nothing`() = runTest {
+        every { hostInvites.current(chatId) } returns hostInvite("https://x/chat/invite#s=a")
+        viewModel().open(chatId, null)
+
+        assertTrue(analytics.events.isEmpty())
     }
 }
