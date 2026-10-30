@@ -589,7 +589,7 @@ properties = [
   { name = "Error", type = "text", optional = true },
 ]
 description = "Phantom and Coinbase are Android only; part 2 decides whether iOS sends them. Currency is a buy paid with a held currency other than USDF reserves."
-drift = "(Reserves and Currency) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks. Android sends Reserves for a buy paid with a held currency."
+drift = "(Reserves and Currency) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks."
 
 [[event]]
 domain = "Swap"

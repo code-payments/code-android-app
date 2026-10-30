@@ -7,6 +7,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:features:bill-customization"))
     implementation(project(":apps:flipcash:features:tokens"))
     implementation(project(":apps:flipcash:shared:bills"))
@@ -21,4 +22,9 @@ dependencies {
 
     implementation(project(":services:flipcash"))
     implementation(project(":services:opencode"))
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
+    testImplementation(project(":ui:resources:test-fixtures"))
 }

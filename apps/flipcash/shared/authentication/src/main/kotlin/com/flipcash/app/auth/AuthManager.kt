@@ -40,6 +40,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import com.flipcash.analytics.events.AccountEvents
+import com.flipcash.app.analytics.FlipcashAnalytics
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -67,7 +69,7 @@ class AuthManager @Inject constructor(
     private val wrongKeyChats: WrongKeyChats,
     private val networkObserver: NetworkConnectivityListener,
     private val dispatchers: DispatcherProvider,
-//    private val analytics: AnalyticsService,
+    private val analytics: FlipcashAnalytics,
 ) : CoroutineScope by CoroutineScope(dispatchers.IO) {
 
     init {
@@ -129,7 +131,10 @@ class AuthManager @Inject constructor(
                     is LookupResult.ExistingAccountFound -> {
                         val token = result.entropy
                         softLogin(token)
-                            .onSuccess { onInitialized() }
+                            .onSuccess {
+                                analytics.track(AccountEvents.autoLoginComplete())
+                                onInitialized()
+                            }
                     }
 
                     // No account on this device: resolve to a terminal LoggedOut state so the

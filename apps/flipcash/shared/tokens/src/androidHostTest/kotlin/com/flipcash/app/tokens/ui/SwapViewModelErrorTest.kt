@@ -214,6 +214,37 @@ class SwapViewModelErrorTest {
     }
 
     @Test
+    fun `a buy paid with a held currency tracks Token Purchase With Currency`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        transactionController.stub {
+            onBlocking { swap(any(), any(), anyOrNull(), any(), any(), anyOrNull(), any(), anyOrNull()) } doReturn
+                Result.failure(RuntimeException("swap failed"))
+        }
+
+        val target = mockk<Token>(relaxed = true) { every { address } returns Mint.usdf }
+        val targetWithBalance = mockk<TokenWithBalance>(relaxed = true) {
+            every { this@mockk.token } returns target
+        }
+        val fundingMint = Mint(ByteArray(32) { 3 }.toList())
+        val funding = mockk<Token>(relaxed = true) { every { address } returns fundingMint }
+        val fundingWithBalance = mockk<TokenWithBalance>(relaxed = true) {
+            every { this@mockk.token } returns funding
+        }
+        val amount = VerifiedFiat(mockk<LocalFiat>(relaxed = true), null)
+
+        val vm = createViewModel()
+        vm.dispatchEvent(SwapViewModel.Event.OnPurposeChanged(SwapPurpose.Buy(mockk(relaxed = true))))
+        vm.dispatchEvent(SwapViewModel.Event.OnSelectedTokenChanged(targetWithBalance))
+        vm.dispatchEvent(SwapViewModel.Event.OnFundingTokenResolved(fundingWithBalance))
+        vm.dispatchEvent(SwapViewModel.Event.ProceedWithPurchase(amount))
+        advanceUntilIdle()
+
+        val result = analytics.events.single { it.name == "Token Purchase With Currency" }
+        assertEquals(PropertyValue.Text("swap failed"), result.properties["Error"])
+        assertTrue(analytics.events.none { it.name == "Token Purchase With Reserves" })
+    }
+
+    @Test
     fun `sell failure shows buySellFailed error`() = runTest(mainCoroutineRule.dispatcher) {
         dispatchers = TestDispatchers(testScheduler)
         // Ensure balance check passes so the sell call is reached

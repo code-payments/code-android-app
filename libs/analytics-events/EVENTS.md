@@ -370,7 +370,7 @@ Phantom and Coinbase are Android only; part 2 decides whether iOS sends them. Cu
 | amount | group | no | [amount](#amount) |
 | Error | text | yes | |
 
-> **Drift:** (Reserves and Currency) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks. Android sends Reserves for a buy paid with a held currency.
+> **Drift:** (Reserves and Currency) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks.
 
 ### Token Sell
 
