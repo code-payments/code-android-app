@@ -191,7 +191,7 @@
         "10.00"
       ],
       "paidTotal": "20.00",
-      "eachLabel": "$10.00 Each"
+      "eachLabel": "$10.00 Each, including You"
     },
     {
       "name": "you first takes the extra cent",
@@ -205,7 +205,7 @@
         "0.33"
       ],
       "paidTotal": "0.66",
-      "eachLabel": "$0.33 Each"
+      "eachLabel": "~$0.33 Each, including You"
     },
     {
       "name": "you last, others take the extra cents",
@@ -219,7 +219,7 @@
         "0.33"
       ],
       "paidTotal": "0.67",
-      "eachLabel": "~$0.33 Each"
+      "eachLabel": "~$0.33 Each, including You"
     },
     {
       "name": "you in the middle",
@@ -233,7 +233,7 @@
         "0.33"
       ],
       "paidTotal": "0.67",
-      "eachLabel": "~$0.33 Each"
+      "eachLabel": "~$0.33 Each, including You"
     },
     {
       "name": "you and one",
@@ -245,7 +245,8 @@
       "parts": [
         "2.51"
       ],
-      "paidTotal": "2.51"
+      "paidTotal": "2.51",
+      "eachLabel": "~$2.51 Each, including You"
     },
     {
       "name": "ten plus you",
@@ -267,7 +268,7 @@
         "1.00"
       ],
       "paidTotal": "10.00",
-      "eachLabel": "$1.00 Each"
+      "eachLabel": "$1.00 Each, including You"
     },
     {
       "name": "ten plus you uneven",
@@ -289,7 +290,7 @@
         "0.09"
       ],
       "paidTotal": "0.91",
-      "eachLabel": "~$0.09 Each"
+      "eachLabel": "~$0.09 Each, including You"
     },
     {
       "name": "you exact minimum",
@@ -303,7 +304,7 @@
         "0.01"
       ],
       "paidTotal": "0.02",
-      "eachLabel": "$0.01 Each"
+      "eachLabel": "$0.01 Each, including You"
     },
     {
       "name": "too small with you",

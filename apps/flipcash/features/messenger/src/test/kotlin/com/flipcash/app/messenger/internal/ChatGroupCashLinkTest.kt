@@ -498,7 +498,7 @@ class ChatGroupCashLinkTest {
         val groupSend = vm.stateFlow.value.groupSend
         assertEquals(GroupSendState.Stage.Confirm, groupSend?.stage)
         assertEquals(Fiat(30.0), groupSend?.total)
-        assertEquals(GroupSendPlan.Pay(listOf(1000L, 1000L)), groupSend?.plan)
+        assertEquals(GroupSendPlan.Pay(listOf(1000L, 1000L), viewerPart = 1000L), groupSend?.plan)
 
         vm.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested)
         advanceUntilIdle()
@@ -508,7 +508,7 @@ class ChatGroupCashLinkTest {
             groupSendPayments.send(
                 chatId = chatId,
                 recipients = listOf(roster[0].userId, roster[1].userId),
-                plan = GroupSendPlan.Pay(listOf(1000L, 1000L)),
+                plan = GroupSendPlan.Pay(listOf(1000L, 1000L), viewerPart = 1000L),
                 currency = CurrencyCode.USD,
                 token = token,
                 source = any(),
@@ -522,7 +522,7 @@ class ChatGroupCashLinkTest {
         selectingPeople(vm, total = 1.0)
         vm.checkYou(); vm.checkMember(0); vm.checkMember(1)
 
-        assertEquals(GroupSendPlan.Pay(listOf(33L, 33L)), vm.stateFlow.value.groupSend?.plan)
+        assertEquals(GroupSendPlan.Pay(listOf(33L, 33L), viewerPart = 34L), vm.stateFlow.value.groupSend?.plan)
         assertEquals(listOf(roster[0].userId, roster[1].userId), vm.stateFlow.value.groupSend?.paid)
     }
 
@@ -566,5 +566,31 @@ class ChatGroupCashLinkTest {
         assertEquals(GroupSendPlan.PartBelowMinimum, vm.stateFlow.value.groupSend?.plan)
         assertEquals(GroupSendState.Stage.People, vm.stateFlow.value.groupSend?.stage)
         assertEquals(1, BottomBarManager.messages.value.size)
+    }
+
+    @Test
+    fun `ten dollars between You and one member says only five is sent, including You`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        selectingPeople(vm, total = 10.0)
+        vm.checkYou(); vm.checkMember(0)
+
+        val groupSend = vm.stateFlow.value.groupSend
+        assertEquals(Fiat(10.0), groupSend?.total)
+        val pay = groupSend?.plan as GroupSendPlan.Pay
+        assertEquals(listOf(500L), pay.parts)
+        assertEquals(500L, pay.viewerPart)
+        // The Each line shows for one paid member when You are in, as "$5.00 Each, including You".
+        assertTrue(pay.showsEach && pay.includesViewer && pay.isEven)
+        assertEquals(500L, pay.smallest)
+    }
+
+    @Test
+    fun `one paid member without You has no Each line`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        selectingPeople(vm, total = 10.0)
+        vm.checkMember(0)
+
+        val pay = vm.stateFlow.value.groupSend?.plan as GroupSendPlan.Pay
+        assertTrue(!pay.showsEach)
     }
 }

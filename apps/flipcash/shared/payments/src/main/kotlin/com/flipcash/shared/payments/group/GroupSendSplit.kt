@@ -10,10 +10,18 @@ import java.math.RoundingMode
 sealed interface GroupSendPlan {
     /**
      * Pay [parts], in the currency's minor unit and in selection order. One part is a single
-     * payment; two or more are one multi-payment.
+     * payment; two or more are one multi-payment. [viewerPart] is the sender's own part when they
+     * are in the split: not paid, and kept out of [parts].
      */
-    data class Pay(val parts: List<Long>) : GroupSendPlan {
-        val isEven: Boolean get() = parts.all { it == parts.first() }
+    data class Pay(val parts: List<Long>, val viewerPart: Long? = null) : GroupSendPlan {
+        /** Whether the sender is in the split: their part was dropped, and stays with them. */
+        val includesViewer: Boolean get() = viewerPart != null
+
+        /** Every part equal, the sender's included, so "Each" needs no "~". */
+        val isEven: Boolean get() = (parts + listOfNotNull(viewerPart)).all { it == parts.first() }
+
+        /** Whether the confirm sheet has an "Each" line: with several paid, or to say You are in. */
+        val showsEach: Boolean get() = parts.size >= 2 || includesViewer
 
         /** The part shown as "Each": every part when [isEven], the smallest otherwise. */
         val smallest: Long get() = parts.min()
@@ -69,7 +77,10 @@ object GroupSendSplit {
             maxRecipients = MAX_RECIPIENTS + if (viewerAt != null) 1 else 0,
         )
         if (split !is GroupSendPlan.Pay || viewerAt == null) return split
-        return GroupSendPlan.Pay(split.parts.filterIndexed { i, _ -> i != viewerAt })
+        return GroupSendPlan.Pay(
+            parts = split.parts.filterIndexed { i, _ -> i != viewerAt },
+            viewerPart = split.parts[viewerAt],
+        )
     }
 
     /** [fiat] in its currency's minor unit, rounded half-up to that unit. */

@@ -89,8 +89,9 @@ class GroupSendSplitVectorsTest {
             assertEquals(cents(v.getString("paidTotal")), pay.parts.sum(), name)
             assertEquals(cents(v.getString("youPart")), total - pay.parts.sum(), name)
 
+            assertEquals(v.has("eachLabel"), pay.showsEach, name)
             if (v.has("eachLabel")) {
-                val each = "$" + BigDecimal.valueOf(pay.smallest, 2).toPlainString() + " Each"
+                val each = "$" + BigDecimal.valueOf(pay.smallest, 2).toPlainString() + " Each, including You"
                 assertEquals(v.getString("eachLabel"), if (pay.isEven) each else "~$each", name)
             }
         }
