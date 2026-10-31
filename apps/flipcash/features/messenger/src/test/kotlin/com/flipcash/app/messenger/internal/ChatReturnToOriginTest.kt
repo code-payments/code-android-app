@@ -1,13 +1,9 @@
 package com.flipcash.app.messenger.internal
 
-import android.content.ClipboardManager
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
-import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.chat.ChatIdentifier
-import com.flipcash.libs.coroutines.TestDispatcherProvider
-import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
@@ -96,40 +92,15 @@ class ChatReturnToOriginTest {
 
     private fun createViewModel(
         identifier: ChatIdentifier? = null,
-    ): ChatViewModel = ChatViewModel(
+    ): ChatViewModel = chatViewModel(
+        dispatcher = mainCoroutineRule.dispatcher,
         chatCoordinator = chatCoordinator,
-        wrongKeyChats = com.flipcash.services.chat.WrongKeyChats(),
-        mediaUploads = noMediaUploads(),
-        e2eePolicy = E2eePolicy(),
         contactCoordinator = contactCoordinator,
-        contactPaymentDelegate = mockk(relaxed = true),
         tipPaymentDelegate = tipPaymentDelegate,
         transactionController = transactionController,
-        tokenCoordinator = mockk(relaxed = true),
         exchange = exchange,
-        verifiedFiatCalculator = mockk(relaxed = true),
-        startChattingPayer = mockk(relaxed = true),
         userManager = userManager,
-        resources = mockk(relaxed = true),
-        analytics = RecordingAnalytics(),
-        clipboardManager = mockk<ClipboardManager>(relaxed = true),
-        userFlags = mockk(relaxed = true),
-        linkCardClassifier = mockk(relaxed = true),
-        linkCardResolver = mockk(relaxed = true),
-        cashLinkClaims = mockk(relaxed = true) { every { claimInFlight } returns MutableStateFlow(null) },
-        chatCashLinks = mockk(relaxed = true),
-        groupSendPayments = mockk(relaxed = true),
-        chatDraftStore = mockk(relaxed = true),
-        recentReactionsStore = mockk(relaxed = true),
-        toastController = mockk(relaxed = true),
-        emojiCatalogLoader = mockk(relaxed = true),
-        userProfileDataSource = mockk(relaxed = true),
-        rosterSearch = mockk(relaxed = true),
         featuredGroups = featuredGroups,
-        lobbyRequests = mockk(relaxed = true),
-        hostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
-        groupRosters = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
-        dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
         identifier = identifier,
     )
 

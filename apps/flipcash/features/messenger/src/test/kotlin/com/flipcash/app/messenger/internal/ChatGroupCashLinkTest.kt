@@ -15,8 +15,6 @@ import com.flipcash.app.session.CashLinkClaims
 import com.flipcash.app.session.ChatCashLinks
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.libs.coroutines.TestDispatcherProvider
-import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
@@ -24,7 +22,6 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatMembership
-import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.manager.BottomBarManager
@@ -167,11 +164,9 @@ class ChatGroupCashLinkTest {
         BottomBarManager.clear()
     }
 
-    private fun createViewModel(): ChatViewModel = ChatViewModel(
+    private fun createViewModel(): ChatViewModel = chatViewModel(
+        dispatcher = mainCoroutineRule.dispatcher,
         chatCoordinator = chatCoordinator,
-        wrongKeyChats = com.flipcash.services.chat.WrongKeyChats(),
-        mediaUploads = noMediaUploads(),
-        e2eePolicy = E2eePolicy(),
         contactCoordinator = contactCoordinator,
         contactPaymentDelegate = contactPaymentDelegate,
         tipPaymentDelegate = tipPaymentDelegate,
@@ -191,17 +186,6 @@ class ChatGroupCashLinkTest {
         chatCashLinks = chatCashLinks,
         groupSendPayments = groupSendPayments,
         chatDraftStore = chatDraftStore,
-        recentReactionsStore = mockk(relaxed = true),
-        emojiCatalogLoader = mockk(relaxed = true),
-        toastController = mockk(relaxed = true),
-        userProfileDataSource = mockk(relaxed = true),
-        rosterSearch = mockk(relaxed = true),
-        featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
-        lobbyRequests = mockk(relaxed = true),
-        hostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
-        groupRosters = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
-        dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
-        identifier = null,
     )
 
     private fun member(id: ID) = ChatMember(id, mockk<UserProfile>(relaxed = true), emptyList())
