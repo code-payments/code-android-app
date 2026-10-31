@@ -800,10 +800,13 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                 ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.CHAT)
                             )
                             // Both branches of the group profile's Share button; see GroupProfileScreen.
-                            if (viewerCanInvite) {
-                                navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
-                            } else {
-                                navigator.openGroupInvite()
+                            // The composer may have the keyboard up; it closes before the sheet opens.
+                            keyboard.hideIfVisible {
+                                if (viewerCanInvite) {
+                                    navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
+                                } else {
+                                    navigator.openGroupInvite()
+                                }
                             }
                         },
                     )

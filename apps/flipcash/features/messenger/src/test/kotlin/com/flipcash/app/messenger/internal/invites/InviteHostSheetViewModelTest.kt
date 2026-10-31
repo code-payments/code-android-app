@@ -11,7 +11,7 @@ import com.flipcash.shared.chat.InviteCreation
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.Vibrator
-import com.getcode.view.SuccessHoldDuration
+import com.getcode.view.PaymentSuccessHoldDuration
 import io.mockk.verify
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.test.advanceTimeBy
@@ -136,7 +136,7 @@ class InviteHostSheetViewModelTest {
         verify(exactly = 1) { vibrator.vibrate(any()) }
         assertTrue("held: nothing opened yet", effects.tryReceive().isFailure)
 
-        advanceTimeBy(SuccessHoldDuration - 1.milliseconds)
+        advanceTimeBy(PaymentSuccessHoldDuration - 1.milliseconds)
         runCurrent()
         assertTrue("still held", effects.tryReceive().isFailure)
 

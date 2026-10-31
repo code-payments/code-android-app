@@ -14,7 +14,7 @@ import com.flipcash.shared.chat.HostInvites.Companion.isLostInviteAccess
 import com.flipcash.shared.chat.InviteCreation
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.Vibrator
-import com.getcode.view.SuccessHoldDuration
+import com.getcode.view.PaymentSuccessHoldDuration
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -136,7 +136,7 @@ internal class InviteHostSheetViewModel @Inject constructor(
                 // sheet takes over. An existing link opens it at once.
                 _state.update { it.copy(success = true) }
                 vibrator.vibrate()
-                delay(SuccessHoldDuration)
+                delay(PaymentSuccessHoldDuration)
             }
             _effects.send(Effect.ShareInvite)
         }
