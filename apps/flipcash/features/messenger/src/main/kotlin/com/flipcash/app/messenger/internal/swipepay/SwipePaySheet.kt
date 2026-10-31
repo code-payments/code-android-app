@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.swipepay
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -50,6 +51,8 @@ internal data class SwipePayUiState(
     val tokenPickable: Boolean,
     /** True when only back closes the sheet: no drag, no tap on the scrim. */
     val backOnly: Boolean = false,
+    /** The swipe's label: "Swipe to Send" unless the flow pays a request. */
+    @StringRes val swipeLabel: Int = R.string.action_swipeToSend,
     val swipeTestTag: String? = null,
 ) {
     /** A swipe is in flight or has finished; the sheet holds still until the flow lets go. */
@@ -122,7 +125,7 @@ internal fun SwipePaySheet(
                 enabled = state.progress.isIdle,
                 isLoading = state.progress.loading,
                 isSuccess = state.progress.success,
-                label = stringResource(R.string.action_swipeToSend),
+                label = stringResource(state.swipeLabel),
             )
         }
         Column(

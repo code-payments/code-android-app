@@ -164,7 +164,7 @@ internal fun RequestDetailsScreen(
                         .padding(horizontal = CodeTheme.dimens.inset)
                         .padding(bottom = CodeTheme.dimens.grid.x2)
                         .testTag("request_details_send"),
-                    text = stringResource(R.string.action_sendShare, share.amount.requestText()),
+                    text = stringResource(R.string.action_payShare, share.amount.requestText()),
                     buttonState = ButtonState.Filled,
                     isLoading = pay.preparing,
                     onClick = viewModel::payTapped,

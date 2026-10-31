@@ -95,15 +95,20 @@ internal fun RequestPaySheet(
     PayShareSheet(
         creator = members[request.creator],
         share = share,
-        swipePay = SwipePayUiState(
-            token = token,
-            progress = pay.progress,
-            tokenPickable = true,
-            swipeTestTag = "request_pay_swipe",
-        ),
+        swipePay = requestPaySwipeState(pay, token),
         actions = actions,
     )
 }
+
+/** The swipe for a share: the viewer pays the request, so it reads "Swipe to Pay". */
+internal fun requestPaySwipeState(pay: RequestPayFlow.State, token: Token?): SwipePayUiState =
+    SwipePayUiState(
+        token = token,
+        progress = pay.progress,
+        tokenPickable = true,
+        swipeLabel = R.string.action_swipeToPay,
+        swipeTestTag = "request_pay_swipe",
+    )
 
 /**
  * Frame 10: who is being paid, the share, the token, and the swipe. The token pill swaps this
