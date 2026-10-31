@@ -10,6 +10,8 @@ import com.flipcash.app.core.navigation.DeeplinkType
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.isUsernameShaped
 import com.flipcash.app.core.navigation.Key
+import com.flipcash.app.core.navigation.NavBarButton
+import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.navigation.fragments
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.verification.email.EmailDeeplinkOrigin
@@ -19,6 +21,7 @@ import com.flipcash.app.router.Router
 import com.flipcash.app.router.internal.AppRouter.Companion.cashLink
 import com.flipcash.app.router.internal.AppRouter.Companion.chat
 import com.flipcash.app.router.internal.AppRouter.Companion.login
+import com.flipcash.app.router.internal.AppRouter.Companion.tab
 import com.flipcash.app.router.internal.AppRouter.Companion.tip
 import com.flipcash.app.router.internal.AppRouter.Companion.token
 import com.flipcash.app.router.internal.AppRouter.Companion.verification
@@ -55,6 +58,18 @@ internal class AppRouter(
         val token = listOf("token")
         val chat = listOf("chat")
         val tip = listOf("tip")
+        val tab = listOf("tab")
+
+        /** The `{name}` in `/tab/{name}`, matched case-insensitively. "You" is the Menu tab. */
+        internal val tabNames: Map<String, NavBarButton> = mapOf(
+            "scan" to NavBarButton.Scanner,
+            "chats" to NavBarButton.Chats,
+            "wallet" to NavBarButton.Wallet,
+            "you" to NavBarButton.TipCard,
+        )
+
+        /** The custom scheme. The route sits in the host slot: `flipcash://tab/scan`. */
+        const val CUSTOM_SCHEME = "flipcash"
 
         /**
          * Redirector host. It carries no route of its own — the real link is percent-encoded in
@@ -94,7 +109,7 @@ internal class AppRouter(
                 // Routes belonging to the app hosts. The apex answers for them too, so a link
                 // naming one is a mis-hosted route, not somebody's handle.
                 setOf("pool", "wallet") +
-                login + cashLink + verification + token + chat + tip
+                login + cashLink + verification + token + chat + tip + tab
     }
 
     override fun dispatch(deepLink: DeepLink): DeeplinkAction {
@@ -102,7 +117,7 @@ internal class AppRouter(
         // invite, not a page for the browser: handing it on would send its fragment, the key,
         // to whatever opens it.
         val type = classify(deepLink)
-            ?: if (deepLink.mayCarryInviteSecret()) DeeplinkType.InvalidGroupInvite else return deepLink.unrouted()
+            ?: if (deepLink.mayCarryInviteSecret()) DeeplinkType.InvalidGroupInvite else return deepLink.withAppOrigin().unrouted()
 
         // Not logged in — redirect to login (or login deeplink itself)
         if (authStateProvider() !is AuthState.Ready) {
@@ -171,6 +186,8 @@ internal class AppRouter(
             is DeeplinkType.Tipcard -> tipCard(TipCardOwner.ById(type.userId))
 
             is DeeplinkType.Profile -> profile(type.address)
+
+            is DeeplinkType.Tab -> DeeplinkAction.Navigate(listOf(type.button.destinationRoute()))
         }
     }
 
@@ -227,12 +244,13 @@ internal class AppRouter(
         // A jump link may carry the real URL percent-encoded in `#source=`. Unwrap once and
         // classify that; a jump pointing at another jump is malformed and falls through rather
         // than recursing. Mirrors iOS DeepLinkController.
-        if (deepLink.isJump()) {
-            deepLink.unwrapJumpTarget()
+        val link = deepLink.withAppOrigin()
+        if (link.isJump()) {
+            link.unwrapJumpTarget()
                 ?.takeUnless { it.isJump() }
                 ?.let { return classifyOrThrow(it) }
         }
-        return deepLink.classifyByPath()
+        return link.classifyByPath()
     }
 
     /**
@@ -253,6 +271,7 @@ internal class AppRouter(
             deepLink.isCashLink() -> deepLink.handleCashLink()
             deepLink.isToken() -> deepLink.handleTokenLink()
             deepLink.isEmailVerification() -> deepLink.handleEmailVerification()
+            deepLink.isTab() -> deepLink.handleTab()
             deepLink.isTipChat() -> deepLink.handleTipChat()
             deepLink.isTipCard() -> deepLink.handleTipCard()
             // Ahead of every other `/chat/` route: `/chat/invite` has a secret in its fragment and
@@ -327,6 +346,18 @@ internal class AppRouter(
     }
 }
 
+/**
+ * `flipcash://{route}/…` carries the route in the host slot. Rewrite it onto the app origin so
+ * every route below classifies it exactly as the https link it mirrors. Anything else is returned
+ * as is.
+ */
+private fun DeepLink.withAppOrigin(): DeepLink {
+    val scheme = data.substringBefore("://", missingDelimiterValue = "")
+    if (!scheme.equals(AppRouter.CUSTOM_SCHEME, ignoreCase = true)) return this
+    val rest = data.substringAfter("://")
+    return DeepLink("https://app.flipcash.com/$rest")
+}
+
 private fun DeepLink.isJump(): Boolean = host.equals(AppRouter.JUMP_HOST, ignoreCase = true)
 
 /**
@@ -361,6 +392,16 @@ private fun DeepLink.isEmailVerification(): Boolean = verification.contains(path
 // https://app.flipcash.com/tip/chat/{url encoded chatId}
 private fun DeepLink.isTipChat(): Boolean =
     tip.contains(pathSegments.getOrNull(0)) && chat.contains(pathSegments.getOrNull(1))
+
+// https://app.flipcash.com/tab/{scan|chats|wallet|you}: exactly two segments and a known name.
+// Anything else is no link at all, not a profile — `tab` is in reservedProfilePaths.
+private fun DeepLink.isTab(): Boolean =
+    tab.contains(pathSegments.getOrNull(0)?.lowercase()) &&
+        pathSegments.size == 2 &&
+        AppRouter.tabNames.containsKey(pathSegments[1].lowercase())
+
+private fun DeepLink.handleTab(): DeeplinkType.Tab? =
+    AppRouter.tabNames[pathSegments.getOrNull(1)?.lowercase()]?.let { DeeplinkType.Tab(it) }
 
 private fun DeepLink.isTipCard(): Boolean =  tip.contains(pathSegments.getOrNull(0))
 

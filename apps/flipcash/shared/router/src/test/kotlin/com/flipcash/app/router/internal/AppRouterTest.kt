@@ -1380,4 +1380,104 @@ class AppRouterTest {
     }
 
     // endregion
+
+    // region tab links and the flipcash:// scheme
+
+    private fun tabAction(url: String) = router.dispatch(DeepLink(url))
+
+    @Test
+    fun `tab links open the matching tab over https and flipcash`() {
+        val expected = mapOf(
+            "scan" to AppRoute.Tabs.Scanner,
+            "chats" to AppRoute.Tabs.Chats,
+            "wallet" to AppRoute.Tabs.Wallet,
+            "you" to AppRoute.Tabs.Menu,
+        )
+        expected.forEach { (name, route) ->
+            listOf("https://app.flipcash.com/tab/$name", "flipcash://tab/$name").forEach { url ->
+                assertEquals(DeeplinkAction.Navigate(listOf(route)), tabAction(url), url)
+            }
+        }
+    }
+
+    @Test
+    fun `tab name is case insensitive`() {
+        assertEquals(
+            DeeplinkAction.Navigate(listOf(AppRoute.Tabs.Scanner)),
+            tabAction("https://app.flipcash.com/tab/SCAN"),
+        )
+        assertEquals(
+            DeeplinkAction.Navigate(listOf(AppRoute.Tabs.Menu)),
+            tabAction("flipcash://tab/You"),
+        )
+    }
+
+    @Test
+    fun `unknown or missing tab name is no action and not a profile`() {
+        listOf(
+            "https://app.flipcash.com/tab/bogus",
+            "https://app.flipcash.com/tab",
+            "https://app.flipcash.com/tab/scan/extra",
+            "flipcash://tab/bogus",
+            "flipcash://tab",
+            "https://flipcash.com/tab",
+        ).forEach { url ->
+            assertNull(router.classify(DeepLink(url)), url)
+        }
+        assertEquals(DeeplinkAction.None, tabAction("https://app.flipcash.com/tab"))
+        assertEquals(DeeplinkAction.None, tabAction("https://app.flipcash.com/tab/bogus"))
+        assertTrue("tab" in AppRouter.reservedProfilePaths)
+    }
+
+    @Test
+    fun `tab link while logged out goes to onboarding like other links`() {
+        loggedOut()
+        assertEquals(
+            DeeplinkAction.Navigate(listOf(AppRoute.OnboardingFlow())),
+            tabAction("flipcash://tab/wallet"),
+        )
+    }
+
+    @Test
+    fun `flipcash scheme classifies like the equivalent https link`() {
+        val chatId = Linkify.tipChatById(sampleChatId).substringAfterLast('/')
+        listOf(
+            "login#e=abc123" to "login#e=abc123",
+            "login?data=xyz789" to "login?data=xyz789",
+            "token/$MINT" to "token/$MINT",
+            "c#e=abc123" to "c#e=abc123",
+            "c/#/e=abc123" to "c/#/e=abc123",
+            "cash#e=abc123" to "cash#e=abc123",
+            "tip/chat/$chatId" to "tip/chat/$chatId",
+            "chat/${groupUuid}" to "chat/${groupUuid}",
+            "chat/$chatId/m/12" to "chat/$chatId/m/12",
+            "tip/${groupUuid}" to "tip/${groupUuid}",
+            "verify?email=a%40b.co&code=123456" to "verify?email=a%40b.co&code=123456",
+        ).forEach { (custom, web) ->
+            val expected = router.classify(DeepLink("https://app.flipcash.com/$web"))
+            assertTrue(expected != null, web)
+            assertEquals(expected, router.classify(DeepLink("flipcash://$custom")), custom)
+        }
+    }
+
+    @Test
+    fun `flipcash scheme group invite matches the https invite`() {
+        val secret = ByteArray(32) { (it + 1).toByte() }
+        val web = InviteLink.url(secret)
+        val fragment = web.substringAfter('#')
+        val https = router.classify(DeepLink("https://app.flipcash.com/chat/invite#$fragment"))
+        val custom = router.classify(DeepLink("flipcash://chat/invite#$fragment"))
+        assertIs<DeeplinkType.GroupInvite>(https)
+        assertIs<DeeplinkType.GroupInvite>(custom)
+        assertTrue(https.secret.contentEquals(custom.secret))
+    }
+
+    @Test
+    fun `codewallet scheme is not handled`() {
+        val url = "codewallet://send.flipcash.com/c/abc"
+        assertNull(router.classify(DeepLink(url)))
+        assertEquals(DeeplinkAction.None, router.dispatch(DeepLink(url)))
+    }
+
+    // endregion
 }
