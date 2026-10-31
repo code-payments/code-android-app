@@ -1219,6 +1219,7 @@
     <string name="error_title_requestClosed">Request Closed</string>
     <string name="error_description_requestClosed">This request is no longer accepting payments.</string>
     <string name="label_chat_preview_noMessages">Nothing yet</string>
+    <string name="label_chat_preview_inviteToStart">Invite people to get started</string>
     <string name="label_isTyping">Is Typing…</string>
 
     <string name="label_edited">Edited</string>

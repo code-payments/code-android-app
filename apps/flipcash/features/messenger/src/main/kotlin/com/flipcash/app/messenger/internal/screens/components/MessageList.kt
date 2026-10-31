@@ -132,7 +132,7 @@ internal fun MessageList(
     // row: a DM needs no avatar column, a group reserves one on every incoming row.
     val isGroup = state.chatType == ChatType.GROUP
     // Not a message, so it is not in `messages`: the transcript's own item, derived from state and
-    // held in place while it pops out. See GroupReadyCardPresence.
+    // held in place while it fades out. See GroupReadyCardPresence.
     val groupSubject = state.subject as? ChatSubject.Group
     val memberCount = groupSubject?.memberCount ?: 0L
     val groupReadyPresence = rememberGroupReadyCardPresence(
@@ -782,12 +782,9 @@ internal fun MessageList(
                                 groupName = groupSubject?.title.orEmpty(),
                                 onInvite = onInvitePeople,
                                 modifier = Modifier
+                                    .collapseHeight { groupReadyPresence.heightFraction.value }
                                     .padding(bottom = CodeTheme.dimens.grid.x2)
-                                    .graphicsLayer {
-                                        scaleX = groupReadyPresence.scale.value
-                                        scaleY = groupReadyPresence.scale.value
-                                        alpha = groupReadyPresence.alpha.value
-                                    },
+                                    .graphicsLayer { alpha = groupReadyPresence.alpha.value },
                             )
                         }
                     }

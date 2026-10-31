@@ -2,8 +2,11 @@ package com.flipcash.app.messenger.internal
 
 import com.flipcash.app.messenger.internal.screens.components.GroupReadyCardPresence
 import com.flipcash.app.messenger.internal.screens.components.showsGroupReadyCard
+import androidx.compose.runtime.MonotonicFrameClock
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -65,5 +68,22 @@ class GroupReadyCardTest {
         val presence = GroupReadyCardPresence(initiallyPresent = true)
         presence.update(show = false, joined = false)
         assertFalse(presence.present)
+    }
+
+    @Test
+    fun aJoinFadesAndCollapsesTheRowBeforeDroppingIt() = runTest {
+        val presence = GroupReadyCardPresence(initiallyPresent = true)
+        // A frame every 16 ms of fake time; an Animatable needs a clock to run against.
+        var nanos = 0L
+        val clock = object : MonotonicFrameClock {
+            override suspend fun <R> withFrameNanos(onFrame: (Long) -> R): R {
+                nanos += 16_000_000L
+                return onFrame(nanos)
+            }
+        }
+        withContext(clock) { presence.update(show = false, joined = true) }
+        assertFalse(presence.present)
+        assertEquals(0f, presence.alpha.value)
+        assertEquals(0f, presence.heightFraction.value)
     }
 }
