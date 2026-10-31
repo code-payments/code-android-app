@@ -151,6 +151,23 @@ class CreateGroupStateTest {
     }
 
     @Test
+    fun `a title at the 64 code point limit can be created and one over cannot`() {
+        val balances = listOf(held(1, "BadBoys", 100.0))
+
+        assertTrue(state(title = "a".repeat(64), balances = balances).canCreate)
+        assertFalse(state(title = "a".repeat(65), balances = balances).canCreate)
+    }
+
+    @Test
+    fun `the title limit counts code points, not UTF-16 units`() {
+        val balances = listOf(held(1, "BadBoys", 100.0))
+
+        // 64 emoji are 128 UTF-16 units but 64 code points.
+        assertTrue(state(title = "\uD83D\uDE00".repeat(64), balances = balances).canCreate)
+        assertFalse(state(title = "\uD83D\uDE00".repeat(65), balances = balances).canCreate)
+    }
+
+    @Test
     fun `a creator who holds the requirement can create`() {
         val state = state(balances = listOf(held(1, "BadBoys", 100.0)))
 

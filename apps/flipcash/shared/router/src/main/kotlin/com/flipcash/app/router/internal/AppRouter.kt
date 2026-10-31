@@ -427,8 +427,11 @@ private fun DeepLink.handleCashLink(): DeeplinkType.CashLink? {
 
 private fun DeepLink.handleTokenLink(): DeeplinkType.TokenInfo? {
     val uri = data.toUri()
-    val mint = uri.pathSegments.getOrNull(1) ?: return null
-    return DeeplinkType.TokenInfo(Mint(mint))
+    val segment = uri.pathSegments.getOrNull(1) ?: return null
+    // A link with a truncated or non-base58 address would otherwise reach the token fetch as a
+    // short mint and fail the server's 32-byte rule.
+    val mint = runCatching { Mint(segment) }.getOrNull()?.takeIf { it.isValid } ?: return null
+    return DeeplinkType.TokenInfo(mint)
 }
 
 // https://app.flipcash.com/tip/chat/{url encoded chatId}

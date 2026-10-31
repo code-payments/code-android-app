@@ -127,8 +127,9 @@ internal class CurrencyCreatorViewModel @Inject constructor(
         val fundingMint: Mint? = null,
         val attestations: ModerationAttestations = ModerationAttestations(),
     ) {
+        /** The name passes the contract's [CurrencyName] rule, so the checks and the launch will accept it. */
         val hasName: Boolean
-            get() = nameFieldState.text.isNotBlank()
+            get() = CurrencyName.isValid(nameFieldState.text)
 
         val descriptionLength: Int
             get() = descriptionFieldState.text.trimmedLength()
@@ -318,6 +319,8 @@ internal class CurrencyCreatorViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.CheckName>()
+            // The keyboard Done action reaches here without passing the button's enabled gate.
+            .filter { stateFlow.value.hasName }
             .map { stateFlow.value.nameFieldState.text.toString() }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
             .map { moderationController.moderateText(it.trim()) }
