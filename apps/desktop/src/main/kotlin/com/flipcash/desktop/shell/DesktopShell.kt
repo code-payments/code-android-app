@@ -47,7 +47,11 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -295,6 +299,13 @@ private fun OverlayPane(visible: Boolean, modifier: Modifier, content: @Composab
 }
 
 /**
+ * The floating list's shadow over the chat, measured off node 13104:3820: about six levels darker than
+ * the window at the list's edge, gone by 20 dp. An elevation shadow is black on a near-black window and
+ * barely shows, so this is a plain blur with a stronger alpha.
+ */
+private val PeekShadow = Shadow(radius = 20.dp, color = Color.Black, alpha = 0.5f)
+
+/**
  * The sidebar's place at the leading edge: the window's own background with a hairline divider, as in
  * node 13000:91. [elevated] is the list floating over the chat from the rail, which casts a shadow
  * instead.
@@ -310,7 +321,7 @@ private fun SidebarSlot(
         modifier
             .width(width)
             .fillMaxHeight()
-            .then(if (elevated) Modifier.shadow(24.dp) else Modifier)
+            .then(if (elevated) Modifier.dropShadow(RectangleShape, PeekShadow) else Modifier)
             .background(CodeTheme.colors.background)
             .clipToBounds(),
     ) {
