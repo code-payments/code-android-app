@@ -77,6 +77,7 @@ fun GroupReadyCardBubble(
                     isFromSelf = false,
                     position = BubblePosition.Solo,
                     maxWidth = maxWidth,
+                    subtitleAsMessage = true,
                     modifier = Modifier.align(Alignment.CenterStart),
                 )
             }
