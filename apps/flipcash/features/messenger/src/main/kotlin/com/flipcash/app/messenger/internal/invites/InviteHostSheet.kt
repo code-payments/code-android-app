@@ -9,6 +9,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,11 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.flipcash.app.core.ui.shimmer
 import com.flipcash.app.messenger.internal.screens.LinkPillFrame
 import com.flipcash.features.messenger.R
 import com.getcode.theme.CodeTheme
@@ -122,6 +125,12 @@ private val LinkCardSpacing = 12.dp
 private val LinkPillHeight = 48.dp
 private val LinkPillInset = 16.dp
 
+private const val LinkPlaceholderFraction = 0.7f
+private val LinkPlaceholderHeight = 12.dp
+
+// The same resting bar the message link card's skeleton draws.
+private val LinkPlaceholderColor = Color.White.copy(alpha = 0.12f)
+
 private const val ApproveFadeMillis = 220
 
 // iOS's host card, which is the reference: the link is Medium 14, and the caption and the switch's
@@ -189,21 +198,11 @@ private fun LinkCard(
                     approve -> state.plainUrl?.let { PillText(plainLinkText(it)) }
                     // The whole link, left to PillText to cut in the middle so the token's end shows.
                     invite is InviteLinkState.Ready -> PillText(plainLinkText(invite.url))
-                    invite == InviteLinkState.Creating -> Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                    ) {
-                        CodeCircularProgressIndicator(modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6 / 2))
-                        Text(
-                            text = stringResource(R.string.label_creatingInviteLink),
-                            style = CodeTheme.typography.textMedium,
-                            color = White50,
-                        )
-                    }
                     invite == InviteLinkState.Loading ->
                         CodeCircularProgressIndicator(modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6 / 2))
-                    // No link yet, or the last one revoked: the next tap makes one.
-                    else -> Unit
+                    // No link yet, or the last one revoked: a placeholder the next tap fills. It
+                    // shimmers while that tap makes the link.
+                    else -> LinkPlaceholder(shimmering = invite == InviteLinkState.Creating)
                 }
             }
         }
@@ -213,7 +212,8 @@ private fun LinkCard(
             text = stringResource(R.string.action_shareLink),
             buttonState = ButtonState.Filled,
             isLoading = state.creating,
-            enabled = !state.creating,
+            isSuccess = state.success,
+            enabled = !state.creating && !state.success,
             onClick = onShare,
         )
         // The spacing above the caption goes with it, so a card with no caption ends at the button.
@@ -238,6 +238,21 @@ private fun LinkCard(
             }
         }
     }
+}
+
+/** A link-shaped bar for a card with no link. [shimmering] while the link is being made. */
+@Composable
+private fun LinkPlaceholder(shimmering: Boolean) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth(LinkPlaceholderFraction)
+            .height(LinkPlaceholderHeight)
+            .clearAndSetSemantics {}
+            .let {
+                if (shimmering) it.shimmer(CircleShape)
+                else it.background(LinkPlaceholderColor, CircleShape)
+            },
+    )
 }
 
 @Composable

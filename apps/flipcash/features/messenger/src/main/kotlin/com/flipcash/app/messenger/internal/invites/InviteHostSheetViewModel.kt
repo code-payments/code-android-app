@@ -13,9 +13,12 @@ import com.flipcash.shared.chat.HostInvites
 import com.flipcash.shared.chat.HostInvites.Companion.isLostInviteAccess
 import com.flipcash.shared.chat.InviteCreation
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.vibration.Vibrator
+import com.getcode.view.SuccessHoldDuration
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +43,7 @@ internal class InviteHostSheetViewModel @Inject constructor(
     private val approveStore: ApproveNewMembersStore,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalytics,
+    private val vibrator: Vibrator,
 ) : ViewModel() {
 
     data class State(
@@ -52,6 +56,8 @@ internal class InviteHostSheetViewModel @Inject constructor(
         val invite: InviteLinkState = InviteLinkState.Loading,
         /** The plain link the card shows while [approve] is on. */
         val plainUrl: String? = null,
+        /** This tap made the link; the button shows its checkmark while the sheet holds the new URL. */
+        val success: Boolean = false,
     ) {
         val creating: Boolean get() = !approve && invite == InviteLinkState.Creating
     }
@@ -124,7 +130,14 @@ internal class InviteHostSheetViewModel @Inject constructor(
             return
         }
         pending = viewModelScope.launch {
-            ensureInvite(chatId) ?: return@launch
+            val ensured = ensureInvite(chatId) ?: return@launch
+            if (ensured.created) {
+                // Show the new URL and the checkmark for the standard success hold before the full
+                // sheet takes over. An existing link opens it at once.
+                _state.update { it.copy(success = true) }
+                vibrator.vibrate()
+                delay(SuccessHoldDuration)
+            }
             _effects.send(Effect.ShareInvite)
         }
     }
@@ -133,9 +146,10 @@ internal class InviteHostSheetViewModel @Inject constructor(
      * The current invite link's URL, made with the default settings when there is none (Open 9).
      * Null when no link came of it; the error has been shown.
      */
-    private suspend fun ensureInvite(chatId: ChatId): String? {
-        (_state.value.invite as? InviteLinkState.Ready)?.let { return it.url }
+    private suspend fun ensureInvite(chatId: ChatId): Ensured? {
+        (_state.value.invite as? InviteLinkState.Ready)?.let { return Ensured(it.url, created = false) }
         _state.update { it.copy(invite = InviteLinkState.Creating) }
+        vibrator.tick()
         // A load that failed could be hiding a link that exists; make none, or this would add a second.
         val loaded = hostInvites.load(chatId)
         loaded.exceptionOrNull()?.let { error ->
@@ -148,9 +162,9 @@ internal class InviteHostSheetViewModel @Inject constructor(
             }
             return null
         }
-        hostInvites.current(chatId)?.let { return settle(it) }
+        hostInvites.current(chatId)?.let { return settle(it)?.let { url -> Ensured(url, created = false) } }
         return when (val result = hostInvites.currentOrCreate(chatId).also { analytics.trackInviteLinkCreated(it) }) {
-            is InviteCreation.Created -> settle(result.invite) ?: run { failed(); null }
+            is InviteCreation.Created -> settle(result.invite)?.let { Ensured(it, created = true) } ?: run { failed(); null }
             InviteCreation.TooMany -> {
                 _state.update { it.copy(invite = InviteLinkState.None) }
                 showTooManyInviteLinks(
@@ -175,6 +189,9 @@ internal class InviteHostSheetViewModel @Inject constructor(
             }
         }
     }
+
+    /** [created] is true when this tap made the link, rather than finding one. */
+    private data class Ensured(val url: String, val created: Boolean)
 
     private fun settle(invite: HostInvite): String? {
         val link = invite.toState()
