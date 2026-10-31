@@ -1,6 +1,6 @@
 package com.flipcash.shared.chat.share
 
-import android.net.Uri
+import com.flipcash.app.blob.PickedPhoto
 import com.flipcash.services.models.chat.ChatId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,10 +74,10 @@ interface ShareGateway {
     suspend fun sendText(chatId: ChatId, text: String): Result<Unit>
 
     /**
-     * Starts preparing and uploading [uri] for [chatId] and returns its chip. The upload is sealed
+     * Starts preparing and uploading [photo] for [chatId] and returns its chip. The upload is sealed
      * for [chatId] when that chat encrypts, so a chip belongs to one chat and is never shared.
      */
-    fun stagePhoto(chatId: ChatId, uri: Uri): String
+    fun stagePhoto(chatId: ChatId, photo: PickedPhoto): String
 
     /**
      * Posts the staged [chipIds] to [chatId], one message each with [caption] on the last, and
@@ -134,7 +134,7 @@ class ShareSender(private val gateway: ShareGateway) {
      * Sends [text] and [images] to every chat in [recipients] that hasn't got them yet. True once
      * every chat has. Images past [MAX_SHARE_IMAGES] are not sent.
      */
-    suspend fun send(recipients: List<ChatId>, images: List<Uri>, text: String): Boolean {
+    suspend fun send(recipients: List<ChatId>, images: List<PickedPhoto>, text: String): Boolean {
         val photos = images.take(MAX_SHARE_IMAGES)
         val message = text.trim()
         if (photos.isEmpty() && message.isEmpty()) return false
@@ -161,7 +161,7 @@ class ShareSender(private val gateway: ShareGateway) {
         return progress.isComplete
     }
 
-    private suspend fun deliver(chatId: ChatId, images: List<Uri>, text: String): ShareChatStatus {
+    private suspend fun deliver(chatId: ChatId, images: List<PickedPhoto>, text: String): ShareChatStatus {
         val state = work.getOrPut(chatId) { Work() }
         if (images.isEmpty()) {
             if (!state.textSent) {

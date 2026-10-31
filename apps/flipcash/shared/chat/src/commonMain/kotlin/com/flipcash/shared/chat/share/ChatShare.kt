@@ -1,20 +1,19 @@
 package com.flipcash.shared.chat.share
 
-import android.content.Intent
-import android.net.Uri
+import com.flipcash.app.blob.FilePickedPhoto
+import com.flipcash.app.blob.PickedPhoto
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.flipcash.services.models.chat.ChatId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * What another app handed us through the system share sheet, as it arrived: the text and the
- * content URIs of the images, before anything is copied. The URIs are readable only under the
+ * handles of the images, before anything is copied. The URIs are readable only under the
  * grant that came with the intent, so [ChatShareRequest] is turned into a [PendingChatShare] on
  * receipt and never kept.
  *
@@ -23,46 +22,29 @@ import javax.inject.Singleton
  */
 data class ChatShareRequest(
     val text: String?,
-    val imageSources: List<Uri>,
+    val imageSources: List<PickedPhoto>,
     val shortcutId: String? = null,
 )
 
 /**
  * Reads a share into a [ChatShareRequest], or null when there is nothing in it we can stage.
  *
- * Only ACTION_SEND and ACTION_SEND_MULTIPLE are shares. A stream is taken only when [mimeOf] says
+ * [isShare] is whether the platform delivered it as a share (Android: ACTION_SEND or ACTION_SEND_MULTIPLE). A stream is taken only when [mimeOf] says
  * an image type for it: the manifest filter admits an image type, but a sender can attach anything,
  * and an unknown type is not taken. Blank text is dropped.
  */
 fun parseChatShare(
-    action: String?,
+    isShare: Boolean,
     text: CharSequence?,
-    streams: List<Uri>,
+    streams: List<PickedPhoto>,
     shortcutId: String? = null,
-    mimeOf: (Uri) -> String?,
+    mimeOf: (PickedPhoto) -> String?,
 ): ChatShareRequest? {
-    if (action != Intent.ACTION_SEND && action != Intent.ACTION_SEND_MULTIPLE) return null
+    if (!isShare) return null
     val body = text?.toString()?.trim()?.takeIf { it.isNotEmpty() }
     val images = streams.filter { runCatching { mimeOf(it) }.getOrNull()?.startsWith("image/") == true }
     if (body == null && images.isEmpty()) return null
     return ChatShareRequest(body, images, shortcutId)
-}
-
-/** [parseChatShare] for a received [Intent]. */
-@Suppress("DEPRECATION")
-fun Intent.toChatShareRequest(mimeOf: (Uri) -> String?): ChatShareRequest? {
-    val streams = when (action) {
-        Intent.ACTION_SEND_MULTIPLE ->
-            getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM).orEmpty()
-        else -> listOfNotNull(getParcelableExtra<Uri>(Intent.EXTRA_STREAM))
-    }
-    return parseChatShare(
-        action = action,
-        text = getCharSequenceExtra(Intent.EXTRA_TEXT),
-        streams = streams,
-        shortcutId = getStringExtra(Intent.EXTRA_SHORTCUT_ID),
-        mimeOf = mimeOf,
-    )
 }
 
 /**
@@ -82,14 +64,14 @@ fun chatIdFromShortcutId(shortcutId: String?): ChatId? = null
  */
 data class PendingChatShare(
     val text: String?,
-    val images: List<Uri>,
+    val images: List<PickedPhoto>,
     val chatId: ChatId? = null,
     val droppedImageCount: Int = 0,
     /** Set once the picker (or a direct target) has been opened for it, so it is opened once. */
     val presented: Boolean = false,
 ) {
     internal fun deleteFiles() {
-        images.forEach { uri -> uri.path?.let { runCatching { File(it).delete() } } }
+        images.forEach { photo -> (photo as? FilePickedPhoto)?.let { runCatching { it.file.delete() } } }
     }
 }
 

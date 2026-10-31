@@ -1,19 +1,19 @@
 package com.flipcash.shared.chat.media
 
-import android.content.Context
-import android.graphics.BitmapFactory
-import android.net.Uri
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.blob.BlurHashEncoder
 import com.flipcash.app.blob.ChatMediaEncoder
 import com.flipcash.app.blob.ChatMediaLimits
 import com.flipcash.app.blob.ChatMediaRetry
+import com.flipcash.app.blob.FilePickedPhoto
+import com.flipcash.app.blob.ImageCodec
+import com.flipcash.app.blob.PickedPhoto
+import com.flipcash.app.blob.PickedPhotos
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.internal.OutgoingEncryption
 import com.flipcash.shared.chat.internal.sealing
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -73,7 +73,7 @@ sealed interface ChatMediaUploadState {
  * Uploads chat photos as they are staged, before the viewer sends them, so sending is mostly
  * posting. App-scoped: a staged photo keeps uploading when the chat screen is left.
  *
- * Each photo is encoded once and written to `filesDir/pending-media/<id>.jpg`; every later attempt
+ * Each photo is encoded once and written to `pending-media/<id>.jpg` under the app's files directory; every later attempt
  * resends those bytes. In a chat that encrypts the photo is sealed and a failure to do so fails the
  * chip, never falls back to plain bytes.
  *
@@ -86,36 +86,41 @@ class ChatMediaUploads internal constructor(
     private val encoder: ChatMediaEncoder,
     private val blobs: BlobStorageCoordinator,
     private val outgoing: OutgoingEncryption,
-    private val sourceSize: (Uri) -> Pair<Int, Int>?,
+    private val sourceSize: (PickedPhoto) -> Pair<Int, Int>?,
     private val blurhashOf: (ByteArray) -> String?,
+    private val photos: PickedPhotos,
     private val scope: CoroutineScope,
     private val newId: () -> String = { UUID.randomUUID().toString() },
     private val keepImage: (cacheKey: String, file: File) -> Unit = { _, _ -> },
 ) {
     @Inject
     internal constructor(
-        @ApplicationContext context: Context,
+        location: ChatMediaLocation,
         encoder: ChatMediaEncoder,
         blobs: BlobStorageCoordinator,
         outgoing: OutgoingEncryption,
+        codec: ImageCodec,
+        imageCache: SentImageCache,
+        photos: PickedPhotos,
         dispatchers: DispatcherProvider,
     ) : this(
-        directory = { File(context.filesDir, DIRECTORY) },
+        directory = { location.directory },
         encoder = encoder,
         blobs = blobs,
         outgoing = outgoing,
-        sourceSize = { uri -> context.sourceSize(uri) },
-        blurhashOf = ::blurhashOfJpeg,
+        sourceSize = { photo -> codec.sourceSize(photo)?.let { it.width to it.height } },
+        blurhashOf = { bytes -> BlurHashEncoder.fromJpeg(codec, bytes) },
+        photos = photos,
         scope = CoroutineScope(SupervisorJob() + dispatchers.IO),
-        keepImage = { key, file -> context.keepInImageCache(key, file) },
+        keepImage = { key, file -> imageCache.keep(key, file) },
     )
 
     private class Entry(
         val id: String,
         val chatId: ChatId,
-        val uri: Uri?,
+        val photo: PickedPhoto?,
         val fileName: String,
-        /** Completes true once [uri] has been written, for a camera shot staged at the shutter. */
+        /** Completes true once [photo] has been written, for a camera shot staged at the shutter. */
         val ready: Deferred<Boolean>? = null,
     ) {
         @Volatile var job: Job? = null
@@ -129,15 +134,15 @@ class ChatMediaUploads internal constructor(
     private val states = MutableStateFlow<Map<String, ChatMediaUploadState>>(emptyMap())
 
     /**
-     * Starts preparing and uploading [uri] for [chatId]. Returns the chip id.
+     * Starts preparing and uploading [photo] for [chatId]. Returns the chip id.
      *
-     * With [ready], the chip exists at once but reading [uri] waits for it: the camera stages its
+     * With [ready], the chip exists at once but reading [photo] waits for it: the camera stages its
      * shot at the shutter, before the file is written. Completing it false leaves the chip
      * preparing, for the caller to [remove].
      */
-    fun stage(chatId: ChatId, uri: Uri, ready: Deferred<Boolean>? = null): String {
+    fun stage(chatId: ChatId, photo: PickedPhoto, ready: Deferred<Boolean>? = null): String {
         val id = newId()
-        val entry = Entry(id, chatId, uri, "$id.jpg", ready)
+        val entry = Entry(id, chatId, photo, "$id.jpg", ready)
         synchronized(entries) { entries[id] = entry }
         set(id, ChatMediaUploadState.Preparing(null, null))
         launch(entry)
@@ -168,6 +173,17 @@ class ChatMediaUploads internal constructor(
         // Failed either way: with [stored] set, a retry polls it, and nothing runs until asked to.
         set(entry.id, ChatMediaUploadState.Failed(IllegalStateException("Interrupted"), retryable = true, stored = stored))
     }
+
+    /**
+     * [stage] for a photo named by a platform location, such as an Android content URI string.
+     * See [PickedPhotos].
+     */
+    fun stage(chatId: ChatId, location: String, ready: Deferred<Boolean>? = null): String =
+        stage(chatId, photos.fromLocation(location), ready)
+
+    /** [stage] for a photo in a file, such as a camera shot. */
+    fun stage(chatId: ChatId, file: File, ready: Deferred<Boolean>? = null): String =
+        stage(chatId, FilePickedPhoto(file), ready)
 
     /** The file of a photo staged as [fileName]. */
     fun file(fileName: String): File = File(directory(), fileName)
@@ -262,20 +278,20 @@ class ChatMediaUploads internal constructor(
 
     /** Encodes (once), then stores. Null if it failed, with the chip already marked. */
     private suspend fun store(entry: Entry): UploadedPhoto? {
-        if (entry.uri != null && entry.source == null) {
-            entry.source = sourceSize(entry.uri)
+        if (entry.photo != null && entry.source == null) {
+            entry.source = sourceSize(entry.photo)
         }
         set(entry.id, ChatMediaUploadState.Preparing(entry.source?.first, entry.source?.second))
 
         val sealer = outgoing.blobSealer(entry.chatId).getOrElse { return fail(entry, it) }
 
         if (entry.encoded == null) {
-            val uri = entry.uri ?: return fail(entry, IllegalStateException("Nothing to encode"), retryable = false)
+            val photo = entry.photo ?: return fail(entry, IllegalStateException("Nothing to encode"), retryable = false)
             val policy = blobs.policy.first()
                 ?: blobs.preloadPolicy().getOrElse { return fail(entry, it) }
             val limits = (if (sealer != null) ChatMediaLimits.sealed(policy) else ChatMediaLimits.plain(policy))
                 .getOrElse { return fail(entry, it) }
-            val encoded = encoder.encode(uri, limits).getOrElse { return fail(entry, it) }
+            val encoded = encoder.encode(photo, limits).getOrElse { return fail(entry, it) }
 
             runCatching {
                 val file = file(entry)
@@ -341,35 +357,5 @@ class ChatMediaUploads internal constructor(
 
         /** The photo's file in [filesDir], where `sendMedia`'s pending row points the UI. */
         fun fileFor(filesDir: File, fileName: String) = File(File(filesDir, DIRECTORY), fileName)
-    }
-}
-
-private fun Context.sourceSize(uri: Uri): Pair<Int, Int>? = runCatching {
-    contentResolver.openInputStream(uri)?.use { stream ->
-        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeStream(stream, null, options)
-        if (options.outWidth > 0 && options.outHeight > 0) options.outWidth to options.outHeight else null
-    }
-}.getOrNull()
-
-private fun blurhashOfJpeg(bytes: ByteArray): String? = runCatching {
-    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
-    try {
-        BlurHashEncoder.fromThumbnail(bitmap, bitmap.width, bitmap.height).takeIf { it.isNotEmpty() }
-    } finally {
-        bitmap.recycle()
-    }
-}.getOrNull()
-
-/** Copies [file] into Coil's disk cache under [key], where [ChatPhotoFetcher] looks first. */
-private fun Context.keepInImageCache(key: String, file: File) {
-    val cache = coil3.SingletonImageLoader.get(this).diskCache ?: return
-    val editor = cache.openEditor(key) ?: return
-    try {
-        cache.fileSystem.write(editor.data) { write(file.readBytes()) }
-        editor.commit()
-    } catch (t: Throwable) {
-        editor.abort()
-        throw t
     }
 }

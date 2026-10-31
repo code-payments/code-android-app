@@ -1,6 +1,6 @@
 package com.flipcash.shared.chat.share
 
-import android.net.Uri
+import com.flipcash.app.blob.PickedPhoto
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.media.ChatMediaUploads
@@ -22,7 +22,7 @@ class ChatShareGateway @Inject constructor(
     override suspend fun sendText(chatId: ChatId, text: String): Result<Unit> =
         coordinator.sendMessage(chatId, text).map { }
 
-    override fun stagePhoto(chatId: ChatId, uri: Uri): String = uploads.stage(chatId, uri)
+    override fun stagePhoto(chatId: ChatId, photo: PickedPhoto): String = uploads.stage(chatId, photo)
 
     override suspend fun sendPhotos(chatId: ChatId, chipIds: List<String>, caption: String): Result<List<String>> =
         coordinator.sendMedia(chatId, chipIds, caption, replyToMessageId = null)

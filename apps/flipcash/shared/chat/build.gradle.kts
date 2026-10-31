@@ -14,6 +14,8 @@ kotlin {
             // `api`, not `implementation`: GroupAccess.groupAccess is an extension on TokenCoordinator,
             // so this module's public surface names a type from it.
             api(project(":apps:flipcash:shared:tokens"))
+            // `api`: ChatMediaUploads.stage takes the blob module's PickedPhoto.
+            api(project(":apps:flipcash:shared:blob"))
             implementation(project(":apps:flipcash:core"))
             implementation(project(":apps:flipcash:shared:persistence:sources"))
             implementation(project(":apps:flipcash:shared:persistence:db"))
@@ -30,12 +32,13 @@ kotlin {
             implementation(libs.androidx.paging.common)
             implementation(libs.androidx.datastore.preferences.core)
             implementation(libs.bundles.hilt.common)
+            implementation(libs.coil3.core)
+            implementation(libs.okhttp)
         }
         androidMain.dependencies {
             implementation(libs.bundles.hilt)
             implementation(libs.androidx.paging.runtime)
             implementation(libs.androidx.lifecycle.process)
-            implementation(project(":apps:flipcash:shared:blob"))
         }
         // reactions.json is read from the repo's canonical test-vectors/ rather than copied in.
         commonTest {

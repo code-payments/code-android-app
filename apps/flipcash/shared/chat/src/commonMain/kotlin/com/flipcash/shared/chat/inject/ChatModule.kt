@@ -29,6 +29,10 @@ import com.flipcash.shared.chat.internal.RealChatDraftStore
 import com.flipcash.app.persistence.sources.GroupKeyEnvelopeDataSource
 import com.flipcash.services.chat.GroupKeyEnvelopeStore
 import com.getcode.opencode.providers.SessionListener
+import com.flipcash.shared.chat.internal.delegates.MediaSendDelegate
+import com.flipcash.shared.chat.link.LinkPreviewImages
+import com.flipcash.shared.chat.link.UploadedLinkPreviewImages
+import com.flipcash.shared.chat.media.ChatMediaSending
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -45,6 +49,17 @@ abstract class ChatModule {
     abstract fun bindChatCoordinator(
         impl: RealChatCoordinator
     ): ChatCoordinator
+
+    @Binds
+    @Singleton
+    abstract fun bindChatMediaSending(
+        impl: MediaSendDelegate
+    ): ChatMediaSending
+
+    @Binds
+    internal abstract fun bindLinkPreviewImages(
+        impl: UploadedLinkPreviewImages
+    ): LinkPreviewImages
 
     @Binds
     @Singleton
