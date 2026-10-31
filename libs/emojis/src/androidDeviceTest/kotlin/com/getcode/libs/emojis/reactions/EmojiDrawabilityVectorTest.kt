@@ -1,7 +1,6 @@
 package com.getcode.libs.emojis.reactions
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -18,8 +17,8 @@ class EmojiDrawabilityVectorTest {
 
     @Test
     fun drawabilityVectors() {
-        val json = InstrumentationRegistry.getInstrumentation().context.assets
-            .open("reactions.json").bufferedReader().use { it.readText() }
+        val json = javaClass.classLoader!!
+            .getResourceAsStream("reactions.json")!!.bufferedReader().use { it.readText() }
         val vectors = JSONObject(json).getJSONArray("drawability")
         val failures = (0 until vectors.length()).map { vectors.getJSONObject(it) }.mapNotNull { vector ->
             val emoji = vector.getString("emoji")

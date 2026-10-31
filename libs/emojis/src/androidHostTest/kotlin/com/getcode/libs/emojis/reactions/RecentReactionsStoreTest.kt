@@ -1,10 +1,11 @@
 package com.getcode.libs.emojis.reactions
 
-import androidx.test.core.app.ApplicationProvider
+import com.flipcash.app.core.storage.PreferencesFiles
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -13,8 +14,9 @@ class RecentReactionsStoreTest {
 
     // The DataStore file outlives each test in this process, so every test uses owners of its own.
     private var owner: String? = null
+    private val directory = File.createTempFile("recent-reactions", "").apply { delete(); mkdirs() }
     private val store = DataStoreRecentReactionsStore(
-        context = ApplicationProvider.getApplicationContext(),
+        preferencesFiles = PreferencesFiles { name -> File(directory, "$name.preferences_pb") },
         owner = { owner },
     )
 

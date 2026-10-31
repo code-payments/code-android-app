@@ -1,19 +1,16 @@
 package com.getcode.libs.emojis.reactions
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
-import dagger.hilt.android.qualifiers.ApplicationContext
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.flipcash.app.core.storage.PreferencesFiles
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
 import kotlin.time.Instant
-
-private val Context.recentReactionsDataStore: DataStore<Preferences> by preferencesDataStore(name = "recent_reactions")
 
 /** Per-emoji use counts and last-used times, backing [RecentReactions.rank]. */
 interface RecentReactionsStore {
@@ -39,11 +36,13 @@ fun interface RecentReactionsOwner {
 
 @Singleton
 class DataStoreRecentReactionsStore @Inject constructor(
-    @ApplicationContext context: Context,
+    preferencesFiles: PreferencesFiles,
     private val owner: RecentReactionsOwner,
 ) : RecentReactionsStore {
 
-    private val dataStore = context.recentReactionsDataStore
+    private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+        produceFile = { preferencesFiles.file(DATASTORE_NAME) },
+    )
 
     override suspend fun record(emoji: String) {
         val owner = owner.current() ?: return
@@ -86,6 +85,7 @@ class DataStoreRecentReactionsStore @Inject constructor(
     }
 
     private companion object {
+        const val DATASTORE_NAME = "recent_reactions"
         const val KEY_PREFIX = "emoji:"
     }
 }

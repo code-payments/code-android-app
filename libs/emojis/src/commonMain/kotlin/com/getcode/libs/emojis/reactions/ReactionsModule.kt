@@ -1,10 +1,9 @@
 package com.getcode.libs.emojis.reactions
 
-import android.content.Context
+import com.flipcash.app.core.storage.PreferencesFiles
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -15,9 +14,9 @@ object ReactionsModule {
     @Provides
     @Singleton
     fun providesRecentReactionsStore(
-        @ApplicationContext context: Context,
+        preferencesFiles: PreferencesFiles,
         owner: RecentReactionsOwner,
-    ): RecentReactionsStore = DataStoreRecentReactionsStore(context, owner)
+    ): RecentReactionsStore = DataStoreRecentReactionsStore(preferencesFiles, owner)
 
     @Provides
     @Singleton
