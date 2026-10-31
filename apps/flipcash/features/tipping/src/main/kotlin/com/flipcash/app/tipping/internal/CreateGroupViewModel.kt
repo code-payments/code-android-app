@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.blob.ImageUploadPreparer
+import com.flipcash.app.blob.prepare
+import com.flipcash.app.blob.uri
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.moderation.moderationDescription
 import com.flipcash.app.core.ui.ConfirmationStyle

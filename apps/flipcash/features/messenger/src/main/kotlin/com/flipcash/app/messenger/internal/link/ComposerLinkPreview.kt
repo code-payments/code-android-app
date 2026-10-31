@@ -138,7 +138,7 @@ internal class ComposerLinkPreview @Inject constructor(
         var imageId: String? = null
         try {
             val file = page.imageUrl?.let { download(it) }
-            imageId = file?.let { uploads.stage(chatId, Uri.fromFile(it)) }
+            imageId = file?.let { uploads.stage(chatId, it) }
             ready.set(OutgoingLinkPreview(url, title, description, imageId))
             _state.value = ComposerLinkPreviewState.Ready(
                 url = url,

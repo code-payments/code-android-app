@@ -1,0 +1,666 @@
+package com.flipcash.shared.chat
+
+import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
+import com.flipcash.shared.chat.reactions.SelfReaction
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
+
+/**
+ * The capability table, resolved once so no menu site has to re-derive it. Group roles land here
+ * later as another input to [resolveCapabilities], which is why these assertions are written
+ * against the returned set rather than against any particular menu.
+ */
+class MessageCapabilityTest {
+
+    private val selfId = listOf<Byte>(1, 2, 3)
+    private val otherId = listOf<Byte>(4, 5, 6)
+    private val mint = Mint("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaa")
+    private val sentAt = Instant.fromEpochSeconds(1_000)
+
+    private fun message(
+        content: List<MessageContent>,
+        isFromSelf: Boolean = true,
+        eventSequence: Long = 4,
+    ) = ChatMessage(
+        messageId = 1,
+        senderId = if (isFromSelf) selfId else otherId,
+        content = content,
+        timestamp = sentAt,
+        unreadSeq = 0,
+        eventSequence = eventSequence,
+        isFromSelf = isFromSelf,
+    )
+
+    private fun text(isFromSelf: Boolean = true, eventSequence: Long = 4) =
+        message(listOf(MessageContent.Text("hello")), isFromSelf, eventSequence)
+
+    private fun cash(isFromSelf: Boolean = true) = message(
+        listOf(
+            MessageContent.Cash(
+                intentId = listOf<Byte>(9),
+                amount = Fiat(quarks = 100L),
+                mint = mint,
+            ),
+        ),
+        isFromSelf,
+    )
+
+    // Resolved at the instant it was sent, so the default policy's fallback windows are both open
+    // and this stays a statement about content rather than about age.
+    @Test
+    fun `own text message is copyable, editable and deletable`() {
+        assertEquals(
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Edit,
+                MessageCapability.Delete,
+                MessageCapability.Link,
+            ),
+            resolveCapabilities(text(), now = sentAt),
+        )
+    }
+
+    @Test
+    fun `someone else's text message is copyable and reportable, not editable or deletable`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
+            resolveCapabilities(text(isFromSelf = false)),
+        )
+    }
+
+    @Test
+    fun `cash is never editable or deletable, by either party`() {
+        assertEquals(setOf(MessageCapability.Reply, MessageCapability.Link), resolveCapabilities(cash()))
+        // Reportable though: a payment is something a participant sent, and it is one of the
+        // things most worth reporting.
+        assertEquals(
+            setOf(MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
+            resolveCapabilities(cash(isFromSelf = false)),
+        )
+    }
+
+    /**
+     * Reporting your own message is left out because it is not a thing anyone does, and a row that
+     * is always present is a row people stop reading. This is the first capability whose answer
+     * turns on `isFromSelf` for a reason that is not about authorship privileges, so it is worth
+     * pinning at both ends.
+     */
+    @Test
+    fun `your own messages are never reportable`() {
+        assertEquals(
+            emptySet(),
+            resolveCapabilities(text(), now = sentAt).filterTo(mutableSetOf()) {
+                it == MessageCapability.Report
+            },
+        )
+        assertEquals(emptySet(), resolveCapabilities(cash()) - MessageCapability.Reply - MessageCapability.Link)
+    }
+
+    @Test
+    fun `nothing the server wrote, or that is already gone, can be reported`() {
+        val theirTombstone = message(
+            listOf(MessageContent.Deleted(sentAt, otherId)),
+            isFromSelf = false,
+        )
+        assertEquals(emptySet(), resolveCapabilities(theirTombstone))
+
+        val theirSystemNotice = message(
+            listOf(MessageContent.System("Anna joined")),
+            isFromSelf = false,
+        )
+        assertEquals(emptySet(), resolveCapabilities(theirSystemNotice))
+
+    }
+
+    private val widgetMessage
+        get() = message(
+            listOf(MessageContent.Widget(WidgetContent.ShareProfile("brad"))),
+            isFromSelf = false,
+        )
+
+    @Test
+    fun `a widget offers only Reply where the viewer may speak`() {
+        // No Copy (no text), no Report (no user sender), no Edit or Delete (not the viewer's).
+        assertEquals(setOf(MessageCapability.Reply), resolveCapabilities(widgetMessage))
+        assertEquals(
+            setOf(MessageCapability.Reply),
+            resolveCapabilities(widgetMessage, canPost = true, canSpeak = true),
+        )
+    }
+
+    @Test
+    fun `a widget offers nothing where the speaker rules forbid speaking`() {
+        assertEquals(emptySet(), resolveCapabilities(widgetMessage, canSpeak = false))
+    }
+
+    @Test
+    fun `where the viewer may speak, text and cash keep Reply`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
+            resolveCapabilities(text(isFromSelf = false), canSpeak = true),
+        )
+        assertEquals(
+            setOf(MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
+            resolveCapabilities(cash(isFromSelf = false), canSpeak = true),
+        )
+    }
+
+    @Test
+    fun `where the viewer may not speak, another's text loses Reply and keeps Copy and Report`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Report, MessageCapability.Link),
+            resolveCapabilities(text(isFromSelf = false), canSpeak = false),
+        )
+    }
+
+    @Test
+    fun `where the viewer may not speak, own text keeps Copy, Edit and Delete but not Reply`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Edit, MessageCapability.Delete, MessageCapability.Link),
+            resolveCapabilities(text(), now = sentAt, canSpeak = false),
+        )
+    }
+
+    @Test
+    fun `where the viewer may not speak, cash loses Reply and keeps Report`() {
+        assertEquals(
+            setOf(MessageCapability.Report, MessageCapability.Link),
+            resolveCapabilities(cash(isFromSelf = false), canSpeak = false),
+        )
+        assertEquals(setOf(MessageCapability.Link), resolveCapabilities(cash(), canSpeak = false))
+    }
+
+    @Test
+    fun `a creator-gated viewer loses Reply but keeps Copy, Report and own Edit and Delete`() {
+        // The panel passes canSpeak = false for any unmet speaker rule, creator included.
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Report, MessageCapability.Link),
+            resolveCapabilities(text(isFromSelf = false), canSpeak = false),
+        )
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Edit, MessageCapability.Delete, MessageCapability.Link),
+            resolveCapabilities(text(), now = sentAt, canSpeak = false),
+        )
+    }
+
+    @Test
+    fun `reactions follow the rules' reaction flag, not the posting gate`() {
+        // canReact's gate is whether the rules leave reactions open (true for a creator-only block),
+        // so a message stays reactable while Reply is withheld.
+        assertEquals(true, canReact(text(isFromSelf = false), canSpeak = true))
+        assertEquals(false, canReact(text(isFromSelf = false), canSpeak = false))
+    }
+
+    @Test
+    fun `a viewer with no speaker rules, as in a direct message, is unaffected`() {
+        // canSpeak defaults true: a DM has no rules to fail.
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
+            resolveCapabilities(text(isFromSelf = false)),
+        )
+        assertEquals(true, canReact(text(isFromSelf = false)))
+        assertEquals(true, canReact(cash(isFromSelf = false)))
+    }
+
+    @Test
+    fun `text and cash are not reactable where the viewer may not speak`() {
+        assertEquals(false, canReact(text(), canSpeak = false))
+        assertEquals(false, canReact(text(isFromSelf = false), canSpeak = false))
+        assertEquals(false, canReact(cash(), canSpeak = false))
+        assertEquals(false, canReact(cash(isFromSelf = false), canSpeak = false))
+    }
+
+    @Test
+    fun `a widget offers nothing to a viewer who cannot post`() {
+        assertEquals(emptySet(), resolveCapabilities(widgetMessage, canPost = false))
+    }
+
+    @Test
+    fun `reporting has no window, so an old message stays reportable`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report, MessageCapability.Link),
+            resolveCapabilities(
+                text(isFromSelf = false),
+                policy = MessagePolicy.Default,
+                now = sentAt + 365.days,
+            ),
+        )
+    }
+
+    @Test
+    fun `a tombstone offers nothing`() {
+        val deleted = message(listOf(MessageContent.Deleted(sentAt, selfId)))
+        assertEquals(emptySet(), resolveCapabilities(deleted))
+    }
+
+    @Test
+    fun `an unconfirmed message offers nothing`() {
+        // `expected_event_sequence` is validated `>= 1`, so no valid edit or delete request exists
+        // for a message the server has not acknowledged yet.
+        assertEquals(emptySet(), resolveCapabilities(text(eventSequence = 0)))
+    }
+
+    @Test
+    fun `system notices are not a participant's message`() {
+        val system = message(listOf(MessageContent.System("Anna joined")))
+        assertEquals(emptySet(), resolveCapabilities(system))
+    }
+
+    @Test
+    fun `empty content offers nothing`() {
+        assertEquals(emptySet(), resolveCapabilities(message(emptyList())))
+    }
+
+    @Test
+    fun `a reply counts as text, so it stays copyable and editable`() {
+        val reply = message(
+            listOf(MessageContent.Reply(repliedMessageId = 7, content = listOf(MessageContent.Text("hi")))),
+        )
+        assertEquals(
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Edit,
+                MessageCapability.Delete,
+                MessageCapability.Link,
+            ),
+            resolveCapabilities(reply, now = sentAt),
+        )
+    }
+
+    @Test
+    fun `an edit window drops Edit once it lapses and leaves Delete alone`() {
+        val policy = MessagePolicy(editWindow = 15.minutes, deleteWindow = null)
+
+        assertEquals(
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Edit,
+                MessageCapability.Delete,
+                MessageCapability.Link,
+            ),
+            resolveCapabilities(text(), policy, now = sentAt + 14.minutes),
+        )
+
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link),
+            resolveCapabilities(text(), policy, now = sentAt + 16.minutes),
+        )
+    }
+
+    @Test
+    fun `a delete window drops Delete once it lapses and leaves Edit alone`() {
+        val policy = MessagePolicy(editWindow = null, deleteWindow = 60.minutes)
+
+        assertEquals(
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Edit,
+                MessageCapability.Delete,
+                MessageCapability.Link,
+            ),
+            resolveCapabilities(text(), policy, now = sentAt + 59.minutes),
+        )
+
+        // Edit survives: this policy sets no edit window, and an unset window is no limit.
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Edit, MessageCapability.Link),
+            resolveCapabilities(text(), policy, now = sentAt + 61.minutes),
+        )
+    }
+
+    @Test
+    fun `the windows run independently, so the shorter one lapses first`() {
+        val policy = MessagePolicy(editWindow = 15.minutes, deleteWindow = 60.minutes)
+
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link),
+            resolveCapabilities(text(), policy, now = sentAt + 30.minutes),
+        )
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Link),
+            resolveCapabilities(text(), policy, now = sentAt + 90.minutes),
+        )
+    }
+
+    @Test
+    fun `an unset window leaves its capability open`() {
+        val unbounded = MessagePolicy(editWindow = null, deleteWindow = null)
+
+        assertEquals(
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Edit,
+                MessageCapability.Delete,
+                MessageCapability.Link,
+            ),
+            resolveCapabilities(text(), unbounded, now = sentAt + 365.days),
+        )
+    }
+
+    @Test
+    fun `windows the server did not send fall back rather than staying open`() {
+        val policy = MessagePolicy.fromFlags(editWindow = null, deleteWindow = null)
+
+        assertEquals(MessagePolicy.FallbackEditWindow, policy.editWindow)
+        assertEquals(MessagePolicy.FallbackDeleteWindow, policy.deleteWindow)
+        assertEquals(policy, MessagePolicy.Default)
+
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link),
+            resolveCapabilities(text(), policy, now = sentAt + 30.minutes),
+        )
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Link),
+            resolveCapabilities(text(), policy, now = sentAt + 365.days),
+        )
+    }
+
+    /**
+     * The fallback covers only what the server left unset, so a window it did send has to survive
+     * the substitution — including one longer than the fallback, which is where a `?:` on the wrong
+     * side of the expression would show up.
+     */
+    @Test
+    fun `windows the server did send are used as sent`() {
+        val policy = MessagePolicy.fromFlags(editWindow = 90.minutes, deleteWindow = null)
+
+        assertEquals(90.minutes, policy.editWindow)
+        assertEquals(MessagePolicy.FallbackDeleteWindow, policy.deleteWindow)
+
+        assertEquals(
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Edit,
+                MessageCapability.Delete,
+                MessageCapability.Link,
+            ),
+            resolveCapabilities(text(), policy, now = sentAt + 60.minutes),
+        )
+    }
+
+    /**
+     * Both numbers are maintained by hand against iOS `MessagePolicy.fallbackEditWindow` /
+     * `fallbackDeleteWindow`. Nothing checks the two repos against each other, so this pins the
+     * Android side: a change here fails until someone states the new value, which is the prompt to
+     * go and change iOS too.
+     */
+    @Test
+    fun `the fallback windows are the values iOS carries`() {
+        assertEquals(15.minutes, MessagePolicy.FallbackEditWindow)
+        assertEquals(48.hours, MessagePolicy.FallbackDeleteWindow)
+    }
+
+    /**
+     * The transcript resolves once, when it is mapped; the menu re-applies the windows when it
+     * opens. Both go through the same rule, so a set narrowed after the fact matches what the
+     * resolver would have returned at that instant.
+     */
+    @Test
+    fun `re-applying the windows to a resolved set matches resolving at that instant`() {
+        val policy = MessagePolicy(editWindow = 15.minutes, deleteWindow = 60.minutes)
+        val atSend = resolveCapabilities(text(), policy, now = sentAt)
+
+        assertEquals(
+            resolveCapabilities(text(), policy, now = sentAt + 30.minutes),
+            atSend.withinWindows(sentAt, policy, now = sentAt + 30.minutes),
+        )
+        assertEquals(
+            resolveCapabilities(text(), policy, now = sentAt + 90.minutes),
+            atSend.withinWindows(sentAt, policy, now = sentAt + 90.minutes),
+        )
+    }
+
+    /**
+     * An eligible non-member reads a group's transcript under a Join gate. Reply, Edit and Delete
+     * all post into the chat, and there is no composer for them to land in until the join does.
+     */
+    @Test
+    fun `a viewer who cannot post keeps only copy, report and link`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Report, MessageCapability.Link),
+            resolveCapabilities(text(isFromSelf = false), canPost = false),
+        )
+        assertEquals(
+            setOf(MessageCapability.Report, MessageCapability.Link),
+            resolveCapabilities(cash(isFromSelf = false), canPost = false),
+        )
+        // Someone who left the group still has their own messages in its transcript.
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Link),
+            resolveCapabilities(text(), now = sentAt, canPost = false),
+        )
+        assertEquals(setOf(MessageCapability.Link), resolveCapabilities(cash(), canPost = false))
+    }
+
+    @Test
+    fun `narrowing a resolved set to read-only matches resolving without posting`() {
+        val resolved = resolveCapabilities(text(), now = sentAt)
+        assertEquals(
+            resolveCapabilities(text(), now = sentAt, canPost = false),
+            resolved.readOnly(),
+        )
+    }
+
+    // canReact — reactions have no window and no report-only carve-out, so the only thing they
+    // share with resolveCapabilities is which messages don't exist as far as an action is
+    // concerned: tombstones, system notices, and unconfirmed sends.
+    @Test
+    fun `own and another participant's text are both reactable`() {
+        assertEquals(true, canReact(text()))
+        assertEquals(true, canReact(text(isFromSelf = false)))
+    }
+
+    @Test
+    fun `own and another participant's cash are both reactable`() {
+        assertEquals(true, canReact(cash()))
+        assertEquals(true, canReact(cash(isFromSelf = false)))
+    }
+
+    @Test
+    fun `an old message stays reactable, unlike edit or delete`() {
+        assertEquals(true, canReact(text(isFromSelf = false)))
+    }
+
+    @Test
+    fun `a tombstone is not reactable`() {
+        val deleted = message(listOf(MessageContent.Deleted(sentAt, selfId)))
+        assertEquals(false, canReact(deleted))
+    }
+
+    @Test
+    fun `a system notice is not reactable`() {
+        val system = message(listOf(MessageContent.System("Anna joined")))
+        assertEquals(false, canReact(system))
+    }
+
+    @Test
+    fun `a widget is reactable where the viewer may speak, and not where they may not`() {
+        val widget = message(listOf(MessageContent.Widget(WidgetContent.ShareProfile("brad"))))
+        assertEquals(true, canReact(widget))
+        assertEquals(true, canReact(widget, canSpeak = true))
+        assertEquals(false, canReact(widget, canSpeak = false))
+    }
+
+    @Test
+    fun `an unconfirmed send is not reactable`() {
+        assertEquals(false, canReact(text(eventSequence = 0)))
+    }
+
+    @Test
+    fun `empty content is not reactable`() {
+        assertEquals(false, canReact(message(emptyList())))
+    }
+
+    private fun photo(
+        isFromSelf: Boolean = true,
+        eventSequence: Long = 4,
+        redacted: Boolean = false,
+        reply: Boolean = false,
+        caption: String? = "hi",
+    ): ChatMessage {
+        val media = MessageContent.Media(items = emptyList(), caption = caption?.let(MessageContent::Text))
+        return message(
+            listOf(if (reply) MessageContent.Reply(repliedMessageId = 2, content = listOf(media)) else media),
+            isFromSelf,
+            eventSequence,
+        ).copy(redacted = redacted)
+    }
+
+    @Test
+    fun `own confirmed captioned photo can be copied, replied to and deleted but not edited`() {
+        val expected = setOf(
+            MessageCapability.Copy,
+            MessageCapability.Reply,
+            MessageCapability.Delete,
+            MessageCapability.Link,
+        )
+        assertEquals(expected, resolveCapabilities(photo(), now = sentAt))
+        assertEquals(expected, resolveCapabilities(photo(reply = true), now = sentAt))
+    }
+
+    @Test
+    fun `a photo with no caption has nothing to copy`() {
+        val expected = setOf(MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link)
+        assertEquals(expected, resolveCapabilities(photo(caption = null), now = sentAt))
+        assertEquals(expected, resolveCapabilities(photo(caption = null, reply = true), now = sentAt))
+    }
+
+    @Test
+    fun `own photo past the delete window can only be copied and replied to`() {
+        assertEquals(
+            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Link),
+            resolveCapabilities(photo(), now = sentAt + 49.hours),
+        )
+    }
+
+    @Test
+    fun `another participant's captioned photo can be copied, replied to and reported`() {
+        assertEquals(
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Report,
+                MessageCapability.Link,
+            ),
+            resolveCapabilities(photo(isFromSelf = false), now = sentAt),
+        )
+    }
+
+    @Test
+    fun `an unconfirmed photo has no actions`() {
+        assertEquals(emptySet(), resolveCapabilities(photo(eventSequence = 0), now = sentAt))
+    }
+
+    @Test
+    fun `a redacted photo takes no reactions`() {
+        assertEquals(true, canReact(photo(isFromSelf = false)))
+        assertEquals(false, canReact(photo(isFromSelf = false, redacted = true)))
+    }
+
+    @Test
+    fun `a link is offered on anything a participant sent and the server confirmed`() {
+        assertEquals(true, MessageCapability.Link in resolveCapabilities(text(isFromSelf = false)))
+        assertEquals(true, MessageCapability.Link in resolveCapabilities(cash(isFromSelf = false), canSpeak = false))
+        // A reader outside a public group may hand the link on; that is how most of them will travel.
+        assertEquals(true, MessageCapability.Link in resolveCapabilities(text(isFromSelf = false), canPost = false))
+        assertEquals(false, MessageCapability.Link in resolveCapabilities(text(eventSequence = 0)))
+        assertEquals(false, MessageCapability.Link in resolveCapabilities(widgetMessage))
+    }
+
+    // canBoost — "$" boosts a reaction the viewer already made, on someone else's message, in a group or a DM.
+
+    private val reacted = listOf(SelfReaction(emoji = "💯", reactedAt = Instant.fromEpochSeconds(0)))
+
+    @Test
+    fun `canBoost needs the viewer's own reaction on the message`() {
+        assertEquals(false, canBoost(text(isFromSelf = false), ChatType.GROUP, selfReactions = emptyList()))
+        assertEquals(true, canBoost(text(isFromSelf = false), ChatType.GROUP, selfReactions = reacted))
+    }
+
+    @Test
+    fun `canBoost is off on the viewer's own message`() {
+        assertEquals(false, canBoost(text(isFromSelf = true), ChatType.GROUP, selfReactions = reacted))
+    }
+
+    @Test
+    fun `canBoost is on in a DM for the other member's message and off for the viewer's own`() {
+        // A DM has no group gate: the same rules apply with two members.
+        assertEquals(true, canBoost(text(isFromSelf = false), ChatType.CONTACT_DM, selfReactions = reacted))
+        assertEquals(false, canBoost(text(isFromSelf = true), ChatType.CONTACT_DM, selfReactions = reacted))
+    }
+
+    @Test
+    fun `canBoost is off for an unknown chat type and on for the known ones`() {
+        assertEquals(false, canBoost(text(isFromSelf = false), ChatType.UNKNOWN, selfReactions = reacted))
+        assertEquals(true, canBoost(text(isFromSelf = false), ChatType.TIP_DM, selfReactions = reacted))
+        assertEquals(true, canBoost(text(isFromSelf = false), ChatType.GROUP, selfReactions = reacted))
+    }
+
+    @Test
+    fun `canBoost follows canReact`() {
+        assertEquals(false, canBoost(text(isFromSelf = false), ChatType.GROUP, selfReactions = reacted, canSpeak = false))
+        assertEquals(false, canBoost(text(isFromSelf = false, eventSequence = 0), ChatType.GROUP, selfReactions = reacted))
+    }
+
+    // can_pin is the whole grant: who may pin is the server's call, read from the viewer state.
+    @Test
+    fun `pin is offered on a message with can_pin and withheld without it`() {
+        val incoming = text(isFromSelf = false)
+
+        assertEquals(true, MessageCapability.Pin in resolveCapabilities(incoming, now = sentAt, canPin = true))
+        assertEquals(false, MessageCapability.Pin in resolveCapabilities(incoming, now = sentAt, canPin = false))
+    }
+
+    @Test
+    fun `pin survives losing the right to post`() {
+        val resolved = resolveCapabilities(text(), now = sentAt, canPost = false, canPin = true)
+
+        assertEquals(true, MessageCapability.Pin in resolved)
+    }
+
+    @Test
+    fun `pin is offered on cash`() {
+        assertEquals(true, MessageCapability.Pin in resolveCapabilities(cash(), now = sentAt, canPin = true))
+    }
+
+    // The server refuses these with MESSAGE_NOT_ALLOWED; the menu shouldn't offer what fails.
+    @Test
+    fun `pin is hidden on system messages and tombstones`() {
+        val system = message(listOf(MessageContent.System("Anna joined")), isFromSelf = false)
+        val tombstone = message(listOf(MessageContent.Deleted(sentAt, otherId)), isFromSelf = false)
+
+        assertEquals(false, MessageCapability.Pin in resolveCapabilities(system, now = sentAt, canPin = true))
+        assertEquals(false, MessageCapability.Pin in resolveCapabilities(tombstone, now = sentAt, canPin = true))
+    }
+
+    // Client-only: the request strip and pill already keep requests at the top.
+    @Test
+    fun `pin is hidden on payment requests`() {
+        val request = message(listOf(MessageContent.Widget(WidgetContent.PaymentRequest(listOf<Byte>(7)))))
+
+        assertEquals(false, MessageCapability.Pin in resolveCapabilities(request, now = sentAt, canPin = true))
+    }
+
+    @Test
+    fun `pin is hidden on a message the server hasn't acknowledged`() {
+        assertEquals(
+            false,
+            MessageCapability.Pin in resolveCapabilities(text(eventSequence = 0), now = sentAt, canPin = true),
+        )
+    }
+}

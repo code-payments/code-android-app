@@ -126,6 +126,7 @@ import com.flipcash.shared.chat.HostLobbies
 import com.flipcash.shared.chat.LobbyRequests
 import com.flipcash.shared.chat.media.ChatMediaUploadState
 import com.flipcash.shared.chat.media.ChatMediaUploads
+import com.flipcash.shared.chat.media.stage
 import com.flipcash.shared.chat.media.MediaSendProgress
 import com.flipcash.shared.chat.ui.media.MAX_STAGED_PHOTOS
 import com.flipcash.services.models.chat.ChatRuleRequirement

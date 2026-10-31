@@ -143,7 +143,7 @@ internal fun MediaMessageBubble(
     // A photo sent from this process: its decoded copy is drawn from the first frame, through the
     // swap from the staged file to the stored blob, instead of the BlurHash.
     val sentPreview = remember(item.pendingClientIdHex) {
-        item.pendingClientIdHex?.let(SentPhotoPreviews::forMessage)?.asImageBitmap()
+        item.pendingClientIdHex?.let(SentPhotoPreviews::forMessage)?.let(::decodeSentPreview)
     }
     val fullModel = remember(rendition, info) {
         if (rendition == null || info == null || localUri != null) null
@@ -282,3 +282,17 @@ internal fun photoQuoteCorners(photoTopStart: Dp, large: Dp, small: Dp, inset: D
     val free = max(large - inset, small)
     return BubbleCorners(max(photoTopStart - inset, small), free, free, free)
 }
+
+/** The longest edge a sent preview is decoded at; the bubble never draws larger. */
+private const val PREVIEW_MAX_EDGE = 1080
+
+/** A sent photo's staged JPEG as a bitmap no larger than the bubble needs, null if it won't decode. */
+private fun decodeSentPreview(jpeg: ByteArray): androidx.compose.ui.graphics.ImageBitmap? = runCatching {
+    val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    android.graphics.BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, bounds)
+    var sample = 1
+    while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= PREVIEW_MAX_EDGE) sample *= 2
+    android.graphics.BitmapFactory.decodeByteArray(
+        jpeg, 0, jpeg.size, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample },
+    )?.also { it.prepareToDraw() }?.asImageBitmap()
+}.getOrNull()

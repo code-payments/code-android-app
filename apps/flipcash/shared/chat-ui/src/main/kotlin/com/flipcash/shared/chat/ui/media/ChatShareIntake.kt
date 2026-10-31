@@ -2,6 +2,8 @@ package com.flipcash.shared.chat.ui.media
 
 import android.content.Context
 import android.content.Intent
+import com.flipcash.app.blob.FilePickedPhoto
+import com.flipcash.app.blob.toUri
 import com.flipcash.shared.chat.share.PendingChatShare
 import com.flipcash.shared.chat.share.PendingChatShares
 import com.flipcash.shared.chat.share.toChatShareRequest
@@ -28,9 +30,9 @@ suspend fun receiveChatShare(context: Context, intent: Intent, shares: PendingCh
 
 private suspend fun stageChatShare(context: Context, intent: Intent, shares: PendingChatShares): Boolean {
     val resolver = context.contentResolver
-    val request = intent.toChatShareRequest { runCatching { resolver.getType(it) }.getOrNull() }
+    val request = intent.toChatShareRequest(resolver)
         ?: return false
-    val copies = copyDroppedImages(request.imageSources.take(MAX_STAGED_PHOTOS)) {
+    val copies = copyDroppedImages(request.imageSources.take(MAX_STAGED_PHOTOS).map { it.toUri() }) {
         copyIntoCaptureFile(context, it)
     }
     // Images were all that was shared and none could be read: there is nothing to stage.
@@ -38,7 +40,7 @@ private suspend fun stageChatShare(context: Context, intent: Intent, shares: Pen
     shares.offer(
         PendingChatShare(
             text = request.text,
-            images = copies,
+            images = copies.mapNotNull { uri -> uri.path?.let { FilePickedPhoto(java.io.File(it)) } },
             chatId = com.flipcash.shared.chat.share.chatIdFromShortcutId(request.shortcutId),
             droppedImageCount = (request.imageSources.size - MAX_STAGED_PHOTOS).coerceAtLeast(0),
         )
