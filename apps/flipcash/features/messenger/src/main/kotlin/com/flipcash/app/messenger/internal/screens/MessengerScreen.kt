@@ -66,7 +66,6 @@ import com.getcode.opencode.model.core.ID
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.chat.ChatStep
-import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.core.chat.PinnedMessageJump
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
@@ -185,20 +184,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         if (privateOutsider) flowNavigator.replaceStack(listOf(ChatStep.GroupProfile))
     }
 
-    // The same standing the group profile's Share button reads, so the transcript's invite card
-    // opens the sheet that button does.
-    val inviteHost = hiltViewModel<InviteHostViewModel>()
-    val canInviteByChat by inviteHost.canInvite.collectAsStateWithLifecycle()
-    val viewerCanInvite = state.chatId?.let { canInviteByChat[it] } == true
-    val inviteGroup = state.subject as? ChatSubject.Group
-    LaunchedEffect(state.chatId, inviteGroup?.isPrivate, inviteGroup?.isMember) {
-        // The group profile asks the server before it offers Share; the cached chat does not carry
-        // can_invite. A group opened straight on its transcript never visits the profile, so ask
-        // here too, on the same terms, or the card would never see the answer.
-        if (inviteGroup?.isPrivate == true && inviteGroup.isMember == true) {
-            state.chatId?.let(inviteHost::refresh)
-        }
-    }
+    // The server's can_invite as the chat store carries it, the same field the group profile's
+    // Share button is built on, so no extra call when a chat opens.
+    val viewerCanInvite = state.viewerState?.permissions?.canInvite == true
 
     // Here rather than in the action handler because the lookup comes first: the tap only knows a
     // handle, and where it leads is the view model's to decide once the handle has an answer.
