@@ -1,7 +1,11 @@
 package com.flipcash.shared.chat.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,11 +54,20 @@ fun GroupReadyCardBubble(
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(gap),
         ) {
-            Image(
-                painter = painterResource(R.drawable.ic_logo_round_white),
-                contentDescription = null,
-                modifier = Modifier.size(gutter).clip(CircleShape),
-            )
+            // The mark on the standard avatar disc, as a member without a picture gets.
+            Box(
+                modifier = Modifier
+                    .size(gutter)
+                    .clip(CircleShape)
+                    .background(Brush.linearGradient(CodeTheme.colors.contactAvatar.colors))
+                    .padding(gap),
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_flipcash_logo),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             BoxWithConstraints(modifier = Modifier.weight(1f)) {
                 WidgetCardBubble(
                     title = stringResource(R.string.title_groupReady),
