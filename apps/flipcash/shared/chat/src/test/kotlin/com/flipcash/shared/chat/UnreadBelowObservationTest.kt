@@ -50,7 +50,7 @@ class UnreadBelowObservationTest {
         metadataDataSource = mockk(relaxed = true),
         messageDataSource = messageDataSource,
         memberDataSource = memberDataSource,
-        notificationManager = mockk(relaxed = true),
+        notifications = mockk(relaxed = true),
         userManager = userManager,
         stateHolder = mockk(relaxed = true),
         analytics = mockk(relaxed = true),

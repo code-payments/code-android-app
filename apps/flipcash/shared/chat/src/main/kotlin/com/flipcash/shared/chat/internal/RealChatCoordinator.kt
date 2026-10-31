@@ -4,13 +4,11 @@ package com.flipcash.shared.chat.internal
 
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import android.os.Handler
-import android.os.Looper
-import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.chat.GroupKeyEnvelopeStore
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.AppForeground
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.HostInvites
 import com.flipcash.shared.chat.LobbyUpdateSink
@@ -111,6 +109,7 @@ class RealChatCoordinator @Inject constructor(
     private val paymentRequests: PaymentRequests? = null,
     private val hostInvites: HostInvites? = null,
     private val groupKeyEnvelopes: GroupKeyEnvelopeStore? = null,
+    private val appForeground: AppForeground = AppForeground.None,
 ) : ChatCoordinator,
     SessionListener,
     DefaultLifecycleObserver,
@@ -189,11 +188,7 @@ class RealChatCoordinator @Inject constructor(
     // region Lifecycle
 
     init {
-        // Posted, not called directly: addObserver is main-thread-only, and this singleton is built
-        // off the main thread so its construction stays off the startup path.
-        Handler(Looper.getMainLooper()).post {
-            ProcessLifecycleOwner.get().lifecycle.addObserver(this)
-        }
+        appForeground.observe(this)
         wireDelegateRouting()
     }
 

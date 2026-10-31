@@ -2,6 +2,7 @@
 
 package com.flipcash.shared.chat.internal.delegates
 
+import com.flipcash.shared.chat.ChatNotifications
 import com.flipcash.shared.chat.PaymentRequestNotSent
 import com.flipcash.shared.chat.link.OutgoingLinkPreview
 import com.flipcash.shared.chat.link.LinkPreviewImages
@@ -9,7 +10,6 @@ import com.flipcash.shared.chat.link.LinkPreviewChecks
 import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.LinkPreview
 import com.flipcash.services.models.SendMessageError
-import androidx.core.app.NotificationManagerCompat
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -108,7 +108,7 @@ class MessagingDelegate @Inject constructor(
     private val metadataDataSource: ChatMetadataDataSource,
     private val messageDataSource: ChatMessageDataSource,
     private val memberDataSource: ChatMemberDataSource,
-    private val notificationManager: NotificationManagerCompat,
+    private val notifications: ChatNotifications,
     private val userManager: UserManager,
     private val stateHolder: ChatStateHolder,
     private val analytics: FlipcashAnalytics,
@@ -157,7 +157,7 @@ class MessagingDelegate @Inject constructor(
     }
 
     override fun dismissNotifications(chatId: ChatId) {
-        notificationManager.cancel(chatId.hashCode())
+        notifications.dismiss(chatId)
     }
 
     override suspend fun hydrateChat(chatId: ChatId): ChatHydration {

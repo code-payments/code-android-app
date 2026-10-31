@@ -1,10 +1,9 @@
 package com.flipcash.shared.chat.alerts
 
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ProcessLifecycleOwner
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.shared.chat.AppForeground
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -56,11 +55,9 @@ class ReactionAlertController internal constructor(
 ) : ReactionAlertSink {
 
     @Inject
-    constructor(dispatchers: DispatcherProvider) : this(
+    constructor(dispatchers: DispatcherProvider, appForeground: AppForeground) : this(
         scope = CoroutineScope(dispatchers.Main + SupervisorJob()),
-        isForeground = {
-            ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-        },
+        isForeground = { appForeground.isForeground },
     )
 
     companion object {

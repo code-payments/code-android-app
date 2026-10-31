@@ -131,7 +131,7 @@ class MessagingSendEncryptionTest {
             metadataDataSource = metadata,
             messageDataSource = messages,
             memberDataSource = members,
-            notificationManager = mockk(relaxed = true),
+            notifications = mockk(relaxed = true),
             userManager = userManager,
             stateHolder = mockk(relaxed = true),
             analytics = mockk(relaxed = true),

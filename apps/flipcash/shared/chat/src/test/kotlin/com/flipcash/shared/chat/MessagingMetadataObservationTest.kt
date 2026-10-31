@@ -227,7 +227,7 @@ class MessagingMetadataObservationTest {
         metadataDataSource = metadataDataSource,
         messageDataSource = messageDataSource,
         memberDataSource = memberDataSource,
-        notificationManager = mockk(relaxed = true),
+        notifications = mockk(relaxed = true),
         userManager = mockk(relaxed = true),
         stateHolder = mockk(relaxed = true),
         analytics = mockk(relaxed = true),

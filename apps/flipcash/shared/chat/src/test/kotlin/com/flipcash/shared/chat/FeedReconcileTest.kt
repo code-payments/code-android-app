@@ -135,7 +135,7 @@ class FeedReconcileTest {
                 metadataDataSource = metadataDataSource,
                 messageDataSource = messageDataSource,
                 memberDataSource = memberDataSource,
-                notificationManager = mockk(relaxed = true),
+                notifications = mockk(relaxed = true),
                 userManager = userManager,
                 stateHolder = stateHolder,
                 analytics = mockk(relaxed = true),

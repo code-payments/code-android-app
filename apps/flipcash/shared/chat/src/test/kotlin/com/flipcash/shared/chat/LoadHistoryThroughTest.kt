@@ -61,7 +61,7 @@ class LoadHistoryThroughTest {
         metadataDataSource = mockk(relaxed = true),
         messageDataSource = messageDataSource,
         memberDataSource = mockk(relaxed = true),
-        notificationManager = mockk(relaxed = true),
+        notifications = mockk(relaxed = true),
         userManager = mockk(relaxed = true),
         stateHolder = mockk(relaxed = true),
         analytics = mockk(relaxed = true),

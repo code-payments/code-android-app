@@ -66,7 +66,7 @@ class MessagingMutationTest {
             metadataDataSource = mockk(relaxed = true),
             messageDataSource = messageDataSource,
             memberDataSource = mockk(relaxed = true),
-            notificationManager = mockk(relaxed = true),
+            notifications = mockk(relaxed = true),
             userManager = userManager,
             stateHolder = mockk(relaxed = true),
             analytics = mockk(relaxed = true),
