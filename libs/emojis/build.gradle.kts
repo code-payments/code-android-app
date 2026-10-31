@@ -25,13 +25,15 @@ kotlin {
             implementation(libs.hilt.android)
         }
         // reactions.json is read from the repo's canonical test-vectors/ rather than copied in.
-        getByName("androidHostTest") {
+        commonTest {
             resources.srcDir(rootProject.file("test-vectors"))
             dependencies {
                 implementation(kotlin("test"))
-                implementation(libs.bundles.unit.testing)
-                implementation(libs.robolectric)
+                implementation(libs.kotlinx.coroutines.test)
             }
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(libs.bundles.unit.testing)
         }
         getByName("androidDeviceTest") {
             resources.srcDir(rootProject.file("test-vectors"))

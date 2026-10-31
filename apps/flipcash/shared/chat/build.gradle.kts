@@ -45,15 +45,18 @@ kotlin {
             resources.srcDir(rootProject.file("test-vectors"))
             dependencies {
                 implementation(kotlin("test"))
+                implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.mockk)
+                implementation(libs.turbine)
+                implementation(libs.androidx.paging.testing)
+                implementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
+                implementation(project(":services:flipcash:test-fixtures"))
             }
         }
         getByName("androidHostTest").dependencies {
             implementation(kotlin("test"))
             implementation(libs.bundles.unit.testing)
             implementation(libs.robolectric)
-            implementation(libs.androidx.paging.testing)
-            implementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
-            implementation(project(":services:flipcash:test-fixtures"))
         }
     }
 }
