@@ -1,41 +1,63 @@
 plugins {
-    alias(libs.plugins.flipcash.android.feature)
+    alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.ksp)
 }
 
-android {
-    namespace = "${Gradle.flipcashNamespace}.shared.chat"
-}
+kotlin {
+    android {
+        namespace = "${Gradle.flipcashNamespace}.shared.chat"
+    }
 
-// reactions.json is read from the repo's canonical test-vectors/ rather than copied in.
-androidComponents {
-    onVariants { variant ->
-        val vectors = rootProject.file("test-vectors").path
-        variant.hostTests.values.forEach { it.sources.resources?.addStaticSourceDirectory(vectors) }
+    sourceSets {
+        commonMain.dependencies {
+            // `api`, not `implementation`: GroupAccess.groupAccess is an extension on TokenCoordinator,
+            // so this module's public surface names a type from it.
+            api(project(":apps:flipcash:shared:tokens"))
+            implementation(project(":apps:flipcash:core"))
+            implementation(project(":apps:flipcash:shared:persistence:sources"))
+            implementation(project(":apps:flipcash:shared:persistence:db"))
+            implementation(project(":apps:flipcash:shared:analytics"))
+            implementation(project(":services:flipcash"))
+            implementation(project(":services:opencode"))
+            implementation(project(":libs:coroutines"))
+            implementation(project(":libs:logging"))
+            implementation(project(":libs:network:connectivity:public"))
+            implementation(project(":libs:emojis"))
+
+            implementation(libs.jetbrains.compose.runtime)
+            implementation(libs.bundles.kotlinx.serialization)
+            implementation(libs.androidx.paging.common)
+            implementation(libs.androidx.datastore.preferences.core)
+            implementation(libs.bundles.hilt.common)
+        }
+        androidMain.dependencies {
+            implementation(libs.bundles.hilt)
+            implementation(libs.androidx.paging.runtime)
+            implementation(libs.androidx.lifecycle.process)
+            implementation(project(":apps:flipcash:shared:blob"))
+        }
+        // reactions.json is read from the repo's canonical test-vectors/ rather than copied in.
+        commonTest {
+            resources.srcDir(rootProject.file("test-vectors"))
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.bundles.unit.testing)
+            implementation(libs.robolectric)
+            implementation(libs.androidx.paging.testing)
+            implementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
+            implementation(project(":services:flipcash:test-fixtures"))
+        }
     }
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
-    testImplementation(libs.bundles.unit.testing)
-    testImplementation(libs.robolectric)
-    testImplementation(libs.androidx.paging.testing)
-
-    implementation(libs.bundles.kotlinx.serialization)
-
-    implementation(libs.androidx.paging.runtime)
-    implementation(libs.androidx.datastore)
-
-    implementation(project(":apps:flipcash:shared:blob"))
-    implementation(project(":apps:flipcash:shared:persistence:sources"))
-    implementation(project(":apps:flipcash:shared:persistence:db"))
-    // `api`, not `implementation`: GroupAccess.groupAccess is an extension on TokenCoordinator,
-    // so this module's public surface names a type from it.
-    api(project(":apps:flipcash:shared:tokens"))
-    implementation(project(":apps:flipcash:shared:analytics"))
-    testImplementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
-    implementation(project(":services:flipcash"))
-    testImplementation(project(":services:flipcash:test-fixtures"))
-    implementation(project(":libs:network:connectivity:public"))
-    implementation(project(":libs:emojis"))
-    implementation(libs.androidx.lifecycle.process)
+    add("kspAndroid", libs.hilt.android.compiler)
+    add("kspAndroid", libs.hilt.compiler)
+    add("kspJvm", libs.dagger.compiler)
+    add("jvmMainImplementation", libs.dagger)
 }
