@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashTheme
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.text.AnimatedNumberText
+import com.flipcash.desktop.shell.DesktopDimens
 import com.getcode.ui.utils.ConstraintMode
 import org.junit.Rule
 import kotlin.test.Test
@@ -55,24 +56,60 @@ class AnimatedNumberTextFitTest {
         assertTrue(bad.isEmpty(), bad.joinToString("\n"))
     }
 
+    @Test
+    fun `the wallet pane's cards show every balance at full size`() {
+        var name by mutableStateOf("")
+        var badge by mutableStateOf("")
+        rule.setContent { FlipcashTheme { CardHeader(width, value, name, badge, tag = "amt") } }
+        // The header row is the pane less the wallet's side padding and the card's inset: 101 dp,
+        // measured off the 336 dp render (card 275 dp, row 235 dp).
+        val row = DesktopDimens.ContextPaneWidth.value.toInt() - 101
+        val cards = listOf(
+            Triple("Bubble Mew", "+$0.41", "$39.22"), Triple("Waylon", "-$43.91", "$190.96"),
+            Triple("Moony", "-$44.90", "$111.19"), Triple("Dad Cash", "+$7.81", "$28.31"),
+            Triple("Jeffy", "-$61.79", "$81.97"), Triple("ALL", "+$49.43", "$357.76"),
+        )
+        fun height(): Float {
+            rule.mainClock.advanceTimeBy(2_000)
+            rule.waitForIdle()
+            return rule.onNodeWithTag("amt").fetchSemanticsNode().size.height.toFloat()
+        }
+        width = 600
+        name = "Jeffy"; badge = "+$1.00"; value = "$1.00"
+        val full = height()
+        width = row
+        val small = cards.mapNotNull { (n, b, v) ->
+            name = n; badge = b; value = v
+            height().takeIf { it < full }?.let { "$n $v at $it, full is $full" }
+        }
+        assertTrue(small.isEmpty(), "at a $row dp row: " + small.joinToString())
+    }
+
     /** The token card's header row: name on the left, the appreciation badge and balance on the right. */
     @Composable
-    private fun CardHeader(width: Int, value: String) {
+    private fun CardHeader(
+        width: Int,
+        value: String,
+        name: String = "Waylon",
+        badge: String = "-$43.91",
+        tag: String = "amount",
+    ) {
         Row(
             Modifier.width(width.dp),
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Waylon", Modifier.padding(start = 32.dp), style = CodeTheme.typography.textSmall)
+            Text(name, Modifier.padding(start = 32.dp), style = CodeTheme.typography.textSmall)
             Row(
                 Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("-$43.91", Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = CodeTheme.typography.caption)
+                Text(badge, Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = CodeTheme.typography.caption)
                 Box(Modifier.weight(1f, fill = false).testTag("box")) {
                     AnimatedNumberText(
                         value = value,
+                        modifier = Modifier.testTag(tag),
                         style = CodeTheme.typography.screenTitle.copy(fontWeight = FontWeight.Bold),
                         constraintMode = ConstraintMode.AutoSize(minimum = CodeTheme.typography.textMedium),
                     )

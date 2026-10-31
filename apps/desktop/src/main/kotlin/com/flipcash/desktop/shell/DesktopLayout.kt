@@ -49,6 +49,10 @@ object DesktopDimens {
 
     /** The row the traffic lights sit in: the top of the sidebar and the chat's toolbar. */
     val TitleRowHeight = 52.dp
-    val ContextPaneWidth = 336.dp
+    /**
+     * A phone's width, so the Wallet's currency cards come out as on a phone: at 336 the card's header
+     * row left a long name too little room, and its balance autosized smaller than the cards around it.
+     */
+    val ContextPaneWidth = 400.dp
     val MessagesMaxWidth = 720.dp
 }
