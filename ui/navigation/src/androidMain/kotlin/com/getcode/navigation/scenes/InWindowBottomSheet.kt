@@ -44,6 +44,8 @@ class InWindowSheetState internal constructor(
 ) {
     internal lateinit var sheet: BottomSheetState
 
+    internal val wrapContent = WrapContentDetent()
+
     /** True once [hide] has been asked for: the caller closed it, so no dismiss request follows. */
     internal var hidingByCaller by mutableStateOf(false)
         private set
@@ -61,7 +63,7 @@ fun rememberInWindowSheetState(isLocked: () -> Boolean = { false }): InWindowShe
     val state = remember { InWindowSheetState { locked.value() } }
     state.sheet = rememberBottomSheetState(
         initialDetent = SheetDetent.Hidden,
-        detents = listOf(SheetDetent.Hidden, WrapContent),
+        detents = listOf(SheetDetent.Hidden, state.wrapContent.detent),
         confirmDetentChange = { detent ->
             detent != SheetDetent.Hidden || state.hidingByCaller || !state.isLocked()
         },
@@ -95,7 +97,8 @@ fun InWindowBottomSheet(
     val scope = rememberCoroutineScope()
     val currentOnDismiss by rememberUpdatedState(onDismissRequest)
 
-    LaunchedEffect(sheet) { sheet.animateTo(WrapContent) }
+    LaunchedEffect(sheet) { sheet.animateTo(state.wrapContent.detent) }
+    state.wrapContent.Track(sheet)
 
     // [UnstyledBottomSheet] has no dismissal callback: watch for it settling Hidden after it was
     // shown, the way the navigation sheets do, and ignore a close the caller asked for itself.
@@ -119,7 +122,7 @@ fun InWindowBottomSheet(
             modifier = Modifier
                 .fillMaxSize()
                 .drawBehind {
-                    val progress = sheet.progress(SheetDetent.Hidden, WrapContent).coerceIn(0f, 1f)
+                    val progress = sheet.progress(SheetDetent.Hidden, state.wrapContent.detent).coerceIn(0f, 1f)
                     drawRect(scrimColor.copy(alpha = scrimColor.alpha * progress))
                 }
                 .then(if (dismissOnScrimTap) Modifier.noRippleClickable(onClick = requestClose) else {
@@ -138,7 +141,9 @@ fun InWindowBottomSheet(
                     .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                     .background(containerColor),
             ) {
-                content()
+                Box(with(state.wrapContent) { Modifier.fillMaxWidth().content() }) {
+                    content()
+                }
             }
         }
     }
