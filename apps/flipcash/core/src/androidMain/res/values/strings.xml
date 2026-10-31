@@ -1219,6 +1219,7 @@
     <string name="error_title_requestClosed">Request Closed</string>
     <string name="error_description_requestClosed">This request is no longer accepting payments.</string>
     <string name="label_chat_preview_noMessages">Nothing yet</string>
+    <string name="label_chat_preview_inviteToStart">Invite people to get started</string>
     <string name="label_isTyping">Is Typing…</string>
 
     <string name="label_edited">Edited</string>
@@ -1578,6 +1579,10 @@
     <string name="message_groupInvite">Join %1$s on Flipcash and let\'s chat</string>
     <!-- The invite sheet (nodes 10329:12104, 10330:19549). -->
     <string name="title_invitePeople">Invite People</string>
+    <!-- The card at the top of a group's transcript while its creator is the only member. -->
+    <string name="title_flipcashSender" translatable="false">Flipcash</string>
+    <string name="title_groupReady">Your Group Is Ready</string>
+    <string name="subtitle_groupReady">Invite people to join %1$s</string>
     <string name="action_shareInviteLink">Share</string>
     <string name="label_recentChats">Recent Chats</string>
     <!-- Invite links for a private group's host (spec group-invites.md, nodes 12844:60 to 12844:395). -->

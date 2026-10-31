@@ -67,6 +67,15 @@ fun ChatSummary.toConversationReference(
         chatType = metadata.type,
         lastMessagePreview = formatPreview(selfId, tokensByMint, resources, senderProfiles, exchange, paymentRequests),
         hasMessages = metadata.lastMessage != null,
+        // The feed carries the roster size, privacy and the viewer's permissions, so the row needs no
+        // fetch of its own. memberCount defaults to 0 for metadata never fetched, which is not 1.
+        awaitsInvites = groupAwaitsInvites(
+            isGroup = isGroup,
+            rosterResolved = true,
+            memberCount = metadata.rosterSummary.memberCount,
+            canInvite = metadata.viewerState?.permissions?.canInvite == true,
+            isPrivate = metadata.isPrivate,
+        ),
         lastActivity = metadata.lastActivity,
         unreadCount = unreadCount,
         viewerState = metadata.viewerState,

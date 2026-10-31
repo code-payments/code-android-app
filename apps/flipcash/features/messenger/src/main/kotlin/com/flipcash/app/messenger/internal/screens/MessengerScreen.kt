@@ -184,6 +184,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         if (privateOutsider) flowNavigator.replaceStack(listOf(ChatStep.GroupProfile))
     }
 
+    // The server's can_invite as the chat store carries it, the same field the group profile's
+    // Share button is built on, so no extra call when a chat opens.
+    val viewerCanInvite = state.viewerState?.permissions?.canInvite == true
+
     // Here rather than in the action handler because the lookup comes first: the tap only knows a
     // handle, and where it leads is the view model's to decide once the handle has an answer.
     LaunchedEffect(viewModel) {
@@ -790,6 +794,21 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         onOriginsReached = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnOriginsReached(it)) },
                         onReachedNewest = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnStackCleared) },
                         hazeState = hazeState,
+                        viewerCanInvite = viewerCanInvite,
+                        onInvitePeople = {
+                            viewModel.dispatchEvent(
+                                ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.CHAT)
+                            )
+                            // Both branches of the group profile's Share button; see GroupProfileScreen.
+                            // The composer may have the keyboard up; it closes before the sheet opens.
+                            keyboard.hideIfVisible {
+                                if (viewerCanInvite) {
+                                    navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
+                                } else {
+                                    navigator.openGroupInvite()
+                                }
+                            }
+                        },
                     )
                 }
             }

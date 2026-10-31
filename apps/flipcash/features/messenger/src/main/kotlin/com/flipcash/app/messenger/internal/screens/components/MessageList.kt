@@ -84,6 +84,7 @@ import com.flipcash.shared.chat.models.SeparatorConfig
 import com.flipcash.shared.chat.reactions.ReactionRefreshPlanner
 import com.flipcash.shared.chat.ui.ChatAnimations
 import com.flipcash.shared.chat.ui.GroupInviteCardDefaults
+import com.flipcash.shared.chat.ui.GroupReadyCardBubble
 import com.flipcash.shared.chat.ui.GroupInviteLinkCard
 import com.flipcash.shared.chat.ui.QuickReactionStripPlacement
 import com.flipcash.shared.chat.ui.transcriptBubbleMaxWidth
@@ -121,6 +122,8 @@ internal fun MessageList(
     onOriginsReached: (Set<Long>) -> Unit = {},
     onReachedNewest: () -> Unit = {},
     hazeState: HazeState? = null,
+    viewerCanInvite: Boolean = false,
+    onInvitePeople: () -> Unit = {},
 ) {
     val keyboard = rememberKeyboardController()
     val listState = rememberLazyListState()
@@ -128,6 +131,20 @@ internal fun MessageList(
     // Whether messages are attributed at all, which is a property of the chat and not of any one
     // row: a DM needs no avatar column, a group reserves one on every incoming row.
     val isGroup = state.chatType == ChatType.GROUP
+    // Not a message, so it is not in `messages`: the transcript's own item, derived from state and
+    // held in place while it fades out. See GroupReadyCardPresence.
+    val groupSubject = state.subject as? ChatSubject.Group
+    val memberCount = groupSubject?.memberCount ?: 0L
+    val groupReadyPresence = rememberGroupReadyCardPresence(
+        show = showsGroupReadyCard(
+            isGroup = isGroup,
+            rosterResolved = groupSubject != null && state.resolveState is ChatViewModel.ResolveState.Resolved,
+            memberCount = memberCount,
+            canInvite = viewerCanInvite,
+            isPrivate = groupSubject?.isPrivate == true,
+        ),
+        joined = memberCount > 1L,
+    )
 
     // Both provided here rather than passed down: a link card is drawn from several places inside
     // the bubble, and threading either through every one of them would be a parameter on a lot of
@@ -753,6 +770,22 @@ internal fun MessageList(
                                     DateSeparatorRow(oldestTimestamp)
                                 }
                             }
+                        }
+                    }
+
+                    // Oldest of everything, so last here: the topmost item of the reversed list. The
+                    // list is arranged Top, so a transcript shorter than the screen packs against
+                    // the bar rather than the composer, and this sits right under the bar.
+                    if (groupReadyPresence.present) {
+                        item(key = "group-ready-card") {
+                            GroupReadyCardBubble(
+                                groupName = groupSubject?.title.orEmpty(),
+                                onInvite = onInvitePeople,
+                                modifier = Modifier
+                                    .collapseHeight { groupReadyPresence.heightFraction.value }
+                                    .padding(bottom = CodeTheme.dimens.grid.x2)
+                                    .graphicsLayer { alpha = groupReadyPresence.alpha.value },
+                            )
                         }
                     }
 

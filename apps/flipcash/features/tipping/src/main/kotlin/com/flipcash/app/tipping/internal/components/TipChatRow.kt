@@ -96,6 +96,7 @@ internal fun TipChatRow(
                 isTyping = chat.isTyping,
                 preview = chat.lastMessagePreview,
                 hasMessages = chat.hasMessages,
+                awaitsInvites = chat.awaitsInvites,
                 fallback = {
                     // Blank rather than absent: a chat with a message the row cannot preview
                     // still occupies both lines, so it doesn't jump in height against its
