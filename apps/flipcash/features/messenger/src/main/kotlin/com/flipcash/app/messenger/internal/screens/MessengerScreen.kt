@@ -190,6 +190,15 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val inviteHost = hiltViewModel<InviteHostViewModel>()
     val canInviteByChat by inviteHost.canInvite.collectAsStateWithLifecycle()
     val viewerCanInvite = state.chatId?.let { canInviteByChat[it] } == true
+    val inviteGroup = state.subject as? ChatSubject.Group
+    LaunchedEffect(state.chatId, inviteGroup?.isPrivate, inviteGroup?.isMember) {
+        // The group profile asks the server before it offers Share; the cached chat does not carry
+        // can_invite. A group opened straight on its transcript never visits the profile, so ask
+        // here too, on the same terms, or the card would never see the answer.
+        if (inviteGroup?.isPrivate == true && inviteGroup.isMember == true) {
+            state.chatId?.let(inviteHost::refresh)
+        }
+    }
 
     // Here rather than in the action handler because the lookup comes first: the tap only knows a
     // handle, and where it leads is the view model's to decide once the handle has an answer.
