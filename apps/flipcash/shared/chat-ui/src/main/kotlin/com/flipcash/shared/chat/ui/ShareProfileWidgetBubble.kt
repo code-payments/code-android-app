@@ -219,8 +219,8 @@ internal fun WidgetCardBubble(
     onDoubleClick: (() -> Unit)? = null,
     attention: () -> Float = { 0f },
     avatar: (@Composable () -> Unit)? = null,
-    /** Sets the subtitle in the message bubble's body text instead of the caption a handle gets. */
-    subtitleAsMessage: Boolean = false,
+    /** Sets the title and subtitle in the message bubble's type (medium title, body subtitle), not the profile card's large name and caption handle. */
+    messageTypography: Boolean = false,
 ) {
     val shape = bubbleShape(position, isFromSelf)
     val width = minOf(maxWidth, ShareProfileWidgetDefaults.WIDTH)
@@ -262,7 +262,7 @@ internal fun WidgetCardBubble(
                 ) {
                     Text(
                         text = title,
-                        style = CodeTheme.typography.textLarge,
+                        style = if (messageTypography) CodeTheme.typography.textMedium else CodeTheme.typography.textLarge,
                         color = CodeTheme.colors.textMain,
                         textAlign = if (avatar != null) TextAlign.Center else TextAlign.Start,
                         maxLines = 2,
@@ -271,8 +271,8 @@ internal fun WidgetCardBubble(
                     )
                     Text(
                         text = subtitle,
-                        style = if (subtitleAsMessage) CodeTheme.typography.textMessage else CodeTheme.typography.caption,
-                        color = if (subtitleAsMessage) CodeTheme.colors.textMain else CodeTheme.colors.textMain.copy(alpha = 0.5f),
+                        style = if (messageTypography) CodeTheme.typography.textMessage else CodeTheme.typography.caption,
+                        color = if (messageTypography) CodeTheme.colors.textMain else CodeTheme.colors.textMain.copy(alpha = 0.5f),
                         textAlign = if (avatar != null) TextAlign.Center else TextAlign.Start,
                         maxLines = if (avatar != null) 1 else 2,
                         overflow = TextOverflow.Ellipsis,
