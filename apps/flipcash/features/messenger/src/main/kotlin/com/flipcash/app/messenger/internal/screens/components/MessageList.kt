@@ -140,7 +140,8 @@ internal fun MessageList(
             isGroup = isGroup,
             rosterResolved = groupSubject != null && state.resolveState is ChatViewModel.ResolveState.Resolved,
             memberCount = memberCount,
-            viewerCanInvite = viewerCanInvite,
+            canInvite = viewerCanInvite,
+            isPrivate = groupSubject?.isPrivate == true,
         ),
         joined = memberCount > 1L,
     )

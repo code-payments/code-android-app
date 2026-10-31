@@ -799,9 +799,12 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             viewModel.dispatchEvent(
                                 ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.CHAT)
                             )
-                            // The card only shows to a viewer who can invite, so this is the host
-                            // branch of the group profile's Share button; see GroupProfileScreen.
-                            navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
+                            // Both branches of the group profile's Share button; see GroupProfileScreen.
+                            if (viewerCanInvite) {
+                                navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
+                            } else {
+                                navigator.openGroupInvite()
+                            }
                         },
                     )
                 }

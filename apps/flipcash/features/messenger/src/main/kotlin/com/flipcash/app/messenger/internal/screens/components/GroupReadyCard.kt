@@ -16,7 +16,10 @@ import kotlinx.coroutines.launch
 
 /**
  * Whether the "Your Group Is Ready" card is in the transcript. The spec iOS follows says the same:
- * a group, its roster loaded, the viewer the only member, and the viewer allowed to invite.
+ * a group, its roster loaded, the viewer the only member, and the viewer able to invite.
+ *
+ * Able to invite is `canInvite || !isPrivate`: the server withholds `can_invite` from a public
+ * group's creator, yet group info's Share still opens the plain share sheet for them.
  *
  * [rosterResolved] is separate from [memberCount] because an unloaded group reads as a count of
  * zero or a stale one, and a card that flashed up before the roster arrived would leave again.
@@ -25,8 +28,9 @@ internal fun showsGroupReadyCard(
     isGroup: Boolean,
     rosterResolved: Boolean,
     memberCount: Long,
-    viewerCanInvite: Boolean,
-): Boolean = isGroup && rosterResolved && memberCount == 1L && viewerCanInvite
+    canInvite: Boolean,
+    isPrivate: Boolean,
+): Boolean = isGroup && rosterResolved && memberCount == 1L && (canInvite || !isPrivate)
 
 /** How long the card takes to leave once someone has joined. */
 internal const val GROUP_READY_POP_MILLIS = 280

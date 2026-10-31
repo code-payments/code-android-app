@@ -14,8 +14,9 @@ class GroupReadyCardTest {
         isGroup: Boolean = true,
         rosterResolved: Boolean = true,
         memberCount: Long = 1,
-        viewerCanInvite: Boolean = true,
-    ) = showsGroupReadyCard(isGroup, rosterResolved, memberCount, viewerCanInvite)
+        canInvite: Boolean = true,
+        isPrivate: Boolean = true,
+    ) = showsGroupReadyCard(isGroup, rosterResolved, memberCount, canInvite, isPrivate)
 
     @Test
     fun aloneWithAResolvedRosterAndTheRightToInviteShowsIt() = assertTrue(shows())
@@ -28,7 +29,13 @@ class GroupReadyCardTest {
     }
 
     @Test
-    fun aViewerWhoCannotInviteSeesNothing() = assertFalse(shows(viewerCanInvite = false))
+    fun aPrivateGroupWithoutCanInviteShowsNothing() = assertFalse(shows(canInvite = false, isPrivate = true))
+
+    @Test
+    fun aPublicGroupHostWithoutCanInviteStillSeesIt() = assertTrue(shows(canInvite = false, isPrivate = false))
+
+    @Test
+    fun aPublicGroupWithCanInviteSeesIt() = assertTrue(shows(canInvite = true, isPrivate = false))
 
     @Test
     fun anyoneElseInTheGroupRemovesIt() {
