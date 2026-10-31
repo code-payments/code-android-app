@@ -1579,6 +1579,7 @@
     <!-- The invite sheet (nodes 10329:12104, 10330:19549). -->
     <string name="title_invitePeople">Invite People</string>
     <!-- The card at the top of a group's transcript while its creator is the only member. -->
+    <string name="title_flipcashSender" translatable="false">Flipcash</string>
     <string name="title_groupReady">Your Group Is Ready</string>
     <string name="subtitle_groupReady">Invite people to join %1$s</string>
     <string name="action_shareInviteLink">Share</string>
