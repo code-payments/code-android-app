@@ -37,7 +37,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.getcode.ui.utils.AutoSizeTextMeasurer
 import com.getcode.ui.utils.ConstraintMode
 import com.getcode.ui.utils.MeasureWidthFraction
@@ -72,8 +74,8 @@ fun AnimatedNumberText(
             // Digits are drawn at the widest digit's width, so size the string as it will be drawn.
             val widest = remember(style) { textMeasurer.digitMetrics(style).widest }
 
-            remember(value, style.fontSize, maxWidthPx, widest) {
-                autosizeTextMeasurer.findFontSize(
+            remember(value, style, maxWidthPx, widest) {
+                val fitted = autosizeTextMeasurer.findFontSize(
                     text = AnnotatedString(value.map { if (it.isDigit()) widest else it }.joinToString("")),
                     style = style,
                     constraints = Constraints(
@@ -84,6 +86,10 @@ fun AnimatedNumberText(
                     maxFontSize = style.fontSize,
                     autosizeGranularity = 100
                 )
+                // The minimum is a floor for looks, not a reason to overflow: each slot takes its full
+                // width whatever room is left, so a number wider than the box draws its last digits on
+                // top of each other. Below the minimum, shrink until the slots as drawn fit.
+                textMeasurer.shrinkToFit(value, style.copy(fontSize = fitted), maxWidthPx)
             }
         } else {
             style.fontSize
@@ -442,6 +448,25 @@ private fun TextMeasurer.digitMetrics(style: TextStyle): DigitMetrics {
         }
     }
     return DigitMetrics(Digits[widest], ceil(width).toInt())
+}
+
+/** The width [value] takes as slots: every digit at the widest digit's width, other characters at their own. */
+private fun TextMeasurer.slotsWidth(value: String, style: TextStyle): Int {
+    val digitWidth = digitMetrics(style).widthPx
+    return value.sumOf { if (it.isDigit()) digitWidth else measure(it.toString(), style).size.width }
+}
+
+/** [style]'s font size if [value]'s slots fit [maxWidthPx], else the largest smaller size that does. */
+private fun TextMeasurer.shrinkToFit(value: String, style: TextStyle, maxWidthPx: Int): TextUnit {
+    val size = style.fontSize
+    if (slotsWidth(value, style) <= maxWidthPx) return size
+    var low = 1f
+    var high = size.value
+    repeat(10) {
+        val mid = (low + high) / 2
+        if (slotsWidth(value, style.copy(fontSize = mid.sp)) <= maxWidthPx) low = mid else high = mid
+    }
+    return low.sp
 }
 
 private class CharHolder(var value: Char)
