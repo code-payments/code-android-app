@@ -16,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavEntry
@@ -44,6 +43,9 @@ import org.robolectric.RobolectricTestRunner
  * writes each into its state during measure. While the sheet moves, the two writes keep
  * invalidating each other and the frame never ends: the host Invite sheet's ANR, when a group's
  * Approve New Members loads as on just after the sheet appears.
+ *
+ * A regression hangs rather than failing an assertion: the loop spins inside the sheet's own
+ * measure and never returns here. The module's test task timeout turns that into a failure.
  */
 @RunWith(RobolectricTestRunner::class)
 class WrapContentSheetLayoutLoopTest {
@@ -54,18 +56,10 @@ class WrapContentSheetLayoutLoopTest {
     @Test
     fun `content that animates its height while the sheet opens does not spin layout`() {
         var tall by mutableStateOf(false)
-        var measures = 0
         val sheetEntry = NavEntry<NavKey>(key = DemoSheet) {
             AnimatedContent(
                 targetState = tall,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .layout { measurable, constraints ->
-                        // A spinning layout never returns to the test; fail out of it instead.
-                        check(++measures < MeasureLimit) { "sheet layout did not settle" }
-                        val placeable = measurable.measure(constraints)
-                        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
-                    },
+                modifier = Modifier.fillMaxWidth(),
                 transitionSpec = {
                     fadeIn(tween(300)) togetherWith fadeOut(tween(300)) using
                         SizeTransform(clip = false) { _, _ -> tween(300) }
@@ -107,9 +101,5 @@ class WrapContentSheetLayoutLoopTest {
         repeat(60) { composeTestRule.mainClock.advanceTimeByFrame() }
         composeTestRule.mainClock.autoAdvance = true
         composeTestRule.waitForIdle()
-    }
-
-    private companion object {
-        const val MeasureLimit = 5_000
     }
 }

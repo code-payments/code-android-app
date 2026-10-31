@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.constrainHeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import com.composeunstyled.BottomSheetState
 import com.composeunstyled.SheetDetent
@@ -46,8 +47,9 @@ internal class WrapContentDetent {
 
     val detent = SheetDetent("wrap-content") { containerHeight, _ ->
         val max = containerHeight * WrapContentMaxFraction
-        // Unmeasured, it opens toward the cap; the first layout pulls it in to the content.
-        if (contentHeight.isSpecified) contentHeight.coerceAtMost(max) else max
+        // Unmeasured (or measured against a window that had no size yet), it opens toward the
+        // cap; the first real layout pulls it in to the content. Zero would sit on Hidden.
+        if (contentHeight.isSpecified && contentHeight > 0.dp) contentHeight.coerceAtMost(max) else max
     }
 
     /**
@@ -74,6 +76,8 @@ internal class WrapContentDetent {
     @Composable
     fun Track(state: BottomSheetState) {
         LaunchedEffect(state) {
+            // The first value is whatever the sheet's opening measure already resolved; only
+            // later changes need the anchors moved.
             snapshotFlow { contentHeight }
                 .drop(1)
                 .collect { state.invalidateDetents() }
