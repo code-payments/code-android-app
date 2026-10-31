@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.metro)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -22,9 +23,15 @@ metro {
 dependencies {
     implementation(compose.desktop.currentOs)
     implementation(libs.jetbrains.compose.material3)
+    implementation(libs.jetbrains.compose.material.icons.extended)
+    implementation(libs.kotlinx.serialization.json)
     implementation(project(":services:opencode"))
     implementation(project(":apps:flipcash:features:balance"))
     implementation(project(":apps:flipcash:core"))
+    implementation(project(":apps:flipcash:core-ui"))
+    implementation(project(":apps:flipcash:card-expand"))
+    implementation(project(":apps:flipcash:shared:common-ui"))
+    implementation(project(":ui:components"))
     implementation(project(":apps:flipcash:shared:transaction-history"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:funding"))
@@ -49,10 +56,13 @@ dependencies {
     implementation(libs.coil3)
     implementation(libs.coil3.network)
     implementation(libs.event.bus)
+    implementation(libs.jbr.api)
 
     testImplementation(project(":apps:flipcash:startup-contract"))
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(compose.desktop.uiTestJUnit4)
+    testImplementation(compose.desktop.currentOs)
 }
 
 tasks.withType<Test>().configureEach {
@@ -68,6 +78,11 @@ val devMnemonic = tryReadProperty(rootProject.rootDir, "flipcash.test.mnemonic",
 compose.desktop {
     application {
         mainClass = "com.flipcash.desktop.MainKt"
+        // Names the macOS app menu and Dock item when run from Gradle; a packaged app takes packageName.
+        // -Xdock is a macOS-only JVM flag, so other hosts must not get it.
+        if (System.getProperty("os.name").lowercase().startsWith("mac")) {
+            jvmArgs += listOf("-Xdock:name=Flipcash", "-Dapple.awt.application.name=Flipcash")
+        }
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Flipcash"
@@ -78,12 +93,15 @@ compose.desktop {
 
 tasks.register<JavaExec>("snapshot") {
     group = "application"
-    description = "Renders the wallet (or, with -Pscreen=link, the link screen) off-screen to a PNG (-Pout=<file>)."
+    description = "Renders a screen off-screen to a PNG: -Pout=<file> -Pscreen=chat|money|you|link -Pwidth=<dp> -Pheight=<dp>, or frames into a directory with -Pmotion=peek|info."
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("com.flipcash.desktop.SnapshotMainKt")
     args(
-        providers.gradleProperty("out").getOrElse(layout.buildDirectory.file("wallet.png").get().asFile.path),
-        providers.gradleProperty("screen").getOrElse("wallet"),
+        providers.gradleProperty("out").getOrElse(layout.buildDirectory.file("snapshot.png").get().asFile.path),
+        providers.gradleProperty("screen").getOrElse("chat"),
+        providers.gradleProperty("width").getOrElse("1040"),
+        providers.gradleProperty("height").getOrElse("760"),
+        providers.gradleProperty("motion").getOrElse(""),
     )
 }
 

@@ -89,6 +89,8 @@ The feature plugin automatically includes `:libs:logging`, `:ui:core`, `:ui:comp
 
 A code change is done when the touched modules' unit tests pass and `./gradlew :apps:flipcash:app:compileDebugKotlin` succeeds.
 
+For a layout or motion change in `apps/desktop`, also render `./gradlew :apps:desktop:snapshot -Pmotion=…` and step the frames before calling it done; stills can't show a transition.
+
 ## Namespaces
 
 - App: `com.flipcash.app.android` (no `applicationIdSuffix` — debug and release share the ID, so installing one replaces the other)
