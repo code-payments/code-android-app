@@ -113,6 +113,16 @@ class AppRouterTest {
         assertEquals(Mint(mintAddress), type.mint)
     }
 
+    @Test
+    fun `classify ignores a token deeplink whose address is shorter than 32 bytes`() {
+        assertNull(router.classify(DeepLink("https://app.flipcash.com/token/So1111")))
+    }
+
+    @Test
+    fun `classify ignores a token deeplink whose address is not base58`() {
+        assertNull(router.classify(DeepLink("https://app.flipcash.com/token/0OIl-not-base58")))
+    }
+
     // endregion
 
     // region classify — EmailVerification
