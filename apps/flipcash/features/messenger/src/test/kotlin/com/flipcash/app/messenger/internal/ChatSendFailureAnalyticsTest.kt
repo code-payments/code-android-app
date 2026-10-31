@@ -15,15 +15,12 @@ import com.flipcash.app.messenger.internal.link.LinkCardResolver
 import com.flipcash.app.session.CashLinkClaims
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.models.UserProfile
 import com.flipcash.app.persistence.sources.UserProfileDataSource
-import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
-import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
@@ -130,11 +127,9 @@ class ChatSendFailureAnalyticsTest {
         BottomBarManager.clear()
     }
 
-    private fun createViewModel(): ChatViewModel = ChatViewModel(
+    private fun createViewModel(): ChatViewModel = chatViewModel(
+        dispatcher = mainCoroutineRule.dispatcher,
         chatCoordinator = chatCoordinator,
-        wrongKeyChats = com.flipcash.services.chat.WrongKeyChats(),
-        mediaUploads = noMediaUploads(),
-        e2eePolicy = E2eePolicy(),
         contactCoordinator = contactCoordinator,
         contactPaymentDelegate = contactPaymentDelegate,
         tipPaymentDelegate = tipPaymentDelegate,
@@ -151,20 +146,10 @@ class ChatSendFailureAnalyticsTest {
         linkCardClassifier = linkCardClassifier,
         linkCardResolver = linkCardResolver,
         cashLinkClaims = cashLinkClaims,
-        chatCashLinks = mockk(relaxed = true),
-        groupSendPayments = mockk(relaxed = true),
         chatDraftStore = chatDraftStore,
         recentReactionsStore = recentReactionsStore,
-        toastController = mockk(relaxed = true),
         emojiCatalogLoader = emojiCatalogLoader,
         userProfileDataSource = userProfileDataSource,
-        rosterSearch = mockk(relaxed = true),
-        featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
-        lobbyRequests = mockk(relaxed = true),
-        hostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
-        groupRosters = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
-        dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
-        identifier = null,
     )
 
     @Test
