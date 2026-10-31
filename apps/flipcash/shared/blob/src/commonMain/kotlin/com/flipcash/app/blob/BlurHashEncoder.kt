@@ -4,8 +4,6 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.floor
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sign
 
@@ -14,8 +12,7 @@ import kotlin.math.sign
  * `shared/common-ui`. A sealed photo can't be previewed from the server, so its hash is computed
  * here from the plaintext and travels inside the encrypted message.
  *
- * Works on an ARGB [IntArray] so the maths runs on the JVM; [fromThumbnail] is the only part that
- * needs a [android.graphics.Bitmap].
+ * Works on an ARGB [IntArray]; the platform only supplies the thumbnail, through [ImageCodec].
  */
 object BlurHashEncoder {
 
@@ -55,21 +52,18 @@ object BlurHashEncoder {
     }
 
     /**
-     * Hash of an image of [width] × [height] from a [THUMBNAIL_EDGE]-px thumbnail of [source],
-     * 4×3 components for landscape (and square) and 3×4 for portrait. "" on any failure.
+     * Hash of the photo [thumbnail] was taken from: 4x3 components for landscape (and square) and
+     * 3x4 for portrait, judged by the photo's own size. "" on any failure.
      */
-    fun fromThumbnail(source: android.graphics.Bitmap, width: Int, height: Int): String =
+    fun fromThumbnail(thumbnail: ArgbThumbnail): String =
         runCatching {
-            val scale = min(1f, THUMBNAIL_EDGE.toFloat() / max(source.width, source.height))
-            val tw = max((source.width * scale).toInt(), 1)
-            val th = max((source.height * scale).toInt(), 1)
-            val thumb = android.graphics.Bitmap.createScaledBitmap(source, tw, th, true)
-            val pixels = IntArray(tw * th)
-            thumb.getPixels(pixels, 0, tw, 0, 0, tw, th)
-            if (thumb !== source) thumb.recycle()
-            val landscape = width >= height
-            encode(pixels, tw, th, if (landscape) 4 else 3, if (landscape) 3 else 4)
+            val landscape = thumbnail.sourceWidth >= thumbnail.sourceHeight
+            encode(thumbnail.pixels, thumbnail.width, thumbnail.height, if (landscape) 4 else 3, if (landscape) 3 else 4)
         }.getOrDefault("")
+
+    /** Hash of [jpeg] read through [codec]'s [THUMBNAIL_EDGE]-px thumbnail; null if it won't decode or hash. */
+    fun fromJpeg(codec: ImageCodec, jpeg: ByteArray): String? =
+        codec.thumbnail(jpeg, THUMBNAIL_EDGE)?.let(::fromThumbnail)?.takeIf { it.isNotEmpty() }
 
     private fun factor(pixels: IntArray, width: Int, height: Int, i: Int, j: Int): FloatArray {
         var r = 0f

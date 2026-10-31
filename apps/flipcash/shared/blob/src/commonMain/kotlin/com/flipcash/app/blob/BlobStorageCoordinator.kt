@@ -1,13 +1,12 @@
 package com.flipcash.app.blob
 
-import android.content.Context
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
+import com.flipcash.app.core.storage.PreferencesFiles
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.BlobStorageController
 import com.flipcash.services.models.InitiateExternalUploadError
@@ -16,7 +15,6 @@ import com.flipcash.services.models.blob.MimeTypeConstraints
 import com.flipcash.services.models.blob.UploadPolicy
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatId
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -43,7 +41,7 @@ import kotlin.time.Duration.Companion.milliseconds
  */
 @Singleton
 class BlobStorageCoordinator @Inject constructor(
-    @param:ApplicationContext private val context: Context,
+    preferencesFiles: PreferencesFiles,
     private val blobStorageController: BlobStorageController,
     dispatchers: DispatcherProvider,
 ) {
@@ -52,7 +50,7 @@ class BlobStorageCoordinator @Inject constructor(
     private val dataStore = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
         scope = scope,
-        produceFile = { context.preferencesDataStoreFile("upload-policy") }
+        produceFile = { preferencesFiles.file("upload-policy") }
     )
 
     private val json = Json { ignoreUnknownKeys = true }

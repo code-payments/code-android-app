@@ -1,14 +1,35 @@
 package com.flipcash.app.blob
 
-import android.net.Uri
 import com.flipcash.services.models.blob.ImageConstraints
 import com.flipcash.services.models.blob.UploadPolicy
-import com.getcode.util.resources.ContentReader
-import com.getcode.util.resources.uploadMimeFor
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.floor
 import kotlin.math.sqrt
+
+/**
+ * What re-encoding a picked image for upload needs from the platform: reading its type, writing the
+ * downscaled copy into the cache, and measuring it. Android answers with `ContentResolver` and
+ * `Bitmap`, desktop with files and Skia.
+ */
+interface UploadImageCache {
+    /** The content MIME type of [photo] (e.g. "image/jpeg"), or null if it can't be resolved. */
+    fun mimeType(photo: PickedPhoto): String?
+
+    /** The MIME type [copyToCache] bytes will actually be for a source of [sourceMimeType]: JPEG stays JPEG, everything else is PNG. */
+    fun uploadMimeFor(sourceMimeType: String?): String
+
+    /**
+     * Re-encodes [photo] into the cache as [fileName], downscaled to [maxSize] on its longer side
+     * and stripped of EXIF metadata. [mimeType] (the source type) picks the output format.
+     */
+    fun copyToCache(photo: PickedPhoto, fileName: String, maxSize: Int, mimeType: String?): PickedPhoto?
+
+    fun removeFromCache(photo: PickedPhoto)
+
+    /** The size of [photo]'s content in bytes, or null if it can't be resolved. */
+    fun size(photo: PickedPhoto): Long?
+}
 
 /**
  * Turns a picked image into bytes the server will accept, or says why it cannot.
@@ -25,17 +46,19 @@ import kotlin.math.sqrt
  */
 @Singleton
 class ImageUploadPreparer @Inject constructor(
-    private val contentReader: ContentReader,
+    private val cache: UploadImageCache,
+    /** How a platform location (an Android `Uri`) becomes the [PickedPhoto] [prepare] takes. */
+    val photos: PickedPhotos,
 ) {
     sealed interface Outcome {
         /**
-         * [uri] is a cached, re-encoded copy declaring [mimeType], ready for
+         * [photo] is a cached, re-encoded copy declaring [mimeType], ready for
          * [BlobStorageCoordinator.upload].
          *
          * The caller owns the file from here: nothing else deletes it, so it must be handed to
-         * `ContentReader.removeFromCache` once uploaded or abandoned.
+         * [UploadImageCache.removeFromCache] once uploaded or abandoned.
          */
-        data class Prepared(val uri: Uri, val mimeType: String) : Outcome
+        data class Prepared(val photo: PickedPhoto, val mimeType: String) : Outcome
 
         /** The policy names no constraints for what this file re-encodes to. */
         data object Unsupported : Outcome
@@ -48,7 +71,7 @@ class ImageUploadPreparer @Inject constructor(
     }
 
     /**
-     * Prepares [uri] for upload under [policy], writing the result into the cache under a name
+     * Prepares [photo] for upload under [policy], writing the result into the cache under a name
      * derived from [fileNamePrefix].
      *
      * Blocking — decode and re-encode — so call it off the main dispatcher.
@@ -58,60 +81,60 @@ class ImageUploadPreparer @Inject constructor(
      * accepts; refusing the pick because the advisory copy is missing would be worse than trying.
      */
     fun prepare(
-        uri: Uri,
+        photo: PickedPhoto,
         policy: UploadPolicy?,
         fileNamePrefix: String,
     ): Outcome {
-        val sourceMime = contentReader.mimeType(uri)
+        val sourceMime = cache.mimeType(photo)
         // The cache re-encodes to JPEG/PNG, so gate on the type we would actually upload — not the
         // source type, which may normalize into an accepted format (e.g. HEIC -> PNG).
-        val uploadMime = uploadMimeFor(sourceMime)
+        val uploadMime = cache.uploadMimeFor(sourceMime)
         val constraints = policy?.constraintsFor(uploadMime)
         if (policy != null && constraints == null) return Outcome.Unsupported
 
         val maxBytes = constraints?.maxSizeBytes
         val cached = cacheWithinPolicy(
-            uri = uri,
+            photo = photo,
             sourceMime = sourceMime,
             fileNamePrefix = fileNamePrefix,
             image = constraints?.image,
             maxBytes = maxBytes,
         ) ?: return Outcome.Unreadable
 
-        if (maxBytes != null && (contentReader.size(cached) ?: 0L) > maxBytes) {
-            contentReader.removeFromCache(cached)
+        if (maxBytes != null && (cache.size(cached) ?: 0L) > maxBytes) {
+            cache.removeFromCache(cached)
             return Outcome.TooLarge
         }
         // The cache re-encodes (stripping EXIF); declare the type those bytes actually are.
-        return Outcome.Prepared(uri = cached, mimeType = uploadMime)
+        return Outcome.Prepared(photo = cached, mimeType = uploadMime)
     }
 
     /**
-     * Re-encodes [uri] into the cache honouring [image]'s dimension caps, then shrinks the
+     * Re-encodes [photo] into the cache honouring [image]'s dimension caps, then shrinks the
      * longest-edge target until the output fits [maxBytes] — resizing to fit rather than rejecting.
      * Returns null only if re-encoding fails outright; otherwise the smallest attempt, which the
      * caller re-checks because a ceiling smaller than [MIN_MAX_EDGE] can produce is pathological.
      */
     private fun cacheWithinPolicy(
-        uri: Uri,
+        photo: PickedPhoto,
         sourceMime: String?,
         fileNamePrefix: String,
         image: ImageConstraints?,
         maxBytes: Long?,
-    ): Uri? {
+    ): PickedPhoto? {
         var edge = maxEdgeFor(image)
-        var last: Uri? = null
+        var last: PickedPhoto? = null
         repeat(MAX_RESIZE_ATTEMPTS) {
             // Drop the previous over-ceiling attempt before making a smaller one.
-            last?.let { contentReader.removeFromCache(it) }
-            val candidate = contentReader.copyToCache(
-                uri = uri,
+            last?.let { cache.removeFromCache(it) }
+            val candidate = cache.copyToCache(
+                photo = photo,
                 fileName = "${fileNamePrefix}_${System.nanoTime()}",
                 maxSize = edge,
                 mimeType = sourceMime,
             ) ?: return null
             last = candidate
-            val size = contentReader.size(candidate) ?: 0L
+            val size = cache.size(candidate) ?: 0L
             if (maxBytes == null || size <= maxBytes) return candidate
             // Encoded bytes track pixel area (edge squared); scale the edge by sqrt(ceiling/actual)
             // with a safety margin to converge, floored at MIN_MAX_EDGE.

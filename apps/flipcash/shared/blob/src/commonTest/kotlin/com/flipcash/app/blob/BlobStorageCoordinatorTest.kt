@@ -1,7 +1,6 @@
 package com.flipcash.app.blob
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
+import com.flipcash.app.core.storage.PreferencesFiles
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.BlobStorageController
 import com.flipcash.services.models.InitiateExternalUploadError
@@ -17,19 +16,19 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import java.io.File
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(RobolectricTestRunner::class)
 class BlobStorageCoordinatorTest {
 
     private val controller = mockk<BlobStorageController>()
-    private val context = ApplicationProvider.getApplicationContext<Context>()
+    private val directory = Files.createTempDirectory("blob-policy").toFile()
+    private val files = PreferencesFiles { name -> File(directory, "$name.preferences_pb") }
 
     private fun TestScope.newCoordinator(): BlobStorageCoordinator {
         val test = UnconfinedTestDispatcher(testScheduler)
@@ -38,7 +37,7 @@ class BlobStorageCoordinatorTest {
             override val Main: CoroutineDispatcher = test
             override val IO: CoroutineDispatcher = test
         }
-        return BlobStorageCoordinator(context, controller, dispatchers)
+        return BlobStorageCoordinator(files, controller, dispatchers)
     }
 
     private fun policy(version: String, ttl: Duration) =
