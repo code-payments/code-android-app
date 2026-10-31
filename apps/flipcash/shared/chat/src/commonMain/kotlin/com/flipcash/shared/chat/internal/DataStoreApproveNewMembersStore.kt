@@ -1,17 +1,16 @@
 package com.flipcash.shared.chat.internal
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.flipcash.app.core.storage.PreferencesFiles
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ApproveNewMembersStore
 import com.getcode.utils.hexEncodedString
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -20,8 +19,6 @@ import kotlinx.coroutines.flow.map
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
-
-private val Context.approveNewMembersDataStore: DataStore<Preferences> by preferencesDataStore(name = "approve_new_members")
 
 /**
  * One string set per account of the chat ids (hex) whose switch is on. Per account, as
@@ -36,8 +33,10 @@ internal class DataStoreApproveNewMembersStore(
 ) : ApproveNewMembersStore {
 
     @Inject
-    constructor(@ApplicationContext context: Context, userManager: UserManager) : this(
-        dataStore = context.approveNewMembersDataStore,
+    constructor(preferencesFiles: PreferencesFiles, userManager: UserManager) : this(
+        dataStore = PreferenceDataStoreFactory.create(
+            produceFile = { preferencesFiles.file(DATASTORE_NAME) },
+        ),
         owners = userManager.state.map { it.accountId?.hexEncodedString() },
         currentOwner = { userManager.accountId?.hexEncodedString() },
     )
@@ -64,4 +63,8 @@ internal class DataStoreApproveNewMembersStore(
     }
 
     private fun key(owner: String) = stringSetPreferencesKey("on-$owner")
+
+    private companion object {
+        const val DATASTORE_NAME = "approve_new_members"
+    }
 }

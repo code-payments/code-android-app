@@ -12,6 +12,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.internal.OutgoingEncryption
+import com.flipcash.shared.chat.internal.sealing
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

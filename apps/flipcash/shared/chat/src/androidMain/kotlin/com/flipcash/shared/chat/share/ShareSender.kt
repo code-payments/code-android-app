@@ -7,9 +7,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** Most chats one share can go to, as on iOS. */
-const val MAX_SHARE_RECIPIENTS = 5
-
 /** Most images one share carries; the same ceiling as the composer's attachments. */
 const val MAX_SHARE_IMAGES = 10
 

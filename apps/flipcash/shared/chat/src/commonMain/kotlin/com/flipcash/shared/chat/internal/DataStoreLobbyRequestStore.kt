@@ -1,16 +1,15 @@
 package com.flipcash.shared.chat.internal
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.flipcash.app.core.storage.PreferencesFiles
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.LobbyRequestStore
 import com.getcode.utils.hexEncodedString
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -19,19 +18,19 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Instant
 
-private val Context.lobbyRequestsDataStore: DataStore<Preferences> by preferencesDataStore(name = "lobby_requests")
-
 /**
  * One string set per account, each entry `<chat id hex>:<entered_at epoch seconds>`. Per account
  * because one device serves several, and a request belongs to the account that sent it.
  */
 @Singleton
 internal class DataStoreLobbyRequestStore @Inject constructor(
-    @ApplicationContext context: Context,
+    preferencesFiles: PreferencesFiles,
     private val userManager: UserManager,
 ) : LobbyRequestStore {
 
-    private val dataStore = context.lobbyRequestsDataStore
+    private val dataStore: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+        produceFile = { preferencesFiles.file(DATASTORE_NAME) },
+    )
 
     override fun observe(): Flow<Map<ChatId, Instant>> =
         combine(
@@ -68,5 +67,9 @@ internal class DataStoreLobbyRequestStore @Inject constructor(
         val bytes = runCatching { raw.substring(0, separator).hexToByteArray() }.getOrNull() ?: return null
         val seconds = raw.substring(separator + 1).toLongOrNull() ?: return null
         return ChatId(bytes) to Instant.fromEpochSeconds(seconds)
+    }
+
+    private companion object {
+        const val DATASTORE_NAME = "lobby_requests"
     }
 }

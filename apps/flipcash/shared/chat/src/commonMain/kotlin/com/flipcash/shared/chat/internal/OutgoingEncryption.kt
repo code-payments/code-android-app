@@ -1,6 +1,5 @@
 package com.flipcash.shared.chat.internal
 
-import com.flipcash.app.blob.ChatMediaSealing
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.services.chat.ChatContentCrypto
@@ -70,13 +69,14 @@ interface OutgoingEncryption {
     }
 }
 
-/** Seals a photo's bytes for [chatId] under the blob id the upload reserved. */
+/**
+ * Seals a photo's bytes for [chatId] under the blob id the upload reserved. The Android upload path
+ * turns [sealWith] into a `ChatMediaSealing` with `sealing`.
+ */
 class BlobSealer(
     val chatId: ChatId,
-    private val sealWith: suspend (blobId: BlobId, plaintext: ByteArray) -> ByteArray,
-) {
-    fun sealing(plaintext: ByteArray) = ChatMediaSealing(chatId) { blobId -> sealWith(blobId, plaintext) }
-}
+    internal val sealWith: suspend (blobId: BlobId, plaintext: ByteArray) -> ByteArray,
+)
 
 data class Outgoing(
     val plaintext: List<MessageContent>,

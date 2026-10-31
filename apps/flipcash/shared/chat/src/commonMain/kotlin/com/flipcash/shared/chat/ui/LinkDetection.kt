@@ -1,7 +1,6 @@
 package com.flipcash.shared.chat.ui
 
 import com.flipcash.services.models.chat.LinkPreview
-import android.util.Patterns
 import com.flipcash.services.models.chat.MessageContent
 
 /** A link found in message text: the span it occupies, and the URL it resolves to. */
@@ -12,20 +11,27 @@ data class DetectedUrl(
 )
 
 /**
+ * The spans of [text] that Android's `Patterns.WEB_URL` matches, in order, as inclusive ranges.
+ *
+ * The pattern is the platform's own on Android and a port of it on the JVM, so both read the same
+ * candidates before the guards below run.
+ */
+internal expect fun findWebUrls(text: String): List<IntRange>
+
+/**
  * Every link in [text], in the order they appear.
  *
  * One pass, shared: the transcript underlines these and the chat mapper picks the card from the
  * same list, so "the first card-eligible link" and "the link the reader can see is a link" cannot
- * come apart. A second `Patterns.WEB_URL` pass elsewhere would drop the guards below and could
+ * come apart. A second web-URL pass elsewhere would drop the guards below and could
  * offer a card for a span the text never underlined.
  *
  * Offsets are UTF-16 code units into [text], half-open, matching `NSRange` on iOS.
  */
 fun detectUrls(text: String): List<DetectedUrl> = buildList {
-    val matcher = Patterns.WEB_URL.matcher(text)
-    while (matcher.find()) {
-        val start = matcher.start()
-        val end = text.extendOverMarkers(matcher.group() ?: continue, start, matcher.end())
+    for (candidate in findWebUrls(text)) {
+        val start = candidate.first
+        val end = text.extendOverMarkers(text.substring(start, candidate.last + 1), start, candidate.last + 1)
         val match = text.substring(start, end)
         if (!authorityIsAscii(match)) continue
         if (!endsOnAsciiBoundary(text, end)) continue

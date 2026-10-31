@@ -2,6 +2,9 @@ package com.flipcash.shared.chat.share
 
 import com.flipcash.services.models.chat.ChatId
 
+/** Most chats one share can go to, as on iOS. */
+const val MAX_SHARE_RECIPIENTS = 5
+
 /** The chats a share is addressed to, in the order they were picked, capped at [MAX_SHARE_RECIPIENTS]. */
 data class ShareRecipientSelection(val ids: List<ChatId> = emptyList()) {
 

@@ -33,6 +33,7 @@ import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.internal.DmOutgoingEncryption
+import com.flipcash.shared.chat.internal.sealing
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
 import com.getcode.chatcipher.ChatEncryptionPolicy
 import com.getcode.ed25519kmp.KeyPair
