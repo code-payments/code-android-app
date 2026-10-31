@@ -59,7 +59,7 @@ internal class RequestPayFlow(
 ) {
     data class State(
         val requestId: ID? = null,
-        /** Refetching before the sheet opens: the caller's Send button spins. */
+        /** Refetching before the sheet opens: the caller's Pay button spins. */
         val preparing: Boolean = false,
         /** The swipe sheet is up. */
         val open: Boolean = false,
