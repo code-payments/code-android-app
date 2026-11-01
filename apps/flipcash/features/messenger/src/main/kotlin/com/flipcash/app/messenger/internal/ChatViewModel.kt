@@ -1639,15 +1639,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     // place in the transcript that already does async per-item work. A citation of
                     // a message this device never stored resolves to null, and the bubble renders
                     // its body with no panel rather than an error.
-                    val quote = (content as? MessageContent.Reply)?.let { reply ->
-                        stateFlow.value.chatId
-                            ?.let { chatId ->
-                                quotedMessages.getOrPut(reply.repliedMessageId) {
-                                    Optional.ofNullable(chatCoordinator.getMessage(chatId, reply.repliedMessageId))
-                                }.orElse(null)
-                            }
-                            ?.toQuote()
-                    }
+                    val quote = content.quoteOrNull()
 
                     // Built from the same detection pass the bubble underlines with, so the
                     // link that becomes a card is always one the reader can see is a link.
@@ -1887,6 +1879,22 @@ internal class ChatViewModel @AssistedInject constructor(
         chatId = stateFlow.value.chatId,
         senderId = message.senderId,
     )
+
+    /**
+     * The quote panel for [this] when it is a reply, resolved from the stored original. Shared by the
+     * transcript and the pinned list so a reply reads the same in both. Null for any other content,
+     * and for a citation of a message this device never stored.
+     */
+    private suspend fun MessageContent.quoteOrNull(): ChatQuote? {
+        val reply = this as? MessageContent.Reply ?: return null
+        return stateFlow.value.chatId
+            ?.let { chatId ->
+                quotedMessages.getOrPut(reply.repliedMessageId) {
+                    Optional.ofNullable(chatCoordinator.getMessage(chatId, reply.repliedMessageId))
+                }.orElse(null)
+            }
+            ?.toQuote()
+    }
 
     private suspend fun ChatMessage.toQuote(): ChatQuote {
         val body = content.firstOrNull()
@@ -4395,6 +4403,7 @@ internal class ChatViewModel @AssistedInject constructor(
                     isFromSelf = message.isFromSelf,
                     timestamp = message.timestamp,
                     isEdited = message.lastEditedTs != null,
+                    quote = content.quoteOrNull(),
                     receivedPart = (content as? MessageContent.Cash)?.partFor(selfId),
                     groupSendRecipients = (content as? MessageContent.Cash)
                         ?.takeIf { stateFlow.value.chatType == ChatType.GROUP }
