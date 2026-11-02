@@ -10,6 +10,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.AppForeground
 import com.flipcash.shared.chat.ChatArchiveStore
+import com.flipcash.shared.chat.ChatMarkedUnreadStore
 import com.flipcash.shared.chat.HostInvites
 import com.flipcash.shared.chat.LobbyUpdateSink
 import com.flipcash.shared.chat.PaymentRequests
@@ -110,6 +111,7 @@ class RealChatCoordinator @Inject constructor(
     private val hostInvites: HostInvites? = null,
     private val groupKeyEnvelopes: GroupKeyEnvelopeStore? = null,
     private val appForeground: AppForeground = AppForeground.None,
+    private val markedUnreadStore: ChatMarkedUnreadStore = ChatMarkedUnreadStore.None,
 ) : ChatCoordinator,
     SessionListener,
     DefaultLifecycleObserver,
@@ -261,6 +263,17 @@ class RealChatCoordinator @Inject constructor(
     }
 
     /**
+     * Opening a chat clears its unread mark. Every way into a chat (a row, a notification, a link)
+     * makes the chat screen call this, so this is the one place the mark is cleared on open.
+     * [onStart] restores a backgrounded chat through the delegate directly: returning to a chat
+     * the viewer already had open is not opening it again.
+     */
+    override fun setActiveChatId(chatId: ChatId?) {
+        messagingDelegate.setActiveChatId(chatId)
+        if (chatId != null) scope.launch { markedUnreadStore.clear(chatId) }
+    }
+
+    /**
      * Also drops the backgrounded stash, which [onStop] fills and [onStart] restores from. A chat
      * screen destroyed while the app is away is gone by the time the app returns; without this it
      * would be restored as the active chat with nothing on screen, silencing its notifications.
@@ -342,6 +355,8 @@ class RealChatCoordinator @Inject constructor(
             // record is left behind, harmlessly, because the chat is no longer a member chat and
             // so is in neither feed.
             archiveStore.unarchive(chatId)
+            // And its unread mark, for the same reason.
+            markedUnreadStore.clear(chatId)
             // The stored requests went with the membership change; this is the in-memory copy.
             // A removal or remote leave has no path here, and its cards stay until the session ends.
             paymentRequests?.forget(chatId)
@@ -451,6 +466,7 @@ class RealChatCoordinator @Inject constructor(
         // the same file — and account deletion is the one path that is meant to erase them.
         draftStore.clearAll()
         archiveStore.clearAll()
+        markedUnreadStore.clearAll()
         paymentRequests?.clearStored()
         // Wrapped chat keys, stored per account like the rows above.
         groupKeyEnvelopes?.clear()

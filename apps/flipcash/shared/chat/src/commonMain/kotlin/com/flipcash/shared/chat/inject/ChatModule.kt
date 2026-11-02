@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.inject
 
 import com.flipcash.shared.chat.ChatArchiveStore
+import com.flipcash.shared.chat.ChatMarkedUnreadStore
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.HostLobbies
@@ -24,6 +25,7 @@ import com.flipcash.shared.chat.internal.MentionSuggestionPool
 import com.flipcash.shared.chat.internal.ServerRosterSearchSource
 import com.flipcash.shared.chat.internal.OutgoingEncryption
 import com.flipcash.shared.chat.internal.RealChatArchiveStore
+import com.flipcash.shared.chat.internal.RealChatMarkedUnreadStore
 import com.flipcash.shared.chat.internal.RealChatCoordinator
 import com.flipcash.shared.chat.internal.RealChatDraftStore
 import com.flipcash.app.persistence.sources.GroupKeyEnvelopeDataSource
@@ -72,6 +74,12 @@ abstract class ChatModule {
     abstract fun bindChatArchiveStore(
         impl: RealChatArchiveStore
     ): ChatArchiveStore
+
+    @Binds
+    @Singleton
+    abstract fun bindChatMarkedUnreadStore(
+        impl: RealChatMarkedUnreadStore
+    ): ChatMarkedUnreadStore
 
     @Binds
     internal abstract fun bindLobbyRequestStore(
