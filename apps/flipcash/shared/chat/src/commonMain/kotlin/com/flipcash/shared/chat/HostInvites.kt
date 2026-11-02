@@ -19,6 +19,12 @@ import com.getcode.chatcipher.InviteCipher
 import com.getcode.chatcipher.InviteLink
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.CancellationException
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -62,8 +68,15 @@ enum class InviteUses(val maxUses: Int) {
 
 data class InviteSettings(val expiry: InviteExpiry, val uses: InviteUses) {
     companion object {
-        /** The current link's settings when the sheet makes one: 7 days, no use limit. */
+        /** New Invite Link's starting presets in Manage Invites: 7 days, no use limit. */
         val Default = InviteSettings(InviteExpiry.SevenDays, InviteUses.NoLimit)
+
+        /**
+         * The current link's settings when the app makes it (the host's first link, or the lazy
+         * create on first share): never expires, no use limit. A revoked first link is not
+         * replaced by one that lapses.
+         */
+        val CurrentLink = InviteSettings(InviteExpiry.Never, InviteUses.NoLimit)
     }
 }
 
@@ -110,6 +123,7 @@ class HostInvites internal constructor(
     private val keys: ChatKeySource,
     private val cipher: InviteCipher,
     private val clock: Clock,
+    private val scope: CoroutineScope,
 ) {
     @Inject
     constructor(
@@ -117,7 +131,7 @@ class HostInvites internal constructor(
         groupKeys: GroupKeySource,
         keys: ChatKeySource,
         cipher: InviteCipher,
-    ) : this(chatController, groupKeys, keys, cipher, Clock.System)
+    ) : this(chatController, groupKeys, keys, cipher, Clock.System, CoroutineScope(SupervisorJob() + Dispatchers.Default))
 
     private val invites = MutableStateFlow<Map<ChatId, List<HostInvite>>>(emptyMap())
     private val access = MutableStateFlow<Map<ChatId, Boolean>>(emptyMap())
@@ -155,9 +169,11 @@ class HostInvites internal constructor(
     }
 
     /** Fetches every page of [chatId]'s invites and replaces what was held for it. */
-    suspend fun load(chatId: ChatId): Result<List<HostInvite>> {
+    suspend fun load(chatId: ChatId): Result<List<HostInvite>> = createLock.withLock {
+        // Under the create lock, so a load that opens while a create is in flight waits for it and
+        // reads the invite it made, rather than writing a list without it over the new entry.
         val started = epoch
-        return catching { loadAll(chatId) }.onSuccess { list ->
+        catching { loadAll(chatId) }.onSuccess { list ->
             if (started == epoch) invites.update { it + (chatId to list) }
         }
     }
@@ -183,12 +199,31 @@ class HostInvites internal constructor(
 
     /**
      * The link the sheet shares, made when there is none: the tap on Share Invite Link (spec
-     * Decision 9, Open 9). The new link is 7 days with no use limit. [load] has to have run first,
+     * Decision 9, Open 9). The new link never expires and has no use limit
+     * ([InviteSettings.CurrentLink]). [load] has to have run first,
      * or a link that exists but was never fetched is not seen and a second one is made. The check
      * runs again under the create lock, so two callers waiting on it make one link between them.
      */
     suspend fun currentOrCreate(chatId: ChatId): InviteCreation = createLock.withLock {
-        current(chatId)?.let { InviteCreation.Created(it) } ?: createLocked(chatId, InviteSettings.Default)
+        current(chatId)?.let { InviteCreation.Created(it) } ?: createLocked(chatId, InviteSettings.CurrentLink)
+    }
+
+    private val firstInviteStarted = ConcurrentHashMap.newKeySet<ChatId>()
+
+    /**
+     * Makes the host's first invite link for a group just created: [currentOrCreate], so it never
+     * expires, in a scope of its own so leaving the create form does not cancel it. Once per chat
+     * for the life of the process; a failure is logged and left to the lazy create on first share.
+     * A caller that needs the link meanwhile waits on the same create lock and finds this one.
+     */
+    fun startFirstInvite(chatId: ChatId) {
+        if (!firstInviteStarted.add(chatId)) return
+        scope.launch {
+            val result = currentOrCreate(chatId)
+            if (result !is InviteCreation.Created) {
+                trace(tag = "HostInvites", message = "First invite link not made: ${result::class.simpleName}", type = TraceType.Silent)
+            }
+        }
     }
 
     /**
@@ -253,6 +288,7 @@ class HostInvites internal constructor(
         invites.value = emptyMap()
         access.value = emptyMap()
         pending.clear()
+        firstInviteStarted.clear()
     }
 
     private sealed interface AttemptResult {

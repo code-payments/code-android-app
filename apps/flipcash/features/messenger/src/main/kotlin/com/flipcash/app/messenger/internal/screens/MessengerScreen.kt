@@ -131,6 +131,7 @@ import com.flipcash.shared.chat.ui.request.LocalPaymentRequestCards
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.utils.base58
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.messenger.internal.request.RequestPaySheet
 import com.flipcash.app.messenger.internal.request.RequestPayViewModel
 
@@ -187,6 +188,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // The server's can_invite as the chat store carries it, the same field the group profile's
     // Share button is built on, so no extra call when a chat opens.
     val viewerCanInvite = state.viewerState?.permissions?.canInvite == true
+    val inviteHost = hiltViewModel<InviteHostViewModel>()
 
     // Here rather than in the action handler because the lookup comes first: the tap only knows a
     // handle, and where it leads is the view model's to decide once the handle has an answer.
@@ -801,11 +803,12 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             )
                             // Both branches of the group profile's Share button; see GroupProfileScreen.
                             // The composer may have the keyboard up; it closes before the sheet opens.
-                            keyboard.hideIfVisible {
-                                if (viewerCanInvite) {
-                                    navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
-                                } else {
-                                    navigator.openGroupInvite()
+                            scope.launch {
+                                // Straight to the share sheet, not the host's Invite People sheet;
+                                // the profile's Share button still opens that one.
+                                val approve = state.chatId?.let { inviteHost.approveOn(it) } == true
+                                keyboard.hideIfVisible {
+                                    navigator.openInvitePeople(invitePeopleTarget(viewerCanInvite, approve))
                                 }
                             }
                         },
