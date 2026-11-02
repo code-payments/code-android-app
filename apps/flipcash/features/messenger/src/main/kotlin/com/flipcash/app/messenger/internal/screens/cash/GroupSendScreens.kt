@@ -242,7 +242,7 @@ internal fun GroupSendConfirmSheet(
                         color = CodeTheme.colors.textMain,
                     )
                     Text(
-                        text = total.formatted(),
+                        text = stringResource(R.string.label_groupSendTotal, total.formatted()),
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
                     )
