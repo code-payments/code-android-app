@@ -5,8 +5,8 @@ import com.flipcash.app.messenger.internal.ChatViewModel.Event
 import com.flipcash.app.messenger.internal.ChatViewModel.State
 import com.flipcash.shared.chat.canReact
 
-/** Selecting a message and acting on it: copy, edit, delete, reply, and mention suggestions. Null when [event] belongs to another area. */
-internal fun reduceMessageAction(event: Event): ((State) -> State)? =
+/** Selecting a message and acting on it: copy, edit, delete, reply, and mention suggestions. Only the events [stateReducer] routes here arrive; any other is a routing bug. */
+internal fun reduceMessageAction(event: Event): (State) -> State =
     when (event) {
         is Event.ToggleMessageSelection -> { state ->
             // By message rather than by row: a message split around its card is one
@@ -88,5 +88,5 @@ internal fun reduceMessageAction(event: Event): ((State) -> State)? =
         // Closed at once rather than waiting for the inserted space to reach the query
         // observer, so the list doesn't linger a frame over the text it just wrote.
         is Event.PickMention -> { state -> state.copy(mentionSuggestions = emptyList()) }
-        else -> null
+        else -> error("reduceMessageAction does not handle $event")
     }

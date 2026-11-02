@@ -6,8 +6,8 @@ import com.flipcash.shared.chat.ui.media.MAX_STAGED_PHOTOS
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.take
 
-/** Photos staged in the composer, their uploads, and the composer's link preview. Null when [event] belongs to another area. */
-internal fun reduceComposerPhotos(event: Event): ((State) -> State)? =
+/** Photos staged in the composer, their uploads, and the composer's link preview. Only the events [stateReducer] routes here arrive; any other is a routing bug. */
+internal fun reduceComposerPhotos(event: Event): (State) -> State =
     when (event) {
         is Event.StagePhotos -> { state -> state }
         is Event.CaptureStarted -> { state -> state }
@@ -32,5 +32,5 @@ internal fun reduceComposerPhotos(event: Event): ((State) -> State)? =
         is Event.PhotosRestored -> { state ->
             state.copy(stagedPhotos = (event.photos + state.stagedPhotos).take(MAX_STAGED_PHOTOS))
         }
-        else -> null
+        else -> error("reduceComposerPhotos does not handle $event")
     }

@@ -6,8 +6,8 @@ import com.flipcash.app.messenger.internal.ChatViewModel.State
 import com.flipcash.shared.chat.UnreadBoundary
 import com.getcode.view.LoadingSuccessState
 
-/** Sending: the message and group-send flows, resolve outcomes, and the cash-link taps. Null when [event] belongs to another area. */
-internal fun reduceSend(event: Event, lifetime: UnreadDividerLifetime): ((State) -> State)? =
+/** Sending: the message and group-send flows, resolve outcomes, and the cash-link taps. Only the events [stateReducer] routes here arrive; any other is a routing bug. */
+internal fun reduceSend(event: Event, lifetime: UnreadDividerLifetime): (State) -> State =
     when (event) {
         Event.OnSendCash -> { state -> state }
         Event.OnStartMessageInput -> { state -> state.copy(messageInputRequested = true) }
@@ -52,5 +52,5 @@ internal fun reduceSend(event: Event, lifetime: UnreadDividerLifetime): ((State)
         // keeps saying what it said, and the claim comes back as its own signal.
         is Event.CashLinkOpened -> { state -> state }
         is Event.CashLinkRefused -> { state -> state }
-        else -> null
+        else -> error("reduceSend does not handle $event")
     }

@@ -3,8 +3,8 @@ package com.flipcash.app.messenger.internal
 import com.flipcash.app.messenger.internal.ChatViewModel.Event
 import com.flipcash.app.messenger.internal.ChatViewModel.State
 
-/** Jumping to a message and the stack of places to return to. Null when [event] belongs to another area. */
-internal fun reduceJumpReturn(event: Event): ((State) -> State)? =
+/** Jumping to a message and the stack of places to return to. Only the events [stateReducer] routes here arrive; any other is a routing bug. */
+internal fun reduceJumpReturn(event: Event): (State) -> State =
     when (event) {
         // The request itself changes nothing: the target is only worth holding once the
         // walk's bound resolves, and that read is what decides whether it can be reached.
@@ -35,5 +35,5 @@ internal fun reduceJumpReturn(event: Event): ((State) -> State)? =
             state.copy(jumpTarget = null, jumpBudget = null, openingAtMessage = false)
         }
         Event.JumpUnreachable -> { state -> state.copy(openingAtMessage = false) }
-        else -> null
+        else -> error("reduceJumpReturn does not handle $event")
     }

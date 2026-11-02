@@ -3,8 +3,8 @@ package com.flipcash.app.messenger.internal
 import com.flipcash.app.messenger.internal.ChatViewModel.Event
 import com.flipcash.app.messenger.internal.ChatViewModel.State
 
-/** The quick reaction strip and toggling a reaction. Null when [event] belongs to another area. */
-internal fun reduceReactions(event: Event): ((State) -> State)? =
+/** The quick reaction strip and toggling a reaction. Only the events [stateReducer] routes here arrive; any other is a routing bug. */
+internal fun reduceReactions(event: Event): (State) -> State =
     when (event) {
         // The toggle itself is handled in initMessageActionHandlers (it calls the
         // coordinator); the reducer's only job is to take the bubble out of selection mode
@@ -25,5 +25,5 @@ internal fun reduceReactions(event: Event): ((State) -> State)? =
             }
         }
         is Event.RefreshReactionIds -> { state -> state }
-        else -> null
+        else -> error("reduceReactions does not handle $event")
     }

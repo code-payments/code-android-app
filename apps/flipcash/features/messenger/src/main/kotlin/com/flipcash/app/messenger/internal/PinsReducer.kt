@@ -3,8 +3,8 @@ package com.flipcash.app.messenger.internal
 import com.flipcash.app.messenger.internal.ChatViewModel.Event
 import com.flipcash.app.messenger.internal.ChatViewModel.State
 
-/** Pinned messages and the pin bar. Null when [event] belongs to another area. */
-internal fun reducePins(event: Event): ((State) -> State)? =
+/** Pinned messages and the pin bar. Only the events [stateReducer] routes here arrive; any other is a routing bug. */
+internal fun reducePins(event: Event): (State) -> State =
     when (event) {
         is Event.PinsRead -> { state ->
             val pins = state.pins.read(event.pins, event.version)
@@ -24,5 +24,5 @@ internal fun reducePins(event: Event): ((State) -> State)? =
         is Event.UnpinMessage -> { state -> state.copy(selection = null, confirmingDelete = false) }
         is Event.PinCapReached -> { state -> state.copy(waitingPin = event.waiting) }
         Event.PinBarTapped -> { state -> state.copy(pinBarIndex = state.pins.stepAfter(state.pinBarIndex)) }
-        else -> null
+        else -> error("reducePins does not handle $event")
     }

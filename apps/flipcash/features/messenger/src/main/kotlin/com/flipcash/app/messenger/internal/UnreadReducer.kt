@@ -4,8 +4,8 @@ import com.flipcash.app.messenger.internal.ChatViewModel.Event
 import com.flipcash.app.messenger.internal.ChatViewModel.State
 import com.flipcash.shared.chat.UnreadBoundary
 
-/** The unread boundary, the badge and the arrival cutoff, plus the gated landing. Null when [event] belongs to another area. */
-internal fun reduceUnread(event: Event): ((State) -> State)? =
+/** The unread boundary, the badge and the arrival cutoff, plus the gated landing. Only the events [stateReducer] routes here arrive; any other is a routing bug. */
+internal fun reduceUnread(event: Event): (State) -> State =
     when (event) {
         is Event.GatedLandingChanged -> { state -> state.copy(gatedLanding = event.item) }
         is Event.UnreadBoundaryResolved -> { state ->
@@ -19,5 +19,5 @@ internal fun reduceUnread(event: Event): ((State) -> State)? =
         Event.UserScrolledTranscript, Event.OwnMessageSent -> { state ->
             state.copy(unreadBadgeFrozen = false)
         }
-        else -> null
+        else -> error("reduceUnread does not handle $event")
     }

@@ -11,8 +11,8 @@ import com.flipcash.shared.chat.groupAccess
 import com.flipcash.shared.chat.speakerBlock
 import com.getcode.view.LoadingSuccessState
 
-/** Opening a chat and what it resolves: subject, group, access, lobby, members, join requests, and the chat-wide inputs (token, limits, policy). Null when [event] belongs to another area. */
-internal fun reduceChatOpen(event: Event): ((State) -> State)? =
+/** Opening a chat and what it resolves: subject, group, access, lobby, members, join requests, and the chat-wide inputs (token, limits, policy). Only the events [stateReducer] routes here arrive; any other is a routing bug. */
+internal fun reduceChatOpen(event: Event): (State) -> State =
     when (event) {
         is Event.OnChatOpened -> { state ->
             when (val id = event.identifier) {
@@ -145,5 +145,5 @@ internal fun reduceChatOpen(event: Event): ((State) -> State)? =
         is Event.AdvanceReadPointer -> { state -> state }
         is Event.ChatDeactivated -> { state -> state.copy(isAnonymous = event.isReadOnly) }
         is Event.MessagePolicyChanged -> { state -> state.copy(messagePolicy = event.policy) }
-        else -> null
+        else -> error("reduceChatOpen does not handle $event")
     }
