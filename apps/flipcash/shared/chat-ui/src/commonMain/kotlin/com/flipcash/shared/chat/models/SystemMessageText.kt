@@ -1,6 +1,14 @@
 package com.flipcash.shared.chat.models
 
-import com.flipcash.core.R
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chat_system_added
+import com.flipcash.core.resources.label_chat_system_addedSelf
+import com.flipcash.core.resources.label_chat_system_joined
+import com.flipcash.core.resources.label_chat_system_joinedSelf
+import com.flipcash.core.resources.label_chat_system_joinedSelfViaInvite
+import com.flipcash.core.resources.label_chat_system_joinedViaInvite
+import com.flipcash.core.resources.label_chat_system_joinedViaYourInvite
+import com.flipcash.core.resources.label_chat_system_selfAdded
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.isSystemBlank
 import com.getcode.opencode.model.core.ID
@@ -37,33 +45,33 @@ private fun MessageContent.SystemEvent.worded(
             // or the other, and the inviter is who the link belongs to.
             inviter != null -> when {
                 joinedIsSelf -> nameOf(inviter)
-                    ?.let { resources.getString(R.string.label_chat_system_joinedSelfViaInvite, it) }
+                    ?.let { resources.getString(Res.string.label_chat_system_joinedSelfViaInvite, it) }
                 selfId != null && inviter == selfId -> nameOf(userId)
-                    ?.let { resources.getString(R.string.label_chat_system_joinedViaYourInvite, it) }
+                    ?.let { resources.getString(Res.string.label_chat_system_joinedViaYourInvite, it) }
                 else -> {
                     val joinedName = nameOf(userId)
                     val inviterName = nameOf(inviter)
                     if (joinedName != null && inviterName != null) {
-                        resources.getString(R.string.label_chat_system_joinedViaInvite, joinedName, inviterName)
+                        resources.getString(Res.string.label_chat_system_joinedViaInvite, joinedName, inviterName)
                     } else {
                         null
                     }
                 }
             }
             admitter == null -> if (joinedIsSelf) {
-                resources.getString(R.string.label_chat_system_joinedSelf)
+                resources.getString(Res.string.label_chat_system_joinedSelf)
             } else {
-                nameOf(userId)?.let { resources.getString(R.string.label_chat_system_joined, it) }
+                nameOf(userId)?.let { resources.getString(Res.string.label_chat_system_joined, it) }
             }
             selfId != null && admitter == selfId ->
-                nameOf(userId)?.let { resources.getString(R.string.label_chat_system_selfAdded, it) }
+                nameOf(userId)?.let { resources.getString(Res.string.label_chat_system_selfAdded, it) }
             joinedIsSelf ->
-                nameOf(admitter)?.let { resources.getString(R.string.label_chat_system_addedSelf, it) }
+                nameOf(admitter)?.let { resources.getString(Res.string.label_chat_system_addedSelf, it) }
             else -> {
                 val admitterName = nameOf(admitter)
                 val joinedName = nameOf(userId)
                 if (admitterName != null && joinedName != null) {
-                    resources.getString(R.string.label_chat_system_added, admitterName, joinedName)
+                    resources.getString(Res.string.label_chat_system_added, admitterName, joinedName)
                 } else {
                     null
                 }
@@ -100,10 +108,10 @@ fun MessageContent.System.userLinks(
     val name = nameOf(inviter) ?: return emptyList()
     val marked = when {
         selfId != null && joined.userId == selfId ->
-            resources.getString(R.string.label_chat_system_joinedSelfViaInvite, INVITER_MARKER)
+            resources.getString(Res.string.label_chat_system_joinedSelfViaInvite, INVITER_MARKER)
         else -> {
             val joinedName = nameOf(joined.userId) ?: return emptyList()
-            resources.getString(R.string.label_chat_system_joinedViaInvite, joinedName, INVITER_MARKER)
+            resources.getString(Res.string.label_chat_system_joinedViaInvite, joinedName, INVITER_MARKER)
         }
     }
     val at = marked.indexOf(INVITER_MARKER)

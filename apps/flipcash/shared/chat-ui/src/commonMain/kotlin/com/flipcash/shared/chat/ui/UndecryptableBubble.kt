@@ -1,5 +1,13 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_updateFlipcash
+import com.flipcash.core.resources.hint_messageUndecryptable_askToResend
+import com.flipcash.core.resources.hint_messageUndecryptable_tryAgain
+import com.flipcash.core.resources.ic_message_undecryptable
+import com.flipcash.core.resources.label_messageUndecryptable
+import com.flipcash.core.resources.subtitle_messageUnsupported
+import com.flipcash.core.resources.title_messageUnsupported
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,8 +32,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -131,12 +139,12 @@ fun UndecryptableBubble(
             onAction = onAction,
         )
         is UndecryptableHint.AskToResend -> HintedUndecryptableBubble(
-            hint = stringResource(R.string.hint_messageUndecryptable_askToResend, hint.firstName),
+            hint = stringResource(Res.string.hint_messageUndecryptable_askToResend, hint.firstName),
             modifier = modifier,
             maxWidth = maxWidth,
         )
         UndecryptableHint.TrySendingAgain -> HintedUndecryptableBubble(
-            hint = stringResource(R.string.hint_messageUndecryptable_tryAgain),
+            hint = stringResource(Res.string.hint_messageUndecryptable_tryAgain),
             modifier = modifier,
             maxWidth = maxWidth,
         )
@@ -173,12 +181,12 @@ private fun UnsupportedMessageBubble(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(
-            text = stringResource(R.string.title_messageUnsupported),
+            text = stringResource(Res.string.title_messageUnsupported),
             style = CodeTheme.typography.textMedium,
             color = Color.White.copy(alpha = 0.9f),
         )
         Text(
-            text = stringResource(R.string.subtitle_messageUnsupported),
+            text = stringResource(Res.string.subtitle_messageUnsupported),
             style = CodeTheme.typography.caption,
             color = Color.White.copy(alpha = 0.55f),
         )
@@ -216,13 +224,13 @@ private fun HintedUndecryptableBubble(
         ) {
             Icon(
                 modifier = Modifier.size(16.dp),
-                painter = painterResource(R.drawable.ic_message_undecryptable),
+                painter = painterResource(Res.drawable.ic_message_undecryptable),
                 contentDescription = null,
                 // The exported glyph carries its own colour.
                 tint = Color.Unspecified,
             )
             Text(
-                text = stringResource(R.string.label_messageUndecryptable),
+                text = stringResource(Res.string.label_messageUndecryptable),
                 style = CodeTheme.typography.textMedium.copy(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
@@ -275,7 +283,7 @@ private fun Preview_UndecryptableBubble_UpdateAction() {
         hint = UndecryptableHint.UpdateApp,
         modifier = Modifier.padding(16.dp),
         maxWidth = 258.dp,
-        actionLabel = stringResource(R.string.action_updateFlipcash),
+        actionLabel = stringResource(Res.string.action_updateFlipcash),
     )
 }
 

@@ -1,5 +1,9 @@
 package com.flipcash.shared.chat.ui
 
+// kmp-audit: needs a bubble or link card that renders CodeButton, which lives in :ui:components androidMain (RuntimeShader frosted glass)
+
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.error_title_usernameNotFound
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,7 +32,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -199,7 +203,7 @@ private fun Identity(
     val detail = if (resolved != null) {
         resolved.joined
     } else {
-        stringResource(R.string.error_title_usernameNotFound)
+        stringResource(Res.string.error_title_usernameNotFound)
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(UserLinkCardDefaults.LINE_GAP)) {

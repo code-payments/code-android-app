@@ -6,6 +6,15 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_addReaction
+import com.flipcash.core.resources.action_forwardMessage
+import com.flipcash.core.resources.action_reply
+import com.flipcash.core.resources.description_chatMediaClose
+import com.flipcash.core.resources.description_chatMediaReactWith
+import com.flipcash.core.resources.description_chatMediaSave
+import com.flipcash.core.resources.label_chat_media_photo
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.foundation.border
@@ -80,13 +89,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
 import coil3.compose.AsyncImagePainter
 import coil3.compose.rememberAsyncImagePainter
-import com.flipcash.core.R
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -343,7 +349,7 @@ fun ChatMediaViewer(
                 }
                 Image(
                     painter = painter,
-                    contentDescription = stringResource(R.string.label_chat_media_photo),
+                    contentDescription = stringResource(Res.string.label_chat_media_photo),
                     contentScale = scale,
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -353,7 +359,7 @@ fun ChatMediaViewer(
         val chrome = Modifier.graphicsLayer { alpha = (frame?.invoke()?.chromeAlpha ?: 1f) * chromeShown }
         ViewerButton(
             icon = Icons.Filled.Close,
-            description = stringResource(R.string.description_chatMediaClose),
+            description = stringResource(Res.string.description_chatMediaClose),
             enabled = interactive,
             visible = chromeVisible,
             tag = VIEWER_CLOSE_TAG,
@@ -414,7 +420,7 @@ fun ChatMediaViewer(
                 if (onReply != null) {
                     ViewerPillButton(
                         icon = Icons.AutoMirrored.Filled.Reply,
-                        description = stringResource(R.string.action_reply),
+                        description = stringResource(Res.string.action_reply),
                         enabled = interactive && chromeVisible,
                         tag = VIEWER_REPLY_TAG,
                         onClick = onReply,
@@ -424,7 +430,7 @@ fun ChatMediaViewer(
             ViewerPill(hazeState) {
                 ViewerPillButton(
                     icon = Icons.Outlined.Download,
-                    description = stringResource(R.string.description_chatMediaSave),
+                    description = stringResource(Res.string.description_chatMediaSave),
                     enabled = fullImageLoaded && interactive && chromeVisible,
                     tag = VIEWER_SAVE_TAG,
                     onClick = onSave,
@@ -432,7 +438,7 @@ fun ChatMediaViewer(
                 if (onForward != null) {
                     ViewerPillButton(
                         icon = ForwardArrow,
-                        description = stringResource(R.string.action_forwardMessage),
+                        description = stringResource(Res.string.action_forwardMessage),
                         enabled = interactive && chromeVisible,
                         tag = VIEWER_FORWARD_TAG,
                         onClick = onForward,
@@ -590,6 +596,6 @@ private fun ReactionChip(
 
 @Composable
 private fun reactDescription(own: List<String>): String {
-    val base = stringResource(R.string.action_addReaction)
-    return if (own.isEmpty()) base else stringResource(R.string.description_chatMediaReactWith, base, own.joinToString(" "))
+    val base = stringResource(Res.string.action_addReaction)
+    return if (own.isEmpty()) base else stringResource(Res.string.description_chatMediaReactWith, base, own.joinToString(" "))
 }

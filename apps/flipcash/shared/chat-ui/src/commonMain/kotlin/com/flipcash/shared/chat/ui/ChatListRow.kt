@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.ui
 
-import android.text.format.DateFormat
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chatReceipt_yesterday
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,13 +19,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
-import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
 import com.getcode.util.formatLocalized
@@ -126,8 +125,7 @@ fun UnreadBadge(count: Int?, modifier: Modifier = Modifier) {
 
 @Composable
 fun formatLastActivity(instant: Instant): String {
-    val context = LocalContext.current
-    val is24Hour = DateFormat.is24HourFormat(context)
+    val is24Hour = is24HourClock()
     val tz = TimeZone.currentSystemDefault()
     val todayDate = Clock.System.now().toLocalDateTime(tz).date
     val messageDate = instant.toLocalDateTime(tz).date
@@ -137,7 +135,7 @@ fun formatLastActivity(instant: Instant): String {
 
     return when {
         dayDiff == 0L -> time
-        dayDiff == 1L -> stringResource(R.string.label_chatReceipt_yesterday)
+        dayDiff == 1L -> stringResource(Res.string.label_chatReceipt_yesterday)
         dayDiff in 2L..6L -> instant.formatLocalized("EEEE")
         messageDate.year == todayDate.year -> instant.formatLocalized("MMM d")
         else -> instant.formatLocalized("MMM d, yyyy")

@@ -1,6 +1,8 @@
 package com.flipcash.shared.chat.ui
 
-import android.os.SystemClock
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_addPaidReaction
+import com.flipcash.core.resources.action_addReaction
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
@@ -61,7 +63,7 @@ import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -76,7 +78,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.flipcash.core.R
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.ReactionSettler
 import com.getcode.theme.CodeTheme
@@ -473,7 +474,7 @@ private const val BOOST_KEY = "\u0000boost"
 
 
 /** The row's clock, in monotonic milliseconds; tests swap it for the compose test clock. */
-internal val LocalPillRowClock = staticCompositionLocalOf<() -> Long> { { SystemClock.uptimeMillis() } }
+internal val LocalPillRowClock = staticCompositionLocalOf<() -> Long> { { System.nanoTime() / 1_000_000 } }
 
 /**
  * The tap grace: for [ReactionSettler.HIT_GRACE_MS] after a beat changes where anything sits (a
@@ -806,7 +807,7 @@ private fun PlusChip(size: Dp, onClick: () -> Unit, modifier: Modifier = Modifie
         // The strip's add-reaction icon, as iOS reuses its strip asset here.
         Icon(
             imageVector = Icons.Outlined.AddReaction,
-            contentDescription = stringResource(R.string.action_addReaction),
+            contentDescription = stringResource(Res.string.action_addReaction),
             tint = CodeTheme.colors.textMain,
             modifier = Modifier.size(20.dp),
         )
@@ -816,7 +817,7 @@ private fun PlusChip(size: Dp, onClick: () -> Unit, modifier: Modifier = Modifie
 /** The currency-symbol chip that leads the row ("$" for a dollar viewer): it opens the picker for a paid reaction. */
 @Composable
 private fun BoostChip(size: Dp, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val description = stringResource(R.string.action_addPaidReaction)
+    val description = stringResource(Res.string.action_addPaidReaction)
     Box(
         modifier = modifier
             .testTag("reaction_pill_boost")

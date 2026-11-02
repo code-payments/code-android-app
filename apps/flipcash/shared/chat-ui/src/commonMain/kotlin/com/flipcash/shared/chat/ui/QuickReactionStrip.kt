@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_addReaction
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -61,8 +63,7 @@ import androidx.compose.ui.window.PopupProperties
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.flipcash.shared.chat.reactions.ReactionStrip
-import androidx.compose.ui.res.stringResource
-import com.flipcash.core.R
+import org.jetbrains.compose.resources.stringResource
 import com.getcode.ui.components.glass.floatingGlass
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.blur.HazeBlurStyle
@@ -269,7 +270,7 @@ fun QuickReactionStrip(
         ) {
             Icon(
                 imageVector = Icons.Outlined.AddReaction,
-                contentDescription = stringResource(R.string.action_addReaction),
+                contentDescription = stringResource(Res.string.action_addReaction),
                 tint = Color.White,
                 modifier = Modifier.size(22.dp),
             )
@@ -383,7 +384,7 @@ private fun emojiStyle(size: TextUnit) = TextStyle(
         alignment = LineHeightStyle.Alignment.Center,
         trim = LineHeightStyle.Trim.Both,
     ),
-    platformStyle = PlatformTextStyle(includeFontPadding = false),
+    platformStyle = noFontPaddingStyle(),
 )
 
 /** Where [QuickReactionStripPopup] puts the strip, in window pixels. */

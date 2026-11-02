@@ -1,5 +1,11 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.alert_boost_title
+import com.flipcash.core.resources.alert_reaction_title
+import com.flipcash.core.resources.alert_several_title
+import com.flipcash.core.resources.alert_someone
+import com.flipcash.core.resources.label_inviteLinkPreview
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -26,15 +32,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.flipcash.core.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.chat.alerts.ReactionAlertContent
 import com.flipcash.shared.chat.alerts.ReactionAlertContent.Kind
@@ -156,7 +161,7 @@ private fun AlertRow(content: ReactionAlertContent) {
             )
             if (content.quote.isNotEmpty()) {
                 Text(
-                    text = labelInviteLinks(content.quote, stringResource(R.string.label_inviteLinkPreview)),
+                    text = labelInviteLinks(content.quote, stringResource(Res.string.label_inviteLinkPreview)),
                     style = CodeTheme.typography.caption,
                     color = CodeTheme.colors.textSecondary,
                     maxLines = 1,
@@ -187,13 +192,13 @@ private fun AlertRow(content: ReactionAlertContent) {
 
 @Composable
 private fun title(content: ReactionAlertContent): String {
-    val first = content.actorNames.firstOrNull() ?: stringResource(R.string.alert_someone)
+    val first = content.actorNames.firstOrNull() ?: stringResource(Res.string.alert_someone)
     return when (content.kind) {
-        Kind.Reaction -> stringResource(R.string.alert_reaction_title, first)
-        Kind.Boost -> stringResource(R.string.alert_boost_title, first, content.emojis.last())
+        Kind.Reaction -> stringResource(Res.string.alert_reaction_title, first)
+        Kind.Boost -> stringResource(Res.string.alert_boost_title, first, content.emojis.last())
         Kind.Several -> {
             val others = content.actorNames.size - 1
-            pluralStringResource(R.plurals.alert_several_title, others, first, others)
+            pluralStringResource(Res.plurals.alert_several_title, others, first, others)
         }
     }
 }

@@ -1,5 +1,9 @@
 package com.flipcash.shared.chat.ui.media
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.description_chatPhotoFailed
+import com.flipcash.core.resources.description_chatPhotoRemove
+import com.flipcash.core.resources.description_chatPhotoRetry
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,14 +36,13 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInputDefaults
 
@@ -193,7 +196,7 @@ private fun PhotoChip(
             }
             when (badge) {
                 ComposerPhotoBadge.Retry -> {
-                    val label = stringResource(R.string.description_chatPhotoRetry)
+                    val label = stringResource(Res.string.description_chatPhotoRetry)
                     Icon(
                         imageVector = Icons.Filled.Refresh,
                         contentDescription = label,
@@ -208,7 +211,7 @@ private fun PhotoChip(
 
                 ComposerPhotoBadge.Error -> Icon(
                     imageVector = Icons.Filled.Warning,
-                    contentDescription = stringResource(R.string.description_chatPhotoFailed),
+                    contentDescription = stringResource(Res.string.description_chatPhotoFailed),
                     tint = CodeTheme.colors.error,
                     modifier = Modifier
                         .align(Alignment.Center)
@@ -230,7 +233,7 @@ private fun PhotoChip(
         ) {
             Icon(
                 imageVector = Icons.Filled.Close,
-                contentDescription = stringResource(R.string.description_chatPhotoRemove),
+                contentDescription = stringResource(Res.string.description_chatPhotoRemove),
                 tint = Color.White,
                 modifier = Modifier.size(grid.x2),
             )

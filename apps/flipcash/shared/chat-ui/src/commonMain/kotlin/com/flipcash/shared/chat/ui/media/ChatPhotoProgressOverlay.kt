@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.ui.media
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.description_chatPhotoUploadProgress
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -30,7 +32,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
@@ -38,7 +40,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import kotlinx.coroutines.delay
 
@@ -139,7 +140,7 @@ fun ChatPhotoProgressOverlay(
             }
         }
     }
-    val description = stringResource(R.string.description_chatPhotoUploadProgress)
+    val description = stringResource(Res.string.description_chatPhotoUploadProgress)
     val grid = CodeTheme.dimens.staticGrid
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
         Box(

@@ -1,5 +1,13 @@
 package com.flipcash.shared.chat.ui.request
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.cd_requestYouOwe
+import com.flipcash.core.resources.cd_requestYouPaid
+import com.flipcash.core.resources.cd_requestYourRequest
+import com.flipcash.core.resources.label_requestDeckProgress
+import com.flipcash.core.resources.label_requestYouOwe
+import com.flipcash.core.resources.label_requestYouPaid
+import com.flipcash.core.resources.label_requestYourRequest
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -21,7 +29,7 @@ import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -32,7 +40,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-import com.flipcash.core.R
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.ViewerStanding
 import com.getcode.theme.CodeTheme
@@ -43,18 +50,18 @@ import com.getcode.theme.CodeTheme
  */
 @Composable
 fun ViewerStanding.text(): String? = when (this) {
-    is ViewerStanding.Paid -> stringResource(R.string.label_requestYouPaid, share.requestText())
-    is ViewerStanding.Owes -> stringResource(R.string.label_requestYouOwe, share.requestText())
-    ViewerStanding.Creator -> stringResource(R.string.label_requestYourRequest)
+    is ViewerStanding.Paid -> stringResource(Res.string.label_requestYouPaid, share.requestText())
+    is ViewerStanding.Owes -> stringResource(Res.string.label_requestYouOwe, share.requestText())
+    ViewerStanding.Creator -> stringResource(Res.string.label_requestYourRequest)
     ViewerStanding.NoShare -> null
 }
 
 /** For the screen reader: "you paid $5", "you owe $5", "your request", or null with no share. */
 @Composable
 fun ViewerStanding.description(): String? = when (this) {
-    is ViewerStanding.Paid -> stringResource(R.string.cd_requestYouPaid, share.requestText())
-    is ViewerStanding.Owes -> stringResource(R.string.cd_requestYouOwe, share.requestText())
-    ViewerStanding.Creator -> stringResource(R.string.cd_requestYourRequest)
+    is ViewerStanding.Paid -> stringResource(Res.string.cd_requestYouPaid, share.requestText())
+    is ViewerStanding.Owes -> stringResource(Res.string.cd_requestYouOwe, share.requestText())
+    ViewerStanding.Creator -> stringResource(Res.string.cd_requestYourRequest)
     ViewerStanding.NoShare -> null
 }
 
@@ -72,7 +79,7 @@ fun ViewerStatusLine(
     modifier: Modifier = Modifier,
 ) {
     val split = request.split ?: return
-    val totals = stringResource(R.string.label_requestDeckProgress, split.paid.requestText(), split.requested.requestText())
+    val totals = stringResource(Res.string.label_requestDeckProgress, split.paid.requestText(), split.requested.requestText())
     val viewer = standing.text()
     val accent = when (standing) {
         is ViewerStanding.Paid, is ViewerStanding.Owes -> CodeTheme.colors.success

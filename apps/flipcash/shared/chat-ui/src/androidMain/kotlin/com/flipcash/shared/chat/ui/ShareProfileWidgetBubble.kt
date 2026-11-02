@@ -1,5 +1,11 @@
 package com.flipcash.shared.chat.ui
 
+// kmp-audit: CodeButton and ButtonState live in :ui:components androidMain (RuntimeShader frosted glass)
+
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_shareProfile
+import com.getcode.util.resources.Res as UiRes
+import com.getcode.util.resources.ic_share_os
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,8 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -171,8 +177,8 @@ internal fun ShareProfileWidgetBubble(
     WidgetCardBubble(
         title = displayName,
         subtitle = "@$username",
-        buttonLabel = stringResource(R.string.action_shareProfile),
-        buttonIcon = painterResource(R.drawable.ic_share_os),
+        buttonLabel = stringResource(Res.string.action_shareProfile),
+        buttonIcon = painterResource(UiRes.drawable.ic_share_os),
         onClick = onShare,
         isFromSelf = isFromSelf,
         position = position,

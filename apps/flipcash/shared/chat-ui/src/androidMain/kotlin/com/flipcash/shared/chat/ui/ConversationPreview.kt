@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.ui
 
-import android.graphics.BlurMaskFilter
+// kmp-audit: needs a bubble or link card that renders CodeButton, which lives in :ui:components androidMain (RuntimeShader frosted glass)
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
@@ -28,7 +29,6 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -170,8 +170,7 @@ internal fun Modifier.bubbleShadow(
     val outline = shape.createOutline(size, layoutDirection, this)
     val paint = Paint().apply {
         this.color = color
-        asFrameworkPaint().maskFilter =
-            BlurMaskFilter(blurRadius.toPx(), BlurMaskFilter.Blur.NORMAL)
+        blurEdges(blurRadius.toPx())
     }
     drawIntoCanvas { canvas ->
         translate(top = offsetY.toPx()) {
@@ -185,7 +184,7 @@ internal fun Modifier.bubbleShadow(
 @Composable
 private fun PreviewConversationPreview() {
     CompositionLocalProvider(
-        LocalExchange provides ExchangeStub(context = LocalContext.current)
+        LocalExchange provides ExchangeStub()
     ) {
         Box(modifier = Modifier) {
             AnimatedConversationPreview(false)

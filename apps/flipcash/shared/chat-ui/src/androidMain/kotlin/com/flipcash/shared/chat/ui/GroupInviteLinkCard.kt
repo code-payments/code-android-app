@@ -1,5 +1,18 @@
 package com.flipcash.shared.chat.ui
 
+// kmp-audit: CodeButton and ButtonState live in :ui:components androidMain (RuntimeShader frosted glass)
+
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chat_balanceRequirement
+import com.flipcash.core.resources.label_chat_balanceRequirement_anyToken
+import com.flipcash.core.resources.label_chat_staffRequirement
+import com.flipcash.core.resources.label_linkCard_groupUnavailable
+import com.flipcash.core.resources.label_linkCard_privateGroupInvite
+import com.flipcash.core.resources.label_linkCard_untitledGroup
+import com.flipcash.core.resources.subtitle_chatMemberCount
+import com.flipcash.core.resources.subtitle_inviteExhausted
+import com.flipcash.core.resources.subtitle_inviteExpired
+import com.flipcash.core.resources.subtitle_inviteRevoked
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -25,8 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -206,7 +219,7 @@ private fun GroupLinkCardBody(
             ?: placeholderTop
     }
 
-    val title = resolved?.title ?: stringResource(R.string.label_linkCard_untitledGroup)
+    val title = resolved?.title ?: stringResource(Res.string.label_linkCard_untitledGroup)
 
     Box(
         modifier = modifier
@@ -267,7 +280,7 @@ private fun GroupLinkCardBody(
                 Text(
                     modifier = Modifier.padding(top = GroupInviteCardDefaults.MEMBER_COUNT_GAP),
                     text = pluralStringResource(
-                        R.plurals.subtitle_chatMemberCount,
+                        Res.plurals.subtitle_chatMemberCount,
                         resolved.memberCount.toInt(),
                         resolved.memberCount.toString(),
                     ),
@@ -303,7 +316,7 @@ private fun GroupLinkCardBody(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(GroupInviteCardDefaults.BUTTON_HEIGHT),
-                    text = stringResource(R.string.label_linkCard_groupUnavailable),
+                    text = stringResource(Res.string.label_linkCard_groupUnavailable),
                     buttonState = ButtonState.Filled20,
                     overrideContentPadding = true,
                     contentPadding = GroupInviteCardDefaults.NO_PADDING,
@@ -326,10 +339,10 @@ private fun InviteStatusLine(status: LinkCard.InviteLink.Status) {
         modifier = Modifier.padding(top = GroupInviteCardDefaults.REQUIREMENT_GAP),
         text = stringResource(
             when (status) {
-                LinkCard.InviteLink.Status.Active -> R.string.label_linkCard_privateGroupInvite
-                LinkCard.InviteLink.Status.Exhausted -> R.string.subtitle_inviteExhausted
-                LinkCard.InviteLink.Status.Expired -> R.string.subtitle_inviteExpired
-                LinkCard.InviteLink.Status.Revoked -> R.string.subtitle_inviteRevoked
+                LinkCard.InviteLink.Status.Active -> Res.string.label_linkCard_privateGroupInvite
+                LinkCard.InviteLink.Status.Exhausted -> Res.string.subtitle_inviteExhausted
+                LinkCard.InviteLink.Status.Expired -> Res.string.subtitle_inviteExpired
+                LinkCard.InviteLink.Status.Revoked -> Res.string.subtitle_inviteRevoked
             }
         ),
         style = CodeTheme.typography.textSmall,
@@ -344,9 +357,9 @@ private fun RequirementLines(requirement: LinkCard.GroupInvite.Requirement) {
         Text(
             modifier = Modifier.padding(top = GroupInviteCardDefaults.REQUIREMENT_GAP),
             text = if (requirement.currencyName != null) {
-                stringResource(R.string.label_chat_balanceRequirement, amount, requirement.currencyName)
+                stringResource(Res.string.label_chat_balanceRequirement, amount, requirement.currencyName)
             } else {
-                stringResource(R.string.label_chat_balanceRequirement_anyToken, amount)
+                stringResource(Res.string.label_chat_balanceRequirement_anyToken, amount)
             },
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
@@ -356,7 +369,7 @@ private fun RequirementLines(requirement: LinkCard.GroupInvite.Requirement) {
     if (requirement.staffOnly) {
         Text(
             modifier = Modifier.padding(top = GroupInviteCardDefaults.REQUIREMENT_GAP),
-            text = stringResource(R.string.label_chat_staffRequirement),
+            text = stringResource(Res.string.label_chat_staffRequirement),
             style = CodeTheme.typography.textSmall,
             color = CodeTheme.colors.textSecondary,
             textAlign = TextAlign.Center,

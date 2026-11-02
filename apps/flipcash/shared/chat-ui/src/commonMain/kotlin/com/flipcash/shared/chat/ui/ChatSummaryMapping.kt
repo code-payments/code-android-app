@@ -1,7 +1,22 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chat_media_photo
+import com.flipcash.core.resources.label_chat_preview_cash_suffix
+import com.flipcash.core.resources.label_chat_preview_receivedCash
+import com.flipcash.core.resources.label_chat_preview_senderMessage
+import com.flipcash.core.resources.label_chat_preview_sentCash
+import com.flipcash.core.resources.label_chat_preview_sentCash_bySender
+import com.flipcash.core.resources.label_chat_preview_sentMessage
+import com.flipcash.core.resources.label_chat_preview_sentRequest
+import com.flipcash.core.resources.label_chat_preview_sentRequest_bySender
+import com.flipcash.core.resources.label_chat_preview_sentRequest_untitled
+import com.flipcash.core.resources.label_chat_preview_sentRequest_untitled_bySender
+import com.flipcash.core.resources.label_chat_preview_sharedProfile
+import com.flipcash.core.resources.label_chat_preview_tippedCash
+import com.flipcash.core.resources.label_chat_preview_tippedCash_bySender
+import com.flipcash.core.resources.label_inviteLinkPreview
 import com.flipcash.app.core.ui.forViewer
-import com.flipcash.core.R
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
@@ -158,12 +173,12 @@ fun MessageContent.previewText(
 ): String? = when (this) {
     is MessageContent.Text -> {
         val message = text.takeIf { it.isNotEmpty() }
-            ?.let { labelInviteLinks(it) { resources.getString(R.string.label_inviteLinkPreview) } }
+            ?.let { labelInviteLinks(it) { resources.getString(Res.string.label_inviteLinkPreview) } }
         when {
             message == null -> null
-            sentBySelf -> resources.getString(R.string.label_chat_preview_sentMessage, message)
+            sentBySelf -> resources.getString(Res.string.label_chat_preview_sentMessage, message)
             senderName != null ->
-                resources.getString(R.string.label_chat_preview_senderMessage, senderName, message)
+                resources.getString(Res.string.label_chat_preview_senderMessage, senderName, message)
             else -> message
         }
     }
@@ -178,7 +193,7 @@ fun MessageContent.previewText(
             tokenName.ifBlank { tokensByMint[mint]?.name.orEmpty() }
         }
         val label = if (name.isNotBlank()) {
-            resources.getString(R.string.label_chat_preview_cash_suffix, formatted, name)
+            resources.getString(Res.string.label_chat_preview_cash_suffix, formatted, name)
         } else {
             formatted
         }
@@ -188,8 +203,8 @@ fun MessageContent.previewText(
         // sender, bare when it does not.
         if (senderName != null) {
             val previewRes = when (action) {
-                MessageContent.Cash.Action.TIPPED -> R.string.label_chat_preview_tippedCash_bySender
-                MessageContent.Cash.Action.SENT -> R.string.label_chat_preview_sentCash_bySender
+                MessageContent.Cash.Action.TIPPED -> Res.string.label_chat_preview_tippedCash_bySender
+                MessageContent.Cash.Action.SENT -> Res.string.label_chat_preview_sentCash_bySender
             }
             resources.getString(previewRes, senderName, label)
         } else if (isGroup && !sentBySelf) {
@@ -197,9 +212,9 @@ fun MessageContent.previewText(
         } else {
             val previewRes = when (action) {
                 MessageContent.Cash.Action.TIPPED ->
-                    if (sentBySelf) R.string.label_chat_preview_tippedCash else R.string.label_chat_preview_receivedCash
+                    if (sentBySelf) Res.string.label_chat_preview_tippedCash else Res.string.label_chat_preview_receivedCash
                 MessageContent.Cash.Action.SENT ->
-                    if (sentBySelf) R.string.label_chat_preview_sentCash else R.string.label_chat_preview_receivedCash
+                    if (sentBySelf) Res.string.label_chat_preview_sentCash else Res.string.label_chat_preview_receivedCash
             }
             resources.getString(previewRes, label)
         }
@@ -224,12 +239,12 @@ fun MessageContent.previewText(
 
     // The caption, else "Photo", behind the camera emoji; prefixed like a typed message.
     is MessageContent.Media -> {
-        val caption = caption?.text?.let { labelInviteLinks(it) { resources.getString(R.string.label_inviteLinkPreview) } }
-        val message = ChatMediaText.preview(caption, resources.getString(R.string.label_chat_media_photo))
+        val caption = caption?.text?.let { labelInviteLinks(it) { resources.getString(Res.string.label_inviteLinkPreview) } }
+        val message = ChatMediaText.preview(caption, resources.getString(Res.string.label_chat_media_photo))
         when {
-            sentBySelf -> resources.getString(R.string.label_chat_preview_sentMessage, message)
+            sentBySelf -> resources.getString(Res.string.label_chat_preview_sentMessage, message)
             senderName != null ->
-                resources.getString(R.string.label_chat_preview_senderMessage, senderName, message)
+                resources.getString(Res.string.label_chat_preview_senderMessage, senderName, message)
             else -> message
         }
     }
@@ -238,17 +253,17 @@ fun MessageContent.previewText(
 
     // A widget this client can't draw previews as nothing, as an undecryptable message does.
     is MessageContent.Widget -> when (val widget = widget) {
-        is WidgetContent.ShareProfile -> resources.getString(R.string.label_chat_preview_sharedProfile)
+        is WidgetContent.ShareProfile -> resources.getString(Res.string.label_chat_preview_sharedProfile)
         // Who sent it and its title; a title that can't be opened drops the "for" part.
         is WidgetContent.PaymentRequest -> paymentRequests[widget.id]?.let { request ->
             val title = (request.split?.text as? PaymentRequestText.Plain)?.title?.takeIf { it.isNotBlank() }
             when {
-                sentBySelf && title != null -> resources.getString(R.string.label_chat_preview_sentRequest, title)
-                sentBySelf -> resources.getString(R.string.label_chat_preview_sentRequest_untitled)
+                sentBySelf && title != null -> resources.getString(Res.string.label_chat_preview_sentRequest, title)
+                sentBySelf -> resources.getString(Res.string.label_chat_preview_sentRequest_untitled)
                 senderName != null && title != null ->
-                    resources.getString(R.string.label_chat_preview_sentRequest_bySender, senderName, title)
+                    resources.getString(Res.string.label_chat_preview_sentRequest_bySender, senderName, title)
                 senderName != null ->
-                    resources.getString(R.string.label_chat_preview_sentRequest_untitled_bySender, senderName)
+                    resources.getString(Res.string.label_chat_preview_sentRequest_untitled_bySender, senderName)
                 else -> null
             }
         }

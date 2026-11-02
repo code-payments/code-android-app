@@ -1,5 +1,14 @@
 package com.flipcash.shared.chat.ui
 
+// kmp-audit: needs a bubble or link card that renders CodeButton, which lives in :ui:components androidMain (RuntimeShader frosted glass)
+
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_linkCard_view
+import com.flipcash.core.resources.label_linkCard_cash
+import com.flipcash.core.resources.label_linkCard_claim
+import com.flipcash.core.resources.label_linkCard_claimed
+import com.flipcash.core.resources.label_linkCard_claiming
+import com.flipcash.core.resources.label_linkCard_expired
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -45,7 +54,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
@@ -137,7 +146,7 @@ internal fun LinkCardView(
             val minHeight = maxWidth * LinkCardDefaults.CARD_ASPECT
             // A transcript card opens the group named on it, so it says "View"; the group's
             // own empty state draws this card with "Invite People".
-            val ctaLabel = stringResource(R.string.action_linkCard_view)
+            val ctaLabel = stringResource(Res.string.action_linkCard_view)
             val onStart = onClick?.let { click -> { click(live) } }
             if (live is LinkCard.InviteLink) {
                 InviteLinkCard(card = live, minHeight = minHeight, ctaLabel = ctaLabel, onStart = onStart, shape = shape)
@@ -273,7 +282,7 @@ private fun CashLinkCard(
         shape = shape,
         loading = loading,
         tokenName = state?.token?.brandedName()
-            ?: stringResource(R.string.label_linkCard_cash),
+            ?: stringResource(Res.string.label_linkCard_cash),
         tokenImage = state?.token?.imageUrl,
         amount = state?.amount,
         // Claimed and expired are both spent: the voucher is dimmed as a whole, so it reads as
@@ -294,22 +303,22 @@ private fun CashLinkCard(
             // withdraws it. That is the trade: an offer that is occasionally retracted, against a
             // claim that is always late. Claimed and Expired both land on a dimmed card with the
             // label under the tear, so the withdrawal is at least unmistakable when it happens.
-            StubPill(stringResource(R.string.label_linkCard_claim), onClick = onClaim)
+            StubPill(stringResource(Res.string.label_linkCard_claim), onClick = onClaim)
             return@CashVoucher
         }
         when (state.claim) {
             LinkCard.Cash.Claim.Claimed ->
                 // Off the paper: the stub this used to sit on left with whoever claimed it.
-                StubLabel(stringResource(R.string.label_linkCard_claimed), onPaper = false)
-            LinkCard.Cash.Claim.Expired -> StubLabel(stringResource(R.string.label_linkCard_expired))
+                StubLabel(stringResource(Res.string.label_linkCard_claimed), onPaper = false)
+            LinkCard.Cash.Claim.Expired -> StubLabel(stringResource(Res.string.label_linkCard_expired))
             // A label rather than the pill: the claim is already running, so there is nothing
             // left to offer, and the tap that would offer it again is ignored.
-            LinkCard.Cash.Claim.Claiming -> StubLabel(stringResource(R.string.label_linkCard_claiming))
+            LinkCard.Cash.Claim.Claiming -> StubLabel(stringResource(Res.string.label_linkCard_claiming))
             // The same voucher whoever is reading it. The transcript already says who sent the
             // link -- the bubble sits on the sender's side -- so a card that read differently for
             // the issuer would be saying it twice, and saying it in the one place both people are
             // looking at the same object.
-            LinkCard.Cash.Claim.Claimable -> StubPill(stringResource(R.string.label_linkCard_claim), onClick = onClaim)
+            LinkCard.Cash.Claim.Claimable -> StubPill(stringResource(Res.string.label_linkCard_claim), onClick = onClaim)
         }
     }
 }

@@ -1,5 +1,36 @@
 package com.flipcash.shared.chat.ui
 
+// kmp-audit: CodeButton and ButtonState live in :ui:components androidMain (RuntimeShader frosted glass)
+
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_buy
+import com.flipcash.core.resources.action_join
+import com.flipcash.core.resources.action_messageLink_request
+import com.flipcash.core.resources.label_chat_balanceRequirement
+import com.flipcash.core.resources.label_chat_balanceRequirement_anyToken
+import com.flipcash.core.resources.label_inviteLinkPreview
+import com.flipcash.core.resources.label_linkCard_claim
+import com.flipcash.core.resources.label_linkCard_claimed
+import com.flipcash.core.resources.label_linkCard_claiming
+import com.flipcash.core.resources.label_linkCard_expired
+import com.flipcash.core.resources.label_linkCard_untitledGroup
+import com.flipcash.core.resources.label_messageLink_attachment
+import com.flipcash.core.resources.label_messageLink_byline
+import com.flipcash.core.resources.label_messageLink_deleted
+import com.flipcash.core.resources.label_messageLink_kindDirect
+import com.flipcash.core.resources.label_messageLink_kindPrivateGroup
+import com.flipcash.core.resources.label_messageLink_lockedDirect
+import com.flipcash.core.resources.label_messageLink_lockedGroup
+import com.flipcash.core.resources.label_messageLink_membersHostedBy
+import com.flipcash.core.resources.label_messageLink_reactions
+import com.flipcash.core.resources.label_messageLink_sent
+import com.flipcash.core.resources.label_messageLink_sentCashLink
+import com.flipcash.core.resources.label_messageLink_settled
+import com.flipcash.core.resources.label_messageLink_someone
+import com.flipcash.core.resources.label_messageLink_tipped
+import com.flipcash.core.resources.label_messageLink_you
+import com.flipcash.core.resources.subtitle_chatMemberCount
+import com.getcode.util.resources.ic_chevron_right
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,9 +55,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -99,9 +130,9 @@ internal fun MessageLinkCard(
                         when (body) {
                             // A cash link's footer says where its claim stands, as its own card's stub does.
                             is Body.CashLink -> claimCaption(body.claim)
-                            is Body.Cash -> stringResource(R.string.label_messageLink_settled)
+                            is Body.Cash -> stringResource(Res.string.label_messageLink_settled)
                             else -> state.reactionCount.takeIf { it > 0 }?.let {
-                                pluralStringResource(R.plurals.label_messageLink_reactions, it.toInt(), it.toString())
+                                pluralStringResource(Res.plurals.label_messageLink_reactions, it.toInt(), it.toString())
                             }
                         }
                     )
@@ -112,32 +143,32 @@ internal fun MessageLinkCard(
                     Excerpt(state.message.body)
                     if (redacted) Footer(state.requirement?.let { requirementLine(it) })
                     CardButton(
-                        text = stringResource(if (redacted) R.string.action_buy else R.string.action_join),
+                        text = stringResource(if (redacted) Res.string.action_buy else Res.string.action_join),
                         onClick = onOpen,
                     )
                 }
                 is State.LockedGroup -> {
-                    val title = state.source.title ?: stringResource(R.string.label_linkCard_untitledGroup)
-                    Identity(state.source, stringResource(R.string.label_messageLink_kindPrivateGroup), opens)
-                    DimBody(stringResource(R.string.label_messageLink_lockedGroup, title))
+                    val title = state.source.title ?: stringResource(Res.string.label_linkCard_untitledGroup)
+                    Identity(state.source, stringResource(Res.string.label_messageLink_kindPrivateGroup), opens)
+                    DimBody(stringResource(Res.string.label_messageLink_lockedGroup, title))
                     val members = pluralStringResource(
-                        R.plurals.subtitle_chatMemberCount,
+                        Res.plurals.subtitle_chatMemberCount,
                         state.memberCount.toInt(),
                         state.memberCount.toString(),
                     )
-                    Footer(state.host?.let { stringResource(R.string.label_messageLink_membersHostedBy, members, it) } ?: members)
-                    CardButton(text = stringResource(R.string.action_messageLink_request), onClick = onOpen)
+                    Footer(state.host?.let { stringResource(Res.string.label_messageLink_membersHostedBy, members, it) } ?: members)
+                    CardButton(text = stringResource(Res.string.action_messageLink_request), onClick = onOpen)
                 }
                 State.LockedDirect -> {
                     // Only that it is a DM. Who is in it is part of what stays locked, and it never opens.
-                    IdentityRow(name = stringResource(R.string.label_messageLink_kindDirect), meta = null, opens = false) {
+                    IdentityRow(name = stringResource(Res.string.label_messageLink_kindDirect), meta = null, opens = false) {
                         PlaceholderAvatar()
                     }
-                    DimBody(stringResource(R.string.label_messageLink_lockedDirect))
+                    DimBody(stringResource(Res.string.label_messageLink_lockedDirect))
                 }
                 is State.Deleted -> {
                     Identity(state.source, meta = null, opens = opens)
-                    DimBody(stringResource(R.string.label_messageLink_deleted))
+                    DimBody(stringResource(Res.string.label_messageLink_deleted))
                 }
             }
         }
@@ -177,24 +208,24 @@ private fun Skeleton(width: Dp, shimmering: Boolean) {
 @Composable
 private fun byline(excerpt: LinkCard.Message.Excerpt): String {
     val author = when {
-        excerpt.isFromSelf -> stringResource(R.string.label_messageLink_you)
-        else -> excerpt.author ?: stringResource(R.string.label_messageLink_someone)
+        excerpt.isFromSelf -> stringResource(Res.string.label_messageLink_you)
+        else -> excerpt.author ?: stringResource(Res.string.label_messageLink_someone)
     }
     val who = when (val body = excerpt.body) {
         is Body.Cash -> stringResource(
-            if (body.tipped) R.string.label_messageLink_tipped else R.string.label_messageLink_sent,
+            if (body.tipped) Res.string.label_messageLink_tipped else Res.string.label_messageLink_sent,
             author,
         )
-        is Body.CashLink -> stringResource(R.string.label_messageLink_sentCashLink, author)
+        is Body.CashLink -> stringResource(Res.string.label_messageLink_sentCashLink, author)
         else -> author
     }
-    return stringResource(R.string.label_messageLink_byline, who, messageCardTime(excerpt.sentAt))
+    return stringResource(Res.string.label_messageLink_byline, who, messageCardTime(excerpt.sentAt))
 }
 
 /** The identity block for a known chat: its picture, its name, and one meta line. */
 @Composable
 private fun Identity(source: LinkCard.Message.Source, meta: String?, opens: Boolean) {
-    val title = source.title ?: stringResource(R.string.label_linkCard_untitledGroup)
+    val title = source.title ?: stringResource(Res.string.label_linkCard_untitledGroup)
     IdentityRow(name = title, meta = meta, opens = opens) {
         ContactAvatar(
             image = source.picture,
@@ -238,7 +269,7 @@ private fun IdentityRow(name: String, meta: String?, opens: Boolean, avatar: @Co
         }
         if (opens) {
             Icon(
-                painter = painterResource(com.getcode.util.resources.R.drawable.ic_chevron_right),
+                painter = painterResource(com.getcode.util.resources.Res.drawable.ic_chevron_right),
                 contentDescription = null,
                 tint = MessageLinkCardDefaults.CHEVRON,
                 modifier = Modifier.size(MessageLinkCardDefaults.CHEVRON_WIDTH, MessageLinkCardDefaults.CHEVRON_HEIGHT),
@@ -280,7 +311,7 @@ private fun Excerpt(body: Body) {
                 }
             }
         }
-        Body.Other -> DimBody(stringResource(R.string.label_messageLink_attachment))
+        Body.Other -> DimBody(stringResource(Res.string.label_messageLink_attachment))
     }
 }
 
@@ -290,7 +321,7 @@ private fun ExcerptText(body: Body.Text) {
     Text(
         modifier = if (body.redacted) Modifier.redactedText() else Modifier,
         // A quoted invite link reads "Invite link": its fragment is the group's key.
-        text = flattenExcerpt(labelInviteLinks(body.text, stringResource(R.string.label_inviteLinkPreview))),
+        text = flattenExcerpt(labelInviteLinks(body.text, stringResource(Res.string.label_inviteLinkPreview))),
         style = MessageLinkCardDefaults.bodyStyle,
         color = if (body.redacted) redactedTextColor(MessageLinkCardDefaults.EXCERPT) else MessageLinkCardDefaults.EXCERPT,
         maxLines = MessageLinkCardDefaults.BODY_LINES,
@@ -351,19 +382,19 @@ private fun ChatPhotoThumbnail(photo: ChatPhoto?, blurHash: String?, modifier: M
 private fun requirementLine(requirement: LinkCard.GroupInvite.Requirement): String? {
     val amount = requirement.amount ?: return null
     return if (requirement.currencyName != null) {
-        stringResource(R.string.label_chat_balanceRequirement, amount, requirement.currencyName)
+        stringResource(Res.string.label_chat_balanceRequirement, amount, requirement.currencyName)
     } else {
-        stringResource(R.string.label_chat_balanceRequirement_anyToken, amount)
+        stringResource(Res.string.label_chat_balanceRequirement_anyToken, amount)
     }
 }
 
 @Composable
 private fun claimCaption(claim: LinkCard.Cash.Claim): String = stringResource(
     when (claim) {
-        LinkCard.Cash.Claim.Claimable -> R.string.label_linkCard_claim
-        LinkCard.Cash.Claim.Claiming -> R.string.label_linkCard_claiming
-        LinkCard.Cash.Claim.Claimed -> R.string.label_linkCard_claimed
-        LinkCard.Cash.Claim.Expired -> R.string.label_linkCard_expired
+        LinkCard.Cash.Claim.Claimable -> Res.string.label_linkCard_claim
+        LinkCard.Cash.Claim.Claiming -> Res.string.label_linkCard_claiming
+        LinkCard.Cash.Claim.Claimed -> Res.string.label_linkCard_claimed
+        LinkCard.Cash.Claim.Expired -> Res.string.label_linkCard_expired
     }
 )
 

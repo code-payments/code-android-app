@@ -1,5 +1,10 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.core.resources.Res
+import com.getcode.util.resources.ic_chevron_right
+import com.flipcash.core.resources.label_chat_preview_inviteToStart
+import com.flipcash.core.resources.label_chat_preview_noMessages
+import com.flipcash.core.resources.label_isTyping
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
@@ -9,14 +14,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextOverflow
-import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import kotlin.time.Instant
 
@@ -55,7 +59,7 @@ fun RowScope.ChatRowTrailing(
     } else if (canOpen) {
         Icon(
             modifier = Modifier.scale(0.6f),
-            painter = painterResource(com.getcode.util.resources.R.drawable.ic_chevron_right),
+            painter = painterResource(com.getcode.util.resources.Res.drawable.ic_chevron_right),
             contentDescription = null,
             tint = CodeTheme.colors.textSecondary,
         )
@@ -83,12 +87,12 @@ fun ChatRowSubtitle(
     fallback: @Composable () -> Unit = {},
 ) {
     when {
-        isTyping -> SubtitleText(stringResource(R.string.label_isTyping))
+        isTyping -> SubtitleText(stringResource(Res.string.label_isTyping))
         !preview.isNullOrEmpty() -> SubtitleText(preview)
         !hasMessages -> SubtitleText(
             text = stringResource(
-                if (awaitsInvites) R.string.label_chat_preview_inviteToStart
-                else R.string.label_chat_preview_noMessages,
+                if (awaitsInvites) Res.string.label_chat_preview_inviteToStart
+                else Res.string.label_chat_preview_noMessages,
             ),
             // Italic marks it as the row talking about itself rather than quoting a message —
             // the same distinction the tombstone bubble draws.

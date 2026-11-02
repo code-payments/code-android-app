@@ -1,6 +1,20 @@
 package com.flipcash.shared.chat.ui
 
-import com.flipcash.core.R
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chat_media_photo
+import com.flipcash.core.resources.label_chat_preview_receivedCash
+import com.flipcash.core.resources.label_chat_preview_senderMessage
+import com.flipcash.core.resources.label_chat_preview_sentMessage
+import com.flipcash.core.resources.label_chat_preview_sentRequest
+import com.flipcash.core.resources.label_chat_preview_sentRequest_bySender
+import com.flipcash.core.resources.label_chat_preview_sentRequest_untitled
+import com.flipcash.core.resources.label_chat_preview_sentRequest_untitled_bySender
+import com.flipcash.core.resources.label_chat_preview_sharedProfile
+import com.flipcash.core.resources.label_chat_system_joined
+import com.flipcash.core.resources.label_chat_system_joinedSelfViaInvite
+import com.flipcash.core.resources.label_chat_system_joinedViaInvite
+import com.flipcash.core.resources.label_chat_system_joinedViaYourInvite
+import org.jetbrains.compose.resources.StringResource
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatId
@@ -97,7 +111,7 @@ class ChatSummaryPreviewTest {
     @Test
     fun `a reply the user sent is prefixed once, not once per layer`() {
         every {
-            resources.getString(R.string.label_chat_preview_sentMessage, "on my way")
+            resources.getString(Res.string.label_chat_preview_sentMessage, "on my way")
         } returns "You: on my way"
 
         val reply = MessageContent.Reply(
@@ -167,7 +181,7 @@ class ChatSummaryPreviewTest {
         // Building the reference formats the preview eagerly, so these identity tests have to
         // stub it even though they do not assert on it.
         every {
-            resources.getString(R.string.label_chat_preview_senderMessage, "Alice", "gm")
+            resources.getString(Res.string.label_chat_preview_senderMessage, "Alice", "gm")
         } returns "Alice: gm"
 
         val reference = groupReference(listOf(MessageContent.Text("gm")))
@@ -181,7 +195,7 @@ class ChatSummaryPreviewTest {
         // Building the reference formats the preview eagerly, so these identity tests have to
         // stub it even though they do not assert on it.
         every {
-            resources.getString(R.string.label_chat_preview_senderMessage, "Alice", "gm")
+            resources.getString(Res.string.label_chat_preview_senderMessage, "Alice", "gm")
         } returns "Alice: gm"
 
         val reference = groupReference(listOf(MessageContent.Text("gm")))
@@ -203,7 +217,7 @@ class ChatSummaryPreviewTest {
     @Test
     fun `another member's message is prefixed with their name`() {
         every {
-            resources.getString(R.string.label_chat_preview_senderMessage, "Alice", "gm")
+            resources.getString(Res.string.label_chat_preview_senderMessage, "Alice", "gm")
         } returns "Alice: gm"
 
         assertEquals("Alice: gm", groupReference(listOf(MessageContent.Text("gm"))).lastMessagePreview)
@@ -212,7 +226,7 @@ class ChatSummaryPreviewTest {
     @Test
     fun `the viewer's own message keeps the You prefix in a group`() {
         every {
-            resources.getString(R.string.label_chat_preview_sentMessage, "gm")
+            resources.getString(Res.string.label_chat_preview_sentMessage, "gm")
         } returns "You: gm"
 
         assertEquals(
@@ -235,7 +249,7 @@ class ChatSummaryPreviewTest {
     fun `a sender the roster subset omits is named from the resolved profiles`() {
         // The feed's group roster is often only the viewer, so this is the common case, not an edge.
         every {
-            resources.getString(R.string.label_chat_preview_senderMessage, "Olive", "gm")
+            resources.getString(Res.string.label_chat_preview_senderMessage, "Olive", "gm")
         } returns "Olive: gm"
         val stranger: ID = listOf(7)
 
@@ -252,7 +266,7 @@ class ChatSummaryPreviewTest {
     @Test
     fun `the roster's name wins over a resolved profile`() {
         every {
-            resources.getString(R.string.label_chat_preview_senderMessage, "Alice", "gm")
+            resources.getString(Res.string.label_chat_preview_senderMessage, "Alice", "gm")
         } returns "Alice: gm"
 
         assertEquals(
@@ -348,7 +362,7 @@ class ChatSummaryPreviewTest {
             tokenQuarks = Fiat(5.0, CurrencyCode.USD).quarks,
         )
         val expected = Fiat(6.85, CurrencyCode.CAD).formatted()
-        every { resources.getString(R.string.label_chat_preview_receivedCash, expected) } returns "Received $expected"
+        every { resources.getString(Res.string.label_chat_preview_receivedCash, expected) } returns "Received $expected"
 
         val reference = summary(listOf(cash), senderId = other)
             .toConversationReference(selfId = self, tokensByMint = emptyMap(), resources = resources, exchange = exchange)
@@ -420,7 +434,7 @@ class ChatSummaryPreviewTest {
 
     @Test
     fun `a photo previews as its caption behind the camera`() {
-        every { resources.getString(R.string.label_chat_media_photo) } returns "Photo"
+        every { resources.getString(Res.string.label_chat_media_photo) } returns "Photo"
         val bare = MessageContent.Media(items = emptyList(), caption = null)
         val captioned = MessageContent.Media(items = emptyList(), caption = MessageContent.Text("sunset"))
 
@@ -430,12 +444,12 @@ class ChatSummaryPreviewTest {
 
     @Test
     fun `a photo is prefixed like a typed message`() {
-        every { resources.getString(R.string.label_chat_media_photo) } returns "Photo"
-        every { resources.getString(R.string.label_chat_preview_sentMessage, "📷 Photo") } returns "You: 📷 Photo"
+        every { resources.getString(Res.string.label_chat_media_photo) } returns "Photo"
+        every { resources.getString(Res.string.label_chat_preview_sentMessage, "📷 Photo") } returns "You: 📷 Photo"
         val bare = MessageContent.Media(items = emptyList(), caption = null)
 
         every {
-            resources.getString(R.string.label_chat_preview_senderMessage, "Alice", "📷 Photo")
+            resources.getString(Res.string.label_chat_preview_senderMessage, "Alice", "📷 Photo")
         } returns "Alice: 📷 Photo"
 
         assertEquals("You: 📷 Photo", preview(listOf(bare), senderId = self))
@@ -447,7 +461,7 @@ class ChatSummaryPreviewTest {
     @Test
     fun `a shared profile previews the same whoever the sender is`() {
         every {
-            resources.getString(R.string.label_chat_preview_sharedProfile)
+            resources.getString(Res.string.label_chat_preview_sharedProfile)
         } returns "Shared a profile"
         val widget = MessageContent.Widget(WidgetContent.ShareProfile("brad"))
 
@@ -478,9 +492,9 @@ class ChatSummaryPreviewTest {
     @Test
     fun `a payment request previews as who sent it and its title`() {
         every {
-            resources.getString(R.string.label_chat_preview_sentRequest_bySender, "Alice", "Dinner")
+            resources.getString(Res.string.label_chat_preview_sentRequest_bySender, "Alice", "Dinner")
         } returns "Alice sent request for Dinner"
-        every { resources.getString(R.string.label_chat_preview_sentRequest, "Dinner") } returns "You sent request for Dinner"
+        every { resources.getString(Res.string.label_chat_preview_sentRequest, "Dinner") } returns "You sent request for Dinner"
         val widget = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
         val requests = mapOf(requestId to request(Fiat(20.0, CurrencyCode.USD)))
 
@@ -495,9 +509,9 @@ class ChatSummaryPreviewTest {
     @Test
     fun `a payment request whose title can't be opened previews without it`() {
         every {
-            resources.getString(R.string.label_chat_preview_sentRequest_untitled_bySender, "Alice")
+            resources.getString(Res.string.label_chat_preview_sentRequest_untitled_bySender, "Alice")
         } returns "Alice sent request"
-        every { resources.getString(R.string.label_chat_preview_sentRequest_untitled) } returns "You sent request"
+        every { resources.getString(Res.string.label_chat_preview_sentRequest_untitled) } returns "You sent request"
         val widget = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
         val held = request(Fiat(20.0, CurrencyCode.USD))
         val requests = mapOf(
@@ -539,7 +553,7 @@ class ChatSummaryPreviewTest {
 
     @Test
     fun `a join notice names who joined from the roster`() {
-        every { resources.getString(R.string.label_chat_system_joined, "Alice") } returns "Alice joined the group"
+        every { resources.getString(Res.string.label_chat_system_joined, "Alice") } returns "Alice joined the group"
         val notice = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(other, admittedBy = null))
         assertEquals("Alice joined the group", groupReference(listOf(notice), senderId = null).lastMessagePreview)
     }
@@ -561,9 +575,9 @@ class ChatSummaryPreviewTest {
     @Test
     fun `an invite-link join previews with the inviter's name, for every viewer form`() {
         val inviter: ID = listOf(6)
-        every { resources.getString(R.string.label_chat_system_joinedViaInvite, "Alice", "Jeff") } returns "Alice joined with Jeff’s invite link"
-        every { resources.getString(R.string.label_chat_system_joinedSelfViaInvite, "Alice") } returns "You joined with Alice’s invite link"
-        every { resources.getString(R.string.label_chat_system_joinedViaYourInvite, "Alice") } returns "Alice joined with your invite link"
+        every { resources.getString(Res.string.label_chat_system_joinedViaInvite, "Alice", "Jeff") } returns "Alice joined with Jeff’s invite link"
+        every { resources.getString(Res.string.label_chat_system_joinedSelfViaInvite, "Alice") } returns "You joined with Alice’s invite link"
+        every { resources.getString(Res.string.label_chat_system_joinedViaYourInvite, "Alice") } returns "Alice joined with your invite link"
         // Named through the roster: `other` is Alice; the inviter is Jeff.
         val roster = mapOf(inviter.hexEncodedString() to profile("Jeff"))
 

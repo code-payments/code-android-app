@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.ui.media
 
+// kmp-audit: needs a bubble or link card that renders CodeButton, which lives in :ui:components androidMain (RuntimeShader frosted glass)
+
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -283,16 +285,3 @@ internal fun photoQuoteCorners(photoTopStart: Dp, large: Dp, small: Dp, inset: D
     return BubbleCorners(max(photoTopStart - inset, small), free, free, free)
 }
 
-/** The longest edge a sent preview is decoded at; the bubble never draws larger. */
-private const val PREVIEW_MAX_EDGE = 1080
-
-/** A sent photo's staged JPEG as a bitmap no larger than the bubble needs, null if it won't decode. */
-private fun decodeSentPreview(jpeg: ByteArray): androidx.compose.ui.graphics.ImageBitmap? = runCatching {
-    val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    android.graphics.BitmapFactory.decodeByteArray(jpeg, 0, jpeg.size, bounds)
-    var sample = 1
-    while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= PREVIEW_MAX_EDGE) sample *= 2
-    android.graphics.BitmapFactory.decodeByteArray(
-        jpeg, 0, jpeg.size, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample },
-    )?.also { it.prepareToDraw() }?.asImageBitmap()
-}.getOrNull()

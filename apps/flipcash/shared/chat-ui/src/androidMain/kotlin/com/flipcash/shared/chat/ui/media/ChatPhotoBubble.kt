@@ -1,5 +1,10 @@
 package com.flipcash.shared.chat.ui.media
 
+// kmp-audit: needs a bubble or link card that renders CodeButton, which lives in :ui:components androidMain (RuntimeShader frosted glass)
+
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chat_media_photo
+import com.flipcash.core.resources.label_chat_media_unavailable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
@@ -42,7 +47,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -55,7 +60,6 @@ import androidx.compose.material3.Text
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.core.R
 import com.flipcash.shared.chat.ui.BubblePosition
 import com.flipcash.shared.chat.ui.Bubble
 import com.flipcash.shared.common.ui.rememberBlurHashPainter
@@ -146,7 +150,7 @@ fun ChatPhotoBubble(
             onLongClick = onLongClick,
             onDoubleClick = onDoubleClick,
         ) {
-            val photoDescription = stringResource(R.string.label_chat_media_photo)
+            val photoDescription = stringResource(Res.string.label_chat_media_photo)
             Box(
                 modifier = Modifier
                     .size(size.width.dp, size.height.dp)
@@ -164,7 +168,7 @@ fun ChatPhotoBubble(
                 )
                 if (unavailable) {
                     Text(
-                        text = stringResource(R.string.label_chat_media_unavailable),
+                        text = stringResource(Res.string.label_chat_media_unavailable),
                         style = CodeTheme.typography.textSmall,
                         fontWeight = FontWeight.Medium,
                         color = Color.White,

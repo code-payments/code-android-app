@@ -1,6 +1,5 @@
 package com.flipcash.shared.chat.ui
 
-import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -32,5 +31,5 @@ internal fun redactedTextColor(color: Color): Color =
 
 internal val REDACTED_TEXT_BLUR = 6.dp
 
-/** `Modifier.blur` needs RenderEffect, which arrived in Android 12. */
-private val canBlurRedactedText: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+/** Whether `Modifier.blur` does anything here: it needs RenderEffect, which arrived in Android 12. */
+internal expect val canBlurRedactedText: Boolean

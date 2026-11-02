@@ -1,5 +1,9 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_cancelReply
+import com.flipcash.core.resources.label_chat_media_photo
+import com.flipcash.core.resources.label_inviteLinkPreview
 import com.flipcash.shared.chat.ui.media.QuotedPhotoThumbnail
 import com.flipcash.shared.chat.media.ChatMediaText
 import androidx.compose.foundation.background
@@ -29,11 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import com.flipcash.core.R
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.getcode.theme.CodeTheme
@@ -124,7 +127,7 @@ fun ComposerReplyStrip(
                 Icon(
                     modifier = Modifier.requiredSize(ComposerReplyStripDefaults.dismissGlyph),
                     imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.action_cancelReply),
+                    contentDescription = stringResource(Res.string.action_cancelReply),
                     tint = CodeTheme.colors.textMain,
                 )
             }
@@ -209,7 +212,7 @@ private fun QuoteLine(snippet: ChatQuoteSnippet, maxLines: Int) {
     val style = CodeTheme.typography.textSmall.copy(fontWeight = FontWeight.Medium)
     when (snippet) {
         is ChatQuoteSnippet.Text -> Text(
-            text = labelInviteLinks(snippet.body, stringResource(R.string.label_inviteLinkPreview)),
+            text = labelInviteLinks(snippet.body, stringResource(Res.string.label_inviteLinkPreview)),
             style = style,
             color = CodeTheme.colors.textMain,
             maxLines = maxLines,
@@ -219,8 +222,8 @@ private fun QuoteLine(snippet: ChatQuoteSnippet, maxLines: Int) {
         // Plain text: the thumbnail is its own item in the strip's row, not part of this line.
         is ChatQuoteSnippet.Photo -> Text(
             text = ChatMediaText.preview(
-                snippet.caption?.let { labelInviteLinks(it, stringResource(R.string.label_inviteLinkPreview)) },
-                stringResource(R.string.label_chat_media_photo),
+                snippet.caption?.let { labelInviteLinks(it, stringResource(Res.string.label_inviteLinkPreview)) },
+                stringResource(Res.string.label_chat_media_photo),
             ),
             style = style,
             color = CodeTheme.colors.textMain,

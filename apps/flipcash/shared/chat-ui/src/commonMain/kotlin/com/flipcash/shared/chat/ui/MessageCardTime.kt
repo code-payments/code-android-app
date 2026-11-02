@@ -1,7 +1,12 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chatReceipt_yesterday
+import com.flipcash.core.resources.label_messageLink_timeHours
+import com.flipcash.core.resources.label_messageLink_timeMinutes
+import com.flipcash.core.resources.label_messageLink_timeNow
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import com.getcode.util.formatLocalized
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -44,9 +49,9 @@ internal sealed interface MessageCardTime {
 @Composable
 internal fun messageCardTime(sentAt: Instant): String =
     when (val time = MessageCardTime.of(sentAt, Clock.System.now(), TimeZone.currentSystemDefault())) {
-        MessageCardTime.Now -> stringResource(R.string.label_messageLink_timeNow)
-        is MessageCardTime.Minutes -> stringResource(R.string.label_messageLink_timeMinutes, time.count)
-        is MessageCardTime.Hours -> stringResource(R.string.label_messageLink_timeHours, time.count)
-        MessageCardTime.Yesterday -> stringResource(R.string.label_chatReceipt_yesterday)
+        MessageCardTime.Now -> stringResource(Res.string.label_messageLink_timeNow)
+        is MessageCardTime.Minutes -> stringResource(Res.string.label_messageLink_timeMinutes, time.count)
+        is MessageCardTime.Hours -> stringResource(Res.string.label_messageLink_timeHours, time.count)
+        MessageCardTime.Yesterday -> stringResource(Res.string.label_chatReceipt_yesterday)
         is MessageCardTime.Day -> sentAt.formatLocalized(if (time.withYear) "MMM d, yyyy" else "MMM d")
     }

@@ -1,8 +1,10 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chat_media_photo
+import com.flipcash.core.resources.label_inviteLinkPreview
 import com.flipcash.shared.chat.ui.media.QuotedPhotoThumbnail
-import com.flipcash.core.R
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import com.flipcash.shared.chat.media.ChatMediaText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -112,7 +114,7 @@ fun ChatQuotePanel(
                 // The quoted text is shown as a line, not a bubble, so an invite link in it reads
                 // "Invite link" rather than leaking its fragment, which is the group's key.
                 is ChatQuoteSnippet.Text -> Text(
-                    text = labelInviteLinks(snippet.body, stringResource(R.string.label_inviteLinkPreview)),
+                    text = labelInviteLinks(snippet.body, stringResource(Res.string.label_inviteLinkPreview)),
                     style = CodeTheme.typography.caption,
                     // White alphas rather than the theme's secondary, which is a blue-grey: the
                     // ground under this text is the author's colour, and a second hue muddies it.
@@ -123,8 +125,8 @@ fun ChatQuotePanel(
 
                 is ChatQuoteSnippet.Photo -> Text(
                     text = ChatMediaText.preview(
-                        snippet.caption?.let { labelInviteLinks(it, stringResource(R.string.label_inviteLinkPreview)) },
-                        stringResource(R.string.label_chat_media_photo),
+                        snippet.caption?.let { labelInviteLinks(it, stringResource(Res.string.label_inviteLinkPreview)) },
+                        stringResource(Res.string.label_chat_media_photo),
                     ),
                     style = CodeTheme.typography.caption,
                     color = Color.White.copy(alpha = QuotePanelDefaults.snippetAlpha),

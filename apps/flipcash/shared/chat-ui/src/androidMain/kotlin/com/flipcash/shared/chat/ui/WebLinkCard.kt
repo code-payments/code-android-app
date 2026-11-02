@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.ui
 
+// kmp-audit: needs a bubble or link card that renders CodeButton, which lives in :ui:components androidMain (RuntimeShader frosted glass)
+
 import com.flipcash.shared.chat.media.ChatPhoto
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

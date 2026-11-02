@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.ui
 
+// kmp-audit: needs a bubble or link card that renders CodeButton, which lives in :ui:components androidMain (RuntimeShader frosted glass)
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -14,7 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -141,7 +142,7 @@ fun AnimatedConversationPaymentsPreview(
 @Composable
 private fun PreviewConversationPaymentsPreview() {
     CompositionLocalProvider(
-        LocalExchange provides ExchangeStub(context = LocalContext.current)
+        LocalExchange provides ExchangeStub()
     ) {
         Box(modifier = Modifier.wrapContentSize()) {
             AnimatedConversationPaymentsPreview(animate = false)

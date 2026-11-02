@@ -1,10 +1,11 @@
 package com.flipcash.shared.chat.ui
 
-import android.text.format.DateFormat
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chatReceipt_yesterday
+import com.flipcash.core.resources.label_chatSeparator_today
+import com.flipcash.core.resources.label_messageTime_full
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import com.flipcash.core.R
+import org.jetbrains.compose.resources.stringResource
 import com.getcode.util.formatLocalized
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -44,7 +45,7 @@ sealed interface MessageDay {
  */
 @Composable
 fun messageTimeOfDay(sentAt: Instant): String {
-    val is24Hour = DateFormat.is24HourFormat(LocalContext.current)
+    val is24Hour = is24HourClock()
     // The pattern the date separators use, so the column and the separator above it agree.
     return sentAt.formatLocalized("h:mm a", is24Hour = is24Hour, if24Hour = "H:mm")
 }
@@ -53,9 +54,9 @@ fun messageTimeOfDay(sentAt: Instant): String {
 @Composable
 fun messageFullTime(sentAt: Instant): String {
     val day = when (val day = MessageDay.of(sentAt, Clock.System.now(), TimeZone.currentSystemDefault())) {
-        MessageDay.Today -> stringResource(R.string.label_chatSeparator_today)
-        MessageDay.Yesterday -> stringResource(R.string.label_chatReceipt_yesterday)
+        MessageDay.Today -> stringResource(Res.string.label_chatSeparator_today)
+        MessageDay.Yesterday -> stringResource(Res.string.label_chatReceipt_yesterday)
         is MessageDay.Date -> sentAt.formatLocalized(if (day.withYear) "MMM d, yyyy" else "MMM d")
     }
-    return stringResource(R.string.label_messageTime_full, day, messageTimeOfDay(sentAt))
+    return stringResource(Res.string.label_messageTime_full, day, messageTimeOfDay(sentAt))
 }

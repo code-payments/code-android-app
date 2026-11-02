@@ -1,6 +1,15 @@
 package com.flipcash.shared.chat.models
 
-import com.flipcash.core.R
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chat_system_added
+import com.flipcash.core.resources.label_chat_system_addedSelf
+import com.flipcash.core.resources.label_chat_system_joined
+import com.flipcash.core.resources.label_chat_system_joinedSelf
+import com.flipcash.core.resources.label_chat_system_joinedSelfViaInvite
+import com.flipcash.core.resources.label_chat_system_joinedViaInvite
+import com.flipcash.core.resources.label_chat_system_joinedViaYourInvite
+import com.flipcash.core.resources.label_chat_system_selfAdded
+import org.jetbrains.compose.resources.StringResource
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.MessageContent.SystemEvent.UserJoined
 import com.getcode.opencode.model.core.ID
@@ -20,19 +29,19 @@ class SystemMessageTextTest {
     private val names = mapOf(alex to "Alex", sam to "Sam")
 
     private val templates = mapOf(
-        R.string.label_chat_system_joined to "%1\$s joined the group",
-        R.string.label_chat_system_joinedSelf to "You joined the group",
-        R.string.label_chat_system_added to "%1\$s added %2\$s",
-        R.string.label_chat_system_addedSelf to "%1\$s added you",
-        R.string.label_chat_system_selfAdded to "You added %1\$s",
-        R.string.label_chat_system_joinedViaInvite to "%1\$s joined with %2\$s’s invite link",
-        R.string.label_chat_system_joinedSelfViaInvite to "You joined with %1\$s’s invite link",
-        R.string.label_chat_system_joinedViaYourInvite to "%1\$s joined with your invite link",
+        Res.string.label_chat_system_joined to "%1\$s joined the group",
+        Res.string.label_chat_system_joinedSelf to "You joined the group",
+        Res.string.label_chat_system_added to "%1\$s added %2\$s",
+        Res.string.label_chat_system_addedSelf to "%1\$s added you",
+        Res.string.label_chat_system_selfAdded to "You added %1\$s",
+        Res.string.label_chat_system_joinedViaInvite to "%1\$s joined with %2\$s’s invite link",
+        Res.string.label_chat_system_joinedSelfViaInvite to "You joined with %1\$s’s invite link",
+        Res.string.label_chat_system_joinedViaYourInvite to "%1\$s joined with your invite link",
     )
 
     private val resources = mockk<ResourceHelper> {
-        every { getString(any<Int>()) } answers { templates.getValue(firstArg()) }
-        every { getString(any<Int>(), *anyVararg()) } answers {
+        every { getString(any<StringResource>()) } answers { templates.getValue(firstArg()) }
+        every { getString(any<StringResource>(), *anyVararg()) } answers {
             templates.getValue(firstArg()).format(*(args[1] as Array<*>))
         }
     }
@@ -227,7 +236,7 @@ class SystemMessageTextTest {
     @Test
     fun `the span follows the translation's word order`() {
         val reordered = mockk<ResourceHelper> {
-            every { getString(R.string.label_chat_system_joinedViaInvite, *anyVararg()) } answers {
+            every { getString(Res.string.label_chat_system_joinedViaInvite, *anyVararg()) } answers {
                 "%2\$s hat %1\$s per Einladungslink hinzugefügt".format(*(args[1] as Array<*>))
             }
         }

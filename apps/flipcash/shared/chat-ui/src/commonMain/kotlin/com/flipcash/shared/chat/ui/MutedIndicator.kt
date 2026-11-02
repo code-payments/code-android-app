@@ -1,5 +1,7 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_muted
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.NotificationsOff
@@ -11,8 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.flipcash.core.R
+import org.jetbrains.compose.resources.stringResource
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.isMutedAt
@@ -49,7 +50,7 @@ fun MutedIndicator(
         // Reaches a screen reader through the merged label of whatever container holds it —
         // Compose concatenates a child's description into its parent's rather than dropping it,
         // so the row reads its name, its timestamp and then this.
-        contentDescription = stringResource(R.string.label_muted),
+        contentDescription = stringResource(Res.string.label_muted),
         tint = CodeTheme.colors.textSecondary,
     )
 }

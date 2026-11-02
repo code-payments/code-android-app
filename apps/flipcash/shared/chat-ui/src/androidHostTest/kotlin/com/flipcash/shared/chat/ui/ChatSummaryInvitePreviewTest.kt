@@ -1,6 +1,10 @@
 package com.flipcash.shared.chat.ui
 
-import com.flipcash.core.R
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chat_preview_senderMessage
+import com.flipcash.core.resources.label_chat_preview_sentMessage
+import com.flipcash.core.resources.label_inviteLinkPreview
+import org.jetbrains.compose.resources.StringResource
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
@@ -34,12 +38,12 @@ class ChatSummaryInvitePreviewTest {
     private val invite = "https://app.flipcash.com/chat/invite#s=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
     private val resources = mockk<ResourceHelper> {
-        every { getString(R.string.label_inviteLinkPreview) } returns "Invite link"
-        every { getString(R.string.label_chat_preview_senderMessage, *anyVararg()) } answers {
+        every { getString(Res.string.label_inviteLinkPreview) } returns "Invite link"
+        every { getString(Res.string.label_chat_preview_senderMessage, *anyVararg()) } answers {
             val (name, message) = (args[1] as Array<*>)
             "$name: $message"
         }
-        every { getString(R.string.label_chat_preview_sentMessage, *anyVararg()) } answers {
+        every { getString(Res.string.label_chat_preview_sentMessage, *anyVararg()) } answers {
             "You: ${(args[1] as Array<*>)[0]}"
         }
     }

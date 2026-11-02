@@ -1,5 +1,13 @@
 package com.flipcash.shared.chat.ui
 
+// kmp-audit: needs a bubble or link card that renders CodeButton, which lives in :ui:components androidMain (RuntimeShader frosted glass)
+
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.ic_flipcash_logo
+import com.flipcash.core.resources.subtitle_groupReady
+import com.flipcash.core.resources.title_flipcashSender
+import com.flipcash.core.resources.title_groupReady
+import com.flipcash.core.resources.title_invitePeople
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,19 +21,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
+import org.jetbrains.compose.resources.painterResource
 import com.getcode.theme.CodeTheme
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.core.R
 
 /**
  * "Your Group Is Ready": the card at the top of a group's transcript while its viewer is the only
@@ -44,7 +51,7 @@ fun GroupReadyCardBubble(
     val gap = CodeTheme.dimens.grid.x1
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = stringResource(R.string.title_flipcashSender),
+            text = stringResource(Res.string.title_flipcashSender),
             style = CodeTheme.typography.caption,
             color = CodeTheme.colors.textSecondary,
             modifier = Modifier.padding(start = gutter + gap + gap, bottom = gap),
@@ -63,16 +70,16 @@ fun GroupReadyCardBubble(
                     .padding(gap),
             ) {
                 Image(
-                    painter = painterResource(R.drawable.ic_flipcash_logo),
+                    painter = painterResource(Res.drawable.ic_flipcash_logo),
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
             BoxWithConstraints(modifier = Modifier.weight(1f)) {
                 WidgetCardBubble(
-                    title = stringResource(R.string.title_groupReady),
-                    subtitle = stringResource(R.string.subtitle_groupReady, groupName),
-                    buttonLabel = stringResource(R.string.title_invitePeople),
+                    title = stringResource(Res.string.title_groupReady),
+                    subtitle = stringResource(Res.string.subtitle_groupReady, groupName),
+                    buttonLabel = stringResource(Res.string.title_invitePeople),
                     onClick = onInvite,
                     isFromSelf = false,
                     position = BubblePosition.Solo,
