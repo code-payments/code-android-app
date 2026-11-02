@@ -239,7 +239,7 @@ class ChatGroupCashLinkTest {
         val actions = sheet.actions
         // The spec's sheet is two rows: no title and no Dismiss.
         assertEquals("", sheet.title)
-        assertEquals(listOf("money_action_send", "money_action_request"), actions.map { it.testTag })
+        assertEquals(listOf("money_action_request", "money_action_send"), actions.map { it.testTag })
         assertTrue(events.none { it is ChatViewModel.Event.NavigateToAmountEntry })
 
         actions.first { it.testTag == "money_action_request" }.onClick()
