@@ -20,8 +20,17 @@ fun Project.androidResAsComposeResources(resDir: String = "src/androidMain/res")
             include("values/**", "drawable/**", "drawable-*/**", "font/**")
         }
         eachFile { path = path.replaceFirst("drawable-nodpi/", "drawable/") }
+        // aapt reads `\'`, `\"`, `\@` and `\?` as escapes; Compose resources keep the backslash,
+        // so "can\'t" would render with it. The plain character is valid XML text.
+        // The filter is not a tracked input, so name its version here to rerun the copy when it changes.
+        inputs.property("escapeFilter", "unescape-1")
+        filesMatching("values*/*.xml") {
+            filter { line -> ANDROID_ESCAPE.replace(line) { it.value.substring(1) } }
+        }
         includeEmptyDirs = false
         into(layout.buildDirectory.dir("generated/androidResForCompose"))
     }
     return layout.dir(sync.map { it.destinationDir })
 }
+
+private val ANDROID_ESCAPE = Regex("""\\['"@?]""")
