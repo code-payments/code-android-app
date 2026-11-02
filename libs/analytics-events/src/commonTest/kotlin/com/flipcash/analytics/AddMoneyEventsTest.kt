@@ -81,4 +81,38 @@ class AddMoneyEventsTest {
             AddMoneyEvents.result(AddMoneyMethod.OTHER_WALLET, State.FAILURE, null, "declined"),
         )
     }
+
+    @Test
+    fun resultCarriesTheCoinbasePhaseTimesInMilliseconds() {
+        assertEquals(
+            AnalyticsEvent(
+                "Add Money",
+                mapOf(
+                    "Method" to PropertyValue.Text("Coinbase"),
+                    "State" to PropertyValue.Text("Success"),
+                ) + amountProperties + mapOf(
+                    "Order Time" to PropertyValue.Number(1_000.0),
+                    "Payment Time" to PropertyValue.Number(2_000.0),
+                    "Coinbase Time" to PropertyValue.Number(3_000.0),
+                    "Deposit Time" to PropertyValue.Number(4_000.0),
+                    "Swap Time" to PropertyValue.Number(5_000.0),
+                    "Credit Time" to PropertyValue.Number(6_000.0),
+                    "Total Time" to PropertyValue.Number(21_000.0),
+                ),
+            ),
+            AddMoneyEvents.result(
+                AddMoneyMethod.COINBASE,
+                State.SUCCESS,
+                amount,
+                null,
+                orderTimeMillis = 1_000,
+                paymentTimeMillis = 2_000,
+                coinbaseTimeMillis = 3_000,
+                depositTimeMillis = 4_000,
+                swapTimeMillis = 5_000,
+                creditTimeMillis = 6_000,
+                totalTimeMillis = 21_000,
+            ),
+        )
+    }
 }
