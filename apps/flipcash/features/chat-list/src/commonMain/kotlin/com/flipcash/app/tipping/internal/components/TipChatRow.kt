@@ -4,7 +4,14 @@ import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.subtitle_peopleWantToJoin
 import com.flipcash.core.resources.subtitle_wantsToJoin
 import com.flipcash.core.resources.title_unnamedUser
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.drawWithContent
+import com.getcode.util.resources.ic_check_circle
+import org.jetbrains.compose.resources.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.requiredSize
@@ -40,19 +47,34 @@ internal fun TipChatRow(
     chat: ConversationReference,
     modifier: Modifier = Modifier,
     showDivider: Boolean = true,
+    // Select mode: whether this row is picked, or null outside select mode. In it a circle leads
+    // the row, the content shifts right to make room, and the chevron goes (a tap toggles).
+    selected: Boolean? = null,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
+    val selectedTint = CodeTheme.colors.surfaceVariant
     ChatListRow(
-        modifier = modifier,
+        modifier = modifier.drawWithContent {
+            drawContent()
+            // Over the row rather than behind it: the shared row paints its own opaque background.
+            if (selected == true) drawRect(selectedTint)
+        },
         avatar = {
-            ContactAvatar(
-                image = chat.image,
-                displayName = chat.name.orEmpty(),
-                access = chat.avatarAccess,
-                modifier = Modifier
-                    .requiredSize(CodeTheme.dimens.staticGrid.x9)
-                    .clip(CircleShape),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x3),
+            ) {
+                if (selected != null) SelectCircle(selected)
+                ContactAvatar(
+                    image = chat.image,
+                    displayName = chat.name.orEmpty(),
+                    access = chat.avatarAccess,
+                    modifier = Modifier
+                        .requiredSize(CodeTheme.dimens.staticGrid.x9)
+                        .clip(CircleShape),
+                )
+            }
         },
         title = {
             Row(
@@ -81,7 +103,7 @@ internal fun TipChatRow(
             ChatRowTrailing(
                 lastActivity = chat.rowActivity,
                 unreadCount = chat.rowUnreadCount,
-                canOpen = true,
+                canOpen = selected == null,
             )
         },
         subtitle = {
@@ -109,8 +131,29 @@ internal fun TipChatRow(
             )
         },
         showDivider = showDivider,
+        onLongClick = onLongClick,
         onClick = onClick,
     )
+}
+
+/** Select mode's leading circle: an outline when not picked, the filled check when picked. */
+@Composable
+private fun SelectCircle(selected: Boolean) {
+    val size = CodeTheme.dimens.staticGrid.x4
+    if (selected) {
+        Icon(
+            painter = painterResource(com.getcode.util.resources.Res.drawable.ic_check_circle),
+            contentDescription = null,
+            tint = CodeTheme.colors.indicator,
+            modifier = Modifier.requiredSize(size),
+        )
+    } else {
+        Box(
+            Modifier
+                .requiredSize(size)
+                .border(1.5.dp, CodeTheme.colors.textSecondary, CircleShape)
+        )
+    }
 }
 
 /**

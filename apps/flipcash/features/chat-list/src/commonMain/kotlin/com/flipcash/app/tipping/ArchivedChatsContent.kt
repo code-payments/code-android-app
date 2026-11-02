@@ -1,5 +1,8 @@
 package com.flipcash.app.tipping
 
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.flipcash.app.tipping.internal.components.markReadSwipeAction
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.content_description_unarchiveChat
 import com.flipcash.core.resources.title_noArchivedChats
@@ -43,9 +46,15 @@ internal fun ArchivedChatsContent(
     onOpen: (ChatId) -> Unit,
     onUnarchive: (ChatId) -> Unit,
     topBar: @Composable () -> Unit,
+    // Select mode: the chats picked so far, or null outside it, and what the bar can do to them.
+    selection: Set<ChatId>? = null,
+    onStartSelection: (ChatId) -> Unit = {},
+    onToggleSelection: (ChatId) -> Unit = {},
+    onToggleRead: (ChatId) -> Unit = {},
 ) {
     // One row open at a time, as on the Chats list.
     val revealGroup = rememberSwipeRevealGroup()
+    val haptics = LocalHapticFeedback.current
 
     CodeScaffold(
         topBar = topBar,
@@ -80,13 +89,27 @@ internal fun ArchivedChatsContent(
             itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
                 UnarchiveSwipeRow(
                     modifier = Modifier.animateItem(),
+                    isUnread = chat.isUnread,
+                    // Swipes are off while selecting.
+                    swipeEnabled = selection == null,
+                    onToggleRead = { onToggleRead(chat.chatId) },
                     onUnarchive = { onUnarchive(chat.chatId) },
                     stateKey = chat.chatId,
                     revealGroup = revealGroup,
                 ) {
                     // The row draws its divider below itself, so none sits above the first row.
-                    TipChatRow(chat = chat, showDivider = index < chats.lastIndex) {
-                        onOpen(chat.chatId)
+                    TipChatRow(
+                        chat = chat,
+                        showDivider = index < chats.lastIndex,
+                        selected = selection?.let { chat.chatId in it },
+                        onLongClick = {
+                            if (selection == null) {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onStartSelection(chat.chatId)
+                            }
+                        },
+                    ) {
+                        if (selection != null) onToggleSelection(chat.chatId) else onOpen(chat.chatId)
                     }
                 }
             }
@@ -96,6 +119,9 @@ internal fun ArchivedChatsContent(
 
 @Composable
 private fun UnarchiveSwipeRow(
+    isUnread: Boolean,
+    swipeEnabled: Boolean,
+    onToggleRead: () -> Unit,
     onUnarchive: () -> Unit,
     stateKey: Any,
     revealGroup: SwipeRevealGroup,
@@ -103,7 +129,13 @@ private fun UnarchiveSwipeRow(
     content: @Composable () -> Unit,
 ) {
     val label = stringResource(Res.string.content_description_unarchiveChat)
+    val (readAction, readLabel) = markReadSwipeAction(isUnread, onToggleRead)
+    if (!swipeEnabled) {
+        Box(modifier) { content() }
+        return
+    }
     SwipeActionRow(
+        leadingActions = listOf(readAction),
         actions = listOf(
             SwipeAction(
                 background = CodeTheme.colors.surfaceVariant,
@@ -119,7 +151,10 @@ private fun UnarchiveSwipeRow(
         ),
         // A swipe is out of reach with a screen reader, so the row offers the action there.
         modifier = modifier.semantics {
-            customActions = listOf(CustomAccessibilityAction(label) { onUnarchive(); true })
+            customActions = listOf(
+                CustomAccessibilityAction(readLabel) { onToggleRead(); true },
+                CustomAccessibilityAction(label) { onUnarchive(); true },
+            )
         },
         stateKey = stateKey,
         revealGroup = revealGroup,

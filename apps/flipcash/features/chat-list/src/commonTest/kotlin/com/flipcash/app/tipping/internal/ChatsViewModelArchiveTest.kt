@@ -87,6 +87,7 @@ class ChatsViewModelArchiveTest {
                 lobbyRequests = mockk(relaxed = true),
                 hostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
                 paymentRequests = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
+                rowActions = mockk(relaxed = true),
             )
 
             val states = mutableListOf<ChatsViewModel.State>()

@@ -6,6 +6,9 @@ import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
+import com.flipcash.analytics.ChatReadSource
+import com.flipcash.shared.chat.toggledSelection
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
@@ -34,6 +37,7 @@ internal open class ArchivedChatsViewModel @Inject constructor(
     dispatchers: DispatcherProvider,
     paymentRequests: PaymentRequests,
     hostLobbies: HostLobbies,
+    private val rowActions: ChatRowActions,
 ) : BaseViewModel<ArchivedChatsViewModel.State, ArchivedChatsViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -41,14 +45,58 @@ internal open class ArchivedChatsViewModel @Inject constructor(
 
     data class State(
         val chats: Loadable<List<ConversationReference>> = Loadable.Loading(),
-    )
+        // Select mode, as on the Chats list: the chats picked so far, or null outside it.
+        val selection: Set<ChatId>? = null,
+    ) {
+        val isSelecting: Boolean get() = selection != null
+
+        val selectedChats: List<ConversationReference>
+            get() {
+                val ids = selection ?: return emptyList()
+                return chats.dataOrNull.orEmpty().filter { it.chatId in ids }
+            }
+
+        val selectionActions: ChatSelectionActions get() = ChatSelectionActions.of(selectedChats)
+    }
 
     sealed interface Event {
         data class ChatsUpdated(val chats: Loadable<List<ConversationReference>>) : Event
+        data class SelectionStarted(val chatId: ChatId) : Event
+        data class SelectionToggled(val chatId: ChatId) : Event
+        data object SelectionEnded : Event
     }
 
     fun unarchive(chatId: ChatId) {
         viewModelScope.launch { archiveStore.unarchive(chatId) }
+    }
+
+    fun toggleRead(chatId: ChatId) {
+        viewModelScope.launch { rowActions.toggleRead(chatId, ChatReadSource.SWIPE) }
+    }
+
+    fun startSelection(chatId: ChatId) = dispatchEvent(Event.SelectionStarted(chatId))
+
+    fun toggleSelection(chatId: ChatId) = dispatchEvent(Event.SelectionToggled(chatId))
+
+    fun endSelection() = dispatchEvent(Event.SelectionEnded)
+
+    fun readSelection() = actOnSelection { ids -> viewModelScope.launch { rowActions.toggleRead(ids) } }
+
+    fun unmuteSelection() = actOnSelection { ids -> viewModelScope.launch { rowActions.unmute(ids) } }
+
+    fun muteSelection(): Pair<List<ChatId>, List<ChatType>>? {
+        var target: Pair<List<ChatId>, List<ChatType>>? = null
+        actOnSelection { ids -> target = rowActions.chatTypes(ids) }
+        return target
+    }
+
+    /** Select mode's Unarchive: the selected chats go back to the main list. */
+    fun unarchiveSelection() = actOnSelection { ids -> viewModelScope.launch { rowActions.unarchive(ids) } }
+
+    private inline fun actOnSelection(action: (List<ChatId>) -> Unit) {
+        val ids = stateFlow.value.selectedChats.map { it.chatId }
+        if (ids.isNotEmpty()) action(ids)
+        endSelection()
     }
 
     init {
@@ -73,9 +121,14 @@ internal open class ArchivedChatsViewModel @Inject constructor(
     }
 
     internal companion object {
-        private val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
+        internal val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
                 is Event.ChatsUpdated -> { state -> state.copy(chats = event.chats) }
+                is Event.SelectionStarted -> { state -> state.copy(selection = setOf(event.chatId)) }
+                is Event.SelectionToggled -> { state ->
+                    state.copy(selection = state.selection?.toggledSelection(event.chatId))
+                }
+                Event.SelectionEnded -> { state -> state.copy(selection = null) }
             }
         }
     }

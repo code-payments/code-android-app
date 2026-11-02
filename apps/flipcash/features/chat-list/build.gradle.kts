@@ -13,6 +13,7 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":apps:flipcash:core"))
             implementation(project(":apps:flipcash:core-ui"))
+            implementation(project(":apps:flipcash:shared:analytics"))
             implementation(project(":apps:flipcash:shared:chat"))
             implementation(project(":apps:flipcash:shared:chat-ui"))
             implementation(project(":apps:flipcash:shared:common-ui"))
@@ -42,6 +43,7 @@ kotlin {
         androidMain.dependencies {
             // What flipcash.android.feature supplied before the move to KMP.
             implementation(libs.bundles.hilt)
+            implementation(project(":libs:messaging"))
             implementation(project.dependencies.platform(libs.compose.bom))
             implementation(libs.bundles.compose)
         }
@@ -49,6 +51,7 @@ kotlin {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.mockk)
+            implementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
         }
         getByName("androidHostTest").dependencies {
             implementation(kotlin("test"))
@@ -56,6 +59,7 @@ kotlin {
             implementation(libs.robolectric)
             implementation(project(":ui:resources:test-fixtures"))
             implementation(project(":libs:test-utils"))
+            implementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
         }
     }
 }

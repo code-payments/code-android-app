@@ -1,5 +1,7 @@
 package com.flipcash.app.tipping
 
+import com.flipcash.app.tipping.internal.components.markReadSwipeAction
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.action_undo
 import com.flipcash.core.resources.content_description_archiveChat
@@ -122,6 +124,11 @@ fun ChatsScreenContent(
     onMute: (ConversationReference) -> Unit,
     onArchive: (ConversationReference) -> Unit,
     topBar: @Composable () -> Unit,
+    // The leading swipe: Mark as Read or Mark as Unread, whichever the row offers.
+    onToggleRead: (ConversationReference) -> Unit = {},
+    // Select mode: a long press (with that chat) or Select Chats (with none) starts it.
+    onStartSelection: (ChatId?) -> Unit = {},
+    onToggleSelection: (ChatId) -> Unit = {},
 ) {
     val chats = state.chats
     // Item 1 from the first frame, so the chips never flash on. Saveable, so the position (chips
@@ -270,7 +277,17 @@ fun ChatsScreenContent(
                     }
                     else -> tipChatItems(
                         chats = visible,
-                        onClick = onOpenChat,
+                        selection = state.selection,
+                        onClick = { chat ->
+                            if (state.isSelecting) onToggleSelection(chat.chatId) else onOpenChat(chat)
+                        },
+                        onLongClick = { chat ->
+                            if (!state.isSelecting) {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onStartSelection(chat.chatId)
+                            }
+                        },
+                        onToggleRead = onToggleRead,
                         // The same sheet the chat and group profiles open, so the list offers exactly
                         // the durations they do, and unmuting is its "Never" row rather than a toggle.
                         onMute = onMute,
@@ -338,7 +355,10 @@ private fun NoChatsYet(modifier: Modifier = Modifier) {
 
 private fun LazyListScope.tipChatItems(
     chats: List<ConversationReference>,
+    selection: Set<ChatId>?,
     onClick: (ConversationReference) -> Unit,
+    onLongClick: (ConversationReference) -> Unit,
+    onToggleRead: (ConversationReference) -> Unit,
     onMute: (ConversationReference) -> Unit,
     onArchive: (ConversationReference) -> Unit,
     revealGroup: SwipeRevealGroup,
@@ -351,6 +371,10 @@ private fun LazyListScope.tipChatItems(
         ChatSwipeRow(
             modifier = Modifier.animateItem().then(parkFiller.tracked(chat.chatId)),
             isMuted = rememberIsMuted(chat.viewerState),
+            isUnread = chat.isUnread,
+            // Swipes are off while selecting.
+            swipeEnabled = selection == null,
+            onToggleRead = { onToggleRead(chat) },
             onMute = { onMute(chat) },
             onArchive = { onArchive(chat) },
             stateKey = chat.chatId,
@@ -359,6 +383,8 @@ private fun LazyListScope.tipChatItems(
             TipChatRow(
                 chat = chat,
                 showDivider = index < chats.lastIndex,
+                selected = selection?.let { chat.chatId in it },
+                onLongClick = { onLongClick(chat) },
             ) {
                 onClick(chat)
             }
@@ -367,7 +393,8 @@ private fun LazyListScope.tipChatItems(
 }
 
 /**
- * Two trailing swipe actions: archive inside, mute outside. [SwipeActionRow] draws the last action
+ * One leading swipe action, Mark as Read or Mark as Unread (a full swipe fires it), and two
+ * trailing ones: archive inside, mute outside. [SwipeActionRow] draws the last action
  * outermost and fires it on a full swipe, so a full swipe still opens the mute sheet as before, and
  * archive is a tap on the revealed action.
  *
@@ -382,6 +409,9 @@ private fun LazyListScope.tipChatItems(
 @Composable
 private fun ChatSwipeRow(
     isMuted: Boolean,
+    isUnread: Boolean,
+    swipeEnabled: Boolean,
+    onToggleRead: () -> Unit,
     onMute: () -> Unit,
     onArchive: () -> Unit,
     stateKey: Any,
@@ -394,7 +424,13 @@ private fun ChatSwipeRow(
         else Res.string.content_description_muteChat
     )
     val archiveLabel = stringResource(Res.string.content_description_archiveChat)
+    val (readAction, readLabel) = markReadSwipeAction(isUnread, onToggleRead)
+    if (!swipeEnabled) {
+        Box(modifier) { content() }
+        return
+    }
     SwipeActionRow(
+        leadingActions = listOf(readAction),
         actions = listOf(
             SwipeAction(
                 background = CodeTheme.colors.surfaceVariant,
@@ -429,6 +465,7 @@ private fun ChatSwipeRow(
         // A swipe is out of reach with a screen reader, so the row offers the same actions there.
         modifier = modifier.semantics {
             customActions = listOf(
+                CustomAccessibilityAction(readLabel) { onToggleRead(); true },
                 CustomAccessibilityAction(muteLabel) { onMute(); true },
                 CustomAccessibilityAction(archiveLabel) { onArchive(); true },
             )

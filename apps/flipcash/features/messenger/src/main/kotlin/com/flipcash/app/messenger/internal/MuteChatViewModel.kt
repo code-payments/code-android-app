@@ -69,6 +69,14 @@ internal class MuteChatViewModel @Inject constructor(
             .also { analytics.trackMuted(chatType, option, it) }
     }
 
+    /**
+     * The chat list's bulk Mute: [option] applied to every chat in [chatIds], already muted ones
+     * included. [chatTypes] pairs with [chatIds] by index, for each chat's own mute event.
+     */
+    fun muteAll(chatIds: List<ChatId>, chatTypes: List<ChatType>, option: MuteOption) {
+        chatIds.zip(chatTypes).forEach { (chatId, chatType) -> mute(chatId, chatType, option) }
+    }
+
     fun unmute(chatId: ChatId, chatType: ChatType) = request(
         errorTitle = R.string.error_title_failedToUnmute,
         errorDescription = R.string.error_description_failedToUnmute,

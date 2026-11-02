@@ -63,3 +63,13 @@ fun readAllPlan(main: List<ChatSummary>): ChatReadAllPlan {
  * Null when nothing was archived, so no toast is shown.
  */
 fun archivedToastCount(archived: Int): Int? = archived.takeIf { it > 0 }
+
+/**
+ * Select mode's tap on [chatId]: adds it, or takes it out. Null when that takes out the last
+ * selected chat, which leaves select mode. (Select Chats enters with nothing selected; only a
+ * deselect empties it.)
+ */
+fun Set<ChatId>.toggledSelection(chatId: ChatId): Set<ChatId>? {
+    if (chatId !in this) return this + chatId
+    return (this - chatId).ifEmpty { null }
+}

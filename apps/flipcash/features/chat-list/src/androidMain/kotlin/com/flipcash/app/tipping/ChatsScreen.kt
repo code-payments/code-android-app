@@ -1,6 +1,12 @@
-// kmp-audit: hiltViewModel is Android-only; the screen content is ChatsScreenContent in commonMain.
+// kmp-audit: hiltViewModel and BackHandler are Android-only; the screen content is ChatsScreenContent in commonMain.
 package com.flipcash.app.tipping
 
+import androidx.activity.compose.BackHandler
+import com.flipcash.app.tipping.internal.components.ChatListMoreButton
+import com.flipcash.app.tipping.internal.components.ChatSelectionTopBar
+import com.flipcash.app.tipping.internal.components.SelectionArchiveAction
+import com.flipcash.services.models.chat.ChatId
+import org.jetbrains.compose.resources.getPluralString
 import androidx.compose.material.SnackbarResult
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
@@ -15,7 +21,7 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.tipping.internal.HiltChatsViewModel
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.action_undo
-import com.flipcash.core.resources.message_chatArchived
+import com.flipcash.core.resources.message_chatsArchived
 import com.flipcash.core.resources.title_tabChat
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarDefaults
@@ -38,8 +44,24 @@ fun ChatsScreen() {
     // The root toast host, so the undo rises out of the tab bar on its glass.
     val toasts = LocalFloatingToastHost.current
     val scope = rememberCoroutineScope()
-    val archivedMessage = stringResource(Res.string.message_chatArchived)
     val undoLabel = stringResource(Res.string.action_undo)
+
+    // Archive with one Undo for everything it took: the swipe passes one chat, select mode several.
+    val archiveWithUndo: (List<ChatId>) -> Unit = { ids ->
+        if (toasts != null && ids.isNotEmpty()) {
+            scope.launch {
+                val result = toasts.show(
+                    message = getPluralString(Res.plurals.message_chatsArchived, ids.size, ids.size),
+                    icon = Icons.Outlined.Archive,
+                    actionLabel = undoLabel,
+                )
+                if (result == SnackbarResult.ActionPerformed) viewModel.unarchive(ids)
+            }
+        }
+    }
+
+    // Close, system back, or deselecting the last row leaves select mode.
+    BackHandler(enabled = state.isSelecting) { viewModel.endSelection() }
 
     ChatsScreenContent(
         state = state,
@@ -53,30 +75,48 @@ fun ChatsScreen() {
         onArchive = { chat ->
             viewModel.archive(chat.chatId)
             // The row leaves the list at once, so offer to put it back.
-            if (toasts != null) {
-                scope.launch {
-                    val result = toasts.show(
-                        message = archivedMessage,
-                        icon = Icons.Outlined.Archive,
-                        actionLabel = undoLabel,
-                    )
-                    if (result == SnackbarResult.ActionPerformed) viewModel.unarchive(chat.chatId)
-                }
-            }
+            archiveWithUndo(listOf(chat.chatId))
         },
+        onToggleRead = { chat -> viewModel.toggleRead(chat.chatId) },
+        onStartSelection = viewModel::startSelection,
+        onToggleSelection = viewModel::toggleSelection,
         topBar = {
-            AppBarWithTitle(
-                title = stringResource(Res.string.title_tabChat),
-                // Centred rather than flush-start: an empty leading slot reserves no width, so a
-                // Start title sits at the inset and reads as off-centre against the Add button.
-                titleAlignment = Alignment.CenterHorizontally,
-                // Node 9442:5779 — the only way to start a chat with someone who has never paid
-                // you. A pushed route rather than an in-place screen: this list is a tab home, and
-                // anything drawn inside it would leave the tab bar over the entry screen.
-                endContent = {
-                    AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
+            // Select mode takes the bar over, as a message selection does in a chat.
+            ChatSelectionTopBar(
+                selectionActions = if (state.isSelecting) state.selectionActions else null,
+                archiveAction = SelectionArchiveAction.Archive,
+                onClose = viewModel::endSelection,
+                onRead = viewModel::readSelection,
+                onMute = {
+                    viewModel.muteSelection()?.let { (ids, types) ->
+                        navigator.push(AppRoute.Messaging.MuteChats(ids, types))
+                    }
                 },
-            )
+                onUnmute = viewModel::unmuteSelection,
+                onArchive = { archiveWithUndo(viewModel.archiveSelection()) },
+                label = "chat list bar",
+            ) {
+                AppBarWithTitle(
+                    title = stringResource(Res.string.title_tabChat),
+                    // Centred rather than flush-start: an empty leading slot reserves no width, so a
+                    // Start title sits at the inset and reads as off-centre against the Add button.
+                    titleAlignment = Alignment.CenterHorizontally,
+                    // Node 13201:108 — opposite Add and drawn the same way.
+                    leadingContent = {
+                        ChatListMoreButton(
+                            canReadAll = state.canReadAll,
+                            onSelectChats = { viewModel.startSelection() },
+                            onReadAll = viewModel::requestReadAll,
+                        )
+                    },
+                    // Node 9442:5779 — the only way to start a chat with someone who has never paid
+                    // you. A pushed route rather than an in-place screen: this list is a tab home, and
+                    // anything drawn inside it would leave the tab bar over the entry screen.
+                    endContent = {
+                        AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
+                    },
+                )
+            }
         },
     )
 }

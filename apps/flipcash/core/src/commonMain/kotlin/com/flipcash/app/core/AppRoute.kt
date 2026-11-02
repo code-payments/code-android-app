@@ -566,6 +566,18 @@ sealed interface AppRoute : NavKey, Parcelable {
             com.getcode.navigation.WrapContentSheet
 
         /**
+         * The mute sheet for several chats at once, from the chat list's select mode: the duration
+         * picked applies to every one of [chatIds], including any already muted. [chatTypes] pairs
+         * with [chatIds] by index, for the per-chat mute events. Presented like [MuteChat].
+         */
+        @Serializable
+        @Parcelize
+        data class MuteChats(val chatIds: List<ChatId>, val chatTypes: List<ChatType>) :
+            Messaging,
+            com.getcode.navigation.Sheet,
+            com.getcode.navigation.WrapContentSheet
+
+        /**
          * How long to silence [userId] in the group [chatId]. Carries the words the sheet shows
          * ([firstName], [groupTitle]) so it needs no lookup before it can draw. Presented like
          * [MuteChat], for the same reason.
