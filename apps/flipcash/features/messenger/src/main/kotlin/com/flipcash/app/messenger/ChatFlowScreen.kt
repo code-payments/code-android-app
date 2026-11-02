@@ -473,7 +473,7 @@ private fun FlowAmountEntryScreen(resultStateRegistry: NavResultStateRegistry, t
                         onSendComplete = { resultBack.returnValue(ChatSendResult) }, // intra-flow result -> Conversation
                         onExit = dismissSheet,
                         // A group send picks its currency on the confirm sheet, so no pill here.
-                        title = if (toMembers) stringResource(R.string.title_groupSendTotal) else null,
+                        title = if (toMembers) stringResource(R.string.title_groupSendAmount) else null,
                     )
                 }
             }
@@ -502,15 +502,15 @@ private fun FlowGroupSelectPeople(viewModel: ChatViewModel, onSendComplete: () -
         onBack = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
         onToggle = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(it.userId)) },
         onSend = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed) },
-        you = state.groupSendViewer,
-        buttonEnabled = groupSend.paid.isNotEmpty(),
-        title = stringResource(R.string.title_splitBetween),
-        buttonText = stringResource(R.string.action_next),
+        showsMembersHeader = false,
+        buttonEnabled = groupSend.selected.isNotEmpty(),
+        title = stringResource(R.string.title_groupSendTo),
+        buttonText = stringResource(R.string.action_groupSendTotal, groupSend.total?.formatted().orEmpty()),
     )
     if (groupSend.stage == GroupSendState.Stage.Confirm) {
         GroupSendConfirmSheet(
             groupSend = groupSend,
-            recipients = groupSend.paid.mapNotNull { id -> candidates.find { it.userId == id } },
+            recipients = groupSend.selected.mapNotNull { id -> candidates.find { it.userId == id } },
             swipePay = SwipePayUiState(
                 token = state.token,
                 progress = state.sendProgress,

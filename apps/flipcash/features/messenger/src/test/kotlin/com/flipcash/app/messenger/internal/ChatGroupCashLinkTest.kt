@@ -62,7 +62,6 @@ import com.getcode.opencode.model.financial.SendLimit
 import com.flipcash.app.messenger.internal.groupsend.GroupSendState
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.shared.payments.group.GroupSendPaymentDelegate
-import com.flipcash.shared.payments.group.GroupSendPlan
 import com.getcode.opencode.model.financial.CurrencyCode
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -128,7 +127,7 @@ class ChatGroupCashLinkTest {
         every { userManager.accountCluster } returns owner
         every { userManager.accountId } returns viewerId
         coEvery {
-            groupSendPayments.send(any(), any(), any(), any(), any(), any())
+            groupSendPayments.send(any(), any(), any(), any(), any())
         } returns Result.success(Unit)
         every { exchange.preferredRate } returns Rate.oneToOne
         every { transactionController.limits } returns MutableStateFlow(
@@ -363,7 +362,7 @@ class ChatGroupCashLinkTest {
 
         assertNull(vm.stateFlow.value.groupSend)
         coVerify(exactly = 1) { chatCashLinks.sendToChat(chatId, any(), token, owner) }
-        coVerify(exactly = 0) { groupSendPayments.send(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { groupSendPayments.send(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -374,7 +373,7 @@ class ChatGroupCashLinkTest {
 
         val state = vm.stateFlow.value
         assertEquals(GroupSendState.Stage.People, state.groupSend?.stage)
-        assertEquals(Fiat(2.0), state.groupSend?.total)
+        assertEquals(Fiat(2.0), state.groupSend?.amount)
         assertEquals(roster.map { it.userId }, state.groupSendCandidates.map { it.userId })
         coVerify(exactly = 0) { chatCashLinks.sendToChat(any(), any(), any(), any()) }
     }
@@ -391,19 +390,7 @@ class ChatGroupCashLinkTest {
     }
 
     @Test
-    fun `a total under a cent each alerts and stays on Select People`() = runTest(mainCoroutineRule.dispatcher) {
-        val vm = createViewModel()
-        selectingPeople(vm, total = 0.05)
-        vm.check(6)
-        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
-        advanceUntilIdle()
-
-        assertEquals(GroupSendState.Stage.People, vm.stateFlow.value.groupSend?.stage)
-        assertEquals(1, BottomBarManager.messages.value.size)
-    }
-
-    @Test
-    fun `the swipe pays the checked members in the order they were checked`() = runTest(mainCoroutineRule.dispatcher) {
+    fun `the swipe pays each checked member the amount entered, in the order they were checked`() = runTest(mainCoroutineRule.dispatcher) {
         val vm = createViewModel()
         val events = recordEvents(vm)
         selectingPeople(vm, total = 2.0)
@@ -420,8 +407,7 @@ class ChatGroupCashLinkTest {
             groupSendPayments.send(
                 chatId = chatId,
                 recipients = roster.take(6).reversed().map { it.userId },
-                plan = GroupSendPlan.Pay(listOf(34, 34, 33, 33, 33, 33)),
-                currency = CurrencyCode.USD,
+                amount = Fiat(2.0),
                 token = token,
                 source = any(),
             )
@@ -448,7 +434,7 @@ class ChatGroupCashLinkTest {
         advanceUntilIdle()
 
         verify(exactly = 1) { startChattingPayer.presentInsufficientBalance(any()) }
-        coVerify(exactly = 0) { groupSendPayments.send(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { groupSendPayments.send(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -464,117 +450,38 @@ class ChatGroupCashLinkTest {
         assertTrue(vm.amountDelegate.config.value.canConfirm)
     }
 
-    private fun ChatViewModel.checkYou() =
-        dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(viewerId))
-
-    private fun ChatViewModel.checkMember(index: Int) =
-        dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(roster[index].userId))
-
     @Test
-    fun `thirty dollars between You and two others pays ten each and charges twenty`() = runTest(mainCoroutineRule.dispatcher) {
-        // Within the balance of the paid parts ($20) but not of the entered total ($30).
-        every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(25.0)
+    fun `the total is the amount times the people checked and the sender is not listed`() = runTest(mainCoroutineRule.dispatcher) {
         val vm = createViewModel()
-        selectingPeople(vm, total = 30.0)
-        vm.checkYou(); vm.checkMember(0); vm.checkMember(1)
-        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
+        selectingPeople(vm, total = 3.0)
+        vm.check(2)
 
         val groupSend = vm.stateFlow.value.groupSend
-        assertEquals(GroupSendState.Stage.Confirm, groupSend?.stage)
-        assertEquals(Fiat(30.0), groupSend?.total)
-        assertEquals(GroupSendPlan.Pay(listOf(1000L, 1000L), viewerPart = 1000L), groupSend?.plan)
+        assertEquals(Fiat(6.0), groupSend?.total)
+        assertTrue(vm.stateFlow.value.groupSendCandidates.none { it.userId == viewerId })
+    }
 
+    @Test
+    fun `nobody checked does not move on to confirm`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        selectingPeople(vm, total = 1.0)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
+        advanceUntilIdle()
+
+        assertEquals(GroupSendState.Stage.People, vm.stateFlow.value.groupSend?.stage)
+    }
+
+    @Test
+    fun `the balance is checked against the total, not the amount each`() = runTest(mainCoroutineRule.dispatcher) {
+        every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(5.0)
+        val vm = createViewModel()
+        selectingPeople(vm, total = 3.0)
+        vm.check(2)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
         vm.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested)
         advanceUntilIdle()
 
-        verify(exactly = 0) { startChattingPayer.presentInsufficientBalance(any()) }
-        coVerify(exactly = 1) {
-            groupSendPayments.send(
-                chatId = chatId,
-                recipients = listOf(roster[0].userId, roster[1].userId),
-                plan = GroupSendPlan.Pay(listOf(1000L, 1000L), viewerPart = 1000L),
-                currency = CurrencyCode.USD,
-                token = token,
-                source = any(),
-            )
-        }
-    }
-
-    @Test
-    fun `You is the last share whatever order it was checked in, so the others take the extra cent`() = runTest(mainCoroutineRule.dispatcher) {
-        val vm = createViewModel()
-        selectingPeople(vm, total = 1.0)
-        vm.checkYou(); vm.checkMember(0); vm.checkMember(1)
-
-        assertEquals(GroupSendPlan.Pay(listOf(34L, 33L), viewerPart = 33L), vm.stateFlow.value.groupSend?.plan)
-        assertEquals(listOf(roster[0].userId, roster[1].userId), vm.stateFlow.value.groupSend?.paid)
-    }
-
-    @Test
-    fun `only You checked pays no one and Next goes nowhere`() = runTest(mainCoroutineRule.dispatcher) {
-        val vm = createViewModel()
-        selectingPeople(vm, total = 1.0)
-        vm.checkYou()
-        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
-        advanceUntilIdle()
-
-        val groupSend = vm.stateFlow.value.groupSend
-        assertTrue(groupSend?.paid?.isEmpty() == true)
-        assertEquals(GroupSendPlan.NoRecipients, groupSend?.plan)
-        assertEquals(GroupSendState.Stage.People, groupSend?.stage)
-    }
-
-    @Test
-    fun `You counts toward the cap so nine others plus You is the most`() = runTest(mainCoroutineRule.dispatcher) {
-        val vm = createViewModel()
-        selectingPeople(vm, total = 20.0)
-        vm.checkYou()
-        vm.check(10)
-        advanceUntilIdle()
-
-        val groupSend = vm.stateFlow.value.groupSend
-        assertEquals(9, groupSend?.paid?.size)
-        assertEquals(10, groupSend?.selected?.size)
-        assertTrue(groupSend?.plan is GroupSendPlan.Pay)
-        assertEquals(1, BottomBarManager.messages.value.size)
-    }
-
-    @Test
-    fun `the too-small check counts You in the split`() = runTest(mainCoroutineRule.dispatcher) {
-        val vm = createViewModel()
-        selectingPeople(vm, total = 0.05)
-        vm.checkYou(); vm.check(5)
-        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
-        advanceUntilIdle()
-
-        assertEquals(GroupSendPlan.PartBelowMinimum, vm.stateFlow.value.groupSend?.plan)
-        assertEquals(GroupSendState.Stage.People, vm.stateFlow.value.groupSend?.stage)
-        assertEquals(1, BottomBarManager.messages.value.size)
-    }
-
-    @Test
-    fun `ten dollars between You and one member says only five is sent, including You`() = runTest(mainCoroutineRule.dispatcher) {
-        val vm = createViewModel()
-        selectingPeople(vm, total = 10.0)
-        vm.checkYou(); vm.checkMember(0)
-
-        val groupSend = vm.stateFlow.value.groupSend
-        assertEquals(Fiat(10.0), groupSend?.total)
-        val pay = groupSend?.plan as GroupSendPlan.Pay
-        assertEquals(listOf(500L), pay.parts)
-        assertEquals(500L, pay.viewerPart)
-        // The Each line shows for one paid member when You are in, as "$5.00 Each, including You".
-        assertTrue(pay.showsEach && pay.includesViewer && pay.isEven)
-        assertEquals(500L, pay.smallest)
-    }
-
-    @Test
-    fun `one paid member without You has no Each line`() = runTest(mainCoroutineRule.dispatcher) {
-        val vm = createViewModel()
-        selectingPeople(vm, total = 10.0)
-        vm.checkMember(0)
-
-        val pay = vm.stateFlow.value.groupSend?.plan as GroupSendPlan.Pay
-        assertTrue(!pay.showsEach)
+        verify(exactly = 1) { startChattingPayer.presentInsufficientBalance(any()) }
+        coVerify(exactly = 0) { groupSendPayments.send(any(), any(), any(), any(), any()) }
     }
 }

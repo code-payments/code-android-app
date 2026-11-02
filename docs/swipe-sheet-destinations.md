@@ -40,7 +40,7 @@ Nothing live (a `ChatMember`, a `GroupSendPlan`, a `ConversationReference`) goes
 | Flow | In the key | Re-derived in the destination view model |
 |---|---|---|
 | Pay request | `chatId`, `requestId` | `payments.prepare(requestId, viewer)` for the `Share` (it already does this on Pay tap and again after a failed swipe), the creator from the chat roster, the selected token |
-| Group send | `chatId`, `total` (as currency code plus minor units), `selected` member ids | The roster for avatars and names, the plan from `GroupSendSplit.split(total, selected.size)` (pure), the selected token |
+| Group send | `chatId`, `amount` per person (as currency code plus minor units), `selected` member ids | The roster for avatars and names, the total as `amount` times `selected.size` (pure), the selected token |
 | Currency send | `mint`, `total`, `recipient.chatId` | The `ConversationReference` from the conversations source by chat id, the token from `tokenCoordinator.cachedToken(mint)` |
 
 The token pill changes the selected token through the shared `SelectTokenViewModel`, not through
