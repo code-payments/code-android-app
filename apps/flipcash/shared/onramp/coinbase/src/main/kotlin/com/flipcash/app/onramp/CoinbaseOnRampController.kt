@@ -91,6 +91,9 @@ class CoinbaseOnRampController @Inject constructor(
     private val _pendingCompletion = MutableSharedFlow<CoinbaseOnRampCompletion>(extraBufferCapacity = 1)
     val pendingCompletion: SharedFlow<CoinbaseOnRampCompletion> = _pendingCompletion.asSharedFlow()
 
+    private val _milestones = MutableSharedFlow<CoinbaseOnRampMilestone>(extraBufferCapacity = 4)
+    val milestones: SharedFlow<CoinbaseOnRampMilestone> = _milestones.asSharedFlow()
+
     fun emitCompletion(completion: CoinbaseOnRampCompletion) {
         _pendingCompletion.tryEmit(completion)
     }
@@ -99,9 +102,16 @@ class CoinbaseOnRampController @Inject constructor(
         _state.value = CoinbaseOnRampState.Paying(order, token, amount, swapId)
     }
 
+    fun onPaymentAuthorized() {
+        if (_state.value is CoinbaseOnRampState.Paying) {
+            _milestones.tryEmit(CoinbaseOnRampMilestone.PaymentAuthorized)
+        }
+    }
+
     fun onPaymentSuccess(orderId: String) {
         val current = _state.value
         if (current is CoinbaseOnRampState.Paying) {
+            _milestones.tryEmit(CoinbaseOnRampMilestone.PaymentCompleted)
             _state.update {
                 CoinbaseOnRampState.Completed(
                     current.swapId,

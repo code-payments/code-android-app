@@ -400,7 +400,7 @@ The creator closed a payment request before its deadline, on success or failure.
 
 ### Add Money
 
-The outcome of an add-money flow, sent as the event named `Add Money`.
+The outcome of an add-money flow, sent as the event named `Add Money`. The seven Time properties split a Coinbase purchase into phases and are sent only when Method is Coinbase. Order Time: from the user confirming the amount to Coinbase returning the placed order. Payment Time: from the order placed to Coinbase's `onramp_api.payment_authorized` event, so it includes the user's own time on the payment sheet. Coinbase Time: from `onramp_api.payment_authorized` to Coinbase's `onramp_api.polling_success` event. Deposit Time: from `onramp_api.polling_success` to the app first seeing a nonzero USDC balance in the user's account, which includes waiting for Coinbase to send it on-chain. Swap Time: from the USDC being seen to the USDC to USDF swap returning success. Credit Time: from the swap succeeding to the app seeing the USDF credited and showing success. Total Time: from the user confirming the amount to this event being sent, on success or failure. On a failure, only the phases that finished are sent, plus Total Time. When the user is sent to verify a phone number or email first, both clocks restart when they come back and the amount is confirmed again.
 
 | Property | Type | Optional | Values |
 |---|---|---|---|
@@ -408,14 +408,19 @@ The outcome of an add-money flow, sent as the event named `Add Money`.
 | State | list | no | [State](#state) |
 | amount | group | yes | [amount](#amount) |
 | Error | text | yes | |
+| Order Time | duration | yes | |
+| Payment Time | duration | yes | |
+| Coinbase Time | duration | yes | |
+| Deposit Time | duration | yes | |
+| Swap Time | duration | yes | |
+| Credit Time | duration | yes | |
+| Total Time | duration | yes | |
 
 > **Drift:** iOS sends Exchange Rate and no USDC (see Amount).
 
 ## Onramp
 
 ### Onramp: {step}
-
-Show Verification Info is Android only; part 2 decides whether iOS sends it.
 
 `{step}` in the name is one of [OnrampStep](#onrampstep).
 
@@ -500,7 +505,7 @@ Buying and selling a token.
 
 ### Token Purchase With {method}
 
-Phantom and Coinbase are Android only; part 2 decides whether iOS sends them. Currency is a buy paid with a held currency other than USDF reserves.
+Currency is a buy paid with a held currency other than USDF reserves.
 
 `{method}` in the name is one of [PurchaseMethod](#purchasemethod).
 
@@ -649,7 +654,7 @@ The user replaced an existing display name.
 
 ### Create Account Payment
 
-Android only; part 2 decides whether iOS sends it. iOS's Create Account fires at registration and is a different moment.
+The account-creation payment. It is a different moment from Create Account, which fires at registration.
 
 | Property | Type | Optional | Values |
 |---|---|---|---|

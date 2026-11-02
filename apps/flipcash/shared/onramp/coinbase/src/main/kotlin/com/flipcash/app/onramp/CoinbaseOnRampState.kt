@@ -21,6 +21,18 @@ sealed interface CoinbaseOnRampState {
     data class Failed(val error: CoinbaseOnRampWebError) : CoinbaseOnRampState
 }
 
+/**
+ * Coinbase's progress through a payment, for timing it. Unlike [CoinbaseOnRampState] these are
+ * not conflated, so a collector sees each one even when the state moves on straight after.
+ */
+enum class CoinbaseOnRampMilestone {
+    /** Coinbase's `onramp_api.payment_authorized` webview event. */
+    PaymentAuthorized,
+
+    /** Coinbase's `onramp_api.polling_success` webview event. */
+    PaymentCompleted,
+}
+
 sealed interface CoinbaseOnRampCompletion {
     data class SwapSubmitted(val swapId: SwapId) : CoinbaseOnRampCompletion
     data class DepositSubmitted(val orderId: String) : CoinbaseOnRampCompletion
