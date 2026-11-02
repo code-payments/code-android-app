@@ -24,9 +24,12 @@ class RealChatMarkedUnreadStoreTest {
     private val c = ChatId("55667788")
     private val store: ChatMarkedUnreadStore = RealChatMarkedUnreadStore(ChatMarkedUnreadDataSource()) { 1_000L }
 
+    private fun signIn(entropy: String) =
+        FlipcashDatabase.init(ApplicationProvider.getApplicationContext<Context>(), entropy)
+
     @Before
     fun setUp() {
-        FlipcashDatabase.init(ApplicationProvider.getApplicationContext<Context>(), "chat-marked-unread-store-test")
+        signIn(ACCOUNT_X)
         runBlocking { store.clearAll() }
     }
 
@@ -56,7 +59,23 @@ class RealChatMarkedUnreadStoreTest {
         assertEquals(setOf(b), store.observeMarked().first())
     }
 
-    // Test case 8: logout empties the marked set.
+    // Test case 8: marks survive logout, per account. The database file is per account, so
+    // logging out closes X's marks away from Y and signing back in as X brings them back.
+    @Test
+    fun `marks survive logout per account`() = runBlocking {
+        store.mark(a)
+        store.mark(b)
+
+        FlipcashDatabase.closeDb()
+        signIn(ACCOUNT_Y)
+        assertEquals(emptySet(), store.observeMarked().first())
+
+        FlipcashDatabase.closeDb()
+        signIn(ACCOUNT_X)
+        assertEquals(setOf(a, b), store.observeMarked().first())
+    }
+
+    // Erasing the cache (clearCache) wipes the marks.
     @Test
     fun `clearAll empties the marked set`() = runBlocking {
         store.mark(a)
@@ -69,5 +88,11 @@ class RealChatMarkedUnreadStoreTest {
     fun `no database means nothing marked`() = runBlocking {
         FlipcashDatabase.closeDb()
         assertEquals(emptySet(), store.observeMarked().first())
+    }
+
+    private companion object {
+        // The database file is named from the first 6 bytes of the entropy, so these differ there.
+        const val ACCOUNT_X = "xxxxxx-chat-marked-unread-store-test"
+        const val ACCOUNT_Y = "yyyyyy-chat-marked-unread-store-test"
     }
 }

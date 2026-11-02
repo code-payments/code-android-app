@@ -223,7 +223,8 @@ class ChatCoordinatorTeardownTest {
         coVerify(exactly = 0) { archiveStore.unarchive(any()) }
     }
 
-    // Test case 8. Like the archive set: the database is per-account, so erasure wipes the marks.
+    // Like the archive set: logout keeps the marks (the database is per account; test case 8 is in
+    // RealChatMarkedUnreadStoreTest), erasure wipes them.
     @Test
     fun `clearCache drops the unread marks, teardown keeps them`() = runTest {
         coordinator.teardown()
