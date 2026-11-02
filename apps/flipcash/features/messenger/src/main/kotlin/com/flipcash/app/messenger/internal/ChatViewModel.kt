@@ -174,9 +174,8 @@ import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.payments.ContactPaymentDelegate
+import com.flipcash.shared.payments.group.GroupSendInsufficientBalance
 import com.flipcash.shared.payments.group.GroupSendPaymentDelegate
-import com.flipcash.shared.payments.group.GroupSendPlan
-import com.flipcash.shared.payments.group.GroupSendSplit
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
 import com.getcode.libs.emojis.reactions.EmojiDrawability
@@ -687,8 +686,6 @@ internal class ChatViewModel @AssistedInject constructor(
         /** Who Select People lists: the roster, or what this device knows of it, less the viewer. */
         val groupSendCandidates: List<ChatMember>
             get() = groupSend?.candidates(members.ifEmpty { knownMembers }).orEmpty()
-        val groupSendViewer: ChatMember?
-            get() = groupSend?.viewer(members.ifEmpty { knownMembers })
 
         // Opening the participant's profile (the entry point to blocking) is the tip arm's answer
         // alone. Asking the subject rather than comparing chat types means a new arm has to say.
@@ -4099,20 +4096,8 @@ internal class ChatViewModel @AssistedInject constructor(
         eventFlow.filterIsInstance<Event.OnGroupSendPeopleConfirmed>()
             .onEach {
                 val groupSend = stateFlow.value.groupSend ?: return@onEach
-                when (groupSend.plan) {
-                    is GroupSendPlan.Pay -> update { it.copy(stage = GroupSendState.Stage.Confirm) }
-                    // Nothing is priced: a part under one cent can't be sent, whatever the rate.
-                    // The user stays here to pick fewer people or go back and raise the amount.
-                    GroupSendPlan.PartBelowMinimum -> BottomBarManager.showAlert(
-                        title = resources.getString(R.string.error_title_groupSendTooSmall),
-                        message = resources.getQuantityString(
-                            R.plurals.error_description_groupSendTooSmall,
-                            groupSend.selected.size,
-                            groupSend.selected.size,
-                        ),
-                    )
-                    GroupSendPlan.NoRecipients, GroupSendPlan.TooManyRecipients -> Unit
-                }
+                if (groupSend.selected.isEmpty()) return@onEach
+                update { it.copy(stage = GroupSendState.Stage.Confirm) }
             }.launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.OnGroupSendRequested>()
@@ -4128,22 +4113,22 @@ internal class ChatViewModel @AssistedInject constructor(
 
     private fun sendToMembers() = viewModelScope.launch {
         val groupSend = stateFlow.value.groupSend ?: return@launch
-        val plan = groupSend.plan as? GroupSendPlan.Pay ?: return@launch
+        val amount = groupSend.amount ?: return@launch
         val total = groupSend.total ?: return@launch
+        if (groupSend.selected.isEmpty()) return@launch
         val chatId = stateFlow.value.chatId ?: return@launch
         val token = stateFlow.value.token ?: return@launch
         val owner = userManager.accountCluster ?: return@launch
-        // The sender pays the parts of everyone but themselves, which can be less than the total
-        // entered. The confirm sheet can change the token, so this is the only balance check.
-        if (checkBalanceLimit(GroupSendSplit.fiat(plan.parts.sum(), total.currencyCode))) return@launch
+        // The sender pays the amount for each person checked. The confirm sheet can change the
+        // token, so this is the only balance check.
+        if (checkBalanceLimit(total)) return@launch
 
         dispatchEvent(Event.SendStateUpdated(loading = true))
 
         val result = groupSendPayments.send(
             chatId = chatId,
-            recipients = groupSend.paid,
-            plan = plan,
-            currency = total.currencyCode,
+            recipients = groupSend.selected,
+            amount = amount,
             token = token,
             source = owner.withTimelockForToken(token),
         )
@@ -4152,7 +4137,7 @@ internal class ChatViewModel @AssistedInject constructor(
             holdPaymentSuccess(
                 show = { dispatchEvent(Event.SendStateUpdated(success = true)) },
                 release = {
-                    analytics.track(TransferEvents.sentCash(AnalyticsState.SUCCESS, total.analytics, null, SendContext.GROUP_SEND, groupSend.paid.size))
+                    analytics.track(TransferEvents.sentCash(AnalyticsState.SUCCESS, total.analytics, null, SendContext.GROUP_SEND, groupSend.selected.size))
                     // The send state stays until the sheet has gone, so Select People doesn't flash back to
                     // the keypad on the way out. The next "$" starts a fresh one.
                     dispatchEvent(Dispatchers.Main, Event.SendComplete(total))
@@ -4160,10 +4145,16 @@ internal class ChatViewModel @AssistedInject constructor(
             )
         }.onFailure { cause ->
             dispatchEvent(Event.SendStateUpdated())
-            analytics.track(TransferEvents.sentCash(AnalyticsState.FAILURE, total.analytics, cause.analytics, SendContext.GROUP_SEND, groupSend.paid.size))
+            // An amount that can't be sent never started a send, so it is the balance alert, not
+            // "Couldn't Send".
+            if (cause is ComputeVerifiedFiatError.AmountBelowMinimum || cause is GroupSendInsufficientBalance) {
+                startChattingPayer.presentInsufficientBalance(
+                    onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
+                )
+                return@onFailure
+            }
+            analytics.track(TransferEvents.sentCash(AnalyticsState.FAILURE, total.analytics, cause.analytics, SendContext.GROUP_SEND, groupSend.selected.size))
             val (title, message) = when (cause) {
-                is ComputeVerifiedFiatError.AmountBelowMinimum ->
-                    R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
                 is ComputeVerifiedFiatError ->
                     R.string.error_title_staleRates to R.string.error_description_staleRates
                 else ->
@@ -4232,7 +4223,7 @@ internal class ChatViewModel @AssistedInject constructor(
         if (groupSend != null && fixedAmount == null) {
             dispatchEvent(
                 Event.GroupSendUpdated(
-                    groupSend.copy(total = amount, stage = GroupSendState.Stage.People)
+                    groupSend.copy(amount = amount, stage = GroupSendState.Stage.People)
                 )
             )
             return

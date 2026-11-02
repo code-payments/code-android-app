@@ -49,6 +49,7 @@ import com.flipcash.app.core.chat.NewInviteLinkChoice
 import com.flipcash.app.core.chat.PinnedMessageJump
 import com.flipcash.app.messenger.internal.pins.PinnedRow
 import com.flipcash.app.messenger.internal.pins.pinnedListDone
+import com.flipcash.app.messenger.internal.swipepay.LocalSwipePayCurrencyPicker
 import com.flipcash.app.messenger.internal.screens.components.PinnedMessagesSheet
 import com.flipcash.app.messenger.internal.invites.InviteLinkActions
 import com.flipcash.app.messenger.internal.invites.NewInviteLinkContent
@@ -454,6 +455,10 @@ private fun FlowAmountEntryScreen(resultStateRegistry: NavResultStateRegistry, t
     // amount; the view model's stage decides which step is on top.
     val inPeople = state.groupSend?.let { it.stage != GroupSendState.Stage.Amount } == true
 
+    // The confirm sheet's currency pill opens a half sheet on the chat flow, not on this host.
+    CompositionLocalProvider(
+        LocalSwipePayCurrencyPicker provides { chatNavigator.push(ChatStep.SendCurrency) },
+    ) {
     FlowHost<GroupSendStep, Parcelable>(
         initialStack = listOf(GroupSendStep.Amount),
         resultStateRegistry = resultStateRegistry,
@@ -477,7 +482,7 @@ private fun FlowAmountEntryScreen(resultStateRegistry: NavResultStateRegistry, t
                         onSendComplete = { resultBack.returnValue(ChatSendResult) }, // intra-flow result -> Conversation
                         onExit = dismissSheet,
                         // A group send picks its currency on the confirm sheet, so no pill here.
-                        title = if (toMembers) stringResource(R.string.title_groupSendTotal) else null,
+                        title = if (toMembers) stringResource(R.string.title_groupSendAmount) else null,
                     )
                 }
             }
@@ -493,6 +498,7 @@ private fun FlowAmountEntryScreen(resultStateRegistry: NavResultStateRegistry, t
             }
         },
     )
+    }
 }
 
 @Composable
@@ -506,15 +512,15 @@ private fun FlowGroupSelectPeople(viewModel: ChatViewModel, onSendComplete: () -
         onBack = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
         onToggle = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(it.userId)) },
         onSend = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed) },
-        you = state.groupSendViewer,
-        buttonEnabled = groupSend.paid.isNotEmpty(),
-        title = stringResource(R.string.title_splitBetween),
-        buttonText = stringResource(R.string.action_next),
+        showsMembersHeader = false,
+        buttonEnabled = groupSend.selected.isNotEmpty(),
+        title = stringResource(R.string.title_groupSendTo),
+        buttonText = stringResource(R.string.action_groupSendTotal, groupSend.total?.formatted().orEmpty()),
     )
     if (groupSend.stage == GroupSendState.Stage.Confirm) {
         GroupSendConfirmSheet(
             groupSend = groupSend,
-            recipients = groupSend.paid.mapNotNull { id -> candidates.find { it.userId == id } },
+            recipients = groupSend.selected.mapNotNull { id -> candidates.find { it.userId == id } },
             swipePay = SwipePayUiState(
                 token = state.token,
                 progress = state.sendProgress,

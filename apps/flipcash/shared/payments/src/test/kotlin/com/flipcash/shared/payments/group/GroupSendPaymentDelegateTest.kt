@@ -65,11 +65,10 @@ class GroupSendPaymentDelegateTest {
         }
     }
 
-    private suspend fun send(recipients: List<ID>, totalCents: Long) = delegate.send(
+    private suspend fun send(recipients: List<ID>, amount: String) = delegate.send(
         chatId = chatId,
         recipients = recipients,
-        plan = GroupSendSplit.split(totalCents, recipients.size) as GroupSendPlan.Pay,
-        currency = CurrencyCode.CAD,
+        amount = Fiat(amount, CurrencyCode.CAD),
         token = token,
         source = source,
     )
@@ -84,7 +83,7 @@ class GroupSendPaymentDelegateTest {
     }
 
     @Test
-    fun `several recipients go in one multi-transfer, in selection order, each priced from its own part`() = runTest {
+    fun `several recipients go in one multi-transfer, in selection order, each priced at the entered amount`() = runTest {
         pricesAt()
         val payments = slot<List<Pair<PublicKey, LocalFiat>>>()
         val metadata = slot<ByteArray>()
@@ -92,12 +91,9 @@ class GroupSendPaymentDelegateTest {
             transactionController.directMultiTransfer(capture(payments), state, token, source, capture(metadata), any())
         } returns Result.success(mockk())
 
-        assertTrue(send(members, 200).isSuccess)
+        assertTrue(send(members, "1.00").isSuccess)
 
-        assertEquals(
-            listOf("0.34", "0.34", "0.33", "0.33", "0.33", "0.33").map { Fiat(it, CurrencyCode.CAD) },
-            requested,
-        )
+        assertEquals(List(6) { Fiat("1.00", CurrencyCode.CAD) }, requested)
         assertTrue(rates.all { it === cad })
         assertEquals(members.map { keys.getValue(it) }, payments.captured.map { it.first })
         assertContentEquals(buildGroupPaymentMetadata(chatId), metadata.captured)
@@ -112,7 +108,7 @@ class GroupSendPaymentDelegateTest {
             transactionController.directTransfer(any(), token, source, keys.getValue(members[0]), capture(metadata), any())
         } returns Result.success(mockk())
 
-        assertTrue(send(members.take(1), 500).isSuccess)
+        assertTrue(send(members.take(1), "5.00").isSuccess)
 
         assertEquals(listOf(Fiat("5.00", CurrencyCode.CAD)), requested)
         assertContentEquals(buildGroupPaymentMetadata(chatId), metadata.captured)
@@ -124,7 +120,7 @@ class GroupSendPaymentDelegateTest {
         val other = mockk<VerifiedState>()
         pricesAt(state, other, state, other)
 
-        assertIs<ComputeVerifiedFiatError.StaleRate>(send(members.take(2), 200).exceptionOrNull())
+        assertIs<ComputeVerifiedFiatError.StaleRate>(send(members.take(2), "1.00").exceptionOrNull())
         coVerify(exactly = 0) { transactionController.directMultiTransfer(any(), any(), any(), any(), any(), any()) }
     }
 
@@ -133,7 +129,30 @@ class GroupSendPaymentDelegateTest {
         pricesAt()
         every { exchange.rateFor(CurrencyCode.CAD) } returns null
 
-        assertTrue(send(members.take(2), 200).isFailure)
+        assertTrue(send(members.take(2), "1.00").isFailure)
         assertTrue(requested.isEmpty())
+    }
+
+    @Test
+    fun `parts that price above the balance send nothing and fail as insufficient balance`() = runTest {
+        val part = mockk<LocalFiat>()
+        every { part.nativeAmount } returns Fiat("1.00", CurrencyCode.CAD)
+        coEvery { calculator.compute(any(), any(), any(), any(), any()) } returns
+            Result.success(VerifiedFiat(part, state))
+        val balance = mockk<Fiat>()
+        every { balance.convertingTo(cad) } returns Fiat("1.50", CurrencyCode.CAD)
+        every { tokenCoordinator.balanceForToken(token) } returns balance
+
+        assertIs<GroupSendInsufficientBalance>(send(members.take(2), "1.00").exceptionOrNull())
+        coVerify(exactly = 0) { transactionController.directMultiTransfer(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `an amount below the minimum fails as below minimum and sends nothing`() = runTest {
+        coEvery { calculator.compute(any(), any(), any(), any(), any()) } returns
+            Result.failure(ComputeVerifiedFiatError.AmountBelowMinimum())
+
+        assertIs<ComputeVerifiedFiatError.AmountBelowMinimum>(send(members.take(2), "0.01").exceptionOrNull())
+        coVerify(exactly = 0) { transactionController.directMultiTransfer(any(), any(), any(), any(), any(), any()) }
     }
 }

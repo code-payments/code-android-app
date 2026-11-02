@@ -59,6 +59,10 @@ import com.flipcash.app.messenger.internal.screens.profile.edit.NameEditScaffold
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.messenger.internal.swipepay.LocalSwipePayCurrencyPicker
+import com.getcode.navigation.core.LocalCodeNavigator
+import androidx.compose.runtime.CompositionLocalProvider
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.getcode.utils.base58
 import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
@@ -101,6 +105,8 @@ internal fun RequestMoneyScreen(
             }
         }
     }
+    // The chat flow's navigator, read before this screen's own FlowHost shadows it.
+    val chatNavigator = LocalCodeNavigator.current
     val back = { if (!viewModel.back()) onClose() }
     val target = stackFor(state.stage)
     // Seeded once. FlowHost re-seeds, without a transition, when initialStack changes before
@@ -176,13 +182,18 @@ internal fun RequestMoneyScreen(
             }
             annotatedEntry<RequestStep.Details> { step ->
                 val flowNavigator = rememberFlowNavigator<RequestStep, Parcelable>()
-                RequestDetailsScreen(
-                    chatId = chatId,
-                    requestId = step.requestId,
-                    onBack = { flowNavigator.back() },
-                    onOpenScreen = onOpenScreen,
-                    pushed = true,
-                )
+                // The pay sheet's currency pill opens a half sheet on the chat flow, not on this host.
+                CompositionLocalProvider(
+                    LocalSwipePayCurrencyPicker provides { chatNavigator.push(ChatStep.SendCurrency) },
+                ) {
+                    RequestDetailsScreen(
+                        chatId = chatId,
+                        requestId = step.requestId,
+                        onBack = { flowNavigator.back() },
+                        onOpenScreen = onOpenScreen,
+                        pushed = true,
+                    )
+                }
             }
             annotatedEntry<RequestStep.Name> {
                 FollowStage(RequestStep.Name, target, onBack = back)
