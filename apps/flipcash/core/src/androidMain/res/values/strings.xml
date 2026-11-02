@@ -1002,7 +1002,6 @@
     <!-- The host's shortcuts: a trailing swipe on a Members row and the member sheet opened by
          tapping someone's picture. The time left is cut to its two largest units, rounded down. -->
     <string name="action_viewProfile">View Profile</string>
-    <string name="action_restrictMember">Restrict…</string>
     <string name="action_liftRestriction">Lift Restriction</string>
     <string name="subtitle_restricted">Restricted</string>
     <string name="subtitle_restrictedTimeLeft">Restricted · %1$s left</string>

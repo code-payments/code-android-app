@@ -137,8 +137,9 @@ internal fun MemberSheetContent(
             )
             if (actions.restrict) {
                 ChoiceRow(
-                    label = stringResource(R.string.action_restrictMember),
+                    label = stringResource(R.string.action_silenceMemberShort),
                     icon = rememberVectorPainter(SpeakerSlash),
+                    contentColor = CodeTheme.colors.warningText,
                     onClick = onRestrict,
                 )
             }
