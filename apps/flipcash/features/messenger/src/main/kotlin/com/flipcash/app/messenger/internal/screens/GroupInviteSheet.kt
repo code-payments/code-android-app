@@ -143,6 +143,28 @@ internal fun CodeNavigator.openInviteLinkShare(inviteIdHex: String? = null) {
     }
 }
 
+/** What the "Your Group Is Ready" card's Invite People opens: the share sheet itself, on one of two links. */
+internal enum class InvitePeopleTarget {
+    /** The viewer's current invite link: used, awaited while being made, or made when there is none. */
+    CurrentInviteLink,
+
+    /** The plain `/chat/{uuid}` link, for a viewer who cannot invite or a group that approves new members. */
+    PlainLink,
+}
+
+internal fun invitePeopleTarget(viewerCanInvite: Boolean, approveNewMembers: Boolean): InvitePeopleTarget =
+    if (viewerCanInvite && !approveNewMembers) InvitePeopleTarget.CurrentInviteLink else InvitePeopleTarget.PlainLink
+
+/**
+ * Opens the share sheet for [target] without the host Invite People sheet in between. The invite
+ * variant waits on a link still being made and makes one when there is none, so this never starts
+ * a second create.
+ */
+internal fun CodeNavigator.openInvitePeople(target: InvitePeopleTarget) = when (target) {
+    InvitePeopleTarget.CurrentInviteLink -> openInviteLinkShare()
+    InvitePeopleTarget.PlainLink -> openGroupInvite()
+}
+
 /**
  * Opens the host's Invite sheet (frame 1m). It returns what to open next and closes, and the next
  * sheet opens from here, once it is gone; [onManageInvites] opens Manage Invites in the chat flow.
