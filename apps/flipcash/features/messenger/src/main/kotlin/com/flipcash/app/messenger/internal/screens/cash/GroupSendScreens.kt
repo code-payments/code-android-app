@@ -33,7 +33,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import com.flipcash.app.messenger.internal.screens.boost.CurrencyPickerContent
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -200,8 +199,7 @@ private fun MemberCheckRow(
  * gets, and the swipe. Closing it goes back to Select People; it can't be closed mid-send. Closed
  * by back, as iOS's confirm is, never by a drag or a tap outside it.
  *
- * The token pill swaps this sheet's content for the currency list and back, rather than opening a
- * sheet of its own, which a navigation sheet would draw over this one.
+ * The token pill opens the currency list as a half sheet over this one, which stays up beneath it.
  */
 @Composable
 internal fun GroupSendConfirmSheet(

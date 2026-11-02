@@ -49,6 +49,7 @@ import com.flipcash.app.core.chat.NewInviteLinkChoice
 import com.flipcash.app.core.chat.PinnedMessageJump
 import com.flipcash.app.messenger.internal.pins.PinnedRow
 import com.flipcash.app.messenger.internal.pins.pinnedListDone
+import com.flipcash.app.messenger.internal.swipepay.LocalSwipePayCurrencyPicker
 import com.flipcash.app.messenger.internal.screens.components.PinnedMessagesSheet
 import com.flipcash.app.messenger.internal.invites.InviteLinkActions
 import com.flipcash.app.messenger.internal.invites.NewInviteLinkContent
@@ -450,6 +451,10 @@ private fun FlowAmountEntryScreen(resultStateRegistry: NavResultStateRegistry, t
     // amount; the view model's stage decides which step is on top.
     val inPeople = state.groupSend?.let { it.stage != GroupSendState.Stage.Amount } == true
 
+    // The confirm sheet's currency pill opens a half sheet on the chat flow, not on this host.
+    CompositionLocalProvider(
+        LocalSwipePayCurrencyPicker provides { chatNavigator.push(ChatStep.SendCurrency) },
+    ) {
     FlowHost<GroupSendStep, Parcelable>(
         initialStack = listOf(GroupSendStep.Amount),
         resultStateRegistry = resultStateRegistry,
@@ -489,6 +494,7 @@ private fun FlowAmountEntryScreen(resultStateRegistry: NavResultStateRegistry, t
             }
         },
     )
+    }
 }
 
 @Composable
