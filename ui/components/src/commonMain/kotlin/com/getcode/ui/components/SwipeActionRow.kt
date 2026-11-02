@@ -1,13 +1,15 @@
 package com.getcode.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.AnchoredDraggableState
-import androidx.compose.foundation.interaction.DragInteraction
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
+import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +23,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,21 +42,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import org.jetbrains.compose.resources.painterResource
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.White50
-import androidx.compose.foundation.clickable
-import kotlin.math.abs
-import kotlinx.coroutines.launch
 import com.getcode.util.resources.Res
 import com.getcode.util.resources.ic_delete
+import kotlin.math.abs
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * Describes a single action revealed behind the row content on swipe.
@@ -75,7 +82,9 @@ class SwipeAction(
     val content: @Composable () -> Unit,
 )
 
-private enum class SwipeState { Settled, Revealed, Dismissed }
+// Revealed and Dismissed are the trailing side (content moved left); the Start pair is the leading
+// side (content moved right), present only when the row has leading actions.
+private enum class SwipeState { Settled, Revealed, Dismissed, RevealedStart, DismissedStart }
 
 /**
  * Keeps at most one [SwipeActionRow] open among the rows given the same group: starting a swipe on
@@ -135,6 +144,11 @@ fun SwipeActionRow(
  * rightmost position, grows from a circle into a rounded rectangle as the swipe
  * progresses, and is automatically triggered on a full swipe (dismiss). All other
  * actions remain fixed-size circles and are click-only.
+ *
+ * [leadingActions] mirror that on the other side: swiping right reveals them, the **last** one
+ * sits leftmost, grows on the swipe and fires on a full swipe, honouring its own
+ * [SwipeAction.resetOnDismiss]. A full leading swipe also plays the gesture haptic. Without
+ * leading actions the row swipes left only, exactly as before.
  */
 @Composable
 fun SwipeActionRow(
@@ -143,9 +157,10 @@ fun SwipeActionRow(
     stateKey: Any? = null,
     initiallyRevealed: Boolean = false,
     revealGroup: SwipeRevealGroup? = null,
+    leadingActions: List<SwipeAction> = emptyList(),
     content: @Composable () -> Unit,
 ) {
-    if (actions.isEmpty()) {
+    if (actions.isEmpty() && leadingActions.isEmpty()) {
         Box(modifier) { content() }
         return
     }
@@ -160,11 +175,20 @@ fun SwipeActionRow(
     val totalRevealWidth = (minActionSize + actionPadding) * actions.size + actionPadding
     val totalRevealWidthPx = with(density) { totalRevealWidth.toPx() }
 
-    val dismissAction = actions.last()
-    val currentDismissCallback by rememberUpdatedState(dismissAction.onTriggered)
-    val currentDismissResets by rememberUpdatedState(dismissAction.resetOnDismiss)
+    val dismissAction = actions.lastOrNull()
+    val currentDismissCallback by rememberUpdatedState(dismissAction?.onTriggered ?: {})
+    val currentDismissResets by rememberUpdatedState(dismissAction?.resetOnDismiss ?: false)
 
     var pendingResetCallback by remember(stateKey) { mutableStateOf(false) }
+
+    val leadingRevealWidthPx = with(density) {
+        ((minActionSize + actionPadding) * leadingActions.size + actionPadding).toPx()
+    }
+    val leadingDismissAction = leadingActions.lastOrNull()
+    val currentLeadingCallback by rememberUpdatedState(leadingDismissAction?.onTriggered ?: {})
+    val currentLeadingResets by rememberUpdatedState(leadingDismissAction?.resetOnDismiss ?: false)
+    var pendingLeadingReset by remember(stateKey) { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
 
     val initialState = if (initiallyRevealed) SwipeState.Revealed else SwipeState.Settled
     val state = remember(stateKey) {
@@ -174,6 +198,9 @@ fun SwipeActionRow(
                 if (newValue == SwipeState.Dismissed && currentDismissResets) {
                     pendingResetCallback = true
                     false // reject settle, system animates back
+                } else if (newValue == SwipeState.DismissedStart && currentLeadingResets) {
+                    pendingLeadingReset = true
+                    false
                 } else {
                     true
                 }
@@ -201,9 +228,38 @@ fun SwipeActionRow(
     // the next swipe to write again without relaunching anything.
     LaunchedEffect(dragInteractions) {
         dragInteractions.interactions.collect { interaction ->
-            if (interaction is DragInteraction.Start) pendingResetCallback = false
+            if (interaction is DragInteraction.Start) {
+                pendingResetCallback = false
+                pendingLeadingReset = false
+            }
         }
     }
+    // The leading side's version of the reset above. The threshold is confirmed while the finger is
+    // still down, so the callback and haptic fire then; sending the row home at that point would
+    // cancel the drag and leave the settle that follows on RevealedStart. Instead the row goes home
+    // once nothing is dragging or animating it, which also covers a swipe begun from the revealed row.
+    LaunchedEffect(pendingLeadingReset) {
+        if (pendingLeadingReset) {
+            haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+            currentLeadingCallback()
+        }
+    }
+    val isDragged by dragInteractions.collectIsDraggedAsState()
+    // The drag's own settle can start just after this does and interrupt it, landing on
+    // RevealedStart, so each attempt re-reads the state and waits for that settle to finish.
+    LaunchedEffect(state) {
+        while (true) {
+            snapshotFlow {
+                pendingLeadingReset && !isDragged && !state.isAnimationRunning && state.offset > 0f
+            }.first { it }
+            try {
+                state.animateTo(SwipeState.Settled)
+            } catch (e: CancellationException) {
+                currentCoroutineContext().ensureActive()
+            }
+        }
+    }
+
     if (revealGroup != null) {
         val fallbackKey = remember { Any() }
         val groupKey = stateKey ?: fallbackKey
@@ -231,14 +287,26 @@ fun SwipeActionRow(
         if (state.currentValue == SwipeState.Dismissed) {
             currentDismissCallback()
         }
+        if (state.currentValue == SwipeState.DismissedStart) {
+            haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+            currentLeadingCallback()
+        }
     }
 
-    LaunchedEffect(rowWidthPx, totalRevealWidthPx) {
+    val hasTrailing = actions.isNotEmpty()
+    val hasLeading = leadingActions.isNotEmpty()
+    LaunchedEffect(rowWidthPx, totalRevealWidthPx, leadingRevealWidthPx, hasTrailing, hasLeading) {
         if (rowWidthPx > 0f) {
             state.updateAnchors(DraggableAnchors {
                 SwipeState.Settled at 0f
-                SwipeState.Revealed at -totalRevealWidthPx
-                SwipeState.Dismissed at -rowWidthPx
+                if (hasTrailing) {
+                    SwipeState.Revealed at -totalRevealWidthPx
+                    SwipeState.Dismissed at -rowWidthPx
+                }
+                if (hasLeading) {
+                    SwipeState.RevealedStart at leadingRevealWidthPx
+                    SwipeState.DismissedStart at rowWidthPx
+                }
             })
         }
     }
@@ -288,6 +356,8 @@ fun SwipeActionRow(
             }
 
             layout(constraints.maxWidth, constraints.maxHeight) {
+                // Hidden, and so not tappable, while the leading side is open.
+                if (state.offset > 0f || n == 0) return@layout
                 val yCenter = (constraints.maxHeight - actionH) / 2
                 var x = constraints.maxWidth - padPx
 
@@ -299,6 +369,53 @@ fun SwipeActionRow(
                 for (i in n - 2 downTo 0) {
                     x -= padPx + placeables[i].width
                     placeables[i].place(x, yCenter)
+                }
+            }
+        }
+
+        if (hasLeading) {
+            Layout(
+                content = {
+                    leadingActions.forEach { action ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(action.background)
+                                .clickable {
+                                    action.onTriggered()
+                                    scope.launch { state.animateTo(SwipeState.Settled) }
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            action.content()
+                        }
+                    }
+                },
+                modifier = Modifier.matchParentSize(),
+            ) { measurables, constraints ->
+                // The trailing measure policy, mirrored: the last action is outermost (leftmost).
+                val offset = state.offset.coerceAtLeast(0f)
+                val padPx = actionPaddingDp.roundToPx()
+                val minPx = minActionSize.roundToPx()
+                val n = measurables.size
+                val actionH = (constraints.maxHeight - padPx * 2).coerceAtLeast(minPx)
+                val fixedSlotWidth = minPx + padPx
+                val outerAvailable = (offset - padPx - (n - 1) * fixedSlotWidth).coerceAtLeast(0f)
+                val outerW = (outerAvailable.toInt() - padPx).coerceAtLeast(minPx)
+                val placeables = measurables.mapIndexed { index, measurable ->
+                    measurable.measure(Constraints.fixed(if (index == n - 1) outerW else minPx, actionH))
+                }
+                layout(constraints.maxWidth, constraints.maxHeight) {
+                    if (offset <= 0f) return@layout
+                    val yCenter = (constraints.maxHeight - actionH) / 2
+                    var x = padPx
+                    placeables.last().place(x, yCenter)
+                    x += placeables.last().width
+                    for (i in n - 2 downTo 0) {
+                        x += padPx
+                        placeables[i].place(x, yCenter)
+                        x += placeables[i].width
+                    }
                 }
             }
         }

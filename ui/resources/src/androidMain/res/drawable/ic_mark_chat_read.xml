@@ -1,0 +1,15 @@
+<!-- Mark as Read on the chat list. Reads like iOS's `message`: an outlined speech bubble with its
+     tail at the lower left. Drawn here, not traced from the SF Symbol, which is licensed for Apple
+     platforms only. One closed stroke: the body is an elliptical arc and the tail two lines. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <path
+      android:strokeColor="#ffffff"
+      android:strokeWidth="1.8"
+      android:strokeLineJoin="round"
+      android:strokeLineCap="round"
+      android:pathData="M8.92,17.58A9,7 0,1 0,4.63 15.01L4,20.5L8.92,17.58Z"/>
+</vector>
