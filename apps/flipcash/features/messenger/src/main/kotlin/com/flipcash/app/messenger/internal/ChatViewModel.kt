@@ -4019,25 +4019,28 @@ internal class ChatViewModel @AssistedInject constructor(
         }
     }
 
-    /** Node 12243:1009 — Send Money or Request Money, as cards like the Add Money sheet's. */
+    /**
+     * Node 12243:1009 — Request Money, then Send Money, as cards like the Add Money sheet's. The
+     * order is the reverse of the design frame's, by the product owner's decision.
+     */
     private fun presentMoneyActions() {
         // Two rows and nothing else, as the spec lays the sheet out: no title, no Dismiss.
         BottomBarManager.showMessage(
             title = "",
             actions = listOf(
                 bottomBarCardAction(
-                    title = resources.getString(R.string.action_sendMoney),
-                    subtitle = resources.getString(R.string.subtitle_sendMoney_group),
-                    iconRes = R.drawable.ic_menu_withdraw,
-                    testTag = "money_action_send",
-                    onClick = { viewModelScope.launch { startSend() } },
-                ),
-                bottomBarCardAction(
                     title = resources.getString(R.string.action_requestMoney),
                     subtitle = resources.getString(R.string.subtitle_requestMoney_group),
                     iconRes = R.drawable.ic_menu_deposit,
                     testTag = "money_action_request",
                     onClick = { dispatchEvent(Event.NavigateToRequestMoney) },
+                ),
+                bottomBarCardAction(
+                    title = resources.getString(R.string.action_sendMoney),
+                    subtitle = resources.getString(R.string.subtitle_sendMoney_group),
+                    iconRes = R.drawable.ic_menu_withdraw,
+                    testTag = "money_action_send",
+                    onClick = { viewModelScope.launch { startSend() } },
                 ),
             ),
         )
