@@ -7,6 +7,7 @@ import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.content_description_unarchiveChat
 import com.flipcash.core.resources.title_noArchivedChats
 import androidx.compose.foundation.layout.Box
+import com.flipcash.app.tipping.internal.components.rememberSelectCircles
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -61,6 +62,7 @@ internal fun ArchivedChatsContent(
     ) { padding ->
         // One list for the rows and the empty state alike, so unarchiving the last chat fades its
         // row out and the message in, rather than swapping the whole list for the message at once.
+        val circles = rememberSelectCircles(selection)
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("archived_list"),
             contentPadding = PaddingValues(top = padding.calculateTopPadding()),
@@ -102,6 +104,8 @@ internal fun ArchivedChatsContent(
                         chat = chat,
                         showDivider = index < chats.lastIndex,
                         selected = selection?.let { chat.chatId in it },
+                        circleReveal = circles.reveal,
+                        circleChecked = chat.chatId in circles.checked,
                         onLongClick = {
                             if (selection == null) {
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)

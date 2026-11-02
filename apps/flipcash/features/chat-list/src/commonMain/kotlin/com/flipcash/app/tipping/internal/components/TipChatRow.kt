@@ -4,13 +4,21 @@ import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.subtitle_peopleWantToJoin
 import com.flipcash.core.resources.subtitle_wantsToJoin
 import com.flipcash.core.resources.title_unnamedUser
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.Icon
 import androidx.compose.ui.draw.drawWithContent
-import com.getcode.util.resources.ic_check_circle
-import org.jetbrains.compose.resources.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,6 +58,11 @@ internal fun TipChatRow(
     // Select mode: whether this row is picked, or null outside select mode. In it a circle leads
     // the row, the content shifts right to make room, and the chevron goes (a tap toggles).
     selected: Boolean? = null,
+    // How far select mode's circle has slid in (0 to 1) and whether it is checked. The screen
+    // drives both so the slide survives the row being rebuilt when select mode starts or ends, and
+    // a circle sliding out keeps the state it had.
+    circleReveal: () -> Float = { if (selected != null) 1f else 0f },
+    circleChecked: Boolean = selected == true,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
@@ -61,11 +74,8 @@ internal fun TipChatRow(
             if (selected == true) drawRect(selectedTint)
         },
         avatar = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x3),
-            ) {
-                if (selected != null) SelectCircle(selected)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SelectCircleSlot(circleReveal, circleChecked)
                 ContactAvatar(
                     image = chat.image,
                     displayName = chat.name.orEmpty(),
@@ -136,23 +146,57 @@ internal fun TipChatRow(
     )
 }
 
-/** Select mode's leading circle: an outline when not picked, the filled check when picked. */
+/**
+ * Select mode's leading circle. It slides in, pushing the row content right, only as select mode
+ * starts ([reveal] going 0 to 1), and back out as it ends; toggling a row changes the circle in
+ * place. Reads [reveal] in layout and draw only, so the slide doesn't recompose the row.
+ */
+@Composable
+private fun SelectCircleSlot(reveal: () -> Float, checked: Boolean) {
+    Box(
+        Modifier
+            .clipToBounds()
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                val width = (placeable.width * reveal()).roundToInt()
+                layout(width, placeable.height) { placeable.placeRelative(width - placeable.width, 0) }
+            }
+            .graphicsLayer { alpha = reveal() }
+    ) {
+        // The gap to the avatar slides with the circle rather than popping in ahead of it.
+        Box(Modifier.padding(end = CodeTheme.dimens.staticGrid.x3)) { SelectCircle(checked) }
+    }
+}
+
+/**
+ * An outline in the secondary text colour when not picked, a white check on the unread blue when
+ * picked. Both fill the same circle, so a toggle only crossfades between them.
+ */
 @Composable
 private fun SelectCircle(selected: Boolean) {
     val size = CodeTheme.dimens.staticGrid.x4
-    if (selected) {
-        Icon(
-            painter = painterResource(com.getcode.util.resources.Res.drawable.ic_check_circle),
-            contentDescription = null,
-            tint = CodeTheme.colors.indicator,
-            modifier = Modifier.requiredSize(size),
-        )
-    } else {
-        Box(
-            Modifier
-                .requiredSize(size)
-                .border(1.5.dp, CodeTheme.colors.textSecondary, CircleShape)
-        )
+    Crossfade(targetState = selected, label = "select circle") { picked ->
+        if (picked) {
+            Box(
+                modifier = Modifier
+                    .requiredSize(size)
+                    .background(CodeTheme.colors.indicator, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x3),
+                )
+            }
+        } else {
+            Box(
+                Modifier
+                    .requiredSize(size)
+                    .border(1.5.dp, CodeTheme.colors.textSecondary, CircleShape)
+            )
+        }
     }
 }
 

@@ -1,6 +1,8 @@
 package com.flipcash.app.tipping
 
 import com.flipcash.app.tipping.internal.components.markReadSwipeAction
+import com.flipcash.app.tipping.internal.components.SelectCircles
+import com.flipcash.app.tipping.internal.components.rememberSelectCircles
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.action_undo
@@ -179,6 +181,7 @@ fun ChatsScreenContent(
         barPlacement = ScaffoldBarPlacement.Overlay,
         topBar = topBar,
     ) { barPadding ->
+        val circles = rememberSelectCircles(state.selection)
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 modifier = Modifier
@@ -294,6 +297,7 @@ fun ChatsScreenContent(
                         onArchive = onArchive,
                         revealGroup = revealGroup,
                         parkFiller = parkFiller,
+                        circles = circles,
                     )
                 }
 
@@ -363,6 +367,7 @@ private fun LazyListScope.tipChatItems(
     onArchive: (ConversationReference) -> Unit,
     revealGroup: SwipeRevealGroup,
     parkFiller: ParkFiller,
+    circles: SelectCircles,
 ) {
     // Keyed by chat so a row's swipe state stays with its chat when new activity reorders the list.
     // animateItem fades a row out where it stands when it is archived (or filtered away), even
@@ -384,6 +389,8 @@ private fun LazyListScope.tipChatItems(
                 chat = chat,
                 showDivider = index < chats.lastIndex,
                 selected = selection?.let { chat.chatId in it },
+                circleReveal = circles.reveal,
+                circleChecked = chat.chatId in circles.checked,
                 onLongClick = { onLongClick(chat) },
             ) {
                 onClick(chat)
