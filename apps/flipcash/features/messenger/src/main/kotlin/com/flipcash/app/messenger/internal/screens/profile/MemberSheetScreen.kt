@@ -53,9 +53,14 @@ internal fun canModerate(subject: ChatSubject?, viewerState: ViewerState?): Bool
     return group.isMember == true && (moderation?.canSilence == true || moderation?.canBan == true)
 }
 
-/** The current time, moved on once a minute, for the restriction countdowns. */
+/**
+ * The current time, moved on once a minute, for the restriction countdowns. It restarts from the
+ * current time whenever [key] changes, so a restriction written mid-minute isn't measured against
+ * an older reading.
+ */
 @Composable
-internal fun rememberMinuteClock(): State<Instant> = produceState(Clock.System.now()) {
+internal fun rememberMinuteClock(key: Any?): State<Instant> = produceState(Clock.System.now(), key) {
+    value = Clock.System.now()
     while (true) {
         delay(1.minutes)
         value = Clock.System.now()
@@ -78,7 +83,7 @@ internal fun MemberSheetScreen(contact: ChatParticipant, origin: ProfileOrigin) 
     val navigator = LocalCodeNavigator.current
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val viewerId = LocalUserManager.current?.accountId
-    val now by rememberMinuteClock()
+    val now by rememberMinuteClock(restrictions)
 
     val group = state.subject as? ChatSubject.Group
     val chatId: ChatId? = state.chatId

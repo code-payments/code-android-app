@@ -93,7 +93,7 @@ internal fun MembersScreen(viewModel: ChatViewModel) {
         if (isHost && chatId != null) moderation.loadRestrictions(chatId)
     }
 
-    val now by rememberMinuteClock()
+    val now by rememberMinuteClock(restrictions)
     // One row open at a time: swiping another row closes the one left revealed.
     val revealGroup = rememberSwipeRevealGroup()
 
