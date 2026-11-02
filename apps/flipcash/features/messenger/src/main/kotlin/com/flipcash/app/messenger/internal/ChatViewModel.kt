@@ -4515,7 +4515,7 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         private const val CLAIM_THANKS_ENABLED = false
 
-        private const val ROUTED_TO_PROFILE =
+        internal const val ROUTED_TO_PROFILE =
             "ChatIdentifier.ByUser is redirected to the profile before it reaches a ChatViewModel"
 
         /** Long enough to coalesce a burst of typing, short enough to survive a fast exit. */
@@ -4528,374 +4528,140 @@ internal class ChatViewModel @AssistedInject constructor(
         /** [updateStateForEvent] under an explicit [lifetime], so tests can cover both policies. */
         internal fun stateReducer(event: Event, lifetime: UnreadDividerLifetime): (State) -> State =
             when (event) {
-                is Event.OnChatOpened -> { state ->
-                    when (val id = event.identifier) {
-                        is ChatIdentifier.ByContact ->
-                            state.copy(
-                                subject = ChatSubject.Contact(ChatParticipant.Contact(id.contact)),
-                                chatType = ChatType.CONTACT_DM,
-                            )
-                        // Known without a lookup, so the transcript, boundary and the rest keyed
-                        // on it start now rather than once the open handler gets to ChatFound.
-                        is ChatIdentifier.ByChatId -> state.copy(chatId = id.chatId)
-                        is ChatIdentifier.ByUser -> error(ROUTED_TO_PROFILE)
-                    }
-                }
-                is Event.OnContactFound -> { state ->
-                    state.copy(
-                        subject = ChatSubject.Contact(ChatParticipant.Contact(event.contact)),
-                        chatType = ChatType.CONTACT_DM,
-                    )
-                }
-                // "No device contact" is also true of every group, so a group that has already
-                // resolved keeps its type.
-                Event.OnTipDmDetected -> { state ->
-                    if (state.subject is ChatSubject.Group) state
-                    else state.copy(chatType = ChatType.TIP_DM)
-                }
-                is Event.OnWrongKey -> { state -> state.copy(wrongKey = event.wrongKey) }
-                is Event.OnGroupResolved -> { state ->
-                    val metadata = event.membership.metadata
-                    val previous = state.subject as? ChatSubject.Group
-                    // The access was decided for the old membership and rules. Kept across a change
-                    // to either, a stale Eligible would unblur a group whose rules just tightened
-                    // until the balance flow caught up, so it goes back to unknown instead.
-                    val accessStale = previous == null ||
-                        previous.isMember != event.membership.isMember ||
-                        previous.rules != metadata.rules
-                    state.copy(
-                        groupAccess = if (accessStale) null else state.groupAccess,
-                        subject = ChatSubject.Group(
-                            chatId = metadata.chatId,
-                            groupTitle = metadata.title,
-                            picture = metadata.picture,
-                            memberCount = metadata.rosterSummary.memberCount,
-                            rules = metadata.rules,
-                            isMember = event.membership.isMember,
-                            creator = metadata.creator,
-                            description = metadata.description,
-                            coverPicture = metadata.coverPicture,
-                            isPrivate = metadata.isPrivate,
-                        ),
-                        chatType = ChatType.GROUP,
-                        resolveState = ResolveState.Resolved,
-                    )
-                }
-                is Event.OnRuleCurrencyResolved ->
-                    { state -> state.copy(ruleCurrency = event.currency) }
-                is Event.OnGroupAccessResolved -> { state -> state.copy(groupAccess = event.access) }
-                is Event.OnSpeakerBlockResolved -> { state -> state.copy(
-                    speakerBlock = event.block?.requirement,
-                    speakerBlocksReactions = event.block?.reactionsBlocked == true,
-                    speakerBlockResolved = true,
-                ) }
-                Event.JoinChat -> { state ->
-                    state.copy(joinProgress = LoadingSuccessState(loading = true))
-                }
-                is Event.JoinStateUpdated -> { state ->
-                    state.copy(
-                        joinProgress = LoadingSuccessState(
-                            event.loading,
-                            event.success,
-                        )
-                    )
-                }
-                is Event.OnEncryptionResolved -> { state -> state.copy(isEncrypted = event.isEncrypted) }
-
-                is Event.OnViewerStateResolved -> { state ->
-                    state.copy(viewerState = event.viewerState, silenceClock = kotlin.time.Clock.System.now())
-                }
-                is Event.PinsRead -> { state ->
-                    val pins = state.pins.read(event.pins, event.version)
-                    // A pin that left can take the bar's place out from under it; start over at the newest.
-                    val index = state.pinBarIndex.takeIf { it < pins.visible.size } ?: 0
-                    state.copy(pins = pins, pinBarIndex = index)
-                }
-                is Event.PinnedCopiesStored -> { state ->
-                    val pins = state.pins.copy(stored = event.messages)
-                    val index = state.pinBarIndex.takeIf { it < pins.visible.size } ?: 0
-                    state.copy(pins = pins, pinBarIndex = index)
-                }
-                is Event.PinSummaryChanged -> { state ->
-                    state.copy(pins = state.pins.copy(summaryCount = event.count))
-                }
-                is Event.PinMessage -> { state -> state.copy(selection = null, confirmingDelete = false) }
-                is Event.UnpinMessage -> { state -> state.copy(selection = null, confirmingDelete = false) }
-                is Event.PinCapReached -> { state -> state.copy(waitingPin = event.waiting) }
-                Event.PinBarTapped -> { state -> state.copy(pinBarIndex = state.pins.stepAfter(state.pinBarIndex)) }
-                Event.SilenceLapsed -> { state -> state.copy(silenceClock = kotlin.time.Clock.System.now()) }
-                Event.SilenceLifted -> { state -> state }
+                is Event.OnChatOpened,
+                is Event.OnContactFound,
+                Event.OnTipDmDetected,
+                is Event.OnWrongKey,
+                is Event.OnGroupResolved,
+                is Event.OnRuleCurrencyResolved,
+                is Event.OnGroupAccessResolved,
+                is Event.OnSpeakerBlockResolved,
+                Event.JoinChat,
+                is Event.JoinStateUpdated,
+                is Event.OnEncryptionResolved,
+                is Event.OnViewerStateResolved,
+                Event.SilenceLapsed,
+                Event.SilenceLifted,
                 Event.CopyInviteLink,
                 is Event.InviteSheetOpened,
                 Event.InviteLinkShared,
                 is Event.GateFundingTapped,
                 Event.GroupInfoOpened,
                 Event.InviteCardFollowed,
-                Event.LeaveChat, Event.GroupProfileOpened,
-                Event.RequestToJoin, Event.CancelJoinRequest,
-                Event.JoinRequestsOpened, is Event.ApproveJoinRequest, is Event.DenyJoinRequest -> { state -> state }
-                is Event.OnJoinRequestsResolved -> { state ->
-                    state.copy(isLobbyHost = event.isHost, joinRequests = event.members)
-                }
-                is Event.JoinRequestCallChanged -> { state ->
-                    val calls = state.joinRequestCalls.toMutableMap()
-                    val call = event.call
-                    if (call == null) calls.remove(event.userId) else calls[event.userId] = call
-                    state.copy(joinRequestCalls = calls)
-                }
-                is Event.LobbyCallChanged -> { state -> state.copy(lobbyCall = event.call) }
-                is Event.OnLobbyRequestResolved -> { state -> state.copy(lobbyRequestedAt = event.requestedAt) }
-                is Event.OnHostNameResolved -> { state -> state.copy(hostName = event.name) }
-                is Event.OnChattersLoaded -> { state -> state.copy(chatters = event.chatters) }
-                is Event.OnMembersResolved -> { state -> state.copy(members = event.members) }
-                is Event.OnKnownMembersResolved -> { state -> state.copy(knownMembers = event.members) }
-                Event.MembersOpened -> { state -> state }
-                is Event.OnProfileStandingResolved -> { state -> state.copy(profileStanding = event.standing) }
-                is Event.OnRuleTokensResolved -> { state -> state.copy(ruleTokens = event.tokens) }
-                Event.LeaveConfirmed -> { state -> state.copy(leaving = true) }
-                Event.LeftChat, Event.LeaveFailed -> { state -> state.copy(leaving = false) }
-                Event.ChatNotFound -> { state -> state.copy(chatNotFound = true) }
-                is Event.OnTipUserResolved -> { state ->
-                    // A device contact, once matched, wins over the server profile (it carries the
-                    // phone number and the user's own naming). Otherwise this is a tip DM: adopt the
-                    // profile identity and mark the recipient resolved so the send can proceed (the
-                    // tip user is known to exist; the tip send resolves their address at send time).
-                    // A group has no counterparty: the member this names is just someone in the room.
-                    if (state.subject is ChatSubject.Contact || state.subject is ChatSubject.Group) state
-                    else state.copy(
-                        subject = ChatSubject.TipUser(
-                            ChatParticipant.TipUser(event.userId, event.profile)
-                        ),
-                        chatType = ChatType.TIP_DM,
-                        resolveState = ResolveState.Resolved,
-                    )
-                }
-                is Event.OnCurrencySymbolUpdated -> { state -> state.copy(cashSymbol = event.symbol) }
-                is Event.ChatFound -> { state -> state.copy(chatId = event.chatId) }
-                Event.OnSendCash -> { state -> state }
-                Event.OnStartMessageInput -> { state -> state.copy(messageInputRequested = true) }
-                Event.OnStopMessageInput -> { state -> state }
-                Event.OnMessageInputConsumed -> { state -> state.copy(messageInputRequested = false) }
-                is Event.TypistsUpdated -> { state -> state.copy(typists = event.typists) }
-                is Event.TypingAvatarsUpdated -> { state -> state.copy(typingAvatars = event.avatars) }
-                Event.ResolveCompleted -> { state ->
-                    state.copy(resolveState = ResolveState.Resolved)
-                }
-                is Event.ResolveFailed -> { state ->
-                    state.copy(resolveState = ResolveState.Failed)
-                }
-                is Event.SendMessage -> { state ->
-                    val clears = lifetime == UnreadDividerLifetime.UntilSend &&
-                        state.unreadBoundary is UnreadBoundary.At
-                    val sent = state.copy(returnStack = emptyList())
-                    if (clears) sent.copy(unreadBoundary = UnreadBoundary.None) else sent
-                }
-                is Event.RetryMessage -> { state -> state }
-                is Event.StagePhotos -> { state -> state }
-                is Event.CaptureStarted -> { state -> state }
-                is Event.CaptureFinished -> { state -> state }
-                is Event.RetryPhoto -> { state -> state }
-                is Event.PhotoStaged -> { state ->
-                    if (state.stagedPhotos.size >= MAX_STAGED_PHOTOS) state
-                    else state.copy(stagedPhotos = state.stagedPhotos + event.photo)
-                }
-                is Event.RemovePhoto -> { state ->
-                    state.copy(
-                        stagedPhotos = state.stagedPhotos.filterNot { it.id == event.id },
-                        uploadStates = state.uploadStates - event.id,
-                    )
-                }
-                is Event.UploadStatesChanged -> { state -> state.copy(uploadStates = event.states) }
-                is Event.ComposerLinkChanged -> { state -> state.copy(composerLink = event.link) }
-                Event.RemoveLinkPreview -> { state -> state }
-                is Event.PhotosSent -> { state ->
-                    state.copy(stagedPhotos = state.stagedPhotos.filterNot { it.id in event.ids })
-                }
-                is Event.PhotosRestored -> { state ->
-                    state.copy(stagedPhotos = (event.photos + state.stagedPhotos).take(MAX_STAGED_PHOTOS))
-                }
-                is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
-                Event.NavigateToRequestMoney -> { state -> state }
-                is Event.PresentDepositOptions -> { state -> state }
-                is Event.OpenScreen -> { state -> state }
-                is Event.MentionTapped -> { state -> state }
-                is Event.OpenMention -> { state -> state }
-                is Event.OnConfirmRequested -> { state -> state }
-                is Event.OnSendRequested -> { state -> state }
-                is Event.GroupSendUpdated -> { state -> state.copy(groupSend = event.groupSend) }
-                is Event.OnGroupSendMemberToggled -> { state -> state }
-                Event.OnGroupSendBack -> { state -> state }
-                Event.OnGroupSendPeopleConfirmed -> { state -> state }
-                Event.OnGroupSendRequested -> { state -> state }
-                is Event.SendStateUpdated -> { state ->
-                    state.copy(
-                        sendProgress = LoadingSuccessState(
-                            event.loading,
-                            event.success,
-                        )
-                    )
-                }
-                is Event.SendComplete -> { state -> state }
-                Event.OnSelfTypingStarted -> { state -> state.copy(isSelfTyping = true) }
-                Event.OnSelfTypingStill -> { state -> state }
-                Event.OnSelfTypingStopped -> { state -> state.copy(isSelfTyping = false) }
-                is Event.TypingEnabled -> { state ->
-                    state.copy(
-                        typingConstraints = state.typingConstraints.copy(
-                            enabled = event.enabled,
-                            resolved = true,
-                        )
-                    )
-                }
-                is Event.TokenUpdated -> { state -> state.copy(token = event.token) }
-                is Event.LimitsChanged -> { state -> state.copy(limits = event.limits) }
-                is Event.AdvanceReadPointer -> { state -> state }
-                is Event.ChatDeactivated -> { state -> state.copy(isAnonymous = event.isReadOnly) }
-                is Event.MessagePolicyChanged -> { state -> state.copy(messagePolicy = event.policy) }
-                is Event.ToggleMessageSelection -> { state ->
-                    // By message rather than by row: a message split around its card is one
-                    // selection whichever of its rows was pressed.
-                    val alreadySelected = state.selection?.messageKey == event.bubble.messageKey
-                    // Narrowed again so the bar offers what is open now, not when the row was built.
-                    val selected = event.bubble.takeUnless { alreadySelected }?.narrowedFor(state)
-                    state.copy(
-                        selection = selected,
-                        reactionStripOnly = false,
-                        confirmingDelete = false,
-                    ).withQuickReactionStrip()
-                }
-                is Event.PresentReactionStrip -> { state ->
-                    val selected = event.bubble.narrowedFor(state).takeIf { it.canReact }
-                    if (selected == null) {
-                        state
-                    } else {
-                        state.copy(
-                            selection = selected,
-                            reactionStripOnly = true,
-                            confirmingDelete = false,
-                        ).withQuickReactionStrip()
-                    }
-                }
-                Event.ClearMessageSelection -> { state ->
-                    state.copy(selection = null, confirmingDelete = false).withQuickReactionStrip()
-                }
-                is Event.CopyMessage -> { state ->
-                    state.copy(selection = null, confirmingDelete = false)
-                }
-                Event.ReportRequested -> { state ->
-                    state.copy(selection = null, confirmingDelete = false)
-                }
-                is Event.CopyMessageLink -> { state ->
-                    state.copy(selection = null, confirmingDelete = false)
-                }
-                Event.ShareMessageRequested -> { state ->
-                    state.copy(selection = null, confirmingDelete = false)
-                }
-                is Event.PhotoSaveResult -> { state -> state }
-                is Event.EditMessage -> { state ->
-                    state.copy(
-                        selection = null,
-                        confirmingDelete = false,
-                        replyingTo = null,
-                        editing = EditingMessage(
-                            messageId = event.messageId,
-                            originalText = event.text,
-                            // Starting a second edit before the first ends must not stash the
-                            // first edit's text as if it were the user's draft.
-                            stashedDraft = state.editing?.stashedDraft
-                                ?: state.chatInputState.text.toString(),
-                        ),
-                    )
-                }
-                // Selection survives the confirmation sheet, but the focus does not: the sheet is
-                // modal, so the transcript behind it goes uniformly dim until the sheet closes.
-                is Event.DeleteMessage -> { state -> state.copy(confirmingDelete = true) }
-                Event.SubmitEdit -> { state -> state }
-                Event.CancelEdit -> { state -> state }
-                Event.EditingEnded -> { state -> state.copy(editing = null) }
-                // The strip opens on ReplyToMessage, once the citation resolves; all this does is
-                // take the selection bar down so the transcript is legible while that read runs.
-                is Event.ReplyRequested -> { state ->
-                    state.copy(selection = null, confirmingDelete = false)
-                }
-                is Event.ReplyToMessage -> { state ->
-                    state.copy(
-                        replyingTo = event.quote,
-                        selection = null,
-                        confirmingDelete = false,
-                        // Reply and edit both own the composer, so opening one closes the other.
-                        editing = null,
-                    )
-                }
-                Event.CancelReply -> { state -> state.copy(replyingTo = null) }
-                is Event.OnMentionSuggestions -> { state -> state.copy(mentionSuggestions = event.matches) }
-                // Closed at once rather than waiting for the inserted space to reach the query
-                // observer, so the list doesn't linger a frame over the text it just wrote.
-                is Event.PickMention -> { state -> state.copy(mentionSuggestions = emptyList()) }
-                // The toggle itself is handled in initMessageActionHandlers (it calls the
-                // coordinator); the reducer's only job is to take the bubble out of selection mode
-                // when the tap came from the quick strip.
-                is Event.ToggleReaction -> { state ->
-                    if (event.clearsSelection) state.copy(selection = null) else state
-                }
-                is Event.QuickReactionInputsLoaded -> { state ->
-                    state.copy(quickReactionInputs = event.inputs).withQuickReactionStrip()
-                }
-                is Event.SelectionReactionsChanged -> { state ->
-                    val selection = state.selection
-                    if (selection?.messageId != event.messageId) {
-                        state
-                    } else {
-                        state.copy(selection = selection.copy(selfReactions = event.selfReactions))
-                            .withQuickReactionStrip()
-                    }
-                }
-                is Event.RefreshReactionIds -> { state -> state }
-                // Nothing on screen moves when a voucher is tapped -- the link leaves, the card
-                // keeps saying what it said, and the claim comes back as its own signal.
-                is Event.CashLinkOpened -> { state -> state }
-                is Event.CashLinkRefused -> { state -> state }
-                // The request itself changes nothing: the target is only worth holding once the
-                // walk's bound resolves, and that read is what decides whether it can be reached.
-                // The return stack is the one thing that moves now: a quote pushes the message it
-                // was tapped in, a message link has nowhere to return to.
-                is Event.JumpToMessage -> { state ->
-                    val origin = event.origin
-                    state.copy(returnStack = origin?.let(state.returnStack::pushOrigin) ?: emptyList())
-                }
-                Event.ReturnToOrigin -> { state -> state }
-                is Event.ReturnResolved -> { state ->
-                    val landing = event.landing
-                    val left = state.returnStack.dropLast(landing.popped)
-                    if (landing.origin == null) {
-                        state.copy(returnStack = left, newestRequests = state.newestRequests + 1)
-                    } else {
-                        state.copy(returnStack = left, jumpTarget = landing.origin, jumpBudget = landing.budget)
-                    }
-                }
-                is Event.ReturnOriginsReached -> { state ->
-                    state.copy(returnStack = state.returnStack.dropReached(event.origins))
-                }
-                Event.ReturnStackCleared -> { state -> state.copy(returnStack = emptyList()) }
-                is Event.JumpResolved -> { state ->
-                    state.copy(jumpTarget = event.messageId, jumpBudget = event.budget)
-                }
-                Event.JumpConsumed -> { state ->
-                    state.copy(jumpTarget = null, jumpBudget = null, openingAtMessage = false)
-                }
-                Event.JumpUnreachable -> { state -> state.copy(openingAtMessage = false) }
-                is Event.GatedLandingChanged -> { state -> state.copy(gatedLanding = event.item) }
-                is Event.UnreadBoundaryResolved -> { state ->
-                    state.copy(
-                        unreadBoundary = event.boundary,
-                        unreadWalkBudget = event.walkBudget,
-                        unreadBadgeOpenCount = (event.boundary as? UnreadBoundary.At)?.count ?: 0,
-                    )
-                }
-                is Event.ArrivalCutoffRecorded -> { state -> state.copy(newestInboundIdAtOpen = event.cutoff) }
-                Event.UserScrolledTranscript, Event.OwnMessageSent -> { state ->
-                    state.copy(unreadBadgeFrozen = false)
-                }
+                Event.LeaveChat,
+                Event.GroupProfileOpened,
+                Event.RequestToJoin,
+                Event.CancelJoinRequest,
+                Event.JoinRequestsOpened,
+                is Event.ApproveJoinRequest,
+                is Event.DenyJoinRequest,
+                is Event.OnJoinRequestsResolved,
+                is Event.JoinRequestCallChanged,
+                is Event.LobbyCallChanged,
+                is Event.OnLobbyRequestResolved,
+                is Event.OnHostNameResolved,
+                is Event.OnChattersLoaded,
+                is Event.OnMembersResolved,
+                is Event.OnKnownMembersResolved,
+                Event.MembersOpened,
+                is Event.OnProfileStandingResolved,
+                is Event.OnRuleTokensResolved,
+                Event.LeaveConfirmed,
+                Event.LeftChat,
+                Event.LeaveFailed,
+                Event.ChatNotFound,
+                is Event.OnTipUserResolved,
+                is Event.OnCurrencySymbolUpdated,
+                is Event.ChatFound,
+                is Event.TokenUpdated,
+                is Event.LimitsChanged,
+                is Event.AdvanceReadPointer,
+                is Event.ChatDeactivated,
+                is Event.MessagePolicyChanged -> reduceChatOpen(event)
+                is Event.PinsRead,
+                is Event.PinnedCopiesStored,
+                is Event.PinSummaryChanged,
+                is Event.PinMessage,
+                is Event.UnpinMessage,
+                is Event.PinCapReached,
+                Event.PinBarTapped -> reducePins(event)
+                Event.OnSendCash,
+                Event.OnStartMessageInput,
+                Event.OnStopMessageInput,
+                Event.OnMessageInputConsumed,
+                Event.ResolveCompleted,
+                is Event.ResolveFailed,
+                is Event.SendMessage,
+                is Event.RetryMessage,
+                is Event.NavigateToAmountEntry,
+                Event.NavigateToRequestMoney,
+                is Event.PresentDepositOptions,
+                is Event.OpenScreen,
+                is Event.MentionTapped,
+                is Event.OpenMention,
+                is Event.OnConfirmRequested,
+                is Event.OnSendRequested,
+                is Event.GroupSendUpdated,
+                is Event.OnGroupSendMemberToggled,
+                Event.OnGroupSendBack,
+                Event.OnGroupSendPeopleConfirmed,
+                Event.OnGroupSendRequested,
+                is Event.SendStateUpdated,
+                is Event.SendComplete,
+                is Event.CashLinkOpened,
+                is Event.CashLinkRefused -> reduceSend(event, lifetime)
+                is Event.TypistsUpdated,
+                is Event.TypingAvatarsUpdated,
+                Event.OnSelfTypingStarted,
+                Event.OnSelfTypingStill,
+                Event.OnSelfTypingStopped,
+                is Event.TypingEnabled -> reduceTyping(event)
+                is Event.StagePhotos,
+                is Event.CaptureStarted,
+                is Event.CaptureFinished,
+                is Event.RetryPhoto,
+                is Event.PhotoStaged,
+                is Event.RemovePhoto,
+                is Event.UploadStatesChanged,
+                is Event.ComposerLinkChanged,
+                Event.RemoveLinkPreview,
+                is Event.PhotosSent,
+                is Event.PhotosRestored -> reduceComposerPhotos(event)
+                is Event.ToggleMessageSelection,
+                is Event.PresentReactionStrip,
+                Event.ClearMessageSelection,
+                is Event.CopyMessage,
+                Event.ReportRequested,
+                is Event.CopyMessageLink,
+                Event.ShareMessageRequested,
+                is Event.PhotoSaveResult,
+                is Event.EditMessage,
+                is Event.DeleteMessage,
+                Event.SubmitEdit,
+                Event.CancelEdit,
+                Event.EditingEnded,
+                is Event.ReplyRequested,
+                is Event.ReplyToMessage,
+                Event.CancelReply,
+                is Event.OnMentionSuggestions,
+                is Event.PickMention -> reduceMessageAction(event)
+                is Event.ToggleReaction,
+                is Event.QuickReactionInputsLoaded,
+                is Event.SelectionReactionsChanged,
+                is Event.RefreshReactionIds -> reduceReactions(event)
+                is Event.JumpToMessage,
+                Event.ReturnToOrigin,
+                is Event.ReturnResolved,
+                is Event.ReturnOriginsReached,
+                Event.ReturnStackCleared,
+                is Event.JumpResolved,
+                Event.JumpConsumed,
+                Event.JumpUnreachable -> reduceJumpReturn(event)
+                is Event.GatedLandingChanged,
+                is Event.UnreadBoundaryResolved,
+                is Event.ArrivalCutoffRecorded,
+                Event.UserScrolledTranscript,
+                Event.OwnMessageSent -> reduceUnread(event)
             }
     }
 }
@@ -4906,7 +4672,7 @@ internal class ChatViewModel @AssistedInject constructor(
  * what is open at the moment it is made. The same goes for membership: a viewer who has left since
  * keeps only what a reader outside the group may do.
  */
-private fun ChatListItem.ContentBubble.narrowedFor(state: ChatViewModel.State): ChatListItem.ContentBubble {
+internal fun ChatListItem.ContentBubble.narrowedFor(state: ChatViewModel.State): ChatListItem.ContentBubble {
     val open = capabilities.withinWindows(timestamp, state.messagePolicy)
     return copy(capabilities = if (state.isOutsideGroup) open.readOnly() else open)
 }
@@ -4915,7 +4681,7 @@ private fun ChatListItem.ContentBubble.narrowedFor(state: ChatViewModel.State): 
  * [ChatViewModel.State.quickReactionStrip] rebuilt for the current selection: empty while nothing
  * is selected, while the selected message can't be reacted to, or before the inputs have loaded.
  */
-private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State =
+internal fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State =
     copy(quickReactionStrip = reactionStripFor(selection))
 
 /** This bubble with the viewer's reactions replaced by [live], when the overlay knows better. */
