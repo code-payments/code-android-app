@@ -141,6 +141,13 @@ EIGHT_HOURS = "8 Hours"
 ONE_WEEK = "1 Week"
 ALWAYS = "Always"
 
+[lists.ChatReadSource]
+description = "The `Source` property on Chat Marked Unread and Chat Marked Read: where on the chat list the action was taken."
+[lists.ChatReadSource.values]
+SWIPE = "Swipe"
+MENU = { value = "Menu", drift = "Android doesn't send this source: a long press on Android enters select mode, so its actions go out as Selection." }
+SELECTION = "Selection"
+
 [lists.SilenceDuration]
 description = "The `Duration` property on Group: Member Silenced: the silence option picked. Both apps offer these four. The last reads Forever here, where MuteDuration reads Always."
 [lists.SilenceDuration.values]
@@ -365,6 +372,35 @@ properties = [
   { name = "Chat Type", type = "ChatType" },
   { name = "State", type = "State" },
   { name = "Error", type = "text", optional = true },
+]
+
+[[event]]
+domain = "Chat"
+name = "Chat Marked Unread"
+builder = "markedUnread"
+description = "The viewer marked a chat as unread from the chat list. Stored on the device only; nothing is sent to the server. Select mode sends one per selected chat."
+properties = [
+  { name = "Chat Type", type = "ChatType" },
+  { name = "Source", type = "ChatReadSource" },
+]
+
+[[event]]
+domain = "Chat"
+name = "Chat Marked Read"
+builder = "markedRead"
+description = "The viewer marked a chat as read from the chat list. Select mode sends one per selected chat."
+properties = [
+  { name = "Chat Type", type = "ChatType" },
+  { name = "Source", type = "ChatReadSource" },
+]
+
+[[event]]
+domain = "Chat"
+name = "Chats Read All"
+builder = "readAll"
+description = "The viewer confirmed Read All on the chat list."
+properties = [
+  { name = "Count", type = "count" },
 ]
 
 # Group

@@ -108,4 +108,43 @@ class ChatEventsTest {
             ChatEvents.unmuted(ChatType.GROUP, State.SUCCESS, null),
         )
     }
+
+    @Test
+    fun chatMarkedUnreadCarriesTypeAndSource() {
+        assertEquals(
+            AnalyticsEvent(
+                "Chat Marked Unread",
+                mapOf("Chat Type" to PropertyValue.Text("Group"), "Source" to PropertyValue.Text("Swipe")),
+            ),
+            ChatEvents.markedUnread(ChatType.GROUP, ChatReadSource.SWIPE),
+        )
+    }
+
+    @Test
+    fun chatMarkedReadCarriesTypeAndSource() {
+        assertEquals(
+            AnalyticsEvent(
+                "Chat Marked Read",
+                mapOf("Chat Type" to PropertyValue.Text("Tip"), "Source" to PropertyValue.Text("Selection")),
+            ),
+            ChatEvents.markedRead(ChatType.TIP, ChatReadSource.SELECTION),
+        )
+    }
+
+    @Test
+    fun chatReadSourcesKeepTheirWireStrings() {
+        assertEquals(
+            listOf("Swipe", "Menu", "Selection"),
+            listOf(ChatReadSource.SWIPE, ChatReadSource.MENU, ChatReadSource.SELECTION)
+                .map { (ChatEvents.markedRead(ChatType.GROUP, it).properties.getValue("Source") as PropertyValue.Text).value },
+        )
+    }
+
+    @Test
+    fun chatsReadAllCarriesTheCount() {
+        assertEquals(
+            AnalyticsEvent("Chats Read All", mapOf("Count" to PropertyValue.Number(2.0))),
+            ChatEvents.readAll(2),
+        )
+    }
 }
