@@ -62,6 +62,13 @@ object AppBarDefaults {
     internal val SlotPadding = 5.dp
 
     /**
+     * How far the bar's leading and trailing controls sit from the screen edge, for content under
+     * the bar that should line up with them.
+     */
+    val ControlInset: Dp
+        @Composable get() = CodeTheme.dimens.grid.x2 + SlotPadding
+
+    /**
      * How far a leading control's touch target can grow past it, for a start-aligned title: to the bar's
      * leading edge, top and bottom, and across the gap up to where the title starts. For use with
      * `Modifier.expandedTouchTarget` on a control whose title is tappable too, so a tap that misses

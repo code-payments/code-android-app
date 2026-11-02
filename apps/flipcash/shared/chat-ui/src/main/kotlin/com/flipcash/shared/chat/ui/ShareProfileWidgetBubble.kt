@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -167,8 +168,63 @@ internal fun ShareProfileWidgetBubble(
     onDoubleClick: (() -> Unit)? = null,
     attention: () -> Float = { 0f },
 ) {
+    WidgetCardBubble(
+        title = displayName,
+        subtitle = "@$username",
+        buttonLabel = stringResource(R.string.action_shareProfile),
+        buttonIcon = painterResource(R.drawable.ic_share_os),
+        onClick = onShare,
+        isFromSelf = isFromSelf,
+        position = position,
+        maxWidth = maxWidth,
+        loading = loading,
+        modifier = modifier,
+        onLongClick = onLongClick,
+        onDoubleClick = onDoubleClick,
+        attention = attention,
+        avatar = {
+            ContactAvatar(
+                image = profilePicture,
+                displayName = displayName,
+                access = BlobAccessContext.profile(userId),
+                modifier = Modifier
+                    .size(ShareProfileWidgetDefaults.AVATAR)
+                    .border(CodeTheme.dimens.border, GroupInviteCardDefaults.STROKE, CircleShape)
+                    .clip(CircleShape),
+            )
+        },
+    )
+}
+
+/**
+ * The container the share-profile widget is drawn in: an incoming bubble with the widget's fill and
+ * outline, an optional [avatar], a [title] and [subtitle], and one filled button. The share-profile
+ * widget and the "Your Group Is Ready" card are both this; each supplies its own words and click.
+ *
+ * With no [avatar] the text is left-aligned, as in a card that has no face to centre it under.
+ */
+@Composable
+internal fun WidgetCardBubble(
+    title: String,
+    subtitle: String,
+    buttonLabel: String,
+    onClick: (() -> Unit)?,
+    isFromSelf: Boolean,
+    position: BubblePosition,
+    maxWidth: Dp,
+    modifier: Modifier = Modifier,
+    buttonIcon: Painter? = null,
+    loading: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    onDoubleClick: (() -> Unit)? = null,
+    attention: () -> Float = { 0f },
+    avatar: (@Composable () -> Unit)? = null,
+    /** Sets the title and subtitle in the message bubble's type (medium title, body subtitle), not the profile card's large name and caption handle. */
+    messageTypography: Boolean = false,
+) {
     val shape = bubbleShape(position, isFromSelf)
     val width = minOf(maxWidth, ShareProfileWidgetDefaults.WIDTH)
+    val textAlignment = if (avatar != null) Alignment.CenterHorizontally else Alignment.Start
     Bubble(
         isFromSelf = isFromSelf,
         position = position,
@@ -191,38 +247,34 @@ internal fun ShareProfileWidgetBubble(
             verticalArrangement = Arrangement.spacedBy(ShareProfileWidgetDefaults.SECTION_GAP),
         ) {
             Column(
-                modifier = Modifier.widthIn(max = ShareProfileWidgetDefaults.IDENTITY_WIDTH),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = if (avatar != null) {
+                    Modifier.widthIn(max = ShareProfileWidgetDefaults.IDENTITY_WIDTH)
+                } else {
+                    Modifier.fillMaxWidth()
+                },
+                horizontalAlignment = textAlignment,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x3),
             ) {
-                ContactAvatar(
-                    image = profilePicture,
-                    displayName = displayName,
-                    access = BlobAccessContext.profile(userId),
-                    modifier = Modifier
-                        .size(ShareProfileWidgetDefaults.AVATAR)
-                        .border(CodeTheme.dimens.border, GroupInviteCardDefaults.STROKE, CircleShape)
-                        .clip(CircleShape),
-                )
+                avatar?.invoke()
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    horizontalAlignment = textAlignment,
                     verticalArrangement = Arrangement.spacedBy(ShareProfileWidgetDefaults.LINE_GAP),
                 ) {
                     Text(
-                        text = displayName,
-                        style = CodeTheme.typography.textLarge,
+                        text = title,
+                        style = if (messageTypography) CodeTheme.typography.textMedium else CodeTheme.typography.textLarge,
                         color = CodeTheme.colors.textMain,
-                        textAlign = TextAlign.Center,
+                        textAlign = if (avatar != null) TextAlign.Center else TextAlign.Start,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = if (loading) Modifier.shimmer(RoundedCornerShape(4.dp)) else Modifier,
                     )
                     Text(
-                        text = "@$username",
-                        style = CodeTheme.typography.caption,
-                        color = CodeTheme.colors.textMain.copy(alpha = 0.5f),
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
+                        text = subtitle,
+                        style = if (messageTypography) CodeTheme.typography.textMessage else CodeTheme.typography.caption,
+                        color = if (messageTypography) CodeTheme.colors.textMain else CodeTheme.colors.textMain.copy(alpha = 0.5f),
+                        textAlign = if (avatar != null) TextAlign.Center else TextAlign.Start,
+                        maxLines = if (avatar != null) 1 else 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -231,8 +283,8 @@ internal fun ShareProfileWidgetBubble(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(CodeTheme.dimens.staticGrid.x11),
-                onClick = { onShare?.invoke() },
-                enabled = onShare != null,
+                onClick = { onClick?.invoke() },
+                enabled = onClick != null,
                 buttonState = ButtonState.Filled,
                 shape = RoundedCornerShape(ShareProfileWidgetDefaults.BUTTON_RADIUS),
                 overrideContentPadding = true,
@@ -240,14 +292,20 @@ internal fun ShareProfileWidgetBubble(
             ) {
                 // CodeButton stacks its content, so the pair needs a row of its own.
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_share_os),
-                        contentDescription = null,
-                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
-                    )
+                    if (buttonIcon != null) {
+                        Icon(
+                            painter = buttonIcon,
+                            contentDescription = null,
+                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
+                        )
+                    }
                     Text(
-                        modifier = Modifier.padding(start = CodeTheme.dimens.staticGrid.x1),
-                        text = stringResource(R.string.action_shareProfile),
+                        modifier = if (buttonIcon != null) {
+                            Modifier.padding(start = CodeTheme.dimens.staticGrid.x1)
+                        } else {
+                            Modifier
+                        },
+                        text = buttonLabel,
                         style = CodeTheme.typography.textMedium,
                     )
                 }

@@ -1,4 +1,4 @@
-package com.flipcash.app.messenger.internal.screens.profile.edit
+package com.flipcash.shared.chat
 
 /**
  * `EditChatRequest.Title.value` — `min_len 1, max_len 64`, checked here before the call.
@@ -12,7 +12,7 @@ package com.flipcash.app.messenger.internal.screens.profile.edit
  * here and 40 at the server. Using [String.length] would refuse titles the contract accepts, and
  * would do it only for non-BMP characters — the case least likely to be noticed.
  */
-internal object ChatTitle {
+object ChatTitle {
     const val MIN_LENGTH = 1
     const val MAX_LENGTH = 64
 

@@ -33,6 +33,11 @@ class DeeplinkScanPolicyTest {
         assertFalse(DeeplinkType.EmailVerification(EMAIL, CODE).isScannable)
     }
 
+    @Test
+    fun `tab links are not scannable`() {
+        assertFalse(DeeplinkType.Tab(NavBarButton.Wallet).isScannable)
+    }
+
     private companion object {
         const val ENTROPY = "0123456789abcdef"
         const val USERNAME = "someone"

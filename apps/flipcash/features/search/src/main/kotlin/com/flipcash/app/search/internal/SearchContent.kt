@@ -492,6 +492,7 @@ private fun LazyListScope.chatRows(
                     isTyping = false,
                     preview = chat.lastMessagePreview,
                     hasMessages = chat.hasMessages,
+                    awaitsInvites = chat.awaitsInvites,
                     fallback = { SubtitleText("") },
                 )
             },

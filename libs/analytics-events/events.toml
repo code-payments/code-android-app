@@ -162,9 +162,9 @@ NAME = "Name"
 PICTURE = "Picture"
 
 [lists.GroupInviteSheetSource]
-description = "The `Source` property on Group: Invite Sheet Opened. Both apps send Profile, from the group profile and the join requests screen."
+description = "The `Source` property on Group: Invite Sheet Opened. Both apps send Profile, from the group profile and the join requests screen, and Chat, from the Your Group Is Ready card in a transcript."
 [lists.GroupInviteSheetSource.values]
-CHAT = { value = "Chat", drift = "Neither app sends this today. It was Android's transcript CTA and iOS's card at the head of chat history; Android dropped its CTA in #1707 and iOS removed its card in cb036f487." }
+CHAT = "Chat"
 PROFILE = "Profile"
 
 [lists.GroupInviteMethod]
@@ -622,7 +622,7 @@ properties = [
   { name = "Payer Count", type = "count" },
   { group = "outcome" },
 ]
-description = "A group payment request was created, on success or failure. The amount is what each person is asked for. `Payer Count` is the number of people asked, not counting the creator."
+description = "A group payment request was created, on success or failure. The amount is the request's total, split between everyone in it, the creator included when they are. `Payer Count` is the number of people asked, not counting the creator."
 
 [[event]]
 domain = "Payment Request"

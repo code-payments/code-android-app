@@ -3,6 +3,7 @@ package com.flipcash.shared.chat
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.shared.chat.reactions.SelfReaction
 import com.getcode.opencode.model.core.ID
 import com.flipcash.shared.chat.ui.linkableText
@@ -48,6 +49,13 @@ enum class MessageCapability {
 
     /** Remove the message's sender from the group (a ban), under the same rules as [Silence] with `can_ban`. */
     Remove,
+
+    /**
+     * Pin or unpin the message, granted by `ViewerState.Permissions.can_pin` on a message that can
+     * be pinned ([isPinnable]). Whether the action pins or unpins is decided by the caller, which
+     * holds the chat's pinned ids.
+     */
+    Pin,
 }
 
 /**
@@ -164,8 +172,10 @@ fun resolveCapabilities(
     canSilence: Boolean = false,
     canBan: Boolean = false,
     creatorId: ID? = null,
+    canPin: Boolean = false,
 ): Set<MessageCapability> {
     val resolved = resolveForParticipant(message, policy, now, canSpeak)
+        .let { if (canPin && isPinnable(message)) it + MessageCapability.Pin else it }
     if (!canPost) return resolved.readOnly()
     // Report is granted on exactly the messages a participant other than the viewer sent, so it
     // stands in for "someone else's message" here. The creator is never offered either action.
@@ -183,7 +193,23 @@ fun resolveCapabilities(
  * a set resolved while the viewer could post has to narrow at the menu if they have since left.
  */
 fun Set<MessageCapability>.readOnly(): Set<MessageCapability> = filterTo(mutableSetOf()) {
-    it == MessageCapability.Copy || it == MessageCapability.Report || it == MessageCapability.Link
+    it == MessageCapability.Copy || it == MessageCapability.Report || it == MessageCapability.Link ||
+        it == MessageCapability.Pin
+}
+
+/**
+ * Whether [message] is something a pin can point at. The server refuses system messages and
+ * tombstones (`MESSAGE_NOT_ALLOWED`) and an unacknowledged message has no id to pin. Payment
+ * requests are refused here only: the request strip and pill already keep them at the top.
+ */
+fun isPinnable(message: ChatMessage): Boolean {
+    val contents = message.content
+    if (contents.isEmpty()) return false
+    if (message.eventSequence == 0L) return false
+    if (contents.any { it is MessageContent.Deleted }) return false
+    if (contents.all { it is MessageContent.System }) return false
+    if (contents.any { it is MessageContent.Widget && it.widget is WidgetContent.PaymentRequest }) return false
+    return true
 }
 
 private fun resolveForParticipant(
@@ -274,7 +300,8 @@ fun Set<MessageCapability>.withinWindows(
         // server enforces them, and nothing in the contract limits how old a reportable message
         // may be.
         MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report,
-        MessageCapability.Link, MessageCapability.Silence, MessageCapability.Remove -> true
+        MessageCapability.Link, MessageCapability.Silence, MessageCapability.Remove,
+        MessageCapability.Pin -> true
     }
 }
 

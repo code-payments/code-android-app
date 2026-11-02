@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal.invites
 
-import com.flipcash.app.funding.bottomBarCardAction
 import com.flipcash.features.messenger.R
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -10,45 +9,6 @@ import com.getcode.util.resources.ResourceHelper
  * The bottom-bar messages of the invite flow. They are top-level so the view models and the
  * previews draw the same ones.
  */
-
-/**
- * Frame 1a, drawn by the bottom bar's card sheet that Group Money and Add Money use, so it keeps
- * their spacing, colours and dismissal.
- */
-internal fun showInviteHostSheet(
-    resources: ResourceHelper,
-    groupName: String,
-    onShareInviteLink: () -> Unit,
-    onShareJoinLink: () -> Unit,
-    onManageInvites: () -> Unit,
-) {
-    BottomBarManager.showMessage(
-        title = resources.getString(R.string.title_inviteToGroup, groupName),
-        actions = listOf(
-            bottomBarCardAction(
-                title = resources.getString(R.string.action_shareInviteLinkLong),
-                subtitle = resources.getString(R.string.subtitle_shareInviteLink),
-                iconRes = R.drawable.ic_send_outlined,
-                testTag = "invite_action_share_invite",
-                onClick = onShareInviteLink,
-            ),
-            bottomBarCardAction(
-                title = resources.getString(R.string.action_shareJoinLink),
-                subtitle = resources.getString(R.string.subtitle_shareJoinLink),
-                iconRes = R.drawable.ic_link_outlined,
-                testTag = "invite_action_share_join",
-                onClick = onShareJoinLink,
-            ),
-            bottomBarCardAction(
-                title = resources.getString(R.string.action_manageInvites),
-                subtitle = resources.getString(R.string.subtitle_manageInvites),
-                iconRes = R.drawable.ic_checklist,
-                testTag = "invite_action_manage",
-                onClick = onManageInvites,
-            ),
-        ),
-    )
-}
 
 /**
  * Frame 1c: the group holds the most active links the server allows. With [onManageInvites] the

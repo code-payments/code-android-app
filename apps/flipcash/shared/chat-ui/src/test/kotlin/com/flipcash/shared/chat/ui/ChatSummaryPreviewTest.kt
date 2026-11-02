@@ -9,6 +9,8 @@ import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.services.models.chat.RosterSummary
+import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
@@ -373,6 +375,48 @@ class ChatSummaryPreviewTest {
         assertFalse(reference.hasMessages)
         assertNull(reference.lastMessagePreview)
     }
+
+    private fun awaitsInvites(
+        type: ChatType = ChatType.GROUP,
+        memberCount: Long = 1,
+        canInvite: Boolean = true,
+        isPrivate: Boolean = true,
+        lastMessage: ChatMessage? = null,
+    ) = ChatSummary(
+        metadata = ChatMetadata(
+            chatId = ChatId(byteArrayOf(9)),
+            type = type,
+            members = listOf(ChatMember(userId = self, userProfile = profile("Me"), pointers = emptyList())),
+            lastMessage = lastMessage,
+            lastActivity = sentAt,
+            title = "Bad Boys",
+            rosterSummary = RosterSummary(memberCount = memberCount, version = 1),
+            viewerState = ViewerState(permissions = ViewerState.Permissions(canInvite = canInvite)),
+            isPrivate = isPrivate,
+        ),
+        unreadCount = 0,
+    ).toConversationReference(selfId = self, tokensByMint = emptyMap(), resources = resources).awaitsInvites
+
+    @Test
+    fun `a lone host of a private group awaits invites`() = assertTrue(awaitsInvites())
+
+    @Test
+    fun `a public group's creator awaits invites without can_invite`() =
+        assertTrue(awaitsInvites(canInvite = false, isPrivate = false))
+
+    @Test
+    fun `a private group the viewer cannot invite to does not await invites`() =
+        assertFalse(awaitsInvites(canInvite = false, isPrivate = true))
+
+    @Test
+    fun `a group with anyone else in it does not await invites`() {
+        assertFalse(awaitsInvites(memberCount = 2))
+        // Never fetched: the default count is 0, which is not "just me".
+        assertFalse(awaitsInvites(memberCount = 0))
+    }
+
+    @Test
+    fun `a direct chat never awaits invites`() = assertFalse(awaitsInvites(type = ChatType.CONTACT_DM))
 
     @Test
     fun `a photo previews as its caption behind the camera`() {

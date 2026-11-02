@@ -1079,9 +1079,9 @@
     <string name="header_previousRequests">Previous Requests</string>
     <string name="label_requestProgress">%1$s paid, %2$s requested</string>
     <string name="label_requestCompleted">✓ %1$s paid</string>
-    <string name="title_amountPerPerson">Amount Per Person</string>
+    <string name="title_totalAmount">Total Amount</string>
     <string name="title_newRequest">New Request</string>
-    <string name="label_perPerson">per person</string>
+    <string name="label_requestTotal">Total</string>
     <string name="label_requestName">Name</string>
     <string name="title_requestName">What is the request for?</string>
     <string name="label_requestPeople">People</string>
@@ -1156,10 +1156,11 @@
     <!-- %1$s is a medium date and short time in the device locale: "Until Nov 2, 6:00 PM". -->
     <string name="value_requestUntil">Until %1$s</string>
     <string name="subtitle_requestAutoCloses">Request automatically closes after</string>
-    <plurals name="action_requestFromPeople">
-        <item quantity="one">Request %2$s from %1$d Person</item>
-        <item quantity="other">Request %2$s from %1$d People</item>
-    </plurals>
+    <!-- %1$s is the share when the total splits evenly: "Request $20 Each". -->
+    <string name="action_requestEach">Request %1$s Each</string>
+    <!-- %1$s is the smallest share when some shares are a cent more: "Request ~$33.33 Each". -->
+    <string name="action_requestEachApprox">Request ~%1$s Each</string>
+    <string name="title_splitBetween">Split Between</string>
     <string name="label_selectPeople_you">You</string>
     <string name="title_requestMaxPeople">100 People Max</string>
     <string name="description_requestMaxPeople">A request can include up to 100 people.</string>
@@ -1206,7 +1207,7 @@
     <string name="label_shareUnpaidEnded">Didn\'t pay</string>
     <!-- Under the member's name on the Mark as Paid sheet: "$20 · Hasn't paid yet". -->
     <string name="label_shareUnpaidAmount">%1$s · Hasn\'t paid yet</string>
-    <string name="action_sendShare">Send %1$s</string>
+    <string name="action_payShare">Pay %1$s</string>
     <string name="cd_requestOptions">Request options</string>
     <string name="cd_close">Close</string>
     <string name="action_closeRequest">Close Request</string>
@@ -1218,6 +1219,7 @@
     <string name="error_title_requestClosed">Request Closed</string>
     <string name="error_description_requestClosed">This request is no longer accepting payments.</string>
     <string name="label_chat_preview_noMessages">Nothing yet</string>
+    <string name="label_chat_preview_inviteToStart">Invite people to get started</string>
     <string name="label_isTyping">Is Typing…</string>
 
     <string name="label_edited">Edited</string>
@@ -1577,18 +1579,26 @@
     <string name="message_groupInvite">Join %1$s on Flipcash and let\'s chat</string>
     <!-- The invite sheet (nodes 10329:12104, 10330:19549). -->
     <string name="title_invitePeople">Invite People</string>
+    <!-- The card at the top of a group's transcript while its creator is the only member. -->
+    <string name="title_flipcashSender" translatable="false">Flipcash</string>
+    <string name="title_groupReady">Your Group Is Ready</string>
+    <string name="subtitle_groupReady">Invite people to join %1$s</string>
     <string name="action_shareInviteLink">Share</string>
     <string name="label_recentChats">Recent Chats</string>
     <!-- Invite links for a private group's host (spec group-invites.md, nodes 12844:60 to 12844:395). -->
     <!-- %1$s is the group title. -->
     <string name="title_inviteToGroup">Invite to %1$s</string>
     <string name="action_shareInviteLinkLong">Share Invite Link</string>
-    <string name="subtitle_shareInviteLink">Anyone with this link joins right away</string>
-    <string name="action_shareJoinLink">Share Join Link</string>
-    <string name="subtitle_shareJoinLink">People ask to join and you approve each one</string>
     <string name="action_manageInvites">Manage Invites</string>
-    <string name="subtitle_manageInvites">See and revoke the invite links you\'ve made</string>
     <string name="label_creatingInviteLink">Creating link…</string>
+    <!-- The host sheet's link card and rows (spec group-invites.md surface 1, frame 1m). -->
+    <!-- The card's caption, joined with " · ": how many joined, then when the link ends. -->
+    <string name="label_inviteJoinedThenEnds">%1$s · %2$s</string>
+    <string name="label_joinLinkAsksToJoin">People who open this link ask to join</string>
+    <string name="label_approveNewMembers">Approve New Members</string>
+    <string name="subtitle_approveNewMembersOff">Anyone with the link joins right away</string>
+    <string name="subtitle_approveNewMembersOn">You approve each person</string>
+    <string name="subtitle_manageInvitesRow">Make more links with an expiry or a use limit</string>
     <string name="action_shareLink">Share Link</string>
     <string name="footnote_inviteLink">Anyone with this link can join and see who\'s in the group. Share it only with people you want in the group</string>
     <!-- A link's lines, joined with " · ". %1$s is a date such as "Nov 3". -->
@@ -1832,6 +1842,21 @@
     <string name="title_shareProfileToChats">Share Profile</string>
     <string name="title_shareMessageToChats">Share Message</string>
     <string name="action_forwardMessage">Forward</string>
+    <string name="action_pinMessage">Pin</string>
+    <string name="action_unpinMessage">Unpin</string>
+    <string name="action_jumpToMessage">Jump to message</string>
+    <string name="title_pinnedMessage">Pinned message</string>
+    <string name="cd_pinnedMessageFrom">Pinned message from %1$s: %2$s</string>
+    <string name="label_pinnedEncryptedMessage">Encrypted message</string>
+    <string name="title_pinnedMessages">Pinned Messages</string>
+    <string name="label_pinnedBy">Pinned by %1$s · %2$s</string>
+    <string name="label_pinnedByYou">you</string>
+    <string name="label_pinsFull">Pinned messages are full. Unpin one to pin \"%1$s\"</string>
+    <string name="label_pinsFullUntitled">Pinned messages are full. Unpin one to pin this message</string>
+    <string name="title_pinNotAdded">Couldn\'t pin message</string>
+    <string name="title_unpinFailed">Couldn\'t unpin message</string>
+    <string name="title_messageUnreachable">Couldn\'t find that message</string>
+    <string name="cd_openPinnedMessages">Pinned messages</string>
     <!-- Who the share sheet is for: display name, then @handle -->
     <string name="action_showProfileCard">Show Profile Card</string>
     <string name="action_copyLink">Copy Link</string>
@@ -1848,10 +1873,14 @@
     <string name="label_profileCardFileNameFallback">Profile Card</string>
     <string name="error_title_tipCardExportFailed">Couldn\'t Export</string>
     <string name="error_description_tipCardExportFailed">We were unable to export your tip code. Please try again</string>
-    <string name="action_showGroupCard">Show Group Card</string>
+    <string name="action_showGroupCard">Show QR Code</string>
     <string name="label_groupCardTitleFallback">Group Chat</string>
     <string name="label_groupCardFileName">Join %1$s</string>
     <string name="label_groupCardFileNameFallback">Group Card</string>
+    <string name="label_groupCardScanToJoin">Scan to join</string>
+    <string name="label_groupCardLinkExpires">Link expires %1$s</string>
+    <string name="label_groupCardLinkNeverExpires">Link never expires</string>
+    <string name="footnote_groupCardInviteLink">Anyone who scans this card joins without approval until the link expires or you revoke it.</string>
     <string name="error_description_groupCardExportFailed">We were unable to export your group code. Please try again</string>
 
     <!-- Bio editor. The count under the field is code points left of 160. -->
@@ -1883,7 +1912,7 @@
     <!-- Tab bar labels, in tab order (node 10642:1325). -->
     <string name="title_tabScan">Scan</string>
     <string name="title_tabChat">Chat</string>
-    <string name="title_tabWallet">Money</string>
+    <string name="title_tabWallet">Wallet</string>
     <string name="title_tabYou">You</string>
 
 
@@ -1972,6 +2001,7 @@
 
     <!-- Group send, node 11293:6918 -->
     <string name="title_selectPeople">Select People</string>
+    <string name="title_groupSendTotal">Total Amount To Send</string>
     <string name="header_groupSendMembers">Members</string>
     <plurals name="action_sendToPeople">
         <item quantity="one">Send to %1$d Person</item>
@@ -1994,8 +2024,13 @@
         <item quantity="one">to %1$d person</item>
         <item quantity="other">to %1$d people</item>
     </plurals>
-    <string name="label_groupSendEach">%1$s each</string>
-    <string name="label_groupSendEachApprox">~%1$s each</string>
+    <string name="label_groupSendEach">%1$s Each</string>
+    <string name="label_groupSendEachApprox">~%1$s Each</string>
+    <!-- The chat bubble's per-person line, lowercase; the confirm sheet's above is capitalized -->
+    <string name="label_groupBubbleEach">%1$s each</string>
+    <string name="label_groupBubbleEachApprox">~%1$s each</string>
+    <string name="label_groupSendEachIncludingYou">%1$s Each, including You</string>
+    <string name="label_groupSendEachApproxIncludingYou">~%1$s Each, including You</string>
     <string name="subtitle_senderSent">%1$s sent</string>
     <string name="label_cashDetails_sent">Sent</string>
     <string name="label_cashDetails_from">From</string>

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import com.flipcash.app.core.ui.DisplayTextInput
 import com.flipcash.features.messenger.R
+import com.flipcash.shared.chat.ChatTitle
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.CodeButton

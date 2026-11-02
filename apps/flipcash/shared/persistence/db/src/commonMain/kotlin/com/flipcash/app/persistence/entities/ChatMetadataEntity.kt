@@ -74,6 +74,9 @@ data class ChatMetadataEntity(
     val canSilence: Boolean = false,
     @ColumnInfo(name = "can_ban", defaultValue = "0")
     val canBan: Boolean = false,
+    // Whether the viewer may pin and unpin messages. Same storage rules as can_edit.
+    @ColumnInfo(name = "can_pin", defaultValue = "0")
+    val canPin: Boolean = false,
     // A moderator's silence on the viewer. Stored the way a mute is, as a deadline or a forever
     // flag and never both, because a timed silence lapses with no server signal and only the
     // deadline compared against the clock on read stays correct.

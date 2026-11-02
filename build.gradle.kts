@@ -93,4 +93,6 @@ tasks.register("flipcashTestDebug") {
     dependsOn(gradle.includedBuild("build-logic").task(":convention:test"))
     // EVENTS.md is generated from events.toml but checked in; fail when someone edits one alone.
     dependsOn(":libs:analytics-events:checkAnalyticsEventsPage")
+    // The app's merged assets still carry the files it needs to start, such as the curve tables.
+    dependsOn(":apps:flipcash:app:checkDebugCurveAssets")
 }

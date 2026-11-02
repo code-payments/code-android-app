@@ -37,7 +37,7 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.messenger.internal.screens.openGroupInvite
-import com.flipcash.app.messenger.internal.screens.openInviteLinkShare
+import com.flipcash.app.messenger.internal.screens.openInviteHost
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.shared.chat.RequestAge
@@ -102,12 +102,7 @@ internal fun JoinRequestsScreen(viewModel: ChatViewModel) {
                 onShare = {
                     viewModel.dispatchEvent(ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE))
                     if (canInvite) {
-                        inviteHost.presentHostSheet(
-                            groupName = group?.groupTitle.orEmpty(),
-                            onShareInviteLink = { navigator.openInviteLinkShare() },
-                            onShareJoinLink = { navigator.openGroupInvite() },
-                            onManageInvites = { flowNavigator.navigateTo(ChatStep.ManageInvites) },
-                        )
+                        navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
                     } else {
                         navigator.openGroupInvite()
                     }

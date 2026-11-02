@@ -55,14 +55,17 @@ fun GroupCardScreen(route: AppRoute.Menu.GroupCard) {
         val textSize = with(LocalDensity.current) { (width * TextFraction).toSp() }
         val lineHeight = textSize * LineHeightRatio
 
-        Box(
+        val inviteLink = viewModel.inviteLink
+        Column(
             modifier = cardModifier
                 .align(Alignment.Center)
                 // The avatar's upper half stands outside the card, so the card sits lower by half
                 // of it and the whole group stays centred.
                 .offset(y = avatarSize / 2)
                 .width(width),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -94,6 +97,24 @@ fun GroupCardScreen(route: AppRoute.Menu.GroupCard) {
                             .testTag("group-card-qr"),
                     )
                 }
+                // Frame 1j: an invite-link card says it joins without asking, and until when, so a
+                // saved or printed card carries its own expiry.
+                if (inviteLink != null) {
+                    Text(
+                        modifier = Modifier.padding(top = width * QrTopFraction),
+                        text = stringResource(CoreR.string.label_groupCardScanToJoin),
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textMain,
+                    )
+                    Text(
+                        modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
+                        text = inviteLink.expiresAt
+                            ?.let { stringResource(CoreR.string.label_groupCardLinkExpires, cardDate(it)) }
+                            ?: stringResource(CoreR.string.label_groupCardLinkNeverExpires),
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                }
             }
 
             // A ring in the screen colour keeps the picture from running into the card.
@@ -115,8 +136,26 @@ fun GroupCardScreen(route: AppRoute.Menu.GroupCard) {
                 )
             }
         }
+            if (inviteLink != null) {
+                Text(
+                    modifier = Modifier
+                        .padding(top = CodeTheme.dimens.grid.x4)
+                        .testTag("group-card-invite-footnote"),
+                    text = stringResource(CoreR.string.footnote_groupCardInviteLink),
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
     }
 }
+
+/** "Nov 3", as the invite sheet writes a link's dates. */
+private fun cardDate(at: kotlin.time.Instant): String =
+    java.time.format.DateTimeFormatter.ofPattern("MMM d", java.util.Locale.getDefault())
+        .withZone(java.time.ZoneId.systemDefault())
+        .format(java.time.Instant.ofEpochMilli(at.toEpochMilliseconds()))
 
 private const val CardWidthFraction = 0.75f
 
