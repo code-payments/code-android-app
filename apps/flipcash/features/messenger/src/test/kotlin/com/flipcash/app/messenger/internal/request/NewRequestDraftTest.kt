@@ -32,7 +32,7 @@ class NewRequestDraftTest {
     /** [cents] US cents, built from quarks so no double rounding creeps in. */
     private fun usd(cents: Long) = Fiat(quarks = cents * 10_000, currencyCode = CurrencyCode.USD)
 
-    private fun draft(memberCount: Int, rosterViewerAt: Int = 3, total: Fiat = usd(52_000)) = run {
+    private fun draft(memberCount: Int, rosterViewerAt: Int = 3, amount: Fiat = twenty) = run {
         // The viewer sits mid-roster to show the creator still goes first.
         val others = (1 until memberCount).map(::id)
         val roster = others.toMutableList().apply { add(rosterViewerAt.coerceAtMost(size), viewer) }
@@ -41,13 +41,13 @@ class NewRequestDraftTest {
             viewerId = viewer,
             members = NewRequestDraft.members(viewer, roster),
             title = "Saturday Request",
-            total = total,
+            amount = amount,
         )
     }
 
     // 14
     @Test
-    fun `520 between everyone asks 25 and sends 26 shares of 20 creator first`() {
+    fun `20 each between everyone asks 25 and sends 26 shares of 20 creator first`() {
         val draft = draft(26)
 
         assertEquals(People.EveryoneIncludingYou, draft.people)
@@ -58,19 +58,19 @@ class NewRequestDraftTest {
         assertEquals((1 until 26).map(::id), draft.shares.drop(1))
         assertEquals(draft.shares, draft.split!!.map { it.userId })
         assertEquals(List(26) { twenty }, draft.split!!.map { it.amount })
-        assertEquals(twenty, draft.largestShare)
+        assertEquals(usd(52_000), draft.totalAmount)
     }
 
     // 15
     @Test
-    fun `40 between the creator and one other reads one person including you`() {
-        val draft = draft(26, total = usd(4_000)).copy(selected = setOf(viewer, id(4)))
+    fun `20 each for the creator and one other reads one person including you`() {
+        val draft = draft(26).copy(selected = setOf(viewer, id(4)))
 
         assertEquals(People.SomeIncludingYou(1), draft.people)
         assertEquals(1, draft.requestedCount)
         assertEquals(listOf(viewer, id(4)), draft.shares)
         assertEquals(listOf(twenty, twenty), draft.split!!.map { it.amount })
-        assertEquals(twenty, draft.largestShare)
+        assertEquals(usd(4_000), draft.totalAmount)
     }
 
     // 16
@@ -130,81 +130,42 @@ class NewRequestDraftTest {
 
     // 49
     @Test
-    fun `100 between the creator and two others puts the extra cent on the first other`() {
-        val draft = draft(5, total = usd(10_000)).copy(selected = setOf(viewer, id(1), id(2)))
+    fun `creator unchecked leaves 25 shares of 20 and a 500 total`() {
+        val start = draft(26)
+        val draft = start.copy(selected = start.toggled(viewer)!!)
 
-        assertEquals(listOf(viewer, id(1), id(2)), draft.split!!.map { it.userId })
-        assertEquals(listOf(usd(3_333), usd(3_334), usd(3_333)), draft.split!!.map { it.amount })
-        assertEquals(usd(3_334), draft.largestShare)
-        assertEquals(usd(3_333), draft.smallestShare)
-        assertTrue(draft.isUnevenSplit)
-        assertTrue(draft.canSend)
-    }
-
-    // 53
-    @Test
-    fun `100_02 between the creator and two others is three even shares`() {
-        val draft = draft(5, total = usd(10_002)).copy(selected = setOf(viewer, id(1), id(2)))
-
-        assertEquals(listOf(usd(3_334), usd(3_334), usd(3_334)), draft.split!!.map { it.amount })
-        assertEquals(usd(3_334), draft.smallestShare)
-        assertFalse(draft.isUnevenSplit)
+        assertEquals(25, draft.shares.size)
+        assertEquals(List(25) { twenty }, draft.split!!.map { it.amount })
+        assertEquals(usd(50_000), draft.totalAmount)
     }
 
     // 50
     @Test
-    fun `100_02 between three others without the creator is three even shares`() {
-        val draft = draft(5, total = usd(10_002)).copy(selected = setOf(id(1), id(2), id(3)))
+    fun `every share is the entered amount with no rounding`() {
+        val draft = draft(5, amount = usd(3_334)).copy(selected = setOf(viewer, id(1), id(2)))
 
-        val amounts = draft.split!!.map { it.amount }
-        assertEquals(listOf(usd(3_334), usd(3_334), usd(3_334)), amounts)
-        assertEquals(10_002L * 10_000, amounts.sumOf { it.quarks })
+        assertEquals(listOf(viewer, id(1), id(2)), draft.split!!.map { it.userId })
+        assertEquals(List(3) { usd(3_334) }, draft.split!!.map { it.amount })
+        assertEquals(usd(10_002), draft.totalAmount)
+        assertTrue(draft.canSend)
     }
 
     // 51
     @Test
-    fun `2 cents between three people cannot be sent`() {
-        val draft = draft(5, total = usd(2)).copy(selected = setOf(viewer, id(1), id(2)))
+    fun `nobody selected has no shares and cannot be sent`() {
+        val draft = draft(5).copy(selected = emptySet())
 
         assertNull(draft.split)
         assertFalse(draft.canSend)
         assertNull(draft.toSplit(ChatId(byteArrayOf(1)), sealed(), now))
     }
 
-    // 52
     @Test
-    fun `40 to one other without the creator is a single share of 40`() {
-        val draft = draft(5, total = usd(4_000)).copy(selected = setOf(id(2)))
+    fun `a single other without the creator is one share of the amount`() {
+        val draft = draft(5).copy(selected = setOf(id(2)))
 
-        assertEquals(listOf(NewShare(id(2), usd(4_000))), draft.split)
-        assertEquals(usd(4_000), draft.largestShare)
-    }
-
-    @Test
-    fun `the remainder skips the creator wherever the creator sits`() {
-        // 5 cents over 3 shares leaves 2 over: both go to the others, never the creator.
-        val shares = listOf(id(1), viewer, id(2))
-
-        val split = splitTotal(usd(5), shares, viewer)!!
-
-        assertEquals(listOf(usd(2), usd(1), usd(2)), split.map { it.amount })
-    }
-
-    @Test
-    fun `a total typed as a double still splits to the cent`() {
-        // 100.02 * 1e6 lands just under a whole quark.
-        val split = splitTotal(Fiat(100.02, CurrencyCode.USD), listOf(id(1), id(2), id(3)), viewer)!!
-
-        assertEquals(List(3) { usd(3_334) }, split.map { it.amount })
-    }
-
-    @Test
-    fun `a currency with no minor unit splits in whole units`() {
-        val yen = Fiat(quarks = 1_000L * 1_000_000, currencyCode = CurrencyCode.JPY)
-
-        val split = splitTotal(yen, listOf(viewer, id(1), id(2)), viewer)!!
-
-        assertEquals(listOf(333L, 334L, 333L), split.map { it.amount.quarks / 1_000_000 })
+        assertEquals(listOf(NewShare(id(2), twenty)), draft.split)
+        assertEquals(twenty, draft.totalAmount)
     }
 
     @Test
