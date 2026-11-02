@@ -65,12 +65,13 @@ class NameEntryViewModel @Inject constructor(
 
         /**
          * Whether the current text may be submitted. Onboarding applies the stricter
-         * [isValidOnboardingDisplayName] rule; other sources only need a non-blank name.
+         * [isValidOnboardingDisplayName] rule; other sources need a non-blank name within the
+         * contract's [DISPLAY_NAME_MAX_LENGTH].
          */
         fun isSubmittable(source: DisplayNameSource): Boolean = when (source) {
             DisplayNameSource.Onboarding -> isValidOnboardingDisplayName(nameFieldState.text.toString())
             DisplayNameSource.MyAccount,
-            DisplayNameSource.TipCardSetup -> hasName
+            DisplayNameSource.TipCardSetup -> isWithinDisplayNameLimit(nameFieldState.text.toString())
         }
 
         /** Node 9553:113166 — one character's difference is enough to arm the confirm button. */
@@ -124,9 +125,8 @@ class NameEntryViewModel @Inject constructor(
             .filterIsInstance<Event.ConfirmNameChange>()
             .onEach { event ->
                 // The keyboard Done action reaches here without passing the button's enabled
-                // gate, so an invalid onboarding name is dropped the same way the disabled
-                // button drops it.
-                if (event.source == DisplayNameSource.Onboarding && !stateFlow.value.isSubmittable(event.source)) {
+                // gate, so an invalid name is dropped the same way the disabled button drops it.
+                if (!stateFlow.value.isSubmittable(event.source)) {
                     return@onEach
                 }
                 if (stateFlow.value.savedName.isBlank()) {

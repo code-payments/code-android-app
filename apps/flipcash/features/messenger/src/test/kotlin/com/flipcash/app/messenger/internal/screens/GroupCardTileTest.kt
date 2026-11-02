@@ -1,5 +1,6 @@
 package com.flipcash.app.messenger.internal.screens
 
+import com.flipcash.app.messenger.internal.invites.InviteLinkState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -29,7 +30,14 @@ class GroupCardTileTest {
     }
 
     @Test
-    fun `an invite link sheet has no card tile even when the host supplies a card`() {
-        assertFalse(showsCardTile(ShareToChatsSubject.GroupInviteLink(group = null, link = com.flipcash.app.messenger.internal.invites.InviteLinkState.Creating)) {})
+    fun `an invite link sheet shows the card tile when the host supplies a card`() {
+        val subject = ShareToChatsSubject.GroupInviteLink(group = null, link = InviteLinkState.Creating)
+        assertTrue(showsCardTile(subject) {})
+        assertEquals(GroupCardTileTag, cardTileTag(subject))
+    }
+
+    @Test
+    fun `message and currency links have no card`() {
+        assertFalse(showsCardTile(ShareToChatsSubject.Message) {})
     }
 }

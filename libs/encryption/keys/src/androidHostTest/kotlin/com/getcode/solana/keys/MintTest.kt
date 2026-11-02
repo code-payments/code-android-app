@@ -2,6 +2,7 @@ package com.getcode.solana.keys
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class MintTest {
@@ -37,5 +38,17 @@ class MintTest {
     @Test
     fun `Mint usdf has correct base58 address`() {
         assertEquals("5AMAA9JV9H97YYVxx8F6FsCMmTwXSuTTQneiup4RYAUQ", Mint.usdf.base58())
+    }
+
+    @Test
+    fun `a 32-byte mint is valid`() {
+        assertTrue(Mint(List(32) { 1 }).isValid)
+        assertTrue(Mint.usdf.isValid)
+    }
+
+    @Test
+    fun `a mint of 31 bytes or an empty one is not valid`() {
+        assertFalse(Mint(List(31) { 1 }).isValid)
+        assertFalse(Mint(emptyList()).isValid)
     }
 }

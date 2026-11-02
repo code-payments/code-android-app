@@ -11,6 +11,7 @@ import com.flipcash.services.models.GetChatInvitesError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Invite
 import com.flipcash.services.models.chat.InviteId
+import com.flipcash.shared.chat.GroupCardLinks
 import com.flipcash.shared.chat.HostInvite
 import com.flipcash.shared.chat.HostInvites
 import com.flipcash.shared.chat.InviteCreation
@@ -76,7 +77,8 @@ class InviteLinkViewModelTest {
 
     private val analytics = RecordingAnalytics()
 
-    private fun viewModel() = InviteLinkViewModel(hostInvites, resources, clipboard, analytics)
+    private fun viewModel() =
+        InviteLinkViewModel(hostInvites, resources, clipboard, analytics, GroupCardLinks())
 
     private var seed = 1
     private fun hostInvite(url: String?, useCount: Long = 0, maxUses: Long = 0): HostInvite {

@@ -1,12 +1,18 @@
 package com.flipcash.app.messenger.internal.screens
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
+import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.services.models.paymentrequest.unpaidShareOf
 import com.flipcash.app.messenger.internal.request.RequestDeckStrip
 import com.flipcash.app.messenger.internal.request.rememberDeckHostState
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -33,6 +39,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,6 +66,7 @@ import com.getcode.opencode.model.core.ID
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.PinnedMessageJump
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.flipcash.app.core.chat.ProfileAddress
@@ -81,10 +89,16 @@ import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
 import com.flipcash.app.messenger.internal.screens.components.GatedLandingRow
 import com.flipcash.app.messenger.internal.screens.components.JoinRequestsAnchor
+import com.flipcash.app.messenger.internal.screens.components.PinListButton
+import com.flipcash.app.messenger.internal.screens.components.PinnedMessageBar
+import com.flipcash.app.messenger.internal.pins.PinBar
+import com.flipcash.app.messenger.internal.pins.PinSlot
+import com.flipcash.app.messenger.internal.pins.pinSlot
 import com.flipcash.app.messenger.internal.screens.components.ReturnToChatChip
 import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.BlurredContent
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
@@ -120,6 +134,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.flipcash.app.messenger.internal.request.RequestPaySheet
 import com.flipcash.app.messenger.internal.request.RequestPayViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun MessengerScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -168,6 +183,10 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     LaunchedEffect(privateOutsider) {
         if (privateOutsider) flowNavigator.replaceStack(listOf(ChatStep.GroupProfile))
     }
+
+    // The server's can_invite as the chat store carries it, the same field the group profile's
+    // Share button is built on, so no extra call when a chat opens.
+    val viewerCanInvite = state.viewerState?.permissions?.canInvite == true
 
     // Here rather than in the action handler because the lookup comes first: the tap only knows a
     // handle, and where it leads is the view model's to decide once the handle has an answer.
@@ -506,6 +525,32 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val requestPayToken by requestPay.token.collectAsStateWithLifecycle()
     LaunchedEffect(requestPay) { requestPay.routes.collect { route -> navigator.navigate(route) } }
 
+    // Requests win the space under the top bar: while the strip is out, pins move to the top bar's
+    // trailing slot; once the strip is the pill, the pill has that slot and the bar comes back.
+    val pinBar = state.pins.bar(state.pinBarIndex)
+    val pinPlace = pinSlot(
+        hasPins = pinBar != null,
+        deckRest = deckHosts.rest.host.takeIf { state.chatType == ChatType.GROUP && drawnDeck.isNotEmpty() },
+        collapsing = deckHosts.collapsing,
+    )
+    // The list is a sheet destination over the chat; a row tapped there comes back as a jump.
+    val openPins = { pinAfterUnpin: Long? ->
+        val chatId = state.chatId
+        if (chatId != null) keyboard.hideIfVisible {
+            navigator.navigateForResult<PinnedMessageJump>(ChatStep.PinnedMessages(chatId, pinAfterUnpin)) { result ->
+                if (result is NavResultOrCanceled.ReturnValue) {
+                    viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(result.value.messageId))
+                }
+            }
+        }
+    }
+    // At the pin cap the list opens to make room, holding the refused message for the freed slot.
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<ChatViewModel.Event.PinCapReached>()
+            .collect { openPins(it.waiting.messageId) }
+    }
+
     // The collapsed pill's last bounds, where the expanded deck puts its close button.
     var deckPill by remember { mutableStateOf<Rect?>(null) }
 
@@ -531,6 +576,18 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     chatActionHandler = chatActionHandler,
                     dispatch = viewModel::dispatchEvent,
                     onConfirmRemove = moderation::confirmRemove,
+                    actions = {
+                        // Leaves the composition in the frame the slot goes: the pill takes the
+                        // title's end at full width as the strip starts to collapse, and
+                        // AnimatedVisibility keeps exiting content laid out for a few frames even
+                        // with no exit transition.
+                        if (pinPlace == PinSlot.TopBarButton) {
+                            val shown = remember { MutableTransitionState(false) }.apply { targetState = true }
+                            AnimatedVisibility(visibleState = shown, enter = fadeIn() + scaleIn()) {
+                                PinListButton(onClick = { openPins(null) })
+                            }
+                        }
+                    },
                     trailing = {
                         if (state.chatType == ChatType.GROUP) {
                             RequestDeckPill(
@@ -570,6 +627,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                     }
                                 },
                                 onHeightChange = { deckHosts.stripPx = it.toFloat() },
+                                onDock = deckHosts::dragDock,
+                                onDockReleased = deckHosts::releaseDock,
                             )
                         }
                         if (stripBehindBackdrop) {
@@ -583,6 +642,39 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                     },
                             )
                         }
+                    }
+                }
+                // Held through the exit, so the bar doesn't empty as it slides away.
+                var lastPinBar by remember { mutableStateOf(pinBar) }
+                if (pinBar != null) lastPinBar = pinBar
+                // Slides down from the top bar and fades, as iOS's bar moves in from the top edge.
+                // The expand alongside keeps the transcript's top inset (this column's height)
+                // moving with the bar, so the oldest message never snaps under it.
+                AnimatedVisibility(
+                    visible = pinPlace == PinSlot.Bar,
+                    enter = expandVertically(expandFrom = Alignment.Top) +
+                        slideInVertically { -it } + fadeIn(),
+                    exit = shrinkVertically(shrinkTowards = Alignment.Top) +
+                        slideOutVertically { -it } + fadeOut(),
+                ) {
+                    lastPinBar?.let { bar ->
+                        val shown = (bar as? PinBar.Showing)?.pin
+                        val spoken = remember(shown) { shown?.let(viewModel::pinPreview) }
+                        val quote by produceState<ChatQuote?>(null, shown) {
+                            value = shown?.let { viewModel.pinQuote(it) }
+                        }
+                        PinnedMessageBar(
+                            bar = bar,
+                            quote = quote.takeIf { shown != null },
+                            spoken = spoken,
+                            onTap = { keyboard.hideIfVisible { viewModel.dispatchEvent(ChatViewModel.Event.PinBarTapped) } },
+                            onOpenList = { openPins(null) },
+                            hazeState = hazeState,
+                            modifier = Modifier
+                                // Edges line up with the back button and the top bar's pin button.
+                                .padding(horizontal = AppBarDefaults.ControlInset)
+                                .padding(top = CodeTheme.dimens.grid.x2),
+                        )
                     }
                 }
                 // Hold the last list through the exit, so the card doesn't empty as it slides away.
@@ -702,6 +794,21 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         onOriginsReached = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnOriginsReached(it)) },
                         onReachedNewest = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnStackCleared) },
                         hazeState = hazeState,
+                        viewerCanInvite = viewerCanInvite,
+                        onInvitePeople = {
+                            viewModel.dispatchEvent(
+                                ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.CHAT)
+                            )
+                            // Both branches of the group profile's Share button; see GroupProfileScreen.
+                            // The composer may have the keyboard up; it closes before the sheet opens.
+                            keyboard.hideIfVisible {
+                                if (viewerCanInvite) {
+                                    navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
+                                } else {
+                                    navigator.openGroupInvite()
+                                }
+                            }
+                        },
                     )
                 }
             }

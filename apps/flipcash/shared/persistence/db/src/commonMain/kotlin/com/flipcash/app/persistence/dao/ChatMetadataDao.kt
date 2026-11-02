@@ -165,7 +165,7 @@ interface ChatMetadataDao {
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = :muteUntilEpochMs, " +
             "mute_forever = :muteForever, viewer_state_version = :version, " +
-            "can_edit = :canEdit, can_invite = :canInvite, can_silence = :canSilence, can_ban = :canBan, " +
+            "can_edit = :canEdit, can_invite = :canInvite, can_silence = :canSilence, can_ban = :canBan, can_pin = :canPin, " +
             "silence_until_epoch_ms = :silenceUntilEpochMs, silence_forever = :silenceForever " +
             "WHERE chat_id_hex = :chatIdHex AND (:version > viewer_state_version OR viewer_state_version = 0)"
     )
@@ -180,6 +180,7 @@ interface ChatMetadataDao {
         canBan: Boolean = false,
         silenceUntilEpochMs: Long? = null,
         silenceForever: Boolean = false,
+        canPin: Boolean = false,
     )
 
     /**
@@ -206,7 +207,7 @@ interface ChatMetadataDao {
      */
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = NULL, mute_forever = 0, " +
-            "viewer_state_version = 0, can_edit = 0, can_invite = 0, can_silence = 0, can_ban = 0, " +
+            "viewer_state_version = 0, can_edit = 0, can_invite = 0, can_silence = 0, can_ban = 0, can_pin = 0, " +
             "silence_until_epoch_ms = NULL, silence_forever = 0 WHERE chat_id_hex = :chatIdHex"
     )
     suspend fun clearViewerState(chatIdHex: String)
@@ -281,6 +282,7 @@ interface ChatMetadataDao {
             canBan = entity.canBan,
             silenceUntilEpochMs = entity.silenceUntilEpochMs,
             silenceForever = entity.silenceForever,
+            canPin = entity.canPin,
         )
         mergePinSummary(
             chatIdHex = entity.chatIdHex,

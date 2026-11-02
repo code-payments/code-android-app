@@ -75,16 +75,19 @@ internal fun GroupSelectPeopleContent(
     onBack: () -> Unit,
     onToggle: (ChatMember) -> Unit,
     onSend: () -> Unit,
+    title: String = stringResource(R.string.title_selectPeople),
     buttonText: String = pluralStringResource(R.plurals.action_sendToPeople, selected.size, selected.size),
     buttonEnabled: Boolean = selected.isNotEmpty(),
     /** Shown as "You" rather than by name, for a list the viewer is on. */
     viewerId: ID? = null,
+    /** The sender's own row, first, for a split they can take a part of. Null leaves it out. */
+    you: ChatMember? = null,
 ) {
     val selectedIds = selected.toSet()
     CodeScaffold(
         topBar = {
             AppBarWithTitle(
-                title = stringResource(R.string.title_selectPeople),
+                title = title,
                 titleAlignment = Alignment.CenterHorizontally,
                 onBackIconClicked = onBack,
             )
@@ -103,7 +106,7 @@ internal fun GroupSelectPeopleContent(
         },
     ) { innerPadding ->
         val unknownName = stringResource(R.string.title_unnamedUser)
-        val you = stringResource(R.string.label_selectPeople_you)
+        val youLabel = stringResource(R.string.label_selectPeople_you)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -120,11 +123,21 @@ internal fun GroupSelectPeopleContent(
                     color = CodeTheme.colors.textSecondary,
                 )
             }
+            if (you != null) {
+                item(key = "you") {
+                    MemberCheckRow(
+                        member = you,
+                        name = youLabel,
+                        selected = you.userId in selectedIds,
+                        onClick = { onToggle(you) },
+                    )
+                }
+            }
             items(candidates, key = { it.userId }) { member ->
                 MemberCheckRow(
                     member = member,
                     name = if (member.userId == viewerId) {
-                        you
+                        youLabel
                     } else {
                         chatterName(member.userProfile.displayName, member.userProfile.username, unknownName)
                     },
@@ -197,7 +210,7 @@ internal fun GroupSendConfirmSheet(
     actions: SwipePayActions,
 ) {
     val total = groupSend.total ?: return
-    val parts = (groupSend.plan as? GroupSendPlan.Pay)?.parts ?: return
+    val pay = groupSend.plan as? GroupSendPlan.Pay ?: return
     val unknownName = stringResource(R.string.title_unnamedUser)
 
     SwipePaySheet(
@@ -226,9 +239,9 @@ internal fun GroupSendConfirmSheet(
                     style = CodeTheme.typography.displayMedium,
                     color = CodeTheme.colors.textMain,
                 )
-                if (parts.size >= 2) {
+                if (pay.showsEach) {
                     Text(
-                        text = eachLabel(parts, total.currencyCode),
+                        text = eachLabel(pay, total.currencyCode),
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
                     )
@@ -238,12 +251,20 @@ internal fun GroupSendConfirmSheet(
     )
 }
 
-/** "$1.00 Each" when the parts are equal, else "~$0.33 Each" for the smallest. */
+/**
+ * "$1.00 Each" when every part, the sender's included, is equal, else "~$0.33 Each" for the
+ * smallest paid part; ", including You" when the sender is in the split.
+ */
 @Composable
-private fun eachLabel(parts: List<Long>, currency: CurrencyCode): String {
-    val smallest = GroupSendSplit.fiat(parts.min(), currency).formatted()
-    return if (parts.distinct().size == 1) stringResource(R.string.label_groupSendEach, smallest)
-    else stringResource(R.string.label_groupSendEachApprox, smallest)
+private fun eachLabel(pay: GroupSendPlan.Pay, currency: CurrencyCode): String {
+    val smallest = GroupSendSplit.fiat(pay.smallest, currency).formatted()
+    val res = when {
+        pay.includesViewer && pay.isEven -> R.string.label_groupSendEachIncludingYou
+        pay.includesViewer -> R.string.label_groupSendEachApproxIncludingYou
+        pay.isEven -> R.string.label_groupSendEach
+        else -> R.string.label_groupSendEachApprox
+    }
+    return stringResource(res, smallest)
 }
 
 /** The first few recipients' faces, overlapping, as in the design's pair of avatars. */

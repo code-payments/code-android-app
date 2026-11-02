@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal.screens.profile.edit
 import com.flipcash.services.models.chat.BlobId
 import com.flipcash.services.models.chat.DescriptionEdit
 import com.flipcash.services.models.chat.EditChatParameters
+import com.flipcash.shared.chat.ChatTitle
 
 /**
  * The edits the edit screens can make, each named so the "send only what changed" rule is a thing

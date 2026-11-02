@@ -13,6 +13,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -42,13 +43,20 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
+import com.flipcash.app.core.chat.InviteHostAction
 import com.flipcash.app.core.chat.InviteLinkAction
 import com.flipcash.app.core.chat.NewInviteLinkChoice
+import com.flipcash.app.core.chat.PinnedMessageJump
+import com.flipcash.app.messenger.internal.pins.PinnedRow
+import com.flipcash.app.messenger.internal.pins.pinnedListDone
+import com.flipcash.app.messenger.internal.screens.components.PinnedMessagesSheet
 import com.flipcash.app.messenger.internal.invites.InviteLinkActions
 import com.flipcash.app.messenger.internal.invites.NewInviteLinkContent
 import com.flipcash.app.messenger.internal.invites.toChoice
 import com.flipcash.app.messenger.internal.invites.InviteLinkActionsViewModel
 import com.flipcash.app.messenger.internal.invites.InviteLinkViewModel
+import com.flipcash.app.messenger.internal.invites.InviteHostSheetContent
+import com.flipcash.app.messenger.internal.invites.InviteHostSheetViewModel
 import com.flipcash.app.messenger.internal.invites.ManageInvitesScreen
 import com.flipcash.app.messenger.internal.screens.EmojiPickerViewModel
 import com.flipcash.app.messenger.internal.screens.GroupInviteSheet
@@ -180,10 +188,10 @@ private fun chatEntryProvider(
         FlowConversationScreen(openKeyboard)
     }
     annotatedEntry<ChatStep.AmountEntry> {
-        FlowAmountEntryScreen(resultStateRegistry)
+        FlowAmountEntryScreen(resultStateRegistry, toMembers = false)
     }
     annotatedEntry<ChatStep.GroupSendAmountEntry> {
-        FlowAmountEntryScreen(resultStateRegistry)
+        FlowAmountEntryScreen(resultStateRegistry, toMembers = true)
     }
     annotatedEntry<ChatStep.InviteToGroup> {
         FlowGroupInviteSheet()
@@ -193,6 +201,9 @@ private fun chatEntryProvider(
     }
     annotatedEntry<ChatStep.NewInviteLink> {
         FlowNewInviteLinkSheet()
+    }
+    annotatedEntry<ChatStep.InviteHost> {
+        FlowInviteHostSheet()
     }
     annotatedEntry<ChatStep.InviteLinkActions> { step ->
         FlowInviteLinkActionsSheet(step.inviteIdHex)
@@ -334,6 +345,9 @@ private fun chatEntryProvider(
     annotatedEntry<ChatStep.Reactors> { step ->
         FlowReactorsScreen(step.chatId, step.messageId)
     }
+    annotatedEntry<ChatStep.PinnedMessages> { step ->
+        FlowPinnedMessagesSheet(step.pinAfterUnpin)
+    }
 }
 
 @Composable
@@ -419,7 +433,7 @@ private fun FlowConversationScreen(
 }
 
 @Composable
-private fun FlowAmountEntryScreen(resultStateRegistry: NavResultStateRegistry) {
+private fun FlowAmountEntryScreen(resultStateRegistry: NavResultStateRegistry, toMembers: Boolean) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     // The chat flow's navigator, read before the sheet's own FlowHost below shadows it.
@@ -458,6 +472,8 @@ private fun FlowAmountEntryScreen(resultStateRegistry: NavResultStateRegistry) {
                         onConfirm = { viewModel.dispatchEvent(ChatViewModel.Event.OnConfirmRequested) },
                         onSendComplete = { resultBack.returnValue(ChatSendResult) }, // intra-flow result -> Conversation
                         onExit = dismissSheet,
+                        // A group send picks its currency on the confirm sheet, so no pill here.
+                        title = if (toMembers) stringResource(R.string.title_groupSendTotal) else null,
                     )
                 }
             }
@@ -486,11 +502,15 @@ private fun FlowGroupSelectPeople(viewModel: ChatViewModel, onSendComplete: () -
         onBack = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendBack) },
         onToggle = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendMemberToggled(it.userId)) },
         onSend = { viewModel.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed) },
+        you = state.groupSendViewer,
+        buttonEnabled = groupSend.paid.isNotEmpty(),
+        title = stringResource(R.string.title_splitBetween),
+        buttonText = stringResource(R.string.action_next),
     )
     if (groupSend.stage == GroupSendState.Stage.Confirm) {
         GroupSendConfirmSheet(
             groupSend = groupSend,
-            recipients = groupSend.selected.mapNotNull { id -> candidates.find { it.userId == id } },
+            recipients = groupSend.paid.mapNotNull { id -> candidates.find { it.userId == id } },
             swipePay = SwipePayUiState(
                 token = state.token,
                 progress = state.sendProgress,
@@ -551,20 +571,20 @@ private fun FlowGroupInviteSheet() {
         // The card is drawn over this sheet, which stays open beneath it.
         onShowCard = (state.subject as? ChatSubject.Group)?.let { group ->
             {
-                keyboard.hideIfVisible {
-                    navigator.push(
-                        AppRoute.Menu.GroupCard(
-                            chatId = group.chatId,
-                            title = group.groupTitle,
-                            picture = group.picture,
-                            memberCount = group.memberCount,
-                        )
-                    )
-                }
+                state.shareableGroupInviteUrl?.let { inviteViewModel.handOverPlainCard(group.chatId, it) }
+                keyboard.hideIfVisible { navigator.push(group.cardRoute()) }
             }
         },
     )
 }
+
+/** The group's scan card. Its link goes through [com.flipcash.shared.chat.GroupCardLinks], never this route. */
+private fun ChatSubject.Group.cardRoute() = AppRoute.Menu.GroupCard(
+    chatId = chatId,
+    title = groupTitle,
+    picture = picture,
+    memberCount = memberCount,
+)
 
 /**
  * [ChatStep.ShareInviteLink]: the invite sheet's invite variant (frames 1b, 1f). The tap on Share Invite
@@ -608,6 +628,14 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?) {
         onMessageChanged = inviteViewModel::onMessageChanged,
         onInvite = linkViewModel::onSend,
         onDismiss = dismissSheet,
+        // The card is drawn over this sheet and encodes its invite link, handed over in memory.
+        onShowCard = (state.subject as? ChatSubject.Group)?.let { group ->
+            {
+                if (linkViewModel.handOverCard()) keyboard.hideIfVisible {
+                    navigator.push(group.cardRoute())
+                }
+            }
+        },
         inviteEffects = linkViewModel.effects,
         onInviteEffect = { effect ->
             when (effect) {
@@ -626,6 +654,45 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?) {
                 else -> Unit
             }
         },
+    )
+}
+
+/**
+ * [ChatStep.InviteHost]: frame 1m on the app's sheet scene. Share Link and Manage Invites return
+ * the pick and close it, and the screen beneath opens the next sheet, as 2b does.
+ */
+@Composable
+private fun FlowInviteHostSheet() {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val hostViewModel = hiltViewModel<InviteHostSheetViewModel>()
+    val hostState by hostViewModel.state.collectAsStateWithLifecycle()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val resultBack = resultBackNavigator<InviteHostAction>(exit = dismissSheet)
+    val group = state.subject as? ChatSubject.Group
+
+    LaunchedEffect(hostViewModel, state.chatId) {
+        state.chatId?.let(hostViewModel::open)
+    }
+    LaunchedEffect(hostViewModel) {
+        hostViewModel.effects.collect { effect ->
+            when (effect) {
+                InviteHostSheetViewModel.Effect.ShareInvite -> resultBack.returnValue(InviteHostAction.ShareInvite)
+                InviteHostSheetViewModel.Effect.ShareJoin -> resultBack.returnValue(InviteHostAction.ShareJoin)
+                InviteHostSheetViewModel.Effect.OpenManageInvites ->
+                    resultBack.returnValue(InviteHostAction.ManageInvites)
+                InviteHostSheetViewModel.Effect.Close -> dismissSheet()
+            }
+        }
+    }
+
+    InviteHostSheetContent(
+        groupName = group?.groupTitle.orEmpty(),
+        state = hostState,
+        onShare = hostViewModel::onShare,
+        onApproveChanged = hostViewModel::onApproveChanged,
+        onManageInvites = hostViewModel::onManageInvites,
+        onDismiss = dismissSheet,
     )
 }
 
@@ -834,6 +901,39 @@ private fun FlowReactionPickerScreen(messageId: Long) {
             dismissSheet()
         },
         onDismiss = dismissSheet,
+    )
+}
+
+/**
+ * [ChatStep.PinnedMessages]: the conversation's pins on the app's sheet scene (L1, L1c, and L1b when
+ * [pinAfterUnpin] is set). The pins are the conversation's own, so this reads its view model; a
+ * tapped row closes the sheet and returns to the conversation as a [PinnedMessageJump].
+ */
+@Composable
+private fun FlowPinnedMessagesSheet(pinAfterUnpin: Long?) {
+    val viewModel = flowSharedViewModel<ChatViewModel>()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+    val resultBack = resultBackNavigator<PinnedMessageJump>(exit = dismissSheet)
+
+    // Built off the main thread: a cash row looks up its token before it can draw.
+    val rows by produceState<List<PinnedRow>?>(null, state.pins) { value = viewModel.pinnedRows(state.pins) }
+    // The last rows stay up while the sheet slides away, so it never empties on the way out.
+    var shownRows by remember { mutableStateOf<List<PinnedRow>>(emptyList()) }
+    rows?.takeIf { it.isNotEmpty() }?.let { shownRows = it }
+
+    // The last unpin, or the waiting message landing in the slot it freed, leaves nothing to do here.
+    val done = state.pins.pinnedListDone(pinAfterUnpin)
+    LaunchedEffect(done) { if (done) dismissSheet() }
+
+    PinnedMessagesSheet(
+        rows = shownRows,
+        canUnpin = state.canPin,
+        full = pinAfterUnpin != null,
+        fullQuote = state.waitingPin?.takeIf { it.messageId == pinAfterUnpin }?.quote,
+        onOpen = { resultBack.returnValue(PinnedMessageJump(it)) },
+        onUnpin = { viewModel.dispatchEvent(ChatViewModel.Event.UnpinMessage(it, pinAfter = pinAfterUnpin)) },
+        onClose = { dismissSheet() },
     )
 }
 

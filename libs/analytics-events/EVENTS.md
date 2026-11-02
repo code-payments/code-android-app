@@ -340,7 +340,7 @@ Group payment requests: one amount asked of several members of a group chat. Pay
 
 ### Payment Request: Created
 
-A group payment request was created, on success or failure. The amount is what each person is asked for. `Payer Count` is the number of people asked, not counting the creator.
+A group payment request was created, on success or failure. The amount is the request's total, split between everyone in it, the creator included when they are. `Payer Count` is the number of people asked, not counting the creator.
 
 | Property | Type | Optional | Values |
 |---|---|---|---|
@@ -905,11 +905,11 @@ The `Field` property on Group: Edited: what the edit changed.
 
 ### GroupInviteSheetSource
 
-The `Source` property on Group: Invite Sheet Opened. Both apps send Profile, from the group profile and the join requests screen.
+The `Source` property on Group: Invite Sheet Opened. Both apps send Profile, from the group profile and the join requests screen, and Chat, from the Your Group Is Ready card in a transcript.
 
 | Value sent | Name in code | Drift |
 |---|---|---|
-| Chat | `CHAT` | Neither app sends this today. It was Android's transcript CTA and iOS's card at the head of chat history; Android dropped its CTA in #1707 and iOS removed its card in cb036f487. |
+| Chat | `CHAT` | |
 | Profile | `PROFILE` | |
 
 ### GroupInviteMethod

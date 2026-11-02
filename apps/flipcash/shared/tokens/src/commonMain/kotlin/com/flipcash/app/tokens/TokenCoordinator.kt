@@ -448,6 +448,8 @@ class TokenCoordinator @Inject constructor(
      * eventually replaced with fresh data.
      */
     override suspend fun getTokenMetadata(mint: Mint): Result<TokenResult> {
+        if (!mint.isValid) return invalidMint("getTokenMetadata", mint)
+
         // 1. In-memory cache
         _state.value.tokens[mint]?.let { cached ->
             return Result.success(TokenResult(cached, DataSource.Memory))
@@ -524,7 +526,18 @@ class TokenCoordinator @Inject constructor(
         currencyCode: CurrencyCode,
         windowedRange: WindowedRange,
     ): Result<List<HistoricalMintData>> {
+        if (!mint.isValid) return invalidMint("getHistoricalMarketCapData", mint)
         return tokenController.getHistoricalMarketCapData(mint, currencyCode, windowedRange)
+    }
+
+    /**
+     * Fails a lookup for a mint that is not 32 bytes before it reaches the network, where the
+     * request check would reject it as a validation error with no trace of who asked.
+     */
+    private fun invalidMint(caller: String, mint: Mint): Result<Nothing> {
+        val message = "$caller called with a ${mint.bytes.size}-byte mint: '${mint.base58()}'"
+        trace(tag = TAG, message = message, type = TraceType.Error)
+        return Result.failure(IllegalArgumentException(message))
     }
 
     suspend fun reset() {

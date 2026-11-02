@@ -145,6 +145,7 @@ val DeeplinkType.analytics: String
         is DeeplinkType.InvalidGroupInvite -> "InvalidGroupInvite"
         is DeeplinkType.Tipcard -> "Tipcard"
         is DeeplinkType.Profile -> "Profile"
+        is DeeplinkType.Tab -> "Tab"
         is DeeplinkType.EmailVerification -> "EmailVerification"
     }
 

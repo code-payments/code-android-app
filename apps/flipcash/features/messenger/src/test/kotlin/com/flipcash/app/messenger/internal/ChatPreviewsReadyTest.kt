@@ -16,6 +16,7 @@ import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Rate
 import io.mockk.every
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -45,6 +46,7 @@ class ChatPreviewsReadyTest {
     var mainCoroutineRule = MainCoroutineRule(StandardTestDispatcher())
 
     private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
+        coEvery { getPinnedMessages(any()) } returns Result.failure(IllegalStateException("no pins in this test"))
         every { observeMediaSendProgress() } returns emptyFlow()
     }
     private val tipPaymentDelegate = mockk<TipPaymentDelegate>(relaxed = true)

@@ -28,6 +28,7 @@ import com.flipcash.shared.amountentry.AmountEntryDelegate
 import com.flipcash.shared.amountentry.AmountEntryLabel
 import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatTitle
 import com.flipcash.shared.chat.GroupAccess
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.exchange.Exchange
@@ -129,8 +130,9 @@ internal class CreateGroupViewModel @AssistedInject constructor(
         val title: String
             get() = titleFieldState.text.toString().trim()
 
+        /** `StartChat`'s `min_len 1, max_len 64`, counted as [ChatTitle] counts it (trimmed code points). */
         val hasTitle: Boolean
-            get() = title.isNotEmpty()
+            get() = ChatTitle.isValid(titleFieldState.text)
 
         /**
          * The selected token's metadata, which is where the row's name and image come from. Null

@@ -72,18 +72,6 @@ private val Expanded = SheetDetent("expanded") { containerHeight, _ ->
 }
 
 /**
- * Resting detent for a [com.getcode.navigation.WrapContentSheet]: the height its content asked for,
- * never more than [Expanded] would have given it.
- *
- * The detent is what sizes the sheet — compose-unstyled lays the sheet out to the detent height, not
- * to the content — so dropping `fillMaxHeight()` from the sheet body is not enough on its own. This
- * is the half of wrap-content that makes the sheet hug three lines instead of claiming the screen.
- */
-internal val WrapContent = SheetDetent("wrap-content") { containerHeight, sheetHeight ->
-    sheetHeight.coerceAtMost(containerHeight * 0.925f)
-}
-
-/**
  * Resting — and, for short content, only — detent for a [com.getcode.navigation.HalfSheet].
  *
  * The sheet always fills this detent, so its content is measured against it and does not need to
@@ -176,10 +164,13 @@ internal class ModalBottomSheetScene<T : Any> constructor(
             val isHalfSheet = metadata[NavMetadataKeys.IsHalfSheet.key] as? Boolean ?: false
             val isFullscreen =
                 metadata[NavMetadataKeys.IsFullscreenSheet.key] as? Boolean ?: false
+            // Sized from the content's recorded height, never from the sheet's own measure;
+            // see [WrapContentDetent].
+            val wrapContent = rememberWrapContentDetent()
             val restingDetent = when {
                 isHalfSheet -> Half
                 isFullscreen -> Fullscreen
-                isWrapContent -> WrapContent
+                isWrapContent -> wrapContent.detent
                 else -> Expanded
             }
 
@@ -204,6 +195,8 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                     detent != SheetDetent.Hidden || allowDismiss
                 },
             )
+
+            if (isWrapContent && !isHalfSheet) wrapContent.Track(sheetState)
 
             // Offer the expanded detent only while there is something below the fold to expand into,
             // so a sheet that already fits can't be dragged up into empty space. Never withdraw it
@@ -388,6 +381,8 @@ internal class ModalBottomSheetScene<T : Any> constructor(
                                     .then(
                                         if (!isWrapContent) {
                                             Modifier.fillMaxHeight()
+                                        } else if (!isHalfSheet) {
+                                            with(wrapContent) { Modifier.content() }
                                         } else Modifier
                                     )
                                     // Every other sheet rests below the status bar and so never had

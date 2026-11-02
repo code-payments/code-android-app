@@ -1,4 +1,4 @@
-package com.flipcash.app.messenger.internal.screens.profile.edit
+package com.flipcash.shared.chat
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
