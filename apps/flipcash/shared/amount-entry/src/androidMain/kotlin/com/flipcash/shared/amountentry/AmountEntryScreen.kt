@@ -1,5 +1,7 @@
 package com.flipcash.shared.amountentry
 
+// kmp-audit: calls AmountWithKeypad, CodeButton and SlideToConfirm, which :apps:flipcash:core-ui and :ui:components declare in androidMain
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth

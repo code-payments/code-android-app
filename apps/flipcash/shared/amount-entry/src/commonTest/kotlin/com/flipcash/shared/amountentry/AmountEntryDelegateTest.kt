@@ -1,6 +1,5 @@
 package com.flipcash.shared.amountentry
 
-import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.ui.ConfirmationStyle
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Currency
@@ -18,8 +17,12 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -28,8 +31,11 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class AmountEntryDelegateTest {
 
-    @get:Rule
-    var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
+    @BeforeTest
+    fun setUpMain() = Dispatchers.setMain(UnconfinedTestDispatcher())
+
+    @AfterTest
+    fun tearDownMain() = Dispatchers.resetMain()
 
     private val exchange: Exchange = mockk(relaxed = true) {
         every { observePreferredRate() } returns emptyFlow()
