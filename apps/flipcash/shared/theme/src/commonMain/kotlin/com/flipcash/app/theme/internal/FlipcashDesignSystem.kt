@@ -35,6 +35,8 @@ object Flipcash2ColorSpec {
     val placeholderText = Color(0xFF4E4E4E)
     val cashBill = Color(0xFF06450F)
     val notification = Color(0xFF058AFF)
+    /** [notification] at 10% over [primary], baked flat: the ground of the Mark as Read/Unread swipe. */
+    val notificationSecondary = Color(0xFF172431)
     val trackColor = Color.White.copy(alpha = 0.07f)
     val bannerThemed = Color(0xFF252526)
     val success = Color(0xFF1AC86A)
@@ -96,6 +98,7 @@ private val colors = with(Flipcash2ColorSpec) {
         secondary = secondary,
         tertiary = BrandAccent,
         indicator = notification,
+        indicatorSecondary = notificationSecondary,
         badgeFocus = BadgeFocus,
         action = Gray50,
         onAction = White,
