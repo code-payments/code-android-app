@@ -96,9 +96,11 @@ class ProfileActionsTest {
     }
 
     @Test
-    fun `report and block are destructive, mute and unblock are not`() {
+    fun `report, block and remove are destructive, restrict, mute and unblock are not`() {
         assertTrue(ChatProfileAction.Report.isDestructive)
         assertTrue(ChatProfileAction.Block.isDestructive)
+        assertTrue(ChatProfileAction.Remove.isDestructive)
+        assertFalse(ChatProfileAction.Silence.isDestructive)
         assertFalse(ChatProfileAction.Mute.isDestructive)
         assertFalse(ChatProfileAction.Unblock.isDestructive)
     }

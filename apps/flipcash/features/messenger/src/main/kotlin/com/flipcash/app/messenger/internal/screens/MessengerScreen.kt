@@ -76,6 +76,8 @@ import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.MemberModerationViewModel
+import com.flipcash.app.core.chat.ProfileOrigin
+import com.flipcash.app.messenger.internal.screens.profile.memberTapStep
 import com.flipcash.app.messenger.internal.ownReactionEmoji
 import com.flipcash.app.messenger.internal.reactionStripFor
 import com.flipcash.app.messenger.internal.withLiveSelfReactions
@@ -432,8 +434,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             is ChatAction.ViewMemberProfile -> {
                 // Resolved in the view model: the profile that drew the picture in the gutter is
                 // the one to open, and the transcript already holds it.
+                // A group's sender opens their sheet; a DM's keeps the full profile.
                 viewModel.memberParticipant(action.userId)?.let {
-                    keyboard.hideIfVisible { navigator.push(ChatStep.Profile(it)) }
+                    val step = if (state.subject is ChatSubject.Group) {
+                        memberTapStep(it, ProfileOrigin.Chat, userManager?.accountId)
+                    } else {
+                        ChatStep.Profile(it)
+                    }
+                    keyboard.hideIfVisible { navigator.push(step) }
                 }
             }
 
