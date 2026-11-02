@@ -174,6 +174,7 @@ import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.payments.ContactPaymentDelegate
+import com.flipcash.shared.payments.group.GroupSendInsufficientBalance
 import com.flipcash.shared.payments.group.GroupSendPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
@@ -4144,10 +4145,16 @@ internal class ChatViewModel @AssistedInject constructor(
             )
         }.onFailure { cause ->
             dispatchEvent(Event.SendStateUpdated())
+            // An amount that can't be sent never started a send, so it is the balance alert, not
+            // "Couldn't Send".
+            if (cause is ComputeVerifiedFiatError.AmountBelowMinimum || cause is GroupSendInsufficientBalance) {
+                startChattingPayer.presentInsufficientBalance(
+                    onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
+                )
+                return@onFailure
+            }
             analytics.track(TransferEvents.sentCash(AnalyticsState.FAILURE, total.analytics, cause.analytics, SendContext.GROUP_SEND, groupSend.selected.size))
             val (title, message) = when (cause) {
-                is ComputeVerifiedFiatError.AmountBelowMinimum ->
-                    R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
                 is ComputeVerifiedFiatError ->
                     R.string.error_title_staleRates to R.string.error_description_staleRates
                 else ->

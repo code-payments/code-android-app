@@ -28,7 +28,7 @@ import javax.inject.Singleton
 class GroupSendPaymentDelegate @Inject constructor(
     resolverController: ResolverController,
     transactionController: TransactionController,
-    tokenCoordinator: TokenCoordinator,
+    private val tokenCoordinator: TokenCoordinator,
     verifiedFiatCalculator: VerifiedFiatCalculator,
     private val exchange: Exchange,
 ) {
@@ -54,6 +54,12 @@ class GroupSendPaymentDelegate @Inject constructor(
             ?: return Result.failure(ComputeVerifiedFiatError.StaleRate())
         val priced = payment.price(List(recipients.size) { amount }, token, rate)
             .getOrElse { return Result.failure(it) }
+        // Each part is capped at the balance on its own, so the parts can still add up to more
+        // than the sender holds once they are priced to quarks.
+        val pricedTotal = priced.sumOf { it.localFiat.nativeAmount.quarks }
+        if (pricedTotal > tokenCoordinator.balanceForToken(token).convertingTo(rate).quarks) {
+            return Result.failure(GroupSendInsufficientBalance())
+        }
         return payment.pay(
             payees = recipients,
             priced = priced,
@@ -63,3 +69,6 @@ class GroupSendPaymentDelegate @Inject constructor(
         )
     }
 }
+
+/** The payments, priced to quarks, add up to more than the sender's balance. Nothing was sent. */
+class GroupSendInsufficientBalance : Exception("Priced payments exceed the balance")

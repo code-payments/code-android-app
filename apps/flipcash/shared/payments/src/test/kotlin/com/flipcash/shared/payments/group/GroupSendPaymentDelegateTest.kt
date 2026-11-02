@@ -132,4 +132,27 @@ class GroupSendPaymentDelegateTest {
         assertTrue(send(members.take(2), "1.00").isFailure)
         assertTrue(requested.isEmpty())
     }
+
+    @Test
+    fun `parts that price above the balance send nothing and fail as insufficient balance`() = runTest {
+        val part = mockk<LocalFiat>()
+        every { part.nativeAmount } returns Fiat("1.00", CurrencyCode.CAD)
+        coEvery { calculator.compute(any(), any(), any(), any(), any()) } returns
+            Result.success(VerifiedFiat(part, state))
+        val balance = mockk<Fiat>()
+        every { balance.convertingTo(cad) } returns Fiat("1.50", CurrencyCode.CAD)
+        every { tokenCoordinator.balanceForToken(token) } returns balance
+
+        assertIs<GroupSendInsufficientBalance>(send(members.take(2), "1.00").exceptionOrNull())
+        coVerify(exactly = 0) { transactionController.directMultiTransfer(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `an amount below the minimum fails as below minimum and sends nothing`() = runTest {
+        coEvery { calculator.compute(any(), any(), any(), any(), any()) } returns
+            Result.failure(ComputeVerifiedFiatError.AmountBelowMinimum())
+
+        assertIs<ComputeVerifiedFiatError.AmountBelowMinimum>(send(members.take(2), "0.01").exceptionOrNull())
+        coVerify(exactly = 0) { transactionController.directMultiTransfer(any(), any(), any(), any(), any(), any()) }
+    }
 }
