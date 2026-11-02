@@ -6,8 +6,9 @@ plugins {
 }
 
 // Metro generates this module's provider factories for the desktop graph. Through Dagger's factories
-// instead, Metro 1.4.5 drops provider-level @Singleton (it does not read @ScopeMetadata), so each
-// injection site got its own ChannelEventBus.
+// instead, Metro 1.4.5 dropped provider-level @Singleton (it does not read @ScopeMetadata), so each
+// injection site got its own ChannelEventBus; Metro 1.5 rejects them outright
+// (UnprocessedUpstreamDeclaration).
 metro {
     interop {
         includeJavax()
