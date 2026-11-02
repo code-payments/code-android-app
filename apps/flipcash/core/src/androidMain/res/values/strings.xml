@@ -988,8 +988,8 @@
     <string name="action_unban">Unban</string>
     <string name="title_noSilencedMembers">No One Restricted</string>
     <string name="title_noRemovedMembers">No One Removed</string>
-    <string name="description_noSilencedMembers">Stop someone from sending messages in this group by tapping their profile and selecting Restrict</string>
-    <string name="description_noRemovedMembers">Remove someone from this group by tapping their profile and selecting Remove from Group</string>
+    <string name="description_noSilencedMembers">Stop someone from sending messages in this group by tapping their picture and choosing Restrict</string>
+    <string name="description_noRemovedMembers">Remove someone from this group by tapping their picture and choosing Remove from Group</string>
     <string name="error_title_failedToLoadRestricted">Something Went Wrong</string>
     <string name="error_description_failedToLoadRestricted">We were unable to load this list. Please try again</string>
     <string name="error_title_failedToUnsilence">Something Went Wrong</string>
@@ -999,6 +999,21 @@
     <string name="action_silenceMemberShort">Restrict</string>
     <string name="action_removeFromGroup">Remove from Group</string>
     <string name="title_menuSection_inGroup">In %1$s</string>
+    <!-- The host's shortcuts: a trailing swipe on a Members row and the member sheet opened by
+         tapping someone's picture. The time left is cut to its two largest units, rounded down. -->
+    <string name="action_viewProfile">View Profile</string>
+    <string name="action_restrictMember">Restrict…</string>
+    <string name="action_liftRestriction">Lift Restriction</string>
+    <string name="subtitle_restricted">Restricted</string>
+    <string name="subtitle_restrictedTimeLeft">Restricted · %1$s left</string>
+    <string name="duration_daysHours">%1$dd %2$dh</string>
+    <string name="duration_days">%1$dd</string>
+    <string name="duration_hoursMinutes">%1$dh %2$dm</string>
+    <string name="duration_hours">%1$dh</string>
+    <string name="duration_minutes">%1$dm</string>
+    <string name="content_description_restrictMember">Restrict member</string>
+    <string name="content_description_liftRestriction">Lift restriction</string>
+    <string name="content_description_removeMember">Remove member</string>
     <string name="prompt_title_removeMember">Remove %1$s?</string>
     <string name="prompt_description_removeMember">They\'ll leave %1$s and can\'t rejoin until you unban them. Their messages stay in the chat</string>
     <string name="error_title_failedToRemoveMember">Something Went Wrong</string>

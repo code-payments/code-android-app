@@ -36,6 +36,7 @@ internal class RestrictedMembersViewModel @Inject constructor(
     private val chatController: ChatController,
     private val resources: ResourceHelper,
     private val toastController: SystemToastController,
+    private val restrictionWrites: GroupRestrictionWrites,
 ) : ViewModel() {
 
     data class State(
@@ -88,7 +89,10 @@ internal class RestrictedMembersViewModel @Inject constructor(
         call = { chatController.unsilenceUser(chatId, userId) },
         // A removed member who is also silenced stays in Removed, now without the silence.
         apply = { u -> if (u.ban != null) u.copy(silence = null) else null },
-        onSuccess = { toastController.showToast(R.string.toast_unsilenced, name, replacePrevious = true) },
+        onSuccess = {
+            restrictionWrites.lifted(chatId, userId)
+            toastController.showToast(R.string.toast_unsilenced, name, replacePrevious = true)
+        },
         titleRes = R.string.error_title_failedToUnsilence,
         messageRes = R.string.error_description_failedToUnsilence,
     )

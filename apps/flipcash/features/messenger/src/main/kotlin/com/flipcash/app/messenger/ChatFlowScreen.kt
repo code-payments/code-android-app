@@ -80,6 +80,7 @@ import com.flipcash.app.messenger.internal.screens.cash.ChatAmountEntryContent
 import com.flipcash.app.messenger.internal.screens.cash.GroupSelectPeopleContent
 import com.flipcash.app.messenger.internal.screens.cash.GroupSendDetailsSheet
 import com.flipcash.app.messenger.internal.screens.cash.GroupSendConfirmSheet
+import com.flipcash.app.messenger.internal.screens.profile.MemberSheetScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileScreen
 import com.flipcash.app.messenger.internal.screens.profile.ChatProfileViewModel
 import com.flipcash.app.messenger.internal.screens.profile.ProfileGroup
@@ -217,6 +218,9 @@ private fun chatEntryProvider(
 
     annotatedEntry<ChatStep.Profile> { step ->
         FlowChatProfileScreen(step.contact, step.origin)
+    }
+    annotatedEntry<ChatStep.MemberSheet> { step ->
+        MemberSheetScreen(step.contact, step.origin)
     }
     annotatedEntry<ChatStep.GroupProfile> {
         FlowGroupProfileScreen()
