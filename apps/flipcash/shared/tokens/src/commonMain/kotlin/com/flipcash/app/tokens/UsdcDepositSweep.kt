@@ -15,6 +15,9 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -53,6 +56,14 @@ class UsdcDepositSweep(
     private val scope = CoroutineScope(dispatchers.IO + SupervisorJob())
     private var activeJob: Job? = null
 
+    private val _milestones = MutableSharedFlow<UsdcSweepMilestone>(extraBufferCapacity = 2)
+
+    /**
+     * Each sweep's progress, whoever started it. A caller that finds a sweep already in flight
+     * still sees that sweep's milestones here.
+     */
+    val milestones: SharedFlow<UsdcSweepMilestone> = _milestones.asSharedFlow()
+
     fun execute(owner: AccountCluster) {
         if (activeJob?.isActive == true) return
         activeJob = scope.launch {
@@ -77,6 +88,7 @@ class UsdcDepositSweep(
                 check(balance > 0L) { "USDC balance <= 0. nothing to sweep" }
                 balance
             } ?: return@launch
+            _milestones.tryEmit(UsdcSweepMilestone.UsdcSeen)
 
             trace(tag = TAG, message = "Swapping $amount USDC to USDF", type = TraceType.Process)
 
@@ -85,6 +97,7 @@ class UsdcDepositSweep(
                 amount = amount,
             ).onSuccess {
                 trace(tag = TAG, message = "USDC→USDF sweep completed")
+                _milestones.tryEmit(UsdcSweepMilestone.Swapped)
                 balancePoller.awaitBalanceChange(
                     mint = Mint.usdf,
                     baseline = Fiat.Zero,
@@ -119,4 +132,12 @@ class UsdcDepositSweep(
         internal val POLL_INTERVAL = 1.seconds
         internal const val POLL_MAX_ATTEMPTS = 60
     }
+}
+
+enum class UsdcSweepMilestone {
+    /** The sweep found a nonzero USDC balance. */
+    UsdcSeen,
+
+    /** The USDC to USDF swap returned success. */
+    Swapped,
 }

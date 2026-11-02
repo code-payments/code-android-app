@@ -141,6 +141,7 @@ internal class CoinbaseOnRampEventHandler(
     private val onAutoClickGPay: () -> Unit,
     private val onHeartbeat: () -> Unit = {},
     private val onPauseWatchdog: () -> Unit = {},
+    private val onPaymentAuthorized: () -> Unit = {},
 ) {
     private var errorReported = false
     private var watchdogPaused = false
@@ -221,6 +222,7 @@ internal class CoinbaseOnRampEventHandler(
 
                 "onramp_api.payment_authorized" -> {
                     watchdogPaused = false
+                    onPaymentAuthorized()
                 }
 
                 "timing.gpay_button_clicked" -> {

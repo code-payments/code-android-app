@@ -47,6 +47,7 @@ class CoinbaseOnRampEventHandlerTest {
     private var autoClickCount = 0
     private var heartbeatCount = 0
     private var pauseWatchdogCount = 0
+    private var authorizedCount = 0
     private var lastError: CoinbaseOnRampWebError? = null
 
     private val handler = CoinbaseOnRampEventHandler(
@@ -60,6 +61,7 @@ class CoinbaseOnRampEventHandlerTest {
         onAutoClickGPay = { autoClickCount++ },
         onHeartbeat = { heartbeatCount++ },
         onPauseWatchdog = { pauseWatchdogCount++ },
+        onPaymentAuthorized = { authorizedCount++ },
     )
 
     // --- Event routing ---
@@ -80,6 +82,13 @@ class CoinbaseOnRampEventHandlerTest {
     fun pollingSuccessTriggersPaymentSuccess() {
         handler.handleEvent("""{"eventName":"onramp_api.polling_success"}""")
         assertEquals(1, successCount)
+    }
+
+    @Test
+    fun paymentAuthorizedTriggersOnPaymentAuthorized() {
+        handler.handleEvent("""{"eventName":"onramp_api.payment_authorized"}""")
+        assertEquals(1, authorizedCount)
+        assertEquals(0, successCount)
     }
 
     @Test

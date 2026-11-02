@@ -6,6 +6,7 @@ import com.getcode.opencode.model.core.errors.SwapError
 import androidx.lifecycle.viewModelScope
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
@@ -31,6 +32,8 @@ import com.flipcash.services.internal.model.thirdparty.OnRampProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.InlineCompletion
 import com.flipcash.app.tokens.BalancePollError
+import com.flipcash.app.tokens.AddMoneyTimer
+import com.flipcash.app.tokens.UsdcSweepMilestone
 import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.flipcash.services.user.UserManager
@@ -70,7 +73,10 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlin.time.TestTimeSource
+import com.flipcash.app.onramp.CoinbaseOnRampMilestone
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -111,6 +117,10 @@ class SwapViewModelErrorTest {
     private val userFlagsCoordinator = mockk<UserFlagsCoordinator>(relaxed = true)
     private val usdcDepositSweep = mockk<UsdcDepositSweep>(relaxed = true)
     private val balancePoller = mockk<BalancePoller>(relaxed = true)
+    private val timeSource = TestTimeSource()
+    private val addMoneyTimer = AddMoneyTimer(timeSource)
+    private val coinbaseMilestones = MutableSharedFlow<CoinbaseOnRampMilestone>(extraBufferCapacity = 4)
+    private val sweepMilestones = MutableSharedFlow<UsdcSweepMilestone>(extraBufferCapacity = 2)
 
     private val accountCluster = mockk<AccountCluster>(relaxed = true)
 
@@ -126,6 +136,8 @@ class SwapViewModelErrorTest {
         every { PublicKey.generate() } returns mockk<PublicKey>(relaxed = true)
 
         every { userManager.accountCluster } returns accountCluster
+        every { coinbaseOnRampController.milestones } returns coinbaseMilestones
+        every { usdcDepositSweep.milestones } returns sweepMilestones
 
         // A Get asks whether the mint already has a token account to decide first-buy vs top-up.
         // Nothing here exercises that branch, so answer "no" rather than leaving it on a relaxed
@@ -167,6 +179,7 @@ class SwapViewModelErrorTest {
             userFlags = userFlagsCoordinator,
             usdcDepositSweep = usdcDepositSweep,
             balancePoller = balancePoller,
+            addMoneyTimer = addMoneyTimer,
         )
     }
 
@@ -694,6 +707,131 @@ class SwapViewModelErrorTest {
         val amountKeys = setOf("Fiat", "Currency", "USDC", "Quarks", "Exchange Rate", "Mint")
         assertEquals(
             AddMoneyEvents.result(AddMoneyMethod.COINBASE, AnalyticsState.FAILURE, amount = null, error = "Order delivery failed"),
+            result.copy(properties = result.properties - amountKeys),
+        )
+    }
+
+    // --- Coinbase phase times ------------------------------------------------------------------
+    //
+    // Placing the order runs through Coinbase's JWT and order APIs, which this suite doesn't stand
+    // up, so these tests open the timer and mark the order themselves, as OnAmountConfirmed and
+    // placeOrderAndStartPayment do.
+
+    private val amountKeys = setOf("Fiat", "Currency", "USDC", "Quarks", "Exchange Rate", "Mint")
+
+    private fun SwapViewModel.buyUsdfWith(fundingSource: FundingSource) = dispatchEvent(
+        SwapViewModel.Event.OnPurposeChanged(SwapPurpose.Buy(Mint.usdf, fundingSource = fundingSource))
+    )
+
+    /** Confirms the amount, then walks Coinbase's checkout through polling_success. */
+    private suspend fun TestScope.payThroughCoinbase() {
+        addMoneyTimer.start()
+        timeSource += 100.milliseconds
+        addMoneyTimer.mark(AddMoneyTimer.Moment.ORDER_PLACED)
+        timeSource += 200.milliseconds
+        coinbaseMilestones.emit(CoinbaseOnRampMilestone.PaymentAuthorized)
+        runCurrent()
+        timeSource += 300.milliseconds
+        coinbaseMilestones.emit(CoinbaseOnRampMilestone.PaymentCompleted)
+        runCurrent()
+        timeSource += 400.milliseconds
+    }
+
+    @Test
+    fun `a coinbase purchase sends Add Money with every phase time`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        val usdf = MutableStateFlow(Fiat.Zero)
+        every { tokenCoordinator.balanceForToken(Mint.usdf) } returns usdf
+        coEvery { coinbaseOnRampController.awaitOrderDelivered("order-5") } returns
+            OrderDeliveryResult.Delivered(txHash = "sig")
+
+        val vm = createViewModel()
+        vm.buyUsdfWith(FundingSource.Coinbase)
+        runCurrent()
+        payThroughCoinbase()
+
+        vm.dispatchEvent(SwapViewModel.Event.DepositSubmitted(orderId = "order-5"))
+        runCurrent()
+        sweepMilestones.emit(UsdcSweepMilestone.UsdcSeen)
+        runCurrent()
+        timeSource += 500.milliseconds
+        sweepMilestones.emit(UsdcSweepMilestone.Swapped)
+        runCurrent()
+        timeSource += 600.milliseconds
+        usdf.value = Fiat(12.0)
+        advanceUntilIdle()
+
+        val result = analytics.events.single { it.name == "Add Money" }
+        assertEquals(
+            AddMoneyEvents.result(
+                method = AddMoneyMethod.COINBASE,
+                state = AnalyticsState.SUCCESS,
+                amount = null,
+                error = null,
+                orderTimeMillis = 100,
+                paymentTimeMillis = 200,
+                coinbaseTimeMillis = 300,
+                depositTimeMillis = 400,
+                swapTimeMillis = 500,
+                creditTimeMillis = 600,
+                totalTimeMillis = 2_100,
+            ),
+            result.copy(properties = result.properties - amountKeys),
+        )
+    }
+
+    @Test
+    fun `a failed coinbase delivery sends the phases that completed and the total`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            dispatchers = TestDispatchers(testScheduler)
+            every { tokenCoordinator.balanceForToken(Mint.usdf) } returns MutableStateFlow(Fiat.Zero)
+            coEvery { coinbaseOnRampController.awaitOrderDelivered("order-6") } returns
+                OrderDeliveryResult.Failed
+
+            val vm = createViewModel()
+            vm.buyUsdfWith(FundingSource.Coinbase)
+            runCurrent()
+            payThroughCoinbase()
+
+            vm.dispatchEvent(SwapViewModel.Event.DepositSubmitted(orderId = "order-6"))
+            advanceUntilIdle()
+
+            val result = analytics.events.single { it.name == "Add Money" }
+            assertEquals(
+                AddMoneyEvents.result(
+                    method = AddMoneyMethod.COINBASE,
+                    state = AnalyticsState.FAILURE,
+                    amount = null,
+                    error = "Order delivery failed",
+                    orderTimeMillis = 100,
+                    paymentTimeMillis = 200,
+                    coinbaseTimeMillis = 300,
+                    totalTimeMillis = 1_000,
+                ),
+                result.copy(properties = result.properties - amountKeys),
+            )
+        }
+
+    @Test
+    fun `a phantom deposit sends Add Money without phase times`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        val usdf = MutableStateFlow(Fiat.Zero)
+        every { tokenCoordinator.balanceForToken(Mint.usdf) } returns usdf
+
+        val vm = createViewModel()
+        vm.buyUsdfWith(FundingSource.Phantom)
+        runCurrent()
+        // A Coinbase attempt left open earlier in the session must not leak into this send.
+        payThroughCoinbase()
+
+        vm.dispatchEvent(SwapViewModel.Event.DepositSubmitted(orderId = null))
+        runCurrent()
+        usdf.value = Fiat(12.0)
+        advanceUntilIdle()
+
+        val result = analytics.events.single { it.name == "Add Money" }
+        assertEquals(
+            AddMoneyEvents.result(AddMoneyMethod.PHANTOM, AnalyticsState.SUCCESS, amount = null, error = null),
             result.copy(properties = result.properties - amountKeys),
         )
     }
