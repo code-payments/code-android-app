@@ -43,6 +43,8 @@ dependencies {
     implementation(project(":libs:network:connectivity:public"))
     implementation(project(":libs:encryption:chat-cipher"))
     implementation(project(":apps:flipcash:shared:device-link"))
+    implementation(project(":apps:flipcash:shared:blob"))
+    implementation(project(":apps:flipcash:shared:chat"))
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.dagger)
     implementation(libs.grpc.okhttp)
