@@ -1,6 +1,16 @@
 package com.flipcash.desktop
 
 import com.flipcash.app.analytics.FlipcashAnalytics
+import coil3.SingletonImageLoader
+import coil3.PlatformContext
+import com.flipcash.app.blob.FilePickedPhotos
+import com.flipcash.app.blob.JvmUploadImageCache
+import com.flipcash.app.blob.PickedPhotos
+import com.flipcash.app.blob.UploadImageCache
+import com.flipcash.shared.chat.media.ChatMediaLocation
+import com.flipcash.shared.chat.media.DirectoryChatMediaLocation
+import com.flipcash.shared.chat.media.ImageLoaderSentImageCache
+import com.flipcash.shared.chat.media.SentImageCache
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.storage.DirectoryPreferencesFiles
 import com.flipcash.app.core.storage.PreferencesFiles
@@ -92,6 +102,24 @@ object DesktopModule {
         override val noBackupDir: File = File(appDir, "no_backup").apply { mkdirs() }
         override fun dataStoreFile(name: String): File = File(appDir, "datastore/$name.preferences_pb")
     }
+
+    // Photo upload: the image codec is bound by JvmBlobModule; these need to know where the app keeps files.
+    @Provides
+    @Singleton
+    fun uploadImageCache(): UploadImageCache = JvmUploadImageCache(File(appDir, "upload_cache").apply { mkdirs() })
+
+    @Provides
+    @Singleton
+    fun pickedPhotos(): PickedPhotos = FilePickedPhotos()
+
+    @Provides
+    @Singleton
+    fun chatMediaLocation(): ChatMediaLocation = DirectoryChatMediaLocation(appDir)
+
+    @Provides
+    @Singleton
+    fun sentImageCache(): SentImageCache =
+        ImageLoaderSentImageCache { SingletonImageLoader.get(PlatformContext.INSTANCE) }
 
     @Provides
     @Singleton

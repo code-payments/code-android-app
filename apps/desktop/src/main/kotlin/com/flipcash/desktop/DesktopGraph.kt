@@ -28,6 +28,7 @@ import javax.inject.Singleton
         com.flipcash.services.inject.ChatCryptoModule::class,
         FlipcashDesktopChannelModule::class,
         DesktopModule::class,
+        com.flipcash.app.blob.JvmBlobModule::class,
     ],
 )
 interface DesktopGraph {
@@ -39,6 +40,9 @@ interface DesktopGraph {
     val analytics: FlipcashAnalytics
     val userManager: com.flipcash.services.user.UserManager
     val accountController: com.flipcash.services.controllers.AccountController
+    val imageUploadPreparer: com.flipcash.app.blob.ImageUploadPreparer
+    val chatMediaLocation: com.flipcash.shared.chat.media.ChatMediaLocation
+    val sentImageCache: com.flipcash.shared.chat.media.SentImageCache
     val seedVault: com.flipcash.app.devicelink.SeedVault
 
     // Android constructs this eagerly in FlipcashApp.onCreate; it is what turns Events.OnLoggedIn into

@@ -160,7 +160,9 @@ internal fun Scanner() {
                     navigator.navigateAll(routes)
                 }
             }
-            is DeeplinkType.Login -> Unit
+            // Not scannable (see isScannable); filtered before it gets here.
+            is DeeplinkType.Login,
+            is DeeplinkType.Tab -> Unit
             is DeeplinkType.Tipcard -> {
                 session.resolveTipCard(TipCardOwner.ById(deeplink.userId))
             }

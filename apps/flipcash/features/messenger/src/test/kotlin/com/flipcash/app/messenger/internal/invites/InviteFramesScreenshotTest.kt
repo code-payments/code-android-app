@@ -50,7 +50,8 @@ class InviteFramesScreenshotTest {
         println("SCREENSHOT_WRITTEN: ${file.absolutePath}")
     }
 
-    @Test fun frame1a() = render("1a") { InviteFrame1aHostSheet() }
+    @Test fun frame1m() = render("1m") { InviteFrame1mHostSheet() }
+    @Test fun frame1mPrime() = render("1m-prime") { InviteFrame1mPrimeHostSheet() }
     @Test fun frame1b() = render("1b") { InviteFrame1bCreating() }
     @Test fun frame1c() = render("1c") { InviteFrame1cTooMany() }
     @Test fun frame1d() = render("1d") { InviteFrame1dJoinRequestsEmpty() }

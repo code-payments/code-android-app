@@ -1,0 +1,315 @@
+package com.flipcash.shared.chat
+
+import com.flipcash.app.persistence.sources.ChatMemberDataSource
+import com.flipcash.app.persistence.sources.ChatMessageDataSource
+import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.ContactDataSource
+import com.flipcash.shared.chat.testing.TestDispatchers
+import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.services.controllers.ChatController
+import com.flipcash.services.controllers.ChatMessagingController
+import com.flipcash.services.controllers.EventStreamingController
+import com.flipcash.services.models.chat.ChatEvent
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.ChatMutation
+import com.flipcash.services.models.chat.ChatUpdate
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.shared.chat.internal.ChatIdGenerator
+import com.flipcash.shared.chat.internal.ChatStateHolder
+import com.flipcash.shared.chat.internal.RealChatCoordinator
+import com.flipcash.shared.chat.internal.delegates.EventStreamDelegate
+import com.flipcash.shared.chat.internal.delegates.FeedSyncDelegate
+import com.flipcash.shared.chat.internal.delegates.DmChatResolverDelegate
+import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
+import com.getcode.utils.network.NetworkConnectivityListener
+import com.flipcash.services.user.UserManager
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class ChatCoordinatorEagerBalanceTest {
+
+    private val selfId = listOf<Byte>(1, 2, 3)
+    private val otherId = listOf<Byte>(4, 5, 6)
+    private val thirdId = listOf<Byte>(7, 8, 9)
+    private val fourthId = listOf<Byte>(10, 11, 12)
+    private val chatId = ChatId("aabbccdd")
+    private val mint = Mint("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaa")
+
+    private val chatUpdatesChannel = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
+
+    private lateinit var tokenCoordinator: TokenCoordinator
+    private lateinit var coordinator: RealChatCoordinator
+    private lateinit var testDispatchers: TestDispatchers
+
+    @BeforeTest
+    fun setUp() {
+        tokenCoordinator = mockk(relaxed = true)
+        val userManager = mockk<UserManager>(relaxed = true)
+        every { userManager.accountId } returns selfId
+        val eventStreamingController = mockk<EventStreamingController>(relaxed = true)
+        every { eventStreamingController.chatUpdates } returns chatUpdatesChannel.receiveAsFlow()
+        every { eventStreamingController.isConnected } returns true
+        every { eventStreamingController.isStreamActive } returns true
+
+        val chatController = mockk<ChatController>(relaxed = true)
+        coEvery { chatController.getDmChatFeed(any(), any()) } returns Result.failure(RuntimeException("not needed"))
+
+        testDispatchers = TestDispatchers(TestCoroutineScheduler())
+
+        val stateHolder = ChatStateHolder()
+        val memberDataSource = mockk<ChatMemberDataSource>(relaxed = true)
+        val messagingController = mockk<ChatMessagingController>(relaxed = true)
+        val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true)
+        val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
+
+        val feedDelegate = FeedSyncDelegate(
+            messagingController = mockk(relaxed = true),
+            chatController = chatController,
+            metadataDataSource = metadataDataSource,
+            messageDataSource = messageDataSource,
+            memberDataSource = memberDataSource,
+            stateHolder = stateHolder,
+            userManager = userManager,
+        )
+
+        val eventStreamDelegate = EventStreamDelegate(
+            eventStreamingController = eventStreamingController,
+            messagingController = messagingController,
+            metadataDataSource = metadataDataSource,
+            messageDataSource = messageDataSource,
+            memberDataSource = memberDataSource,
+            tokenCoordinator = tokenCoordinator,
+            userManager = userManager,
+            stateHolder = stateHolder,
+            analytics = mockk(relaxed = true),
+            exchange = mockk(relaxed = true),
+        )
+
+        val messagingDelegate = MessagingDelegate(
+            chatController = chatController,
+            messagingController = messagingController,
+            metadataDataSource = metadataDataSource,
+            messageDataSource = messageDataSource,
+            memberDataSource = memberDataSource,
+            notifications = mockk(relaxed = true),
+            userManager = userManager,
+            stateHolder = stateHolder,
+            analytics = mockk(relaxed = true),
+            senderResolver = mockk(relaxed = true),
+        )
+
+        val dmChatResolverDelegate = DmChatResolverDelegate(
+            chatIdGenerator = ChatIdGenerator(),
+            userManager = userManager,
+            contactDataSource = mockk<ContactDataSource>(relaxed = true),
+            memberDataSource = memberDataSource,
+        )
+
+        coordinator = RealChatCoordinator(
+            feedDelegate = feedDelegate,
+            eventStreamDelegate = eventStreamDelegate,
+            dmChatResolverDelegate = dmChatResolverDelegate,
+            messagingDelegate = messagingDelegate,
+            stateHolder = stateHolder,
+            draftStore = mockk<ChatDraftStore>(relaxed = true),
+            userManager = userManager,
+            networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
+            dispatchers = testDispatchers,
+            groupFeedDelegate = mockk(relaxed = true),
+            reactionsDelegate = mockk(relaxed = true),
+        )
+    }
+
+    private fun cashMessage(
+        senderId: List<Byte>?,
+        amount: Fiat = Fiat(fiat = 5.0, currencyCode = CurrencyCode.USD),
+        mint: Mint = this.mint,
+    ) = ChatMessage(
+        messageId = 1L,
+        senderId = senderId,
+        content = listOf(MessageContent.Cash(
+            intentId = listOf(0),
+            amount = amount,
+            mint = mint,
+        )),
+        timestamp = Instant.fromEpochSeconds(1000),
+        unreadSeq = 0,
+    )
+
+    private fun groupSendMessage(vararg parts: Pair<List<Byte>, Double>) = ChatMessage(
+        messageId = 1L,
+        senderId = otherId,
+        content = listOf(MessageContent.Cash(
+            intentId = listOf(0),
+            amount = Fiat(fiat = parts.sumOf { it.second }, currencyCode = CurrencyCode.CAD),
+            mint = mint,
+            multiReceiver = parts.map { (receiver, native) ->
+                MessageContent.Cash.Payment(receiver = receiver, nativeAmount = native, tokenQuarks = 1L)
+            },
+        )),
+        timestamp = Instant.fromEpochSeconds(1000),
+        unreadSeq = 0,
+    )
+
+    @Test
+    fun `group send credits only the viewer's own part`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+            chatUpdatesChannel.send(chatUpdate(groupSendMessage(selfId to 3.34, thirdId to 3.33)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            coVerify(exactly = 1) { tokenCoordinator.add(mint, Fiat(fiat = 3.34, currencyCode = CurrencyCode.CAD)) }
+        }
+    }
+
+    @Test
+    fun `group send the viewer is not part of credits nothing`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+            chatUpdatesChannel.send(chatUpdate(groupSendMessage(thirdId to 2.0, fourthId to 2.0)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any<Fiat>()) }
+        }
+    }
+
+    private fun textMessage(senderId: List<Byte>?) = ChatMessage(
+        messageId = 2L,
+        senderId = senderId,
+        content = listOf(MessageContent.Text("hello")),
+        timestamp = Instant.fromEpochSeconds(1000),
+        unreadSeq = 0,
+    )
+
+    // Each update carries its messages as event-log events. Sequences run
+    // contiguously from 1 across the whole test so the gap detector stays quiet
+    // and these tests exercise only the behaviour they name.
+    private var nextEventSequence = 1L
+
+    private fun chatUpdate(vararg messages: ChatMessage) = ChatUpdate(
+        chatId = chatId,
+        pointerUpdates = emptyList(),
+        typingNotifications = emptyList(),
+        metadataUpdates = emptyList(),
+        events = messages.map { message ->
+            ChatEvent(
+                sequence = nextEventSequence++,
+                count = 1,
+                ts = message.timestamp,
+                mutations = listOf(ChatMutation.MessageSent(message)),
+            )
+        },
+    )
+
+    private suspend fun triggerCollection() {
+        coordinator.onUserLoggedIn(mockk(relaxed = true))
+    }
+
+    @Test
+    fun `incoming cash message triggers tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+            val amount = Fiat(fiat = 5.0, currencyCode = CurrencyCode.CAD)
+            chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = otherId, amount = amount)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            coVerify(exactly = 1) { tokenCoordinator.add(mint, amount) }
+        }
+    }
+
+    @Test
+    fun `self-sent cash message does not trigger tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+            chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = selfId)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
+        }
+    }
+
+    @Test
+    fun `text message does not trigger tokenCoordinator add`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+            chatUpdatesChannel.send(chatUpdate(textMessage(senderId = otherId)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any()) }
+        }
+    }
+
+    @Test
+    fun `multiple cash messages in one update each trigger add`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+            val mintB = Mint("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBbbbbbbbbbbb")
+            val amount1 = Fiat(fiat = 5.0, currencyCode = CurrencyCode.USD)
+            val amount2 = Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD)
+            val msg1 = cashMessage(senderId = otherId, amount = amount1, mint = mint)
+            val msg2 = cashMessage(senderId = otherId, amount = amount2, mint = mintB).copy(messageId = 3L)
+
+            chatUpdatesChannel.send(chatUpdate(msg1, msg2))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            coVerify(exactly = 1) { tokenCoordinator.add(mint, amount1) }
+            coVerify(exactly = 1) { tokenCoordinator.add(mintB, amount2) }
+        }
+    }
+
+    @Test
+    fun `mixed self and incoming messages only triggers add for incoming`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            triggerCollection()
+            val incoming = cashMessage(senderId = otherId)
+            val outgoing = cashMessage(senderId = selfId).copy(messageId = 3L)
+
+            chatUpdatesChannel.send(chatUpdate(incoming, outgoing))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            coVerify(exactly = 1) { tokenCoordinator.add(any<Mint>(), any()) }
+        }
+    }
+
+    /**
+     * Runs [block], then tears the coordinator down however it ends.
+     *
+     * The `finally` is the point. Logging in starts a heartbeat that is a `while (true)` of delays
+     * on the coordinator's own scope rather than the test's `backgroundScope`, and `runTest` drains
+     * the scheduler once the body returns. A failing assertion that skipped the teardown would
+     * leave that loop advancing virtual time with nothing to stop it, hanging the run instead of
+     * reporting the failure.
+     */
+    private suspend fun tornDown(block: suspend () -> Unit) {
+        try {
+            block()
+        } finally {
+            coordinator.teardown()
+        }
+    }
+}

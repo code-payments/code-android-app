@@ -13,6 +13,7 @@ import android.net.Uri
 import com.flipcash.shared.chat.share.ChatShareGateway
 import com.flipcash.shared.chat.share.MAX_SHARE_RECIPIENTS
 import com.flipcash.shared.chat.share.ShareRecipientSelection
+import com.flipcash.app.blob.toUri
 import com.flipcash.shared.chat.share.PendingChatShare
 import com.flipcash.shared.chat.share.ShareSendProgress
 import com.flipcash.shared.chat.share.ShareSender
@@ -72,7 +73,8 @@ internal class SharePickerViewModel @Inject constructor(
     val hasShare: Boolean = held != null
 
     /** The images to show and send. */
-    val images: List<Uri> = held?.images.orEmpty()
+    private val photos = held?.images.orEmpty()
+    val images: List<Uri> = photos.map { it.toUri() }
 
     /** Images past the limit that were left out. */
     val droppedImageCount: Int = held?.droppedImageCount ?: 0
@@ -151,7 +153,7 @@ internal class SharePickerViewModel @Inject constructor(
         started = true
         val message = messageState.text.toString()
         sendJob = viewModelScope.launch {
-            if (sender.send(recipients, images, message)) {
+            if (sender.send(recipients, photos, message)) {
                 // Past this point every image has been encoded and posted, so the copies can go.
                 shares.discard()
                 _done.value = true

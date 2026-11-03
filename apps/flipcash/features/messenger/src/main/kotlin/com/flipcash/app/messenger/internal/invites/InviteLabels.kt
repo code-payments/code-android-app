@@ -82,6 +82,9 @@ internal fun HostInvite.detailLine(): String {
     return "$joined · $second"
 }
 
+/** A group's plain link as the pill shows it: scheme dropped, nothing cut, as it holds no secret. */
+internal fun plainLinkText(url: String): String = url.removePrefix("https://").removePrefix("http://")
+
 /** The link as the pill shows it: scheme dropped and the middle of the secret elided (node 12933:113). */
 internal fun elideInviteUrl(url: String, head: Int = 32, tail: Int = 4): String {
     val bare = url.removePrefix("https://").removePrefix("http://")

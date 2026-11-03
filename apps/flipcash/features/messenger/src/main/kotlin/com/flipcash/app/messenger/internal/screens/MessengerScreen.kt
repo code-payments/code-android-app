@@ -1,22 +1,26 @@
 package com.flipcash.app.messenger.internal.screens
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
+import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.services.models.paymentrequest.unpaidShareOf
 import com.flipcash.app.messenger.internal.request.RequestDeckStrip
-import com.flipcash.app.messenger.internal.request.rememberDeckHostState
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.animation.core.rememberTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import com.flipcash.shared.chat.ui.media.ChatPhotoOverlay
@@ -30,9 +34,9 @@ import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.messenger.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,7 +44,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -59,6 +62,7 @@ import com.getcode.opencode.model.core.ID
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.extensions.navigateAll
 import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.PinnedMessageJump
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.flipcash.app.core.chat.ProfileAddress
@@ -68,6 +72,8 @@ import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.MemberModerationViewModel
+import com.flipcash.app.core.chat.ProfileOrigin
+import com.flipcash.app.messenger.internal.screens.profile.memberTapStep
 import com.flipcash.app.messenger.internal.ownReactionEmoji
 import com.flipcash.app.messenger.internal.reactionStripFor
 import com.flipcash.app.messenger.internal.withLiveSelfReactions
@@ -81,10 +87,13 @@ import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
 import com.flipcash.app.messenger.internal.screens.components.GatedLandingRow
 import com.flipcash.app.messenger.internal.screens.components.JoinRequestsAnchor
+import com.flipcash.app.messenger.internal.screens.components.PinnedMessageBar
+import com.flipcash.app.messenger.internal.pins.PinBar
 import com.flipcash.app.messenger.internal.screens.components.ReturnToChatChip
 import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.BlurredContent
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
@@ -109,17 +118,19 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.common.ui.profile.PrefetchProfileCover
 import com.flipcash.app.messenger.internal.request.ChatRequestsViewModel
 import com.flipcash.app.messenger.internal.request.rememberPaymentRequestCards
+import com.flipcash.app.messenger.internal.request.DeckPlacement
 import com.flipcash.app.messenger.internal.request.ExpandedRequests
 import com.flipcash.app.messenger.internal.request.RequestDeckLayout
-import com.flipcash.app.messenger.internal.request.RequestDeckPill
 import com.flipcash.app.messenger.internal.request.deckTitle
 import com.flipcash.shared.chat.ui.request.LocalPaymentRequestCards
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.utils.base58
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.messenger.internal.request.RequestPaySheet
 import com.flipcash.app.messenger.internal.request.RequestPayViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun MessengerScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
@@ -168,6 +179,11 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     LaunchedEffect(privateOutsider) {
         if (privateOutsider) flowNavigator.replaceStack(listOf(ChatStep.GroupProfile))
     }
+
+    // The server's can_invite as the chat store carries it, the same field the group profile's
+    // Share button is built on, so no extra call when a chat opens.
+    val viewerCanInvite = state.viewerState?.permissions?.canInvite == true
+    val inviteHost = hiltViewModel<InviteHostViewModel>()
 
     // Here rather than in the action handler because the lookup comes first: the tap only knows a
     // handle, and where it leads is the view model's to decide once the handle has an answer.
@@ -411,8 +427,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             is ChatAction.ViewMemberProfile -> {
                 // Resolved in the view model: the profile that drew the picture in the gutter is
                 // the one to open, and the transcript already holds it.
+                // A group's sender opens their sheet; a DM's keeps the full profile.
                 viewModel.memberParticipant(action.userId)?.let {
-                    keyboard.hideIfVisible { navigator.push(ChatStep.Profile(it)) }
+                    val step = if (state.subject is ChatSubject.Group) {
+                        memberTapStep(it, ProfileOrigin.Chat, userManager?.accountId)
+                    } else {
+                        ChatStep.Profile(it)
+                    }
+                    keyboard.hideIfVisible { navigator.push(step) }
                 }
             }
 
@@ -479,20 +501,12 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val deckNow by requestsViewModel.now.collectAsStateWithLifecycle()
     val drawnDeck = remember(deck) { deck.filter { it.deckTitle != null } }
     val viewerId = requestsViewModel.viewerId
-    // One per visit: reopening the chat while still owing brings the strip back.
-    val owed = drawnDeck.filter { it.unpaidShareOf(viewerId, deckNow) != null }.map { it.id }.toSet()
-    val deckHosts = rememberDeckHostState(deckChat, owed)
-    val deckTransition = rememberTransition(deckHosts.transition, label = "request deck")
-    // Read here rather than in the effect, so expanding recomposes this scope and reaches the hosts.
-    val expandedNow = deckExpanded
-    SideEffect {
-        deckHosts.owing(owed, hasDeck = drawnDeck.isNotEmpty())
-        deckHosts.expanded = expandedNow
-    }
-    val expandDeck = {
-        // Partway into the pill, a tap waits for the scroll to settle it.
-        if (!deckHosts.collapsing) keyboard.hideIfVisible { requestsViewModel.setExpanded(true) }
-    }
+    // The front card moves between the stack and the expanded list on this, as one shared element.
+    val deckTransition = updateTransition(
+        targetState = if (deckExpanded) DeckPlacement.Expanded else DeckPlacement.Strip,
+        label = "request deck",
+    )
+    val expandDeck = { keyboard.hideIfVisible { requestsViewModel.setExpanded(true) } }
     val openRequest: (com.flipcash.services.models.paymentrequest.PaymentRequest) -> Unit = { request ->
         // The deck stays expanded while the details slide over it; the step minimizes it once covered.
         state.chatId?.let { chatId ->
@@ -506,8 +520,28 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val requestPayToken by requestPay.token.collectAsStateWithLifecycle()
     LaunchedEffect(requestPay) { requestPay.routes.collect { route -> navigator.navigate(route) } }
 
-    // The collapsed pill's last bounds, where the expanded deck puts its close button.
-    var deckPill by remember { mutableStateOf<Rect?>(null) }
+    // Requests and pins stack under the top bar: the pin bar sits below the request stack.
+    val pinBar = state.pins.bar(state.pinBarIndex)
+    // The list is a sheet destination over the chat; a row tapped there comes back as a jump.
+    val openPins = { pinAfterUnpin: Long? ->
+        val chatId = state.chatId
+        if (chatId != null) keyboard.hideIfVisible {
+            navigator.navigateForResult<PinnedMessageJump>(ChatStep.PinnedMessages(chatId, pinAfterUnpin)) { result ->
+                if (result is NavResultOrCanceled.ReturnValue) {
+                    viewModel.dispatchEvent(ChatViewModel.Event.JumpToMessage(result.value.messageId))
+                }
+            }
+        }
+    }
+    // At the pin cap the list opens to make room, holding the refused message for the freed slot.
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<ChatViewModel.Event.PinCapReached>()
+            .collect { openPins(it.waiting.messageId) }
+    }
+
+    // The top bar's trailing slot, where the expanded deck puts its close button.
+    var deckCloseAnchor by remember { mutableStateOf<Rect?>(null) }
 
     RequestDeckLayout(modifier = Modifier.fillMaxSize()) {
     CodeScaffold(
@@ -532,59 +566,18 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     dispatch = viewModel::dispatchEvent,
                     onConfirmRemove = moderation::confirmRemove,
                     trailing = {
+                        // Takes no room: it marks where the expanded deck's close button goes.
                         if (state.chatType == ChatType.GROUP) {
-                            RequestDeckPill(
-                                deck = drawnDeck,
-                                now = deckNow,
-                                viewerId = viewerId,
-                                transition = deckTransition,
-                                onExpand = expandDeck,
-                                onCycle = requestsViewModel::cycle,
-                                modifier = Modifier.onGloballyPositioned {
-                                    // Kept from the last frame it had a size; it empties while expanded.
-                                    if (it.size.width > 0) deckPill = it.boundsInWindow()
-                                },
+                            Box(
+                                modifier = Modifier
+                                    .size(0.dp)
+                                    .onGloballyPositioned { deckCloseAnchor = it.boundsInWindow() },
                             )
                         }
                     },
                 )
-                if (state.chatType == ChatType.GROUP) {
-                    // Behind the backdrop whenever the rows are, since it sits over them: a raised
-                    // message or its reaction strip reads against a sharp stack otherwise. A tap on
-                    // it then dismisses the selection, as a tap on the rows does.
-                    val stripBehindBackdrop = state.selection != null || state.editing != null
-                    Box {
-                        Box(modifier = Modifier.chatBackdrop(behind = stripBehindBackdrop)) {
-                            RequestDeckStrip(
-                                deck = drawnDeck,
-                                now = deckNow,
-                                viewerId = viewerId,
-                                transition = deckTransition,
-                                rest = deckHosts.rest.host,
-                                onExpand = expandDeck,
-                                onCycle = requestsViewModel::cycle,
-                                // Straight to the swipe sheet over the chat; the card body opens details.
-                                onPay = { request ->
-                                    state.chatId?.let { chatId ->
-                                        keyboard.hideIfVisible { requestPay.pay(chatId, request.id) }
-                                    }
-                                },
-                                onHeightChange = { deckHosts.stripPx = it.toFloat() },
-                            )
-                        }
-                        if (stripBehindBackdrop) {
-                            Box(
-                                modifier = Modifier
-                                    .matchParentSize()
-                                    .pointerInput(Unit) {
-                                        detectTapGestures {
-                                            viewModel.dispatchEvent(ChatViewModel.Event.ClearMessageSelection)
-                                        }
-                                    },
-                            )
-                        }
-                    }
-                }
+                // From the top: this anchor, the request stack, then the pin bar. The column's height
+                // is the transcript's top inset, so the oldest message clears whichever are showing.
                 // Hold the last list through the exit, so the card doesn't empty as it slides away.
                 var lastRequests by remember { mutableStateOf(state.joinRequests) }
                 if (state.joinRequests.isNotEmpty()) lastRequests = state.joinRequests
@@ -601,6 +594,74 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(top = CodeTheme.dimens.grid.x2),
                     )
+                }
+                if (state.chatType == ChatType.GROUP) {
+                    // Behind the backdrop whenever the rows are, since it sits over them: a raised
+                    // message or its reaction strip reads against a sharp stack otherwise. A tap on
+                    // it then dismisses the selection, as a tap on the rows does.
+                    val stripBehindBackdrop = state.selection != null || state.editing != null
+                    Box {
+                        Box(modifier = Modifier.chatBackdrop(behind = stripBehindBackdrop)) {
+                            RequestDeckStrip(
+                                deck = drawnDeck,
+                                now = deckNow,
+                                viewerId = viewerId,
+                                transition = deckTransition,
+                                onExpand = expandDeck,
+                                onCycle = requestsViewModel::cycle,
+                                // Straight to the swipe sheet over the chat; the card body opens details.
+                                onPay = { request ->
+                                    state.chatId?.let { chatId ->
+                                        keyboard.hideIfVisible { requestPay.pay(chatId, request.id) }
+                                    }
+                                },
+                            )
+                        }
+                        if (stripBehindBackdrop) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .pointerInput(Unit) {
+                                        detectTapGestures {
+                                            viewModel.dispatchEvent(ChatViewModel.Event.ClearMessageSelection)
+                                        }
+                                    },
+                            )
+                        }
+                    }
+                }
+                // Held through the exit, so the bar doesn't empty as it slides away.
+                var lastPinBar by remember { mutableStateOf(pinBar) }
+                if (pinBar != null) lastPinBar = pinBar
+                // Slides down from the top bar and fades, as iOS's bar moves in from the top edge.
+                // The expand alongside keeps the transcript's top inset (this column's height)
+                // moving with the bar, so the oldest message never snaps under it.
+                AnimatedVisibility(
+                    visible = pinBar != null,
+                    enter = expandVertically(expandFrom = Alignment.Top) +
+                        slideInVertically { -it } + fadeIn(),
+                    exit = shrinkVertically(shrinkTowards = Alignment.Top) +
+                        slideOutVertically { -it } + fadeOut(),
+                ) {
+                    lastPinBar?.let { bar ->
+                        val shown = (bar as? PinBar.Showing)?.pin
+                        val spoken = remember(shown) { shown?.let(viewModel::pinPreview) }
+                        val quote by produceState<ChatQuote?>(null, shown) {
+                            value = shown?.let { viewModel.pinQuote(it) }
+                        }
+                        PinnedMessageBar(
+                            bar = bar,
+                            quote = quote.takeIf { shown != null },
+                            spoken = spoken,
+                            onTap = { keyboard.hideIfVisible { viewModel.dispatchEvent(ChatViewModel.Event.PinBarTapped) } },
+                            onOpenList = { openPins(null) },
+                            hazeState = hazeState,
+                            modifier = Modifier
+                                // Edges line up with the back button.
+                                .padding(horizontal = AppBarDefaults.ControlInset)
+                                .padding(top = CodeTheme.dimens.grid.x2),
+                        )
+                    }
                 }
                 if (state.wrongKey) {
                     WrongKeyBanner(
@@ -677,7 +738,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("chat_message_list")
-                            .nestedScroll(deckHosts.scrollConnection)
                             .softTopEdge(ChatTopEdge.blurHold(barHeight))
                             .hazeSource(hazeState)
                             // Inside the edge blur and the haze, so a photo landing under the bars
@@ -702,6 +762,22 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         onOriginsReached = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnOriginsReached(it)) },
                         onReachedNewest = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnStackCleared) },
                         hazeState = hazeState,
+                        viewerCanInvite = viewerCanInvite,
+                        onInvitePeople = {
+                            viewModel.dispatchEvent(
+                                ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.CHAT)
+                            )
+                            // Both branches of the group profile's Share button; see GroupProfileScreen.
+                            // The composer may have the keyboard up; it closes before the sheet opens.
+                            scope.launch {
+                                // Straight to the share sheet, not the host's Invite People sheet;
+                                // the profile's Share button still opens that one.
+                                val approve = state.chatId?.let { inviteHost.approveOn(it) } == true
+                                keyboard.hideIfVisible {
+                                    navigator.openInvitePeople(invitePeopleTarget(viewerCanInvite, approve))
+                                }
+                            }
+                        },
                     )
                 }
             }
@@ -737,7 +813,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         expanded = deckExpanded,
         transition = deckTransition,
         top = barHeight,
-        pill = deckPill,
+        closeAnchor = deckCloseAnchor,
         onCollapse = { requestsViewModel.setExpanded(false) },
         onOpen = openRequest,
     )
