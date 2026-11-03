@@ -47,6 +47,7 @@ class SwipeActionRowTest {
     private var trailingFired = 0
     private var labelWidth = 0.dp
     private var circleRevealWidth = 0.dp
+    private var pillRevealWidth = 0.dp
 
     private fun show(withLeading: Boolean, leadingLabel: String? = null) {
         composeTestRule.setContent {
@@ -60,6 +61,8 @@ class SwipeActionRowTest {
                     with(density) { measurer.measure(it, style, maxLines = 1).size.width.toDp() }
                 } ?: 0.dp
                 circleRevealWidth = CodeTheme.dimens.staticGrid.x10 + CodeTheme.dimens.inset * 2
+                // A labelled action is a pill 1.4 times the circle's width.
+                pillRevealWidth = CodeTheme.dimens.staticGrid.x10 * 1.4f + CodeTheme.dimens.inset * 2
                 Box(Modifier.width(360.dp)) {
                     SwipeActionRow(
                         actions = listOf(
@@ -132,7 +135,7 @@ class SwipeActionRowTest {
     @Test
     fun `a labelled leading action opens to fit its label and still fires`() {
         show(withLeading = true, leadingLabel = LABEL)
-        assert(labelWidth > 50.dp) { "the test label ($labelWidth) should be wider than the circle" }
+        assert(labelWidth > 70.dp) { "the test label ($labelWidth) should be wider than the pill" }
 
         composeTestRule.onNodeWithTag(ROW).performTouchInput {
             // Past half the reveal, short of a full swipe.
@@ -178,9 +181,37 @@ class SwipeActionRowTest {
         assertEquals(0.dp, rowLeft())
     }
 
+    // The chat list's leading title is short, so a labelled leading action opens to the pill's
+    // width (1.4 times the circle, as iOS draws a titled action) and no wider, and its swipe still
+    // fires on the real gesture sequence.
+    @Test
+    fun `a short label opens the reveal to the pill width`() {
+        show(withLeading = true, leadingLabel = SHORT_LABEL)
+        assert(labelWidth <= 70.dp) { "the short label ($labelWidth) should fit inside the pill" }
+
+        composeTestRule.onNodeWithTag(ROW).performTouchInput {
+            swipeRight(startX = left + 1f, endX = left + 80.dp.toPx(), durationMillis = 1_500)
+        }
+        composeTestRule.waitForIdle()
+        val revealed = rowLeft()
+        assert(revealed > circleRevealWidth) { "revealed $revealed should be wider than the circle-only $circleRevealWidth" }
+        assertEquals(pillRevealWidth.value, revealed.value, 1f)
+        assertEquals(0, leadingFired)
+
+        composeTestRule.onNodeWithTag(ROW).performTouchInput {
+            swipeRight(startX = left + 1f, endX = right, durationMillis = 120)
+        }
+        composeTestRule.waitForIdle()
+        assertEquals(1, leadingFired)
+        assertEquals(0.dp, rowLeft())
+    }
+
     private companion object {
         const val ROW = "row"
-        const val LABEL = "Mark as Unread"
+        // Wider than the circle, as the Members row's titles are.
+        const val LABEL = "Lift Restriction"
+        // The chat list's leading title: no wider than the circle.
+        const val SHORT_LABEL = "Unread"
         const val LEADING_DESCRIPTION = "Mark chat as unread"
     }
 }

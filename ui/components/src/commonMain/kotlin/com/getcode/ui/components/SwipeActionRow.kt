@@ -67,6 +67,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import org.jetbrains.compose.resources.painterResource
 
 /**
@@ -441,19 +442,32 @@ fun SwipeActionRow(
     }
 }
 
-/** An action's slot width: the circle's, or its label's when the label is wider. */
-private fun slotWidthPx(labelWidthPx: Int?, circlePx: Int): Int = maxOf(circlePx, labelWidthPx ?: 0)
+/**
+ * A labelled action draws its background as a pill: the circle's height and [PillWidthRatio] times
+ * its width, matching the titled swipe actions iOS draws.
+ */
+private const val PillWidthRatio = 1.4f
+
+private fun pillWidthPx(circlePx: Float): Float = circlePx * PillWidthRatio
+
+/**
+ * An action's slot width: the circle's when unlabelled; when labelled, the pill's, or the label's
+ * when the label is wider.
+ */
+private fun slotWidthPx(labelWidthPx: Int?, circlePx: Int): Int =
+    if (labelWidthPx == null) circlePx else maxOf(pillWidthPx(circlePx.toFloat()).roundToInt(), labelWidthPx)
 
 /** The reveal width for [labelWidths] (one per action, null when unlabelled), as a float like the anchors. */
 private fun revealWidthPx(labelWidths: List<Int?>, circlePx: Float, padPx: Float): Float =
-    labelWidths.sumOf { maxOf(circlePx, (it ?: 0).toFloat()).toDouble() }.toFloat() +
+    labelWidths.sumOf { slotWidthPx(it, circlePx.roundToInt()).toDouble() }.toFloat() +
         padPx * (labelWidths.size + 1)
 
 /**
- * One action behind the row. Unlabelled, it is the pill the row measures it to. Labelled, it is a
- * circle with the label centred under it, the pair centred in the row's height; when the outermost
- * action is stretched by a full swipe the circle widens by the same amount and the label stays
- * under it. The whole slot, label included, takes the tap; the ripple stays on the circle.
+ * One action behind the row. Unlabelled, it is the circle (or, stretched by a full swipe, the pill)
+ * the row measures it to. Labelled, it is a pill the circle's height and [PillWidthRatio] times as
+ * wide, with the label centred under it and the pair centred in the row's height; when the
+ * outermost action is stretched by a full swipe the pill widens by the same amount and the label
+ * stays under it. The whole slot, label included, takes the tap; the ripple stays on the pill.
  */
 @Composable
 private fun SwipeActionSlot(
@@ -503,8 +517,9 @@ private fun SwipeActionSlot(
         val gapPx = gap.roundToPx()
         val text = measurables[1].measure(Constraints())
         val slot = slotWidthPx(text.width, circlePx)
+        val pillPx = pillWidthPx(circlePx.toFloat()).roundToInt()
         val circle = measurables[0].measure(
-            Constraints.fixed(circlePx + (constraints.maxWidth - slot).coerceAtLeast(0), circlePx)
+            Constraints.fixed(pillPx + (constraints.maxWidth - slot).coerceAtLeast(0), circlePx)
         )
         layout(constraints.maxWidth, constraints.maxHeight) {
             val top = (constraints.maxHeight - circle.height - gapPx - text.height) / 2

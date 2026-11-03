@@ -1,5 +1,7 @@
 package com.flipcash.app.tipping.internal.components
 
+import com.flipcash.core.resources.action_read
+import com.flipcash.core.resources.action_unread
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.remember
 import com.flipcash.services.models.chat.ChatId
@@ -39,11 +41,13 @@ internal fun rememberSelectCircles(selection: Set<ChatId>?): SelectCircles {
 /**
  * The leading swipe on a chat list row: Mark as Read on an unread chat, Mark as Unread otherwise.
  * Tonal like the trailing Mute circle: the glyph in the unread blue on its dark-blue ground, sized
- * like the trailing Archive and Mute circles, with the select-mode bar's wording under it.
+ * like the trailing Archive and Mute circles. The title under it is the short Read / Unread; the
+ * content description keeps the long Mark as Read / Mark as Unread.
  */
 @Composable
 internal fun markReadSwipeAction(isUnread: Boolean, onTriggered: () -> Unit): Pair<SwipeAction, String> {
     val label = stringResource(if (isUnread) Res.string.action_markAsRead else Res.string.action_markAsUnread)
+    val title = stringResource(if (isUnread) Res.string.action_read else Res.string.action_unread)
     val painter = painterResource(
         if (isUnread) UiRes.drawable.ic_mark_chat_read else UiRes.drawable.ic_mark_chat_unread
     )
@@ -53,7 +57,7 @@ internal fun markReadSwipeAction(isUnread: Boolean, onTriggered: () -> Unit): Pa
         // The row stays in the list, so a full swipe has to send it home rather than leave it
         // settled off screen.
         resetOnDismiss = true,
-        label = label,
+        label = title,
     ) {
         Icon(
             painter = painter,
