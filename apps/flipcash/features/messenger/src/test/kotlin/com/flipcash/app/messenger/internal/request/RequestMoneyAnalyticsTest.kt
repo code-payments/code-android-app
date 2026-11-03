@@ -81,7 +81,8 @@ class RequestMoneyAnalyticsTest {
         vm.requestConfirm()
     }
 
-    private val perPerson = Fiat(5.0, CurrencyCode.USD)
+    // $5 each for the creator and two others: Created reports the $15 total, not a $5 share.
+    private val total = Fiat(quarks = 15_000_000L, currencyCode = CurrencyCode.USD)
 
     @Test
     fun `a created request sends Created once, counting the people asked and not the creator`() {
@@ -91,7 +92,7 @@ class RequestMoneyAnalyticsTest {
         vm.send()
 
         assertEquals(
-            listOf(PaymentRequestEvents.created(2, AnalyticsState.SUCCESS, perPerson.analytics, null)),
+            listOf(PaymentRequestEvents.created(2, AnalyticsState.SUCCESS, total.analytics, null)),
             analytics.events,
         )
     }
@@ -104,7 +105,7 @@ class RequestMoneyAnalyticsTest {
         vm.send()
 
         assertEquals(
-            listOf(PaymentRequestEvents.created(2, AnalyticsState.FAILURE, perPerson.analytics, "denied")),
+            listOf(PaymentRequestEvents.created(2, AnalyticsState.FAILURE, total.analytics, "denied")),
             analytics.events,
         )
     }

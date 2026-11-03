@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.flipcash.shared.chat.GroupCardLinks
 
 /**
  * The invite sheet's "Recent Chats" (nodes 10330:19387, 10330:19549, 10329:12104): which chats,
@@ -51,7 +52,16 @@ internal class GroupInviteViewModel @Inject constructor(
     private val clipboardManager: ClipboardManager,
     private val tipCodePreviewCache: TipCodePreviewCache,
     private val e2eePolicy: E2eePolicy,
+    private val cardLinks: GroupCardLinks,
 ) : ViewModel() {
+
+    /**
+     * Hands the plain [url] to the group card about to open, so a link left by an earlier sheet
+     * that never opened its card can't be the one it encodes.
+     */
+    fun handOverPlainCard(chatId: ChatId, url: String) {
+        cardLinks.put(chatId, GroupCardLinks.Link(url, isInvite = false))
+    }
 
     data class State(
         /** Null until the feed first emits, so an empty list means there are no chats to offer. */

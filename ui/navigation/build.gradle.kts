@@ -1,3 +1,5 @@
+import java.time.Duration
+
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
     alias(libs.plugins.compose.compiler)
@@ -58,4 +60,10 @@ dependencies {
     add("kspAndroid", libs.hilt.compiler)
     add("kspJvm", libs.dagger.compiler)
     add("jvmMainImplementation", libs.dagger)
+}
+
+// WrapContentSheetLayoutLoopTest fails by hanging: a sheet stuck in a measure loop never returns
+// to the test. Cap the run so that shows up as a failure instead of eating the CI job.
+tasks.withType<Test>().configureEach {
+    timeout.set(Duration.ofMinutes(10))
 }

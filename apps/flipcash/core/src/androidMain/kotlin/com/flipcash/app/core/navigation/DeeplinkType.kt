@@ -79,6 +79,9 @@ sealed interface DeeplinkType: Parcelable {
      */
     @Serializable data class Profile(val address: ProfileAddress): DeeplinkType
 
+    /** A tab, from `app.flipcash.com/tab/{scan|chats|wallet|you}` or `flipcash://tab/{name}`. */
+    @Serializable data class Tab(val button: NavBarButton) : DeeplinkType
+
     @Serializable
     data class EmailVerification(
         val email: String,
@@ -112,13 +115,16 @@ sealed interface DeeplinkType: Parcelable {
 
             is Login,
             is EmailVerification,
+            // A tab switch is navigation, not something a printed code is there to ask for.
+            is Tab,
             -> false
         }
 }
 
 val Uri.fragments: Map<Key, String>
     get() {
-        return this.toString().split("/")
+        // `#` is a boundary too: iOS writes `login#e=…` where Android's own links write `login/e=…`.
+        return this.toString().split("/", "#")
             .mapNotNull { fragment ->
                 val data = Key.entries
                     .map { key -> key to "${key.value}=" }

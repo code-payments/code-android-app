@@ -4,9 +4,11 @@ import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.getcode.view.PaymentSuccessHoldDuration
 import com.getcode.view.holdPaymentSuccess
 import com.flipcash.shared.chat.ui.settledUsd
+import com.flipcash.shared.chat.ui.CashBubblePeople
 import com.flipcash.shared.chat.ui.partFor
 import com.flipcash.shared.chat.media.ChatPhoto
 import com.flipcash.services.models.chat.MediaItemRendition
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.LinkPreview
 import com.flipcash.shared.chat.ui.linkPreview
 import android.content.ClipboardManager
@@ -98,6 +100,12 @@ import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.chat.TypingState
 import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.ViewerState
+import com.flipcash.services.models.chat.Pin
+import com.flipcash.services.models.PinMessageError
+import com.flipcash.app.messenger.internal.pins.ChatPins
+import com.flipcash.app.messenger.internal.pins.WaitingPin
+import com.flipcash.app.messenger.internal.pins.PinnedRow
+import com.flipcash.shared.chat.ui.previewText
 import com.flipcash.services.models.chat.isActiveAt
 import com.flipcash.services.models.chat.silence
 import com.flipcash.services.models.chat.isDmAddressable
@@ -119,6 +127,7 @@ import com.flipcash.shared.chat.HostLobbies
 import com.flipcash.shared.chat.LobbyRequests
 import com.flipcash.shared.chat.media.ChatMediaUploadState
 import com.flipcash.shared.chat.media.ChatMediaUploads
+import com.flipcash.shared.chat.media.stage
 import com.flipcash.shared.chat.media.MediaSendProgress
 import com.flipcash.shared.chat.ui.media.MAX_STAGED_PHOTOS
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -166,8 +175,8 @@ import com.flipcash.shared.chat.ui.detectUrls
 import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.shared.chat.withinWindows
 import com.flipcash.shared.payments.ContactPaymentDelegate
+import com.flipcash.shared.payments.group.GroupSendInsufficientBalance
 import com.flipcash.shared.payments.group.GroupSendPaymentDelegate
-import com.flipcash.shared.payments.group.GroupSendPlan
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
 import com.getcode.libs.emojis.reactions.EmojiDrawability
@@ -327,6 +336,9 @@ internal class ChatViewModel @AssistedInject constructor(
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
 ) {
+    /** The highest pin summary version heard of; a read follows any that passes the held list. */
+    private val pinVersionHeard = MutableStateFlow<Long?>(null)
+
 
     /**
      * Whether the transcript may be drawn. Saved link previews load at app start, but a chat opened
@@ -382,6 +394,12 @@ internal class ChatViewModel @AssistedInject constructor(
          * needs the deadline this keeps.
          */
         val viewerState: ViewerState? = null,
+        /** The chat's pins, read on open and again whenever the stored summary moves past them. */
+        val pins: ChatPins = ChatPins(),
+        /** Which visible pin the bar shows, newest first. A tap jumps to it and steps to the next older. */
+        val pinBarIndex: Int = 0,
+        /** The message the server refused at the pin cap; the pinned list quotes it while it waits for a slot. */
+        val waitingPin: WaitingPin? = null,
         /**
          * The clock a timed silence is read against. A silence lapses with no event, so [silence]
          * compares the deadline to this and a timer bumps it at the deadline.
@@ -654,6 +672,10 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         val participant: ChatParticipant?
             get() = subject?.asParticipant()
+
+        /** `can_pin`: the creator of a group while a member, either member of a DM. Read, never derived from the type. */
+        val canPin: Boolean
+            get() = viewerState?.permissions?.canPin == true
 
         /**
          * Cash sent here pays members rather than posting a cash link. Private groups only: they
@@ -987,6 +1009,26 @@ internal class ChatViewModel @AssistedInject constructor(
 
         /** This chat's viewer state moved, from the stream or from the viewer's own request. */
         data class OnViewerStateResolved(val viewerState: ViewerState?) : Event
+
+        /** A read of the chat's pins came back, made at summary [version]. */
+        data class PinsRead(val pins: List<Pin>, val version: Long) : Event
+
+        /** The transcript's stored copies of the pinned messages, keyed by message id. */
+        data class PinnedCopiesStored(val messages: Map<Long, ChatMessage>) : Event
+
+        /** The stored pin summary moved; its count says whether there is anything to wait for. */
+        data class PinSummaryChanged(val count: Int) : Event
+
+        /** Pin [messageId]; [quote] names it in the full-list header if the chat is at its cap. */
+        data class PinMessage(val messageId: Long, val quote: String?) : Event
+        /** Unpin [messageId]; once it succeeds, [pinAfter] takes the freed slot (the list opened full). */
+        data class UnpinMessage(val messageId: Long, val pinAfter: Long? = null) : Event
+
+        /** The server refused a pin with `TOO_MANY_PINS`: the screen opens the list to make room for it. */
+        data class PinCapReached(val waiting: WaitingPin) : Event
+
+        /** The pin bar was tapped: jump to the pin it shows and step to the next older one. */
+        data object PinBarTapped : Event
 
         /** A timed silence reached its deadline; nothing else says so. */
         data object SilenceLapsed : Event
@@ -1336,6 +1378,10 @@ internal class ChatViewModel @AssistedInject constructor(
         val canBan: Boolean,
         /** The group's creator, whom no moderation action may name. */
         val creatorId: ID?,
+        /** `can_pin`, read from the viewer state for DMs and groups alike. */
+        val canPin: Boolean,
+        /** What a DM's cash bubbles call the other member; null in a group or until it resolves. */
+        val counterpartName: String?,
     )
 
     /**
@@ -1499,12 +1545,21 @@ internal class ChatViewModel @AssistedInject constructor(
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     /**
-     * The foot line of a group's cash bubble, matching iOS's `ChatItem.groupSend`: a split names its
-     * first recipient (or "You" when the viewer was paid) and counts the rest, falling back to a head count while that name is unknown,
-     * and a payment to one member names them ("to You" when that is the viewer). Null for a payment
-     * with no receiver, or to one member nobody has a name for yet.
+     * The names a cash bubble needs ([CashBubblePeople]): a DM's other member, or a group send's
+     * sender and first recipient in the order they were picked. A name nobody has yet is null, which
+     * the bubble reads as "Someone", and asks for the profile so it fills in. Null while the chat's
+     * type is unknown.
      */
-    private fun groupSendRecipients(cash: MessageContent.Cash, profiles: Map<String, UserProfile>?): String? {
+    private fun cashPeople(
+        cash: MessageContent.Cash,
+        chatType: ChatType?,
+        senderId: ID?,
+        profiles: Map<String, UserProfile>?,
+        counterpartName: String?,
+    ): CashBubblePeople? {
+        // Until the chat's type is known, a group's bubble would read as a DM's: caption alone.
+        if (chatType == null || chatType == ChatType.UNKNOWN) return null
+        if (chatType != ChatType.GROUP) return CashBubblePeople.Direct(counterpartName)
         val self = userManager.accountId
         fun nameOf(id: ID): String? {
             if (id == self) return resources.getString(R.string.title_you)
@@ -1512,22 +1567,11 @@ internal class ChatViewModel @AssistedInject constructor(
             if (profile == null || profile.displayName.isBlank()) chatCoordinator.requestSenderProfile(id)
             return profile?.let { nameOrHandle(it.displayName, it.handle) }
         }
-
-        val parts = cash.multiReceiver
-        if (parts.size < 2) {
-            val receiver = cash.receiver ?: return null
-            return nameOf(receiver)?.let { resources.getString(R.string.label_groupSendTo, it) }
-        }
-        val others = parts.size - 1
-        val lead = parts.firstOrNull { it.receiver == self } ?: parts.first()
-        return nameOf(lead.receiver)
-            ?.let { first ->
-                resources.getString(
-                    R.string.label_groupSendTo,
-                    resources.getQuantityString(R.plurals.label_groupSendRecipients, others, first, others),
-                )
-            }
-            ?: resources.getQuantityString(R.plurals.label_groupSendToPeople, parts.size, parts.size)
+        val lead = cash.multiReceiver.firstOrNull()?.receiver ?: cash.receiver
+        return CashBubblePeople.Group(
+            sender = senderId?.takeIf { it != self }?.let(::nameOf),
+            leadRecipient = lead?.let(::nameOf),
+        )
     }
 
     /**
@@ -1554,6 +1598,8 @@ internal class ChatViewModel @AssistedInject constructor(
                         canSilence = it.chatType == ChatType.GROUP && moderation?.canSilence == true,
                         canBan = it.chatType == ChatType.GROUP && moderation?.canBan == true,
                         creatorId = (it.subject as? ChatSubject.Group)?.creator,
+                        canPin = it.canPin,
+                        counterpartName = it.participant?.name,
                     )
                 }.distinctUntilChanged(),
                 ::ViewerGates,
@@ -1587,26 +1633,13 @@ internal class ChatViewModel @AssistedInject constructor(
                     // message is still in the page: its key, and so the next page's, are unchanged.
                     if (content.paysRequestShare) return@flatMapIndexed emptyList()
 
-                    val enriched = if (content is MessageContent.Cash && content.tokenName.isBlank()) {
-                        val token = tokenCoordinator.getTokenMetadata(content.mint).getOrNull()?.token
-                        if (token != null) {
-                            content.copy(tokenName = token.name, tokenImageUrl = token.imageUrl)
-                        } else content
-                    } else content
+                    val enriched = content.withTokenMetadata()
 
                     // Resolved here, next to the token-metadata lookup, because this is the one
                     // place in the transcript that already does async per-item work. A citation of
                     // a message this device never stored resolves to null, and the bubble renders
                     // its body with no panel rather than an error.
-                    val quote = (content as? MessageContent.Reply)?.let { reply ->
-                        stateFlow.value.chatId
-                            ?.let { chatId ->
-                                quotedMessages.getOrPut(reply.repliedMessageId) {
-                                    Optional.ofNullable(chatCoordinator.getMessage(chatId, reply.repliedMessageId))
-                                }.orElse(null)
-                            }
-                            ?.toQuote()
-                    }
+                    val quote = content.quoteOrNull()
 
                     // Built from the same detection pass the bubble underlines with, so the
                     // link that becomes a card is always one the reader can see is a link.
@@ -1698,6 +1731,7 @@ internal class ChatViewModel @AssistedInject constructor(
                             canSilence = facts.canSilence,
                             canBan = facts.canBan,
                             creatorId = facts.creatorId,
+                            canPin = facts.canPin,
                         ),
                         quote = quote,
                         sender = sender,
@@ -1731,9 +1765,15 @@ internal class ChatViewModel @AssistedInject constructor(
                                 ?: resources.getString(R.string.title_unnamedUser),
                         ) ?: UndecryptableHint.UpdateApp,
                         receivedPart = (enriched as? MessageContent.Cash)?.partFor(userManager.accountId),
-                        groupSendRecipients = (enriched as? MessageContent.Cash)
-                            ?.takeIf { chatType == ChatType.GROUP }
-                            ?.let { groupSendRecipients(it, profiles) },
+                        cashPeople = (enriched as? MessageContent.Cash)?.let { cash ->
+                            cashPeople(
+                                cash = cash,
+                                chatType = chatType,
+                                senderId = message.senderId,
+                                profiles = profiles,
+                                counterpartName = facts.counterpartName,
+                            )
+                        },
                     )
                         // A carded link takes a row of its own, with the prose either side of it
                         // on rows above and below. Reversed because the list is: this page runs
@@ -1846,6 +1886,22 @@ internal class ChatViewModel @AssistedInject constructor(
         senderId = message.senderId,
     )
 
+    /**
+     * The quote panel for [this] when it is a reply, resolved from the stored original. Shared by the
+     * transcript and the pinned list so a reply reads the same in both. Null for any other content,
+     * and for a citation of a message this device never stored.
+     */
+    private suspend fun MessageContent.quoteOrNull(): ChatQuote? {
+        val reply = this as? MessageContent.Reply ?: return null
+        return stateFlow.value.chatId
+            ?.let { chatId ->
+                quotedMessages.getOrPut(reply.repliedMessageId) {
+                    Optional.ofNullable(chatCoordinator.getMessage(chatId, reply.repliedMessageId))
+                }.orElse(null)
+            }
+            ?.toQuote()
+    }
+
     private suspend fun ChatMessage.toQuote(): ChatQuote {
         val body = content.firstOrNull()
         val palette = senderId?.let { generateComplementaryColorPalette(it) }
@@ -1897,13 +1953,17 @@ internal class ChatViewModel @AssistedInject constructor(
         )
     }
 
+    // A group send has no ceiling: its currency is picked on the confirm sheet, which is the only
+    // place the balance is checked, so the amount step shows no "Enter up to" hint and no limit.
     private val maxAmountFlow by lazy {
         combine(
             transactionController.limits,
             tokenCoordinator.observeSelectedTokenMint()
                 .flatMapLatest { mint -> tokenCoordinator.balanceForToken(mint) },
             exchange.observePreferredRate(),
-        ) { limits, balance, rate ->
+            stateFlow.map { it.groupSend != null }.distinctUntilChanged(),
+        ) { limits, balance, rate, isGroupSend ->
+            if (isGroupSend) return@combine null
             val balanceInLocal = balance.convertingTo(rate)
             val sendLimit = limits?.sendLimitFor(rate.currency) ?: SendLimit.Zero
             Fiat(min(sendLimit.nextTransaction, balanceInLocal.toDouble()), rate.currency)
@@ -2249,7 +2309,11 @@ internal class ChatViewModel @AssistedInject constructor(
 
     private suspend fun openTranscript(chatId: ChatId) {
         when (val hydration = chatCoordinator.hydrateChat(chatId)) {
-            ChatHydration.Stored,
+            ChatHydration.Stored -> coroutineScope {
+                // Its own GetChat, writing only the grant columns: the transcript need not wait.
+                launch { chatCoordinator.refreshViewerState(chatId) }
+                chatCoordinator.loadMessages(chatId)
+            }
             ChatHydration.Unavailable -> chatCoordinator.loadMessages(chatId)
             ChatHydration.Absent -> dispatchEvent(Event.ChatNotFound)
             is ChatHydration.Fetched -> {
@@ -2590,8 +2654,11 @@ internal class ChatViewModel @AssistedInject constructor(
             .onEach {
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
-                if (group.isMember == false) chatCoordinator.refreshRules(chatId)
-                if (group.coverPicture == null) chatCoordinator.refreshCover(chatId)
+                // Each is its own GetChat writing its own column, and both swallow a failure.
+                coroutineScope {
+                    if (group.isMember == false) launch { chatCoordinator.refreshRules(chatId) }
+                    if (group.coverPicture == null) launch { chatCoordinator.refreshCover(chatId) }
+                }
             }
             .launchIn(viewModelScope)
 
@@ -3409,6 +3476,14 @@ internal class ChatViewModel @AssistedInject constructor(
             }
             .launchIn(viewModelScope)
 
+        // A jump that can't land says so: a pin or a link to a message the server no longer
+        // returns would otherwise be a tap that does nothing.
+        eventFlow.filterIsInstance<Event.JumpUnreachable>()
+            .onEach { toastController.showToast(R.string.title_messageUnreachable, replacePrevious = true) }
+            .launchIn(viewModelScope)
+
+        observePins()
+
         // Only distanceFromNewest, not resolveJump: an origin was on screen when its quote was
         // tapped, so one no longer stored has gone from the chat, and is skipped rather than fetched.
         eventFlow.filterIsInstance<Event.ReturnToOrigin>()
@@ -3956,25 +4031,28 @@ internal class ChatViewModel @AssistedInject constructor(
         }
     }
 
-    /** Node 12243:1009 — Send Money or Request Money, as cards like the Add Money sheet's. */
+    /**
+     * Node 12243:1009 — Request Money, then Send Money, as cards like the Add Money sheet's. The
+     * order is the reverse of the design frame's, by the product owner's decision.
+     */
     private fun presentMoneyActions() {
         // Two rows and nothing else, as the spec lays the sheet out: no title, no Dismiss.
         BottomBarManager.showMessage(
             title = "",
             actions = listOf(
                 bottomBarCardAction(
-                    title = resources.getString(R.string.action_sendMoney),
-                    subtitle = resources.getString(R.string.subtitle_sendMoney_group),
-                    iconRes = R.drawable.ic_menu_withdraw,
-                    testTag = "money_action_send",
-                    onClick = { viewModelScope.launch { startSend() } },
-                ),
-                bottomBarCardAction(
                     title = resources.getString(R.string.action_requestMoney),
                     subtitle = resources.getString(R.string.subtitle_requestMoney_group),
                     iconRes = R.drawable.ic_menu_deposit,
                     testTag = "money_action_request",
                     onClick = { dispatchEvent(Event.NavigateToRequestMoney) },
+                ),
+                bottomBarCardAction(
+                    title = resources.getString(R.string.action_sendMoney),
+                    subtitle = resources.getString(R.string.subtitle_sendMoney_group),
+                    iconRes = R.drawable.ic_menu_withdraw,
+                    testTag = "money_action_send",
+                    onClick = { viewModelScope.launch { startSend() } },
                 ),
             ),
         )
@@ -4033,20 +4111,8 @@ internal class ChatViewModel @AssistedInject constructor(
         eventFlow.filterIsInstance<Event.OnGroupSendPeopleConfirmed>()
             .onEach {
                 val groupSend = stateFlow.value.groupSend ?: return@onEach
-                when (groupSend.plan) {
-                    is GroupSendPlan.Pay -> update { it.copy(stage = GroupSendState.Stage.Confirm) }
-                    // Nothing is priced: a part under one cent can't be sent, whatever the rate.
-                    // The user stays here to pick fewer people or go back and raise the amount.
-                    GroupSendPlan.PartBelowMinimum -> BottomBarManager.showAlert(
-                        title = resources.getString(R.string.error_title_groupSendTooSmall),
-                        message = resources.getQuantityString(
-                            R.plurals.error_description_groupSendTooSmall,
-                            groupSend.selected.size,
-                            groupSend.selected.size,
-                        ),
-                    )
-                    GroupSendPlan.NoRecipients, GroupSendPlan.TooManyRecipients -> Unit
-                }
+                if (groupSend.selected.isEmpty()) return@onEach
+                update { it.copy(stage = GroupSendState.Stage.Confirm) }
             }.launchIn(viewModelScope)
 
         eventFlow.filterIsInstance<Event.OnGroupSendRequested>()
@@ -4062,12 +4128,14 @@ internal class ChatViewModel @AssistedInject constructor(
 
     private fun sendToMembers() = viewModelScope.launch {
         val groupSend = stateFlow.value.groupSend ?: return@launch
-        val plan = groupSend.plan as? GroupSendPlan.Pay ?: return@launch
+        val amount = groupSend.amount ?: return@launch
         val total = groupSend.total ?: return@launch
+        if (groupSend.selected.isEmpty()) return@launch
         val chatId = stateFlow.value.chatId ?: return@launch
         val token = stateFlow.value.token ?: return@launch
         val owner = userManager.accountCluster ?: return@launch
-        // The confirm sheet can change the token after the amount step checked the balance.
+        // The sender pays the amount for each person checked. The confirm sheet can change the
+        // token, so this is the only balance check.
         if (checkBalanceLimit(total)) return@launch
 
         dispatchEvent(Event.SendStateUpdated(loading = true))
@@ -4075,8 +4143,7 @@ internal class ChatViewModel @AssistedInject constructor(
         val result = groupSendPayments.send(
             chatId = chatId,
             recipients = groupSend.selected,
-            plan = plan,
-            currency = total.currencyCode,
+            amount = amount,
             token = token,
             source = owner.withTimelockForToken(token),
         )
@@ -4093,10 +4160,16 @@ internal class ChatViewModel @AssistedInject constructor(
             )
         }.onFailure { cause ->
             dispatchEvent(Event.SendStateUpdated())
+            // An amount that can't be sent never started a send, so it is the balance alert, not
+            // "Couldn't Send".
+            if (cause is ComputeVerifiedFiatError.AmountBelowMinimum || cause is GroupSendInsufficientBalance) {
+                startChattingPayer.presentInsufficientBalance(
+                    onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
+                )
+                return@onFailure
+            }
             analytics.track(TransferEvents.sentCash(AnalyticsState.FAILURE, total.analytics, cause.analytics, SendContext.GROUP_SEND, groupSend.selected.size))
             val (title, message) = when (cause) {
-                is ComputeVerifiedFiatError.AmountBelowMinimum ->
-                    R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
                 is ComputeVerifiedFiatError ->
                     R.string.error_title_staleRates to R.string.error_description_staleRates
                 else ->
@@ -4152,17 +4225,20 @@ internal class ChatViewModel @AssistedInject constructor(
         val enteredAmount = fixedAmount?.toDouble() ?: amountDelegate.state.value.enteredAmount
         val amount = fixedAmount ?: Fiat(enteredAmount, exchange.preferredRate.currency)
 
-        if (checkBalanceLimit(amount) || checkSendLimit(enteredAmount)) return
+        // A group send's balance check waits for the confirm sheet (sendToMembers), where the
+        // currency is picked; the amount here only has to be positive.
+        val groupSend = stateFlow.value.groupSend
+        val overBalance = groupSend == null && checkBalanceLimit(amount)
+        if (overBalance || checkSendLimit(enteredAmount)) return
 
         if (enteredAmount <= 0) return
 
         val token = stateFlow.value.token ?: return
 
-        val groupSend = stateFlow.value.groupSend
         if (groupSend != null && fixedAmount == null) {
             dispatchEvent(
                 Event.GroupSendUpdated(
-                    groupSend.copy(total = amount, stage = GroupSendState.Stage.People)
+                    groupSend.copy(amount = amount, stage = GroupSendState.Stage.People)
                 )
             )
             return
@@ -4200,6 +4276,216 @@ internal class ChatViewModel @AssistedInject constructor(
      * device never stored is paged in from the server first, back from the oldest stored message so
      * the transcript stays contiguous; a link to old history is the usual case.
      */
+    /**
+     * Pins are read with `GetPinnedMessages` on open and read again whenever a newer
+     * `PinSummary.version` is heard of: from the stored summary, which the event stream advances on
+     * `PinsChanged`, or from the viewer's own pin or unpin. The list is never patched from an event.
+     * A summary missing from a feed read leaves the stored one alone, so it never clears pins here.
+     */
+    private fun observePins() {
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatId -> chatCoordinator.observeMetadata(chatId) }
+            .mapNotNull { it?.metadata?.pinSummary }
+            .distinctUntilChanged()
+            .onEach { summary ->
+                dispatchEvent(Event.PinSummaryChanged(summary.count))
+                notePinVersion(summary.version)
+            }
+            .launchIn(viewModelScope)
+
+        // Restarted by each newer version, so a read overtaken by another pin is dropped for the next.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatId -> pinVersionHeard.map { chatId to it } }
+            .filter { (_, heard) -> stateFlow.value.pins.let { !it.loaded || it.isStale(heard) } }
+            .mapLatest { (chatId, _) ->
+                chatCoordinator.getPinnedMessages(chatId)
+                    .onSuccess { dispatchEvent(Event.PinsRead(it.pins, it.version)) }
+                    .onFailure { trace(tag = "Pins", message = "Pin read failed", error = it, type = TraceType.Error) }
+            }
+            .launchIn(viewModelScope)
+
+        // A delete or edit of a pinned message moves no pin version; its stored copy shows it.
+        stateFlow.mapNotNull { it.chatId }
+            .distinctUntilChanged()
+            .flatMapLatest { chatId ->
+                combine(
+                    chatCoordinator.observeMessages(chatId),
+                    stateFlow.map { it.pins.pinnedIds }.distinctUntilChanged(),
+                ) { messages, ids -> messages.filter { it.messageId in ids }.associateBy { it.messageId } }
+            }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.PinnedCopiesStored(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.PinMessage>()
+            .onEach { event -> pin(event.messageId, event.quote) }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.UnpinMessage>()
+            .onEach { event ->
+                val chatId = stateFlow.value.chatId ?: return@onEach
+                chatCoordinator.unpinMessage(chatId, event.messageId)
+                    .onSuccess { summary ->
+                        notePinVersion(summary.version)
+                        // The list opened full: the slot just freed goes to the message that was waiting.
+                        event.pinAfter?.let { waiting -> pin(waiting, quote = null, waited = true) }
+                    }
+                    .onFailure { toastController.showToast(R.string.title_unpinFailed, replacePrevious = true) }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow.filterIsInstance<Event.PinBarTapped>()
+            .onEach {
+                // The reducer has already stepped the bar on, so the pin it showed is one back.
+                val state = stateFlow.value
+                val shown = state.pins.visible.getOrNull(
+                    (state.pinBarIndex - 1).mod(state.pins.visible.size.coerceAtLeast(1))
+                ) ?: return@onEach
+                dispatchEvent(Event.JumpToMessage(shown.messageId))
+            }
+            .launchIn(viewModelScope)
+
+    }
+
+    private fun notePinVersion(version: Long) {
+        pinVersionHeard.update { heard -> maxOf(heard ?: version, version) }
+    }
+
+    /**
+     * The pin bar's one line for [pin]: the chat list's preview of the message, with no
+     * attribution. Null when there is nothing readable to quote, which the bar says as an
+     * encrypted message.
+     */
+    internal fun pinPreview(pin: Pin): String? {
+        val isGroup = stateFlow.value.chatType == ChatType.GROUP
+        return pin.message.content.firstNotNullOfOrNull { content ->
+            content.previewText(
+                sentBySelf = false,
+                senderName = null,
+                isGroup = isGroup,
+                tokensByMint = emptyMap(),
+                resources = resources,
+                exchange = exchange,
+                paymentRequests = emptyMap(),
+            ) { null }
+        }
+    }
+
+    /**
+     * The pin bar's quote for [pin], built the way the composer's reply strip quotes a message so
+     * the two read alike. A message with nothing readable quotes as an encrypted message.
+     */
+    internal suspend fun pinQuote(pin: Pin): ChatQuote {
+        val quote = pin.message.toQuote()
+        val unreadable = pinPreview(pin) == null &&
+            (quote.snippet as? ChatQuoteSnippet.Text)?.body.isNullOrEmpty()
+        return if (unreadable) {
+            quote.copy(snippet = ChatQuoteSnippet.Text(resources.getString(R.string.label_pinnedEncryptedMessage)))
+        } else {
+            quote
+        }
+    }
+
+    /** A cash message names its token only by mint; the bubble's header needs the name and image. */
+    private suspend fun MessageContent.withTokenMetadata(): MessageContent {
+        if (this !is MessageContent.Cash || tokenName.isNotBlank()) return this
+        val token = tokenCoordinator.getTokenMetadata(mint).getOrNull()?.token ?: return this
+        return copy(tokenName = token.name, tokenImageUrl = token.imageUrl)
+    }
+
+    /**
+     * The pinned list's rows, drawn with the transcript's bubble, so a pinned message reads the same
+     * as it does in place: cash gets its token and the viewer's side of the payment the same way.
+     */
+    internal suspend fun pinnedRows(pins: ChatPins): List<PinnedRow> {
+        val selfId = userManager.accountId
+        return pins.visible.mapNotNull { pin ->
+            val message = pin.message
+            val content = message.content.firstOrNull()?.withTokenMetadata() ?: return@mapNotNull null
+            PinnedRow(
+                pin = pin,
+                bubble = ChatListItem.ContentBubble(
+                    messageId = message.messageId,
+                    contentIndex = 0,
+                    content = content,
+                    isFromSelf = message.isFromSelf,
+                    timestamp = message.timestamp,
+                    isEdited = message.lastEditedTs != null,
+                    quote = content.quoteOrNull(),
+                    receivedPart = (content as? MessageContent.Cash)?.partFor(selfId),
+                    cashPeople = (content as? MessageContent.Cash)?.let { cash ->
+                        cashPeople(
+                            cash = cash,
+                            chatType = stateFlow.value.chatType,
+                            senderId = message.senderId,
+                            profiles = senderProfiles.value,
+                            counterpartName = stateFlow.value.participant?.name,
+                        )
+                    },
+                ),
+                sender = pinPerson(message.senderId),
+                pinnedByName = if (pin.pinnedBy == selfId) {
+                    resources.getString(R.string.label_pinnedByYou)
+                } else {
+                    pinPerson(pin.pinnedBy).displayName
+                },
+                spoken = pinPreview(pin),
+            )
+        }
+    }
+
+    /**
+     * A member as a pinned row shows them: the viewer's own, a group member's profile, or a DM's other
+     * member. The viewer reads as "You" but their avatar keeps their own initials.
+     */
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun pinPerson(userId: ID?): SenderIdentity {
+        val state = stateFlow.value
+        val id = userId ?: emptyList()
+        if (userId != null && userId == userManager.accountId) {
+            val profile = userManager.profile
+            return SenderIdentity(
+                userId = id,
+                displayName = resources.getString(R.string.title_you),
+                picture = profile?.profilePicture,
+                initialsName = profile?.let { nameOrHandle(it.displayName, it.handle) },
+            )
+        }
+        if (state.chatType != ChatType.GROUP) {
+            (state.participant as? ChatParticipant.TipUser)?.let { other ->
+                return SenderIdentity(
+                    userId = id,
+                    displayName = other.name ?: resources.getString(R.string.title_unnamedUser),
+                    picture = other.profile.profilePicture,
+                    initialsName = other.name,
+                )
+            }
+        }
+        val person = groupSendPerson(userId?.hexEncodedString())
+        return SenderIdentity(userId = id, displayName = person.name, picture = person.profile?.profilePicture)
+    }
+
+    /**
+     * Pins [messageId]. [waited] is set when it is the message the full list was opened for; the
+     * list closes on its own once the fresh read shows it pinned.
+     */
+    private suspend fun pin(messageId: Long, quote: String?, waited: Boolean = false) {
+        val chatId = stateFlow.value.chatId ?: return
+        chatCoordinator.pinMessage(chatId, messageId)
+            .onSuccess { summary -> notePinVersion(summary.version) }
+            .onFailure { error ->
+                // At the cap the list opens to make room. If it was already open for this message, a
+                // concurrent pin took the slot: say so and leave the list up for another try.
+                if (error is PinMessageError.TooManyPins && !waited) {
+                    dispatchEvent(Event.PinCapReached(WaitingPin(messageId, quote)))
+                } else {
+                    toastController.showToast(R.string.title_pinNotAdded, replacePrevious = true)
+                }
+            }
+    }
+
     private suspend fun resolveJump(chatId: ChatId, messageId: Long) {
         val distance = chatCoordinator.distanceFromNewest(chatId, messageId)
             ?: if (chatCoordinator.loadHistoryThrough(chatId, messageId)) {
@@ -4244,7 +4530,7 @@ internal class ChatViewModel @AssistedInject constructor(
          */
         private const val CLAIM_THANKS_ENABLED = false
 
-        private const val ROUTED_TO_PROFILE =
+        internal const val ROUTED_TO_PROFILE =
             "ChatIdentifier.ByUser is redirected to the profile before it reaches a ChatViewModel"
 
         /** Long enough to coalesce a burst of typing, short enough to survive a fast exit. */
@@ -4257,356 +4543,140 @@ internal class ChatViewModel @AssistedInject constructor(
         /** [updateStateForEvent] under an explicit [lifetime], so tests can cover both policies. */
         internal fun stateReducer(event: Event, lifetime: UnreadDividerLifetime): (State) -> State =
             when (event) {
-                is Event.OnChatOpened -> { state ->
-                    when (val id = event.identifier) {
-                        is ChatIdentifier.ByContact ->
-                            state.copy(
-                                subject = ChatSubject.Contact(ChatParticipant.Contact(id.contact)),
-                                chatType = ChatType.CONTACT_DM,
-                            )
-                        // Known without a lookup, so the transcript, boundary and the rest keyed
-                        // on it start now rather than once the open handler gets to ChatFound.
-                        is ChatIdentifier.ByChatId -> state.copy(chatId = id.chatId)
-                        is ChatIdentifier.ByUser -> error(ROUTED_TO_PROFILE)
-                    }
-                }
-                is Event.OnContactFound -> { state ->
-                    state.copy(
-                        subject = ChatSubject.Contact(ChatParticipant.Contact(event.contact)),
-                        chatType = ChatType.CONTACT_DM,
-                    )
-                }
-                // "No device contact" is also true of every group, so a group that has already
-                // resolved keeps its type.
-                Event.OnTipDmDetected -> { state ->
-                    if (state.subject is ChatSubject.Group) state
-                    else state.copy(chatType = ChatType.TIP_DM)
-                }
-                is Event.OnWrongKey -> { state -> state.copy(wrongKey = event.wrongKey) }
-                is Event.OnGroupResolved -> { state ->
-                    val metadata = event.membership.metadata
-                    val previous = state.subject as? ChatSubject.Group
-                    // The access was decided for the old membership and rules. Kept across a change
-                    // to either, a stale Eligible would unblur a group whose rules just tightened
-                    // until the balance flow caught up, so it goes back to unknown instead.
-                    val accessStale = previous == null ||
-                        previous.isMember != event.membership.isMember ||
-                        previous.rules != metadata.rules
-                    state.copy(
-                        groupAccess = if (accessStale) null else state.groupAccess,
-                        subject = ChatSubject.Group(
-                            chatId = metadata.chatId,
-                            groupTitle = metadata.title,
-                            picture = metadata.picture,
-                            memberCount = metadata.rosterSummary.memberCount,
-                            rules = metadata.rules,
-                            isMember = event.membership.isMember,
-                            creator = metadata.creator,
-                            description = metadata.description,
-                            coverPicture = metadata.coverPicture,
-                            isPrivate = metadata.isPrivate,
-                        ),
-                        chatType = ChatType.GROUP,
-                        resolveState = ResolveState.Resolved,
-                    )
-                }
-                is Event.OnRuleCurrencyResolved ->
-                    { state -> state.copy(ruleCurrency = event.currency) }
-                is Event.OnGroupAccessResolved -> { state -> state.copy(groupAccess = event.access) }
-                is Event.OnSpeakerBlockResolved -> { state -> state.copy(
-                    speakerBlock = event.block?.requirement,
-                    speakerBlocksReactions = event.block?.reactionsBlocked == true,
-                    speakerBlockResolved = true,
-                ) }
-                Event.JoinChat -> { state ->
-                    state.copy(joinProgress = LoadingSuccessState(loading = true))
-                }
-                is Event.JoinStateUpdated -> { state ->
-                    state.copy(
-                        joinProgress = LoadingSuccessState(
-                            event.loading,
-                            event.success,
-                        )
-                    )
-                }
-                is Event.OnEncryptionResolved -> { state -> state.copy(isEncrypted = event.isEncrypted) }
-
-                is Event.OnViewerStateResolved -> { state ->
-                    state.copy(viewerState = event.viewerState, silenceClock = kotlin.time.Clock.System.now())
-                }
-                Event.SilenceLapsed -> { state -> state.copy(silenceClock = kotlin.time.Clock.System.now()) }
-                Event.SilenceLifted -> { state -> state }
+                is Event.OnChatOpened,
+                is Event.OnContactFound,
+                Event.OnTipDmDetected,
+                is Event.OnWrongKey,
+                is Event.OnGroupResolved,
+                is Event.OnRuleCurrencyResolved,
+                is Event.OnGroupAccessResolved,
+                is Event.OnSpeakerBlockResolved,
+                Event.JoinChat,
+                is Event.JoinStateUpdated,
+                is Event.OnEncryptionResolved,
+                is Event.OnViewerStateResolved,
+                Event.SilenceLapsed,
+                Event.SilenceLifted,
                 Event.CopyInviteLink,
                 is Event.InviteSheetOpened,
                 Event.InviteLinkShared,
                 is Event.GateFundingTapped,
                 Event.GroupInfoOpened,
                 Event.InviteCardFollowed,
-                Event.LeaveChat, Event.GroupProfileOpened,
-                Event.RequestToJoin, Event.CancelJoinRequest,
-                Event.JoinRequestsOpened, is Event.ApproveJoinRequest, is Event.DenyJoinRequest -> { state -> state }
-                is Event.OnJoinRequestsResolved -> { state ->
-                    state.copy(isLobbyHost = event.isHost, joinRequests = event.members)
-                }
-                is Event.JoinRequestCallChanged -> { state ->
-                    val calls = state.joinRequestCalls.toMutableMap()
-                    val call = event.call
-                    if (call == null) calls.remove(event.userId) else calls[event.userId] = call
-                    state.copy(joinRequestCalls = calls)
-                }
-                is Event.LobbyCallChanged -> { state -> state.copy(lobbyCall = event.call) }
-                is Event.OnLobbyRequestResolved -> { state -> state.copy(lobbyRequestedAt = event.requestedAt) }
-                is Event.OnHostNameResolved -> { state -> state.copy(hostName = event.name) }
-                is Event.OnChattersLoaded -> { state -> state.copy(chatters = event.chatters) }
-                is Event.OnMembersResolved -> { state -> state.copy(members = event.members) }
-                is Event.OnKnownMembersResolved -> { state -> state.copy(knownMembers = event.members) }
-                Event.MembersOpened -> { state -> state }
-                is Event.OnProfileStandingResolved -> { state -> state.copy(profileStanding = event.standing) }
-                is Event.OnRuleTokensResolved -> { state -> state.copy(ruleTokens = event.tokens) }
-                Event.LeaveConfirmed -> { state -> state.copy(leaving = true) }
-                Event.LeftChat, Event.LeaveFailed -> { state -> state.copy(leaving = false) }
-                Event.ChatNotFound -> { state -> state.copy(chatNotFound = true) }
-                is Event.OnTipUserResolved -> { state ->
-                    // A device contact, once matched, wins over the server profile (it carries the
-                    // phone number and the user's own naming). Otherwise this is a tip DM: adopt the
-                    // profile identity and mark the recipient resolved so the send can proceed (the
-                    // tip user is known to exist; the tip send resolves their address at send time).
-                    // A group has no counterparty: the member this names is just someone in the room.
-                    if (state.subject is ChatSubject.Contact || state.subject is ChatSubject.Group) state
-                    else state.copy(
-                        subject = ChatSubject.TipUser(
-                            ChatParticipant.TipUser(event.userId, event.profile)
-                        ),
-                        chatType = ChatType.TIP_DM,
-                        resolveState = ResolveState.Resolved,
-                    )
-                }
-                is Event.OnCurrencySymbolUpdated -> { state -> state.copy(cashSymbol = event.symbol) }
-                is Event.ChatFound -> { state -> state.copy(chatId = event.chatId) }
-                Event.OnSendCash -> { state -> state }
-                Event.OnStartMessageInput -> { state -> state.copy(messageInputRequested = true) }
-                Event.OnStopMessageInput -> { state -> state }
-                Event.OnMessageInputConsumed -> { state -> state.copy(messageInputRequested = false) }
-                is Event.TypistsUpdated -> { state -> state.copy(typists = event.typists) }
-                is Event.TypingAvatarsUpdated -> { state -> state.copy(typingAvatars = event.avatars) }
-                Event.ResolveCompleted -> { state ->
-                    state.copy(resolveState = ResolveState.Resolved)
-                }
-                is Event.ResolveFailed -> { state ->
-                    state.copy(resolveState = ResolveState.Failed)
-                }
-                is Event.SendMessage -> { state ->
-                    val clears = lifetime == UnreadDividerLifetime.UntilSend &&
-                        state.unreadBoundary is UnreadBoundary.At
-                    val sent = state.copy(returnStack = emptyList())
-                    if (clears) sent.copy(unreadBoundary = UnreadBoundary.None) else sent
-                }
-                is Event.RetryMessage -> { state -> state }
-                is Event.StagePhotos -> { state -> state }
-                is Event.CaptureStarted -> { state -> state }
-                is Event.CaptureFinished -> { state -> state }
-                is Event.RetryPhoto -> { state -> state }
-                is Event.PhotoStaged -> { state ->
-                    if (state.stagedPhotos.size >= MAX_STAGED_PHOTOS) state
-                    else state.copy(stagedPhotos = state.stagedPhotos + event.photo)
-                }
-                is Event.RemovePhoto -> { state ->
-                    state.copy(
-                        stagedPhotos = state.stagedPhotos.filterNot { it.id == event.id },
-                        uploadStates = state.uploadStates - event.id,
-                    )
-                }
-                is Event.UploadStatesChanged -> { state -> state.copy(uploadStates = event.states) }
-                is Event.ComposerLinkChanged -> { state -> state.copy(composerLink = event.link) }
-                Event.RemoveLinkPreview -> { state -> state }
-                is Event.PhotosSent -> { state ->
-                    state.copy(stagedPhotos = state.stagedPhotos.filterNot { it.id in event.ids })
-                }
-                is Event.PhotosRestored -> { state ->
-                    state.copy(stagedPhotos = (event.photos + state.stagedPhotos).take(MAX_STAGED_PHOTOS))
-                }
-                is Event.NavigateToAmountEntry -> { state -> state.copy(sendProgress = LoadingSuccessState()) }
-                Event.NavigateToRequestMoney -> { state -> state }
-                is Event.PresentDepositOptions -> { state -> state }
-                is Event.OpenScreen -> { state -> state }
-                is Event.MentionTapped -> { state -> state }
-                is Event.OpenMention -> { state -> state }
-                is Event.OnConfirmRequested -> { state -> state }
-                is Event.OnSendRequested -> { state -> state }
-                is Event.GroupSendUpdated -> { state -> state.copy(groupSend = event.groupSend) }
-                is Event.OnGroupSendMemberToggled -> { state -> state }
-                Event.OnGroupSendBack -> { state -> state }
-                Event.OnGroupSendPeopleConfirmed -> { state -> state }
-                Event.OnGroupSendRequested -> { state -> state }
-                is Event.SendStateUpdated -> { state ->
-                    state.copy(
-                        sendProgress = LoadingSuccessState(
-                            event.loading,
-                            event.success,
-                        )
-                    )
-                }
-                is Event.SendComplete -> { state -> state }
-                Event.OnSelfTypingStarted -> { state -> state.copy(isSelfTyping = true) }
-                Event.OnSelfTypingStill -> { state -> state }
-                Event.OnSelfTypingStopped -> { state -> state.copy(isSelfTyping = false) }
-                is Event.TypingEnabled -> { state ->
-                    state.copy(
-                        typingConstraints = state.typingConstraints.copy(
-                            enabled = event.enabled,
-                            resolved = true,
-                        )
-                    )
-                }
-                is Event.TokenUpdated -> { state -> state.copy(token = event.token) }
-                is Event.LimitsChanged -> { state -> state.copy(limits = event.limits) }
-                is Event.AdvanceReadPointer -> { state -> state }
-                is Event.ChatDeactivated -> { state -> state.copy(isAnonymous = event.isReadOnly) }
-                is Event.MessagePolicyChanged -> { state -> state.copy(messagePolicy = event.policy) }
-                is Event.ToggleMessageSelection -> { state ->
-                    // By message rather than by row: a message split around its card is one
-                    // selection whichever of its rows was pressed.
-                    val alreadySelected = state.selection?.messageKey == event.bubble.messageKey
-                    // Narrowed again so the bar offers what is open now, not when the row was built.
-                    val selected = event.bubble.takeUnless { alreadySelected }?.narrowedFor(state)
-                    state.copy(
-                        selection = selected,
-                        reactionStripOnly = false,
-                        confirmingDelete = false,
-                    ).withQuickReactionStrip()
-                }
-                is Event.PresentReactionStrip -> { state ->
-                    val selected = event.bubble.narrowedFor(state).takeIf { it.canReact }
-                    if (selected == null) {
-                        state
-                    } else {
-                        state.copy(
-                            selection = selected,
-                            reactionStripOnly = true,
-                            confirmingDelete = false,
-                        ).withQuickReactionStrip()
-                    }
-                }
-                Event.ClearMessageSelection -> { state ->
-                    state.copy(selection = null, confirmingDelete = false).withQuickReactionStrip()
-                }
-                is Event.CopyMessage -> { state ->
-                    state.copy(selection = null, confirmingDelete = false)
-                }
-                Event.ReportRequested -> { state ->
-                    state.copy(selection = null, confirmingDelete = false)
-                }
-                is Event.CopyMessageLink -> { state ->
-                    state.copy(selection = null, confirmingDelete = false)
-                }
-                Event.ShareMessageRequested -> { state ->
-                    state.copy(selection = null, confirmingDelete = false)
-                }
-                is Event.PhotoSaveResult -> { state -> state }
-                is Event.EditMessage -> { state ->
-                    state.copy(
-                        selection = null,
-                        confirmingDelete = false,
-                        replyingTo = null,
-                        editing = EditingMessage(
-                            messageId = event.messageId,
-                            originalText = event.text,
-                            // Starting a second edit before the first ends must not stash the
-                            // first edit's text as if it were the user's draft.
-                            stashedDraft = state.editing?.stashedDraft
-                                ?: state.chatInputState.text.toString(),
-                        ),
-                    )
-                }
-                // Selection survives the confirmation sheet, but the focus does not: the sheet is
-                // modal, so the transcript behind it goes uniformly dim until the sheet closes.
-                is Event.DeleteMessage -> { state -> state.copy(confirmingDelete = true) }
-                Event.SubmitEdit -> { state -> state }
-                Event.CancelEdit -> { state -> state }
-                Event.EditingEnded -> { state -> state.copy(editing = null) }
-                // The strip opens on ReplyToMessage, once the citation resolves; all this does is
-                // take the selection bar down so the transcript is legible while that read runs.
-                is Event.ReplyRequested -> { state ->
-                    state.copy(selection = null, confirmingDelete = false)
-                }
-                is Event.ReplyToMessage -> { state ->
-                    state.copy(
-                        replyingTo = event.quote,
-                        selection = null,
-                        confirmingDelete = false,
-                        // Reply and edit both own the composer, so opening one closes the other.
-                        editing = null,
-                    )
-                }
-                Event.CancelReply -> { state -> state.copy(replyingTo = null) }
-                is Event.OnMentionSuggestions -> { state -> state.copy(mentionSuggestions = event.matches) }
-                // Closed at once rather than waiting for the inserted space to reach the query
-                // observer, so the list doesn't linger a frame over the text it just wrote.
-                is Event.PickMention -> { state -> state.copy(mentionSuggestions = emptyList()) }
-                // The toggle itself is handled in initMessageActionHandlers (it calls the
-                // coordinator); the reducer's only job is to take the bubble out of selection mode
-                // when the tap came from the quick strip.
-                is Event.ToggleReaction -> { state ->
-                    if (event.clearsSelection) state.copy(selection = null) else state
-                }
-                is Event.QuickReactionInputsLoaded -> { state ->
-                    state.copy(quickReactionInputs = event.inputs).withQuickReactionStrip()
-                }
-                is Event.SelectionReactionsChanged -> { state ->
-                    val selection = state.selection
-                    if (selection?.messageId != event.messageId) {
-                        state
-                    } else {
-                        state.copy(selection = selection.copy(selfReactions = event.selfReactions))
-                            .withQuickReactionStrip()
-                    }
-                }
-                is Event.RefreshReactionIds -> { state -> state }
-                // Nothing on screen moves when a voucher is tapped -- the link leaves, the card
-                // keeps saying what it said, and the claim comes back as its own signal.
-                is Event.CashLinkOpened -> { state -> state }
-                is Event.CashLinkRefused -> { state -> state }
-                // The request itself changes nothing: the target is only worth holding once the
-                // walk's bound resolves, and that read is what decides whether it can be reached.
-                // The return stack is the one thing that moves now: a quote pushes the message it
-                // was tapped in, a message link has nowhere to return to.
-                is Event.JumpToMessage -> { state ->
-                    val origin = event.origin
-                    state.copy(returnStack = origin?.let(state.returnStack::pushOrigin) ?: emptyList())
-                }
-                Event.ReturnToOrigin -> { state -> state }
-                is Event.ReturnResolved -> { state ->
-                    val landing = event.landing
-                    val left = state.returnStack.dropLast(landing.popped)
-                    if (landing.origin == null) {
-                        state.copy(returnStack = left, newestRequests = state.newestRequests + 1)
-                    } else {
-                        state.copy(returnStack = left, jumpTarget = landing.origin, jumpBudget = landing.budget)
-                    }
-                }
-                is Event.ReturnOriginsReached -> { state ->
-                    state.copy(returnStack = state.returnStack.dropReached(event.origins))
-                }
-                Event.ReturnStackCleared -> { state -> state.copy(returnStack = emptyList()) }
-                is Event.JumpResolved -> { state ->
-                    state.copy(jumpTarget = event.messageId, jumpBudget = event.budget)
-                }
-                Event.JumpConsumed -> { state ->
-                    state.copy(jumpTarget = null, jumpBudget = null, openingAtMessage = false)
-                }
-                Event.JumpUnreachable -> { state -> state.copy(openingAtMessage = false) }
-                is Event.GatedLandingChanged -> { state -> state.copy(gatedLanding = event.item) }
-                is Event.UnreadBoundaryResolved -> { state ->
-                    state.copy(
-                        unreadBoundary = event.boundary,
-                        unreadWalkBudget = event.walkBudget,
-                        unreadBadgeOpenCount = (event.boundary as? UnreadBoundary.At)?.count ?: 0,
-                    )
-                }
-                is Event.ArrivalCutoffRecorded -> { state -> state.copy(newestInboundIdAtOpen = event.cutoff) }
-                Event.UserScrolledTranscript, Event.OwnMessageSent -> { state ->
-                    state.copy(unreadBadgeFrozen = false)
-                }
+                Event.LeaveChat,
+                Event.GroupProfileOpened,
+                Event.RequestToJoin,
+                Event.CancelJoinRequest,
+                Event.JoinRequestsOpened,
+                is Event.ApproveJoinRequest,
+                is Event.DenyJoinRequest,
+                is Event.OnJoinRequestsResolved,
+                is Event.JoinRequestCallChanged,
+                is Event.LobbyCallChanged,
+                is Event.OnLobbyRequestResolved,
+                is Event.OnHostNameResolved,
+                is Event.OnChattersLoaded,
+                is Event.OnMembersResolved,
+                is Event.OnKnownMembersResolved,
+                Event.MembersOpened,
+                is Event.OnProfileStandingResolved,
+                is Event.OnRuleTokensResolved,
+                Event.LeaveConfirmed,
+                Event.LeftChat,
+                Event.LeaveFailed,
+                Event.ChatNotFound,
+                is Event.OnTipUserResolved,
+                is Event.OnCurrencySymbolUpdated,
+                is Event.ChatFound,
+                is Event.TokenUpdated,
+                is Event.LimitsChanged,
+                is Event.AdvanceReadPointer,
+                is Event.ChatDeactivated,
+                is Event.MessagePolicyChanged -> reduceChatOpen(event)
+                is Event.PinsRead,
+                is Event.PinnedCopiesStored,
+                is Event.PinSummaryChanged,
+                is Event.PinMessage,
+                is Event.UnpinMessage,
+                is Event.PinCapReached,
+                Event.PinBarTapped -> reducePins(event)
+                Event.OnSendCash,
+                Event.OnStartMessageInput,
+                Event.OnStopMessageInput,
+                Event.OnMessageInputConsumed,
+                Event.ResolveCompleted,
+                is Event.ResolveFailed,
+                is Event.SendMessage,
+                is Event.RetryMessage,
+                is Event.NavigateToAmountEntry,
+                Event.NavigateToRequestMoney,
+                is Event.PresentDepositOptions,
+                is Event.OpenScreen,
+                is Event.MentionTapped,
+                is Event.OpenMention,
+                is Event.OnConfirmRequested,
+                is Event.OnSendRequested,
+                is Event.GroupSendUpdated,
+                is Event.OnGroupSendMemberToggled,
+                Event.OnGroupSendBack,
+                Event.OnGroupSendPeopleConfirmed,
+                Event.OnGroupSendRequested,
+                is Event.SendStateUpdated,
+                is Event.SendComplete,
+                is Event.CashLinkOpened,
+                is Event.CashLinkRefused -> reduceSend(event, lifetime)
+                is Event.TypistsUpdated,
+                is Event.TypingAvatarsUpdated,
+                Event.OnSelfTypingStarted,
+                Event.OnSelfTypingStill,
+                Event.OnSelfTypingStopped,
+                is Event.TypingEnabled -> reduceTyping(event)
+                is Event.StagePhotos,
+                is Event.CaptureStarted,
+                is Event.CaptureFinished,
+                is Event.RetryPhoto,
+                is Event.PhotoStaged,
+                is Event.RemovePhoto,
+                is Event.UploadStatesChanged,
+                is Event.ComposerLinkChanged,
+                Event.RemoveLinkPreview,
+                is Event.PhotosSent,
+                is Event.PhotosRestored -> reduceComposerPhotos(event)
+                is Event.ToggleMessageSelection,
+                is Event.PresentReactionStrip,
+                Event.ClearMessageSelection,
+                is Event.CopyMessage,
+                Event.ReportRequested,
+                is Event.CopyMessageLink,
+                Event.ShareMessageRequested,
+                is Event.PhotoSaveResult,
+                is Event.EditMessage,
+                is Event.DeleteMessage,
+                Event.SubmitEdit,
+                Event.CancelEdit,
+                Event.EditingEnded,
+                is Event.ReplyRequested,
+                is Event.ReplyToMessage,
+                Event.CancelReply,
+                is Event.OnMentionSuggestions,
+                is Event.PickMention -> reduceMessageAction(event)
+                is Event.ToggleReaction,
+                is Event.QuickReactionInputsLoaded,
+                is Event.SelectionReactionsChanged,
+                is Event.RefreshReactionIds -> reduceReactions(event)
+                is Event.JumpToMessage,
+                Event.ReturnToOrigin,
+                is Event.ReturnResolved,
+                is Event.ReturnOriginsReached,
+                Event.ReturnStackCleared,
+                is Event.JumpResolved,
+                Event.JumpConsumed,
+                Event.JumpUnreachable -> reduceJumpReturn(event)
+                is Event.GatedLandingChanged,
+                is Event.UnreadBoundaryResolved,
+                is Event.ArrivalCutoffRecorded,
+                Event.UserScrolledTranscript,
+                Event.OwnMessageSent -> reduceUnread(event)
             }
     }
 }
@@ -4617,7 +4687,7 @@ internal class ChatViewModel @AssistedInject constructor(
  * what is open at the moment it is made. The same goes for membership: a viewer who has left since
  * keeps only what a reader outside the group may do.
  */
-private fun ChatListItem.ContentBubble.narrowedFor(state: ChatViewModel.State): ChatListItem.ContentBubble {
+internal fun ChatListItem.ContentBubble.narrowedFor(state: ChatViewModel.State): ChatListItem.ContentBubble {
     val open = capabilities.withinWindows(timestamp, state.messagePolicy)
     return copy(capabilities = if (state.isOutsideGroup) open.readOnly() else open)
 }
@@ -4626,7 +4696,7 @@ private fun ChatListItem.ContentBubble.narrowedFor(state: ChatViewModel.State): 
  * [ChatViewModel.State.quickReactionStrip] rebuilt for the current selection: empty while nothing
  * is selected, while the selected message can't be reacted to, or before the inputs have loaded.
  */
-private fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State =
+internal fun ChatViewModel.State.withQuickReactionStrip(): ChatViewModel.State =
     copy(quickReactionStrip = reactionStripFor(selection))
 
 /** This bubble with the viewer's reactions replaced by [live], when the overlay knows better. */

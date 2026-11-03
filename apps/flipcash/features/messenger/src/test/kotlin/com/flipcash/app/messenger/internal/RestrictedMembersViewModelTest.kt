@@ -40,6 +40,7 @@ class RestrictedMembersViewModelTest {
     private val chatController = mockk<ChatController>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val toasts = mockk<SystemToastController>(relaxed = true)
+    private val restrictionWrites = GroupRestrictionWrites()
     private val chatId = ChatId(ByteArray(32) { 3 }.toList())
 
     private val soon = SilenceState.Until(Clock.System.now() + 1.hours)
@@ -76,7 +77,7 @@ class RestrictedMembersViewModelTest {
     private fun loaded(vararg users: RestrictedUser): RestrictedMembersViewModel {
         coEvery { chatController.getRestrictedUsers(chatId, any()) } returns
             Result.success(RestrictedUsersPage(users.toList(), null, false))
-        return RestrictedMembersViewModel(chatController, resources, toasts).also { it.load(chatId) }
+        return RestrictedMembersViewModel(chatController, resources, toasts, restrictionWrites).also { it.load(chatId) }
     }
 
     @Test
@@ -95,7 +96,7 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.getRestrictedUsers(chatId, QueryOptions(token = listOf(9))) } returns
             Result.success(RestrictedUsersPage(listOf(removed), null, false))
 
-        val vm = RestrictedMembersViewModel(chatController, resources, toasts).also { it.load(chatId) }
+        val vm = RestrictedMembersViewModel(chatController, resources, toasts, restrictionWrites).also { it.load(chatId) }
 
         assertEquals(listOf(silencedOnly, removed), vm.state.value.users)
     }
@@ -111,7 +112,7 @@ class RestrictedMembersViewModelTest {
     @Test
     fun `a failed read is flagged and can be retried`() {
         coEvery { chatController.getRestrictedUsers(chatId, any()) } returns Result.failure(Throwable("down"))
-        val vm = RestrictedMembersViewModel(chatController, resources, toasts).also { it.load(chatId) }
+        val vm = RestrictedMembersViewModel(chatController, resources, toasts, restrictionWrites).also { it.load(chatId) }
 
         assertTrue(vm.state.value.failed)
         assertFalse(vm.state.value.loading)

@@ -3,10 +3,12 @@ package com.flipcash.app.messenger.internal.request
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.paymentrequest.NewShare
 import com.flipcash.services.models.paymentrequest.NewSplitRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.times
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -14,10 +16,11 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
- * A payment request a creator is putting together in a private group, from Amount Per Person to
- * the confirm sheet. Frames 04–06 of the group requests spec.
+ * A payment request a creator is putting together in a private group, from Amount Per Person to the
+ * confirm sheet. Frames 04–06 of the group requests spec.
  *
- * @param members who Select People lists: the creator first, then the rest of the roster in its
+ * @param amount what each share asks for.
+ * @param members who Split Between lists: the creator first, then the rest of the roster in its
  *   order. Shares are sent in this order, whatever order the boxes were checked in.
  * @param selected who is asked, the creator included when [viewerId] is in it.
  * @param idempotencyKey minted when the confirm sheet first opens, and reused by every retry of
@@ -29,24 +32,30 @@ internal data class NewRequestDraft(
     val viewerId: ID,
     val members: List<ID>,
     val title: String,
-    val perPerson: Fiat? = null,
+    val amount: Fiat? = null,
     val selected: Set<ID> = if (members.size > MAX_SHARES) emptySet() else members.toSet(),
     val deadline: Deadline = Deadline.Week,
     val idempotencyKey: IdempotencyKey? = null,
     val createdRequestId: ID? = null,
 ) {
-    /** Members asked other than the creator: the N in "Request $20 from N People". */
+    /** Members asked other than the creator. */
     val requestedCount: Int get() = selected.count { it != viewerId }
 
     val includesCreator: Boolean get() = viewerId in selected
 
-    /** Select People's button: at least one member other than the creator. */
+    /** Split Between's button: at least one member other than the creator. */
     val canContinue: Boolean get() = requestedCount > 0
 
-    val canSend: Boolean get() = canContinue && perPerson != null && title.isNotBlank()
+    val canSend: Boolean get() = canContinue && split != null && title.isNotBlank()
 
     /** Who is asked, in [members] order. */
     val shares: List<ID> get() = members.filter { it in selected }
+
+    /** Every share is [amount], or null with no amount or nobody selected. */
+    val split: List<NewShare>? get() = amount?.let { each -> shares.map { NewShare(it, each) }.ifEmpty { null } }
+
+    /** What the request adds up to: [amount] for each of [shares], the creator's included when checked. */
+    val totalAmount: Fiat? get() = amount?.let { it * shares.size }
 
     val people: People
         get() {
@@ -69,15 +78,14 @@ internal data class NewRequestDraft(
 
     /** What Create sends, with [now] the moment Send Request was tapped. */
     fun toSplit(chatId: ChatId, text: PaymentRequestText.Encrypted, now: Instant): NewSplitRequest? {
-        val amount = perPerson ?: return null
+        val amount = amount ?: return null
         if (!canContinue) return null
         return NewSplitRequest(
             chatId = chatId,
             text = text,
             currency = amount.currencyCode,
             endsAt = deadline.endsAt(now),
-            shares = shares,
-            perPerson = amount,
+            shares = split ?: return null,
         )
     }
 

@@ -14,6 +14,7 @@ import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.shareable.Shareable
 import com.flipcash.features.menu.R
+import com.flipcash.shared.chat.GroupCardLinks
 import com.getcode.manager.BottomBarManager
 import com.getcode.util.resources.ResourceHelper
 import dagger.assisted.Assisted
@@ -23,8 +24,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 
 /**
- * A group's scan card: the invite link as a QR, exportable as an image. The link is the one
- * [Linkify.groupChatInvite] builds, so what the card encodes is what Share and Copy hand out.
+ * A group's scan card: a link as a QR, exportable as an image. The link is the one the Invite
+ * People sheet beneath was opened for, handed over in memory through [GroupCardLinks] because the
+ * route is saved and an invite link is a key. With nothing handed over (a card restored after
+ * process death) it is the plain link [Linkify.groupChatInvite] builds.
  */
 @HiltViewModel(assistedFactory = GroupCardViewModel.Factory::class)
 internal class GroupCardViewModel @AssistedInject constructor(
@@ -33,10 +36,16 @@ internal class GroupCardViewModel @AssistedInject constructor(
     private val shareable: ShareSheetController,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalytics,
+    links: GroupCardLinks,
 ) : ViewModel() {
 
-    /** Null only for an id with no UUID form, which no group has. */
-    val inviteUrl: String? = Linkify.groupChatInvite(group.chatId)
+    private val link: GroupCardLinks.Link? = links.cardLink(group.chatId, Linkify.groupChatInvite(group.chatId))
+
+    /** The invite link this card encodes, for the lines under the QR; null for the plain link. */
+    val inviteLink: GroupCardLinks.Link? = link?.takeIf { it.isInvite }
+
+    /** Null only for a plain link from an id with no UUID form, which no group has. */
+    val inviteUrl: String? = link?.url
 
     /** Null when [inviteUrl] is, or if the link cannot be encoded. */
     val matrix: QrMatrix? = inviteUrl?.let { runCatching { QrMatrix.encodeGroupCard(it) }.getOrNull() }
