@@ -14,7 +14,10 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -151,6 +154,57 @@ class UsdcDepositSweepTest {
         coVerify {
             transactionOperations.swapUsdc(owner, amount)
         }
+    }
+
+    @Test
+    fun `reports USDC seen once a balance appears, then the swap`() = runTest(testDispatchers.dispatcher) {
+        var callCount = 0
+        coEvery {
+            accountController.getAccount(any(), any(), any())
+        } coAnswers {
+            callCount++
+            val balance = if (callCount >= 2) 1_000_000L else 0L
+            val accountInfo = mockk<AccountInfo> {
+                every { accountType } returns AccountType.AssociatedToken
+                every { this@mockk.balance } returns balance
+                every { address } returns mockk<PublicKey>(relaxed = true)
+            }
+            Result.success(accountInfo)
+        }
+        coEvery { transactionOperations.swapUsdc(any(), any()) } returns Result.success(Unit)
+        val seen = collectMilestones()
+
+        sweep.execute(owner)
+        // A second caller finds this sweep in flight and still sees its milestones.
+        sweep.execute(owner)
+        advanceUntilIdle()
+
+        assertEquals(listOf(UsdcSweepMilestone.UsdcSeen, UsdcSweepMilestone.Swapped), seen)
+    }
+
+    @Test
+    fun `reports neither when no USDC appears, and no swap when it fails`() = runTest(testDispatchers.dispatcher) {
+        val seen = collectMilestones()
+        stubUsdcAccount(balance = 0L)
+
+        sweep.execute(owner)
+        advanceUntilIdle()
+        assertEquals(emptyList(), seen)
+
+        stubUsdcAccount(balance = 1_000_000L)
+        coEvery { transactionOperations.swapUsdc(any(), any()) } returns Result.failure(RuntimeException("boom"))
+
+        sweep.execute(owner)
+        advanceUntilIdle()
+        assertEquals(listOf(UsdcSweepMilestone.UsdcSeen), seen)
+    }
+
+    private fun TestScope.collectMilestones(): List<UsdcSweepMilestone> {
+        val seen = mutableListOf<UsdcSweepMilestone>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            sweep.milestones.collect { seen += it }
+        }
+        return seen
     }
 
     @Test

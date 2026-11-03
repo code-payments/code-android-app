@@ -110,6 +110,18 @@ class ExternalWalletBalanceCheckTest {
         assertTrue(result.isFailure, "Expected failure")
     }
 
+    @Test
+    fun `short SOL is reported even when the USDC read fails`() = runTest {
+        coEvery { networkDriver.makeHttpRequest(any()) } answers {
+            val body = firstArg<HttpRequest>().body.orEmpty()
+            if ("getBalance" in body) balanceJson(0L) else errorJson(-1, "Internal error")
+        }
+
+        val result = controller.checkBalances(testPublicKey, requiredUsdcQuarks = 10_000_000L)
+
+        assertTrue(result.exceptionOrNull() is DeeplinkOnRampError.InsufficientSol)
+    }
+
     // ── Boundary: exact threshold passes ──
 
     @Test

@@ -11,6 +11,9 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            implementation(project(":services:flipcash"))
+            implementation(project(":services:opencode"))
+            implementation(project(":libs:encryption:keys"))
             api(project(":libs:analytics-events"))
             implementation(libs.jetbrains.compose.runtime)
         }

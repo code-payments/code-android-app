@@ -4,6 +4,7 @@ import com.flipcash.app.messenger.internal.request.NewRequestDraft.Deadline
 import com.flipcash.app.messenger.internal.request.NewRequestDraft.People
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.paymentrequest.NewShare
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.flipcash.services.models.UserProfile
 import com.getcode.opencode.model.core.ID
@@ -23,12 +24,15 @@ import kotlin.time.Instant
 class NewRequestDraftTest {
 
     private val viewer = id(0)
-    private val twenty = Fiat(20.0, CurrencyCode.USD)
+    private val twenty = usd(2_000)
     private val now = Instant.fromEpochSeconds(1_800_000_000)
 
     private fun id(n: Int): ID = listOf((n shr 8).toByte(), n.toByte())
 
-    private fun draft(memberCount: Int, rosterViewerAt: Int = 3) = run {
+    /** [cents] US cents, built from quarks so no double rounding creeps in. */
+    private fun usd(cents: Long) = Fiat(quarks = cents * 10_000, currencyCode = CurrencyCode.USD)
+
+    private fun draft(memberCount: Int, rosterViewerAt: Int = 3, amount: Fiat = twenty) = run {
         // The viewer sits mid-roster to show the creator still goes first.
         val others = (1 until memberCount).map(::id)
         val roster = others.toMutableList().apply { add(rosterViewerAt.coerceAtMost(size), viewer) }
@@ -37,13 +41,13 @@ class NewRequestDraftTest {
             viewerId = viewer,
             members = NewRequestDraft.members(viewer, roster),
             title = "Saturday Request",
-            perPerson = twenty,
+            amount = amount,
         )
     }
 
     // 14
     @Test
-    fun `everyone selected asks 25 and sends 26 shares creator first`() {
+    fun `20 each between everyone asks 25 and sends 26 shares of 20 creator first`() {
         val draft = draft(26)
 
         assertEquals(People.EveryoneIncludingYou, draft.people)
@@ -52,16 +56,21 @@ class NewRequestDraftTest {
         assertEquals(26, draft.shares.size)
         assertEquals(viewer, draft.shares.first())
         assertEquals((1 until 26).map(::id), draft.shares.drop(1))
+        assertEquals(draft.shares, draft.split!!.map { it.userId })
+        assertEquals(List(26) { twenty }, draft.split!!.map { it.amount })
+        assertEquals(usd(52_000), draft.totalAmount)
     }
 
     // 15
     @Test
-    fun `creator and one other reads one person including you`() {
+    fun `20 each for the creator and one other reads one person including you`() {
         val draft = draft(26).copy(selected = setOf(viewer, id(4)))
 
         assertEquals(People.SomeIncludingYou(1), draft.people)
         assertEquals(1, draft.requestedCount)
         assertEquals(listOf(viewer, id(4)), draft.shares)
+        assertEquals(listOf(twenty, twenty), draft.split!!.map { it.amount })
+        assertEquals(usd(4_000), draft.totalAmount)
     }
 
     // 16
@@ -116,7 +125,47 @@ class NewRequestDraftTest {
 
         assertEquals(now + 28.days - 5.minutes, split.endsAt)
         assertEquals(CurrencyCode.USD, split.currency)
-        assertEquals(twenty, split.perPerson)
+        assertEquals(draft.split, split.shares)
+    }
+
+    // 49
+    @Test
+    fun `creator unchecked leaves 25 shares of 20 and a 500 total`() {
+        val start = draft(26)
+        val draft = start.copy(selected = start.toggled(viewer)!!)
+
+        assertEquals(25, draft.shares.size)
+        assertEquals(List(25) { twenty }, draft.split!!.map { it.amount })
+        assertEquals(usd(50_000), draft.totalAmount)
+    }
+
+    // 50
+    @Test
+    fun `every share is the entered amount with no rounding`() {
+        val draft = draft(5, amount = usd(3_334)).copy(selected = setOf(viewer, id(1), id(2)))
+
+        assertEquals(listOf(viewer, id(1), id(2)), draft.split!!.map { it.userId })
+        assertEquals(List(3) { usd(3_334) }, draft.split!!.map { it.amount })
+        assertEquals(usd(10_002), draft.totalAmount)
+        assertTrue(draft.canSend)
+    }
+
+    // 51
+    @Test
+    fun `nobody selected has no shares and cannot be sent`() {
+        val draft = draft(5).copy(selected = emptySet())
+
+        assertNull(draft.split)
+        assertFalse(draft.canSend)
+        assertNull(draft.toSplit(ChatId(byteArrayOf(1)), sealed(), now))
+    }
+
+    @Test
+    fun `a single other without the creator is one share of the amount`() {
+        val draft = draft(5).copy(selected = setOf(id(2)))
+
+        assertEquals(listOf(NewShare(id(2), twenty)), draft.split)
+        assertEquals(twenty, draft.totalAmount)
     }
 
     @Test

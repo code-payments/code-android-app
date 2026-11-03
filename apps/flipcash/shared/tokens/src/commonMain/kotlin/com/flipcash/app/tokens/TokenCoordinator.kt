@@ -44,6 +44,7 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
@@ -448,6 +449,8 @@ class TokenCoordinator @Inject constructor(
      * eventually replaced with fresh data.
      */
     override suspend fun getTokenMetadata(mint: Mint): Result<TokenResult> {
+        if (!mint.isValid) return invalidMint("getTokenMetadata", mint)
+
         // 1. In-memory cache
         _state.value.tokens[mint]?.let { cached ->
             return Result.success(TokenResult(cached, DataSource.Memory))
@@ -524,7 +527,18 @@ class TokenCoordinator @Inject constructor(
         currencyCode: CurrencyCode,
         windowedRange: WindowedRange,
     ): Result<List<HistoricalMintData>> {
+        if (!mint.isValid) return invalidMint("getHistoricalMarketCapData", mint)
         return tokenController.getHistoricalMarketCapData(mint, currencyCode, windowedRange)
+    }
+
+    /**
+     * Fails a lookup for a mint that is not 32 bytes before it reaches the network, where the
+     * request check would reject it as a validation error with no trace of who asked.
+     */
+    private fun invalidMint(caller: String, mint: Mint): Result<Nothing> {
+        val message = "$caller called with a ${mint.bytes.size}-byte mint: '${mint.base58()}'"
+        trace(tag = TAG, message = message, type = TraceType.Error)
+        return Result.failure(IllegalArgumentException(message))
     }
 
     suspend fun reset() {
@@ -579,13 +593,17 @@ class TokenCoordinator @Inject constructor(
 
         trace(tag = TAG, message = "Fetching all token accounts", type = TraceType.Process)
 
-        // Batch-refresh metadata for all known mints in a single RPC call,
-        // hydrating memory and Room so that fetchTokenAccounts hits warm caches
-        // without triggering per-mint background refreshes.
-        refreshAllMetadata()
-
-        // Pass `this` as metadataProvider so fetches benefit from the now-warm cache
-        tokenController.fetchTokenAccounts(owner, metadataProvider = this)
+        // Batch-refresh metadata for all known mints in a single RPC call, hydrating memory and
+        // Room so the build below hits warm caches. It needs nothing from the accounts fetch, so
+        // the two round trips overlap; the build waits for both.
+        coroutineScope {
+            val metadataRefresh = launch { refreshAllMetadata() }
+            tokenController.fetchPrimaryAccounts(owner).map { accounts ->
+                metadataRefresh.join()
+                // Pass the coordinator as metadataProvider so the build uses the now-warm cache
+                tokenController.buildTokenBalances(accounts, metadataProvider = this@TokenCoordinator)
+            }
+        }
             .onSuccess { updates ->
                 trace(tag = TAG, message = "Successfully built ${updates.size} token balances", type = TraceType.Process)
                 applyTokenUpdates(updates)

@@ -58,7 +58,7 @@ private fun SelectTokenScreenContent(
             nameTextStyle = CodeTheme.typography.textMedium,
             balanceDisplayStyle = TokenBalanceStyle.Plain(
                 textStyle = CodeTheme.typography.textMedium
-                    .copy(fontWeight = FontWeight.Medium),
+                    .copy(fontWeight = FontWeight.SemiBold),
                 color = CodeTheme.colors.textSecondary,
             ),
             iconSize = CodeTheme.dimens.staticGrid.x8,

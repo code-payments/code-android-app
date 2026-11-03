@@ -118,6 +118,7 @@ class SwapViewModelBalancePrefetchTest {
         userFlags = mockk<UserFlagsCoordinator>(relaxed = true),
         usdcDepositSweep = mockk<UsdcDepositSweep>(relaxed = true),
         balancePoller = mockk<com.flipcash.app.tokens.BalancePoller>(relaxed = true),
+        addMoneyTimer = com.flipcash.app.tokens.AddMoneyTimer(),
     )
 
     private fun SwapViewModel.primeForSell() {

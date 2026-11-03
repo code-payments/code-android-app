@@ -140,7 +140,7 @@ internal fun Flipcash2DesignSystem(content: @Composable () -> Unit) {
         colorScheme = colors,
         // override code type system to make screen title's slightly bigger
         typography = codeTypography.copy(
-            screenTitle = codeTypography.displayExtraSmall.copy(fontWeight = FontWeight.W500)
+            screenTitle = codeTypography.displayExtraSmall.copy(fontWeight = FontWeight.SemiBold)
         ),
         content = content
     )

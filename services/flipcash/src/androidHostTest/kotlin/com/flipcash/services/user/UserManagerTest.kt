@@ -5,6 +5,7 @@ import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.events.Events
 import com.getcode.opencode.managers.MnemonicManager
 import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.core.NoId
 import com.getcode.opencode.model.financial.MintMetadata
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.utils.generate
@@ -144,5 +145,25 @@ class UserManagerTest {
         assertNull(um.accountCluster)
         assertNull(um.entropy)
         assertNull(um.userFlags)
+    }
+
+    @Test
+    fun `accountId is null after clear so no request carries an empty user id`() {
+        val um = createUserManager()
+        um.set(listOf<Byte>(1, 2, 3))
+        assertEquals(listOf<Byte>(1, 2, 3), um.accountId)
+
+        um.clear()
+
+        assertNull(um.accountId)
+    }
+
+    @Test
+    fun `an empty account id reads as missing`() {
+        val um = createUserManager()
+
+        um.set(NoId)
+
+        assertNull(um.accountId)
     }
 }

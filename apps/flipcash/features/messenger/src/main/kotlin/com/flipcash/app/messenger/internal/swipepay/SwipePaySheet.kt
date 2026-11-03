@@ -1,6 +1,6 @@
 package com.flipcash.app.messenger.internal.swipepay
 
-import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,12 +10,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -23,7 +20,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.flipcash.app.core.ui.TokenSelectionPill
-import com.flipcash.app.messenger.internal.screens.boost.CurrencyPickerContent
+import com.flipcash.app.core.chat.ChatStep
+import com.getcode.navigation.core.LocalCodeNavigator
+import androidx.compose.runtime.staticCompositionLocalOf
 import com.flipcash.features.messenger.R
 import com.getcode.opencode.model.financial.Token
 import com.getcode.navigation.scenes.InWindowBottomSheet
@@ -50,6 +49,8 @@ internal data class SwipePayUiState(
     val tokenPickable: Boolean,
     /** True when only back closes the sheet: no drag, no tap on the scrim. */
     val backOnly: Boolean = false,
+    /** The swipe's label: "Swipe to Send" unless the flow pays a request. */
+    @StringRes val swipeLabel: Int = R.string.action_swipeToSend,
     val swipeTestTag: String? = null,
 ) {
     /** A swipe is in flight or has finished; the sheet holds still until the flow lets go. */
@@ -66,31 +67,30 @@ internal class SwipePayActions(
 @Stable
 internal class SwipePaySheetState internal constructor(
     val sheet: InWindowSheetState,
-    private val picking: MutableState<Boolean>,
-) {
-    var pickingCurrency: Boolean
-        get() = picking.value
-        set(value) { picking.value = value }
-}
+)
 
 /**
- * The sheet's state. Locked while a swipe is in flight, and while the currency list is up: a
- * drag or back then returns to the confirm content rather than closing the sheet.
+ * Opens the currency picker for a swipe-to-pay sheet. Unset, the sheet pushes
+ * [ChatStep.SendCurrency] on the current navigator, which is right wherever that is the chat
+ * flow's; a nested flow host that shadows the navigator provides the chat flow's own.
  */
+internal val LocalSwipePayCurrencyPicker = staticCompositionLocalOf<(() -> Unit)?> { null }
+
+/** The sheet's state. Locked while a swipe is in flight. */
 @Composable
 internal fun rememberSwipePaySheetState(locked: Boolean): SwipePaySheetState {
-    val picking = rememberSaveable { mutableStateOf(false) }
     val lockedNow by rememberUpdatedState(locked)
-    val sheet = rememberInWindowSheetState { lockedNow || picking.value }
-    return SwipePaySheetState(sheet, picking)
+    val sheet = rememberInWindowSheetState { lockedNow }
+    return SwipePaySheetState(sheet)
 }
 
 /**
  * The swipe-to-pay sheet: [header] (who), [amount], the currency pill, and the swipe.
  *
  * Drawn in the host's own window, so a bottom bar the route raises lands above it. A token pick
- * swaps the content for the currency list and back; the pick itself is the shared selected-token
- * state, so the owning flow sees it through its token without a callback here.
+ * opens the currency list as a half sheet over this one, which stays up beneath it with its
+ * state; the pick itself is the shared selected-token state, so the owning flow sees it through
+ * its token without a callback here.
  */
 @Composable
 internal fun SwipePaySheet(
@@ -101,6 +101,9 @@ internal fun SwipePaySheet(
     header: @Composable () -> Unit,
     amount: @Composable () -> Unit,
 ) {
+    val pickCurrency = LocalSwipePayCurrencyPicker.current
+    val navigator = LocalCodeNavigator.current
+    val openPicker = { pickCurrency?.invoke() ?: navigator.push(ChatStep.SendCurrency) }
     InWindowBottomSheet(
         state = sheetState.sheet,
         onDismissRequest = actions.onDismiss,
@@ -108,11 +111,6 @@ internal fun SwipePaySheet(
         dismissOnScrimTap = !state.backOnly,
         gesturesEnabled = !state.backOnly,
     ) {
-        BackHandler(enabled = sheetState.pickingCurrency) { sheetState.pickingCurrency = false }
-        if (sheetState.pickingCurrency) {
-            CurrencyPickerContent(onPicked = { sheetState.pickingCurrency = false })
-            return@InWindowBottomSheet
-        }
         val swipe: @Composable (Modifier) -> Unit = { extra ->
             SlideToConfirm(
                 onConfirm = actions.onConfirm,
@@ -122,7 +120,7 @@ internal fun SwipePaySheet(
                 enabled = state.progress.isIdle,
                 isLoading = state.progress.loading,
                 isSuccess = state.progress.success,
-                label = stringResource(R.string.action_swipeToSend),
+                label = stringResource(state.swipeLabel),
             )
         }
         Column(
@@ -149,7 +147,7 @@ internal fun SwipePaySheet(
                         horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
                         vertical = CodeTheme.dimens.grid.x1 - 1.dp,
                     ),
-                    onClick = { if (!state.locked) sheetState.pickingCurrency = true },
+                    onClick = { if (!state.locked) openPicker() },
                 )
                 swipe(Modifier.padding(top = CodeTheme.dimens.grid.x3))
             } else {
