@@ -1,5 +1,9 @@
 package com.flipcash.app.tipping.internal.components
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.subtitle_peopleWantToJoin
+import com.flipcash.core.resources.subtitle_wantsToJoin
+import com.flipcash.core.resources.title_unnamedUser
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,13 +14,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.theme.FlipcashThemeWrapper
-import com.flipcash.features.tipping.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.shared.chat.ui.ChatListRow
@@ -120,14 +123,14 @@ private fun joinRequestText(waiting: List<LobbyMember>): String? {
     return when {
         waiting.isEmpty() -> null
         only != null -> stringResource(
-            R.string.subtitle_wantsToJoin,
+            Res.string.subtitle_wantsToJoin,
             chatterName(
                 only.userProfile.displayName,
                 only.userProfile.username,
-                stringResource(R.string.title_unnamedUser),
+                stringResource(Res.string.title_unnamedUser),
             ),
         )
-        else -> pluralStringResource(R.plurals.subtitle_peopleWantToJoin, waiting.size, waiting.size)
+        else -> pluralStringResource(Res.plurals.subtitle_peopleWantToJoin, waiting.size, waiting.size)
     }
 }
 

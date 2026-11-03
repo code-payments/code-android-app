@@ -197,6 +197,7 @@ include(
     ":apps:flipcash:features:search",
     ":apps:flipcash:features:user-profile",
     ":apps:flipcash:features:userflags",
+    ":apps:flipcash:features:chat-list",
     ":apps:flipcash:features:tipping",
 
     // Internal libs

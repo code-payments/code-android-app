@@ -12,6 +12,10 @@ kotlin {
 }
 
 metro {
+    // Dagger ignores Kotlin defaults, so shared classes like RealChatCoordinator list defaulted
+    // parameters that Android always injects. Metro's default treats those as optional and orders
+    // the graph without them, which hands the factory a null provider at startup.
+    optionalBindingBehavior.set(dev.zacsweers.metro.gradle.OptionalBindingBehavior.REQUIRE_OPTIONAL_BINDING)
     interop {
         includeJavax()
         includeDagger()
@@ -45,6 +49,8 @@ dependencies {
     implementation(project(":apps:flipcash:shared:device-link"))
     implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:chat"))
+    implementation(project(":apps:flipcash:features:chat-list"))
+    implementation(project(":libs:emojis"))
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.dagger)
     implementation(libs.grpc.okhttp)

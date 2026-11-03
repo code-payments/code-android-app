@@ -32,11 +32,12 @@ object StartupContract {
     /** `SessionListener` implementations desktop must bind as well. Fully qualified class names. */
     val sharedSessionListeners: Set<String> = setOf(
         "com.flipcash.app.tokens.TokenCoordinator",
+        // Without it the feed never syncs, so the chat list stays empty.
+        "com.flipcash.shared.chat.internal.RealChatCoordinator",
     )
 
     /** `SessionListener` implementations only Android binds, with why desktop goes without. */
     val androidOnlySessionListeners: Map<String, String> = mapOf(
-        "com.flipcash.shared.chat.internal.RealChatCoordinator" to "chat is not on desktop",
         "com.flipcash.app.contacts.ContactCoordinator" to "contacts are not on desktop",
     )
 
