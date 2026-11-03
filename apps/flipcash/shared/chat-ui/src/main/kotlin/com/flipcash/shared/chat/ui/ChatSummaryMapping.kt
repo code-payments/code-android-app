@@ -67,6 +67,15 @@ fun ChatSummary.toConversationReference(
         chatType = metadata.type,
         lastMessagePreview = formatPreview(selfId, tokensByMint, resources, senderProfiles, exchange, paymentRequests),
         hasMessages = metadata.lastMessage != null,
+        // The feed carries the roster size, privacy and the viewer's permissions, so the row needs no
+        // fetch of its own. memberCount defaults to 0 for metadata never fetched, which is not 1.
+        awaitsInvites = groupAwaitsInvites(
+            isGroup = isGroup,
+            rosterResolved = true,
+            memberCount = metadata.rosterSummary.memberCount,
+            canInvite = metadata.viewerState?.permissions?.canInvite == true,
+            isPrivate = metadata.isPrivate,
+        ),
         lastActivity = metadata.lastActivity,
         unreadCount = unreadCount,
         viewerState = metadata.viewerState,
@@ -131,11 +140,12 @@ private fun ChatSummary.formatPreview(
 
 /**
  * The row's line for one piece of message content, or null when there is nothing worth previewing.
+ * Also the pin bar's one-line quote, which passes no attribution.
  *
  * [depth] bounds the reply unwrap below. Nothing the app sends nests a reply inside a reply, but
  * this content arrives off the wire, so a malformed chain must not recurse forever.
  */
-private fun MessageContent.previewText(
+fun MessageContent.previewText(
     sentBySelf: Boolean,
     senderName: String?,
     isGroup: Boolean,

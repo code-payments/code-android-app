@@ -98,8 +98,12 @@ class UserManager @Inject constructor(
     val accountCluster: AccountCluster?
         get() = _state.value.cluster
 
+    /**
+     * The signed-in user's id, or null when there is none. An empty id (the old [NoId] reset
+     * value) counts as none: it fails the server's `user_id` length rule if sent.
+     */
     val accountId: ID?
-        get() = _state.value.accountId
+        get() = _state.value.accountId?.takeIf { it.isNotEmpty() }
 
     val userFlags: UserFlags?
         get() = _state.value.flags
@@ -233,7 +237,7 @@ class UserManager @Inject constructor(
                 entropy = null,
                 flags = null,
                 cluster = null,
-                accountId = NoId,
+                accountId = null,
                 isTimelockUnlocked = false,
                 userProfile = null,
             )

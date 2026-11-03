@@ -19,6 +19,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
@@ -76,12 +77,17 @@ class EditFeaturedGroupsViewModelTest {
         cached: List<ChatMetadata> = emptyList(),
         featured: Result<List<ChatMetadata>> = Result.success(cached),
         joined: Result<ChatFeedPage> = feed(),
+        featuredReply: CompletableDeferred<Result<List<ChatMetadata>>>? = null,
     ): EditFeaturedGroupsViewModel {
         store.replace(cached)
         every { userManager.state } returns MutableStateFlow(
             UserManager.State(userProfile = UserProfile.Empty.copy(username = "me"))
         )
-        coEvery { chatController.getFeaturedGroups(any()) } returns featured
+        if (featuredReply == null) {
+            coEvery { chatController.getFeaturedGroups(any()) } returns featured
+        } else {
+            coEvery { chatController.getFeaturedGroups(any()) } coAnswers { featuredReply.await() }
+        }
         coEvery { chatController.getGroupChatFeed(any()) } returns joined
         // The store's cover prefetch; the picker never shows covers, so a failure is fine here.
         coEvery { chatController.getChat(any()) } returns Result.failure(IllegalStateException())
@@ -192,6 +198,20 @@ class EditFeaturedGroupsViewModelTest {
         assertEquals(listOf(a), loaded.selection)
         assertEquals(listOf(b), loaded.saved)
         assertTrue(loaded.canSave)
+    }
+
+    @Test
+    fun `the joined feed is fetched while the featured list is still loading`() = runTest(mainCoroutineRule.dispatcher) {
+        val featuredReply = CompletableDeferred<Result<List<ChatMetadata>>>()
+        val vm = viewModel(joined = feed(group("bb")), featuredReply = featuredReply)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { chatController.getGroupChatFeed(any()) }
+
+        featuredReply.complete(Result.success(listOf(group("aa"))))
+        advanceUntilIdle()
+
+        assertEquals(listOf(a, b), vm.state.candidates.map { it.chatId })
     }
 
     @Test

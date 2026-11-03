@@ -67,9 +67,6 @@ fun ComposerReplyStrip(
     modifier: Modifier = Modifier,
     hazeState: HazeState? = null,
 ) {
-    val rule = quote.accent ?: CodeTheme.colors.tertiary
-    val name = quote.nameAccent ?: rule
-
     val shape = CodeTheme.shapes.medium
     // The composer's material, not a brighter one: a tint of the background itself rather than of a
     // grey lifted off it. `clip` must precede `hazeBlur` to bound the blur to the rounded rect.
@@ -101,33 +98,11 @@ fun ComposerReplyStrip(
         horizontalArrangement = Arrangement.spacedBy(ComposerReplyStripDefaults.gap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Square and flush to the card's leading edge; the card's own clip is what rounds it.
-        Box(
-            modifier = Modifier
-                .width(ComposerReplyStripDefaults.ruleWidth)
-                .fillMaxHeight()
-                .background(rule),
+        ChatQuoteContent(
+            quote = quote,
+            modifier = Modifier.weight(1f),
+            snippetMaxLines = ComposerReplyStripDefaults.textMaxLines,
         )
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(vertical = ComposerReplyStripDefaults.textPadding),
-        ) {
-            Text(
-                text = quote.authorName,
-                style = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Bold),
-                color = name,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            QuoteLine(quote.snippet)
-        }
-
-        // After the text and before the way out, centred on the row, as iOS lays it. Nothing for a
-        // redacted photo or any other kind of quote.
-        val photo = quote.snippet as? ChatQuoteSnippet.Photo
-        if (photo != null && !photo.redacted) QuotedPhotoThumbnail(photo)
 
         // A disc rather than a bare ✕, in a hit target wider than the disc.
         Box(
@@ -158,19 +133,86 @@ fun ComposerReplyStrip(
 }
 
 /**
+ * A quote's body as the reply strip draws it: the rule in the author's colour flush to the leading
+ * edge, their name over the snippet, then a photo's thumbnail. The caller owns the ground and what
+ * trails it, so the reply strip and the pin bar can share it on their own surfaces.
+ *
+ * Lays out as a row filling the caller's height; give it a parent with a bounded or intrinsic
+ * height so [rule] can fill it.
+ *
+ * @param rule what runs down the leading edge, given the author's colour. The reply strip's is a
+ *   single bar; the pin bar splits it into one segment per pin.
+ * @param gap the space between [rule] and the text.
+ * @param textVerticalPadding the space above and below the text. The pin bar pads itself, so it
+ *   passes none.
+ */
+@Composable
+fun ChatQuoteContent(
+    quote: ChatQuote,
+    modifier: Modifier = Modifier,
+    snippetMaxLines: Int = 1,
+    rule: @Composable (Color) -> Unit = { color -> ChatQuoteRule(color) },
+    gap: Dp = ComposerReplyStripDefaults.gap,
+    textVerticalPadding: Dp = ComposerReplyStripDefaults.textPadding,
+) {
+    val ruleColor = quote.accent ?: CodeTheme.colors.tertiary
+    val name = quote.nameAccent ?: ruleColor
+    Row(
+        modifier = modifier.fillMaxHeight(),
+        horizontalArrangement = Arrangement.spacedBy(gap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        rule(ruleColor)
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = textVerticalPadding),
+        ) {
+            if (quote.authorName.isNotEmpty()) {
+                Text(
+                    text = quote.authorName,
+                    style = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Bold),
+                    color = name,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            QuoteLine(quote.snippet, snippetMaxLines)
+        }
+
+        // After the text, centred on the row, as iOS lays it. Nothing for a redacted photo or any
+        // other kind of quote.
+        val photo = quote.snippet as? ChatQuoteSnippet.Photo
+        if (photo != null && !photo.redacted) QuotedPhotoThumbnail(photo)
+    }
+}
+
+/** The reply strip's rule: square, flush to the card's leading edge; the card's clip rounds it. */
+@Composable
+fun ChatQuoteRule(color: Color, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .width(ComposerReplyStripDefaults.ruleWidth)
+            .fillMaxHeight()
+            .background(color),
+    )
+}
+
+/**
  * The quoted original itself, one step under the bubble body's size and in the same weight: the
  * quote is the subject of the strip, so it is read rather than glanced at. Primary text for the same
  * reason — dimming it makes it look like placeholder text for the field below.
  */
 @Composable
-private fun QuoteLine(snippet: ChatQuoteSnippet) {
+private fun QuoteLine(snippet: ChatQuoteSnippet, maxLines: Int) {
     val style = CodeTheme.typography.textSmall.copy(fontWeight = FontWeight.Medium)
     when (snippet) {
         is ChatQuoteSnippet.Text -> Text(
             text = labelInviteLinks(snippet.body, stringResource(R.string.label_inviteLinkPreview)),
             style = style,
             color = CodeTheme.colors.textMain,
-            maxLines = ComposerReplyStripDefaults.textMaxLines,
+            maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
         )
 
@@ -182,7 +224,7 @@ private fun QuoteLine(snippet: ChatQuoteSnippet) {
             ),
             style = style,
             color = CodeTheme.colors.textMain,
-            maxLines = ComposerReplyStripDefaults.textMaxLines,
+            maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
         )
 

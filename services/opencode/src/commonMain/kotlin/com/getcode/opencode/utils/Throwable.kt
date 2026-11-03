@@ -9,7 +9,7 @@ import dev.bmcreations.protovalidate.ProtoValidationException
 fun <E : CodeServerError> Throwable.toValidationOrElse(fallback: (Throwable) -> E): E =
     when (this) {
         is ProtoValidationException -> ValidationException(
-            violations.map { Violation(field = it.field, message = it.message) }
+            violations.map { Violation(field = it.field, rule = it.rule, message = it.message) }
         ) as E
         else -> fallback(this)
     }

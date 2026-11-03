@@ -75,6 +75,15 @@ class KmpAppLibraryConventionPlugin : Plugin<Project> {
                         }
                     }
                     minSdk = minSdkVersion
+                    // The single-variant KMP target picks one build type of each Android-library
+                    // dependency, and AGP defaults that to release. Prefer debug: the host tests run
+                    // under `flipcashTestDebug` next to the Android modules' debug unit tests, and
+                    // selecting release made that task build a second, release copy of every Android
+                    // library a KMP module reaches (25 modules, compileReleaseKotlin included). The
+                    // app still resolves the release variants for its own release build.
+                    localDependencySelection {
+                        selectBuildTypeFrom.set(listOf("debug", "release"))
+                    }
                     // Hilt's KSP processors emit Java (factories, hilt_aggregated_deps), which the
                     // KMP Android target only compiles when Java compilation is enabled.
                     withJava()
