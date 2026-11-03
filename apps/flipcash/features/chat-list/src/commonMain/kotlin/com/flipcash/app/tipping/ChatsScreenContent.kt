@@ -404,9 +404,9 @@ private fun LazyListScope.tipChatItems(
 
 /**
  * One leading swipe action, Mark as Read or Mark as Unread (a full swipe fires it), and two
- * trailing ones: archive inside, mute outside. [SwipeActionRow] draws the last action
- * outermost and fires it on a full swipe, so a full swipe still opens the mute sheet as before, and
- * archive is a tap on the revealed action.
+ * trailing ones: mute inside, archive outside. [SwipeActionRow] draws the last action
+ * outermost and fires it on a full swipe, so a full swipe archives and mute is a tap on the
+ * revealed action.
  *
  * The mute icon names the state the chat would be moved out of: a crossed-out bell on an audible
  * chat, a plain one on a muted chat, where the sheet is also how the mute is cleared. It never
@@ -417,7 +417,7 @@ private fun LazyListScope.tipChatItems(
  * closed row.
  */
 @Composable
-private fun ChatSwipeRow(
+internal fun ChatSwipeRow(
     isMuted: Boolean,
     isUnread: Boolean,
     swipeEnabled: Boolean,
@@ -446,18 +446,6 @@ private fun ChatSwipeRow(
         leadingActions = listOf(readAction),
         actions = listOf(
             SwipeAction(
-                background = CodeTheme.colors.surfaceVariant,
-                onTriggered = onArchive,
-                label = archiveTitle,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Archive,
-                    contentDescription = archiveLabel,
-                    tint = CodeTheme.colors.textMain,
-                    modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5),
-                )
-            },
-            SwipeAction(
                 // The profile's unverified badge treatment rather than the delete red: nothing is
                 // lost by it.
                 background = CodeTheme.colors.warning.copy(alpha = 0.15f),
@@ -473,6 +461,18 @@ private fun ChatSwipeRow(
                     },
                     contentDescription = muteLabel,
                     tint = CodeTheme.colors.warning,
+                    modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5),
+                )
+            },
+            SwipeAction(
+                background = CodeTheme.colors.surfaceVariant,
+                onTriggered = onArchive,
+                label = archiveTitle,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Archive,
+                    contentDescription = archiveLabel,
+                    tint = CodeTheme.colors.textMain,
                     modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5),
                 )
             },
