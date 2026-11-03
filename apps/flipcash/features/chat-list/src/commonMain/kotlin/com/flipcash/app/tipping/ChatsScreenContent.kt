@@ -1,5 +1,8 @@
 package com.flipcash.app.tipping
 
+import com.flipcash.core.resources.action_unmute
+import com.flipcash.core.resources.action_mute
+import com.flipcash.core.resources.action_archive
 import com.flipcash.app.tipping.internal.components.markReadSwipeAction
 import com.flipcash.app.tipping.internal.components.SelectCircles
 import com.flipcash.app.tipping.internal.components.rememberSelectCircles
@@ -431,6 +434,9 @@ private fun ChatSwipeRow(
         else Res.string.content_description_muteChat
     )
     val archiveLabel = stringResource(Res.string.content_description_archiveChat)
+    // The titles under the circles use the select-mode bar's wording.
+    val muteTitle = stringResource(if (isMuted) Res.string.action_unmute else Res.string.action_mute)
+    val archiveTitle = stringResource(Res.string.action_archive)
     val (readAction, readLabel) = markReadSwipeAction(isUnread, onToggleRead)
     if (!swipeEnabled) {
         Box(modifier) { content() }
@@ -442,6 +448,7 @@ private fun ChatSwipeRow(
             SwipeAction(
                 background = CodeTheme.colors.surfaceVariant,
                 onTriggered = onArchive,
+                label = archiveTitle,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Archive,
@@ -456,6 +463,7 @@ private fun ChatSwipeRow(
                 background = CodeTheme.colors.warning.copy(alpha = 0.15f),
                 onTriggered = onMute,
                 resetOnDismiss = true,
+                label = muteTitle,
             ) {
                 Icon(
                     imageVector = if (isMuted) {

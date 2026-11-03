@@ -1,5 +1,6 @@
 package com.flipcash.app.tipping
 
+import com.flipcash.core.resources.action_unarchive
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.flipcash.app.tipping.internal.components.markReadSwipeAction
@@ -133,6 +134,7 @@ private fun UnarchiveSwipeRow(
     content: @Composable () -> Unit,
 ) {
     val label = stringResource(Res.string.content_description_unarchiveChat)
+    val unarchiveTitle = stringResource(Res.string.action_unarchive)
     val (readAction, readLabel) = markReadSwipeAction(isUnread, onToggleRead)
     if (!swipeEnabled) {
         Box(modifier) { content() }
@@ -144,6 +146,7 @@ private fun UnarchiveSwipeRow(
             SwipeAction(
                 background = CodeTheme.colors.surfaceVariant,
                 onTriggered = onUnarchive,
+                label = unarchiveTitle,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Unarchive,

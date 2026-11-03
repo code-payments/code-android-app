@@ -39,7 +39,7 @@ internal fun rememberSelectCircles(selection: Set<ChatId>?): SelectCircles {
 /**
  * The leading swipe on a chat list row: Mark as Read on an unread chat, Mark as Unread otherwise.
  * Tonal like the trailing Mute circle: the glyph in the unread blue on its dark-blue ground, sized
- * like the trailing Archive and Mute circles.
+ * like the trailing Archive and Mute circles, with the select-mode bar's wording under it.
  */
 @Composable
 internal fun markReadSwipeAction(isUnread: Boolean, onTriggered: () -> Unit): Pair<SwipeAction, String> {
@@ -53,6 +53,7 @@ internal fun markReadSwipeAction(isUnread: Boolean, onTriggered: () -> Unit): Pa
         // The row stays in the list, so a full swipe has to send it home rather than leave it
         // settled off screen.
         resetOnDismiss = true,
+        label = label,
     ) {
         Icon(
             painter = painter,

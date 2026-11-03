@@ -273,6 +273,10 @@ internal fun MemberSwipeRow(
     val restrictLabel = stringResource(R.string.content_description_restrictMember)
     val liftLabel = stringResource(R.string.content_description_liftRestriction)
     val removeLabel = stringResource(R.string.content_description_removeMember)
+    // The member sheet's titles for the same actions, drawn under the circles.
+    val restrictTitle = stringResource(R.string.action_silenceMemberShort)
+    val liftTitle = stringResource(R.string.action_liftRestriction)
+    val removeTitle = stringResource(R.string.action_removeFromGroup)
     val swipeActions = buildList {
         if (actions.restrict) {
             add(
@@ -280,6 +284,7 @@ internal fun MemberSwipeRow(
                     background = CodeTheme.colors.warning.copy(alpha = 0.15f),
                     onTriggered = onRestrict,
                     resetOnDismiss = true,
+                    label = restrictTitle,
                 ) {
                     SwipeIcon(SpeakerSlash, restrictLabel, CodeTheme.colors.warning)
                 }
@@ -291,6 +296,7 @@ internal fun MemberSwipeRow(
                     background = CodeTheme.colors.surfaceVariant,
                     onTriggered = onLift,
                     resetOnDismiss = true,
+                    label = liftTitle,
                 ) {
                     SwipeIcon(Icons.Outlined.LockOpen, liftLabel, CodeTheme.colors.textMain)
                 }
@@ -302,6 +308,7 @@ internal fun MemberSwipeRow(
                     background = CodeTheme.colors.error.copy(alpha = 0.15f),
                     onTriggered = onRemove,
                     resetOnDismiss = true,
+                    label = removeTitle,
                 ) {
                     SwipeIcon(Icons.Outlined.PersonRemove, removeLabel, CodeTheme.colors.error)
                 }

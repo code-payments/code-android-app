@@ -2,6 +2,7 @@ package com.getcode.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -47,8 +49,12 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
@@ -72,6 +78,10 @@ import org.jetbrains.compose.resources.painterResource
  * @param resetOnDismiss When true, a full swipe triggers [onTriggered] and animates
  *   the row back instead of settling at the dismissed position. Callbacks used with
  *   this flag should be idempotent (e.g. clipboard writes).
+ * @param label Optional title drawn under the circle in small secondary text. With a label the
+ *   action is a circle with its title under it, and its slot widens to fit the title; without
+ *   one it fills the row's height as before. The label is not announced: the icon's content
+ *   description already names the action.
  * @param content Composable content displayed inside the action button (typically an [Icon]).
  */
 @Stable
@@ -79,6 +89,7 @@ class SwipeAction(
     val background: Color,
     val onTriggered: () -> Unit,
     val resetOnDismiss: Boolean = false,
+    val label: String? = null,
     val content: @Composable () -> Unit,
 )
 
@@ -170,10 +181,19 @@ fun SwipeActionRow(
     val actionPadding = CodeTheme.dimens.inset
     val minActionSize = CodeTheme.dimens.staticGrid.x10
 
-    // Each action slot = minSize + padding on each side.
-    // Total reveal = N slots + one extra padding on the outer edge.
-    val totalRevealWidth = (minActionSize + actionPadding) * actions.size + actionPadding
-    val totalRevealWidthPx = with(density) { totalRevealWidth.toPx() }
+    // Each action slot = its width + padding on each side, where the width is the circle's unless
+    // a label is wider. Total reveal = N slots + one extra padding on the outer edge.
+    val labelStyle = CodeTheme.typography.caption
+    val textMeasurer = rememberTextMeasurer()
+    val trailingLabelWidths = actions.map { action ->
+        action.label?.let { textMeasurer.measure(it, labelStyle, maxLines = 1).size.width }
+    }
+    val leadingLabelWidths = leadingActions.map { action ->
+        action.label?.let { textMeasurer.measure(it, labelStyle, maxLines = 1).size.width }
+    }
+    val totalRevealWidthPx = with(density) {
+        revealWidthPx(trailingLabelWidths, minActionSize.toPx(), actionPadding.toPx())
+    }
 
     val dismissAction = actions.lastOrNull()
     val currentDismissCallback by rememberUpdatedState(dismissAction?.onTriggered ?: {})
@@ -182,7 +202,7 @@ fun SwipeActionRow(
     var pendingResetCallback by remember(stateKey) { mutableStateOf(false) }
 
     val leadingRevealWidthPx = with(density) {
-        ((minActionSize + actionPadding) * leadingActions.size + actionPadding).toPx()
+        revealWidthPx(leadingLabelWidths, minActionSize.toPx(), actionPadding.toPx())
     }
     val leadingDismissAction = leadingActions.lastOrNull()
     val currentLeadingCallback by rememberUpdatedState(leadingDismissAction?.onTriggered ?: {})
@@ -320,18 +340,10 @@ fun SwipeActionRow(
 
         Layout(
             content = {
-                actions.forEachIndexed { index, action ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(action.background)
-                            .clickable {
-                                action.onTriggered()
-                                scope.launch { state.animateTo(SwipeState.Settled) }
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        action.content()
+                actions.forEach { action ->
+                    SwipeActionSlot(action, labelStyle, minActionSize) {
+                        action.onTriggered()
+                        scope.launch { state.animateTo(SwipeState.Settled) }
                     }
                 }
             },
@@ -343,32 +355,34 @@ fun SwipeActionRow(
             val n = measurables.size
             val actionH = (constraints.maxHeight - padPx * 2).coerceAtLeast(minPx)
 
-            // Non-dismiss actions each occupy a fixed slot: padding + minSize.
-            // The dismiss action (last) gets the remaining width and grows on full swipe.
-            val fixedSlotWidth = minPx + padPx
-            val nonDismissTotal = (n - 1) * fixedSlotWidth
+            // Non-dismiss actions each occupy a fixed slot: padding + their width (the circle's,
+            // or the label's when wider). The dismiss action (last) gets the remaining width and
+            // grows on full swipe.
+            val slots = trailingLabelWidths.map { slotWidthPx(it, minPx) }
+            val nonDismissTotal = slots.dropLast(1).sumOf { it + padPx }
             val dismissAvailable = (absOffset - padPx - nonDismissTotal).coerceAtLeast(0f)
-            val dismissW = (dismissAvailable.toInt() - padPx).coerceAtLeast(minPx)
+            val dismissW = (dismissAvailable.toInt() - padPx).coerceAtLeast(slots.lastOrNull() ?: minPx)
 
             val placeables = measurables.mapIndexed { index, measurable ->
-                val w = if (index == n - 1) dismissW else minPx
-                measurable.measure(Constraints.fixed(w, actionH))
+                val w = if (index == n - 1) dismissW else slots[index]
+                // A labelled action lays out its circle and title in the row's full height.
+                val h = if (trailingLabelWidths[index] != null) constraints.maxHeight else actionH
+                measurable.measure(Constraints.fixed(w, h))
             }
 
             layout(constraints.maxWidth, constraints.maxHeight) {
                 // Hidden, and so not tappable, while the leading side is open.
                 if (state.offset > 0f || n == 0) return@layout
-                val yCenter = (constraints.maxHeight - actionH) / 2
                 var x = constraints.maxWidth - padPx
 
                 // Dismiss action (rightmost)
                 x -= placeables.last().width
-                placeables.last().place(x, yCenter)
+                placeables.last().place(x, (constraints.maxHeight - placeables.last().height) / 2)
 
                 // Remaining actions, right to left
                 for (i in n - 2 downTo 0) {
                     x -= padPx + placeables[i].width
-                    placeables[i].place(x, yCenter)
+                    placeables[i].place(x, (constraints.maxHeight - placeables[i].height) / 2)
                 }
             }
         }
@@ -377,17 +391,9 @@ fun SwipeActionRow(
             Layout(
                 content = {
                     leadingActions.forEach { action ->
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(action.background)
-                                .clickable {
-                                    action.onTriggered()
-                                    scope.launch { state.animateTo(SwipeState.Settled) }
-                                },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            action.content()
+                        SwipeActionSlot(action, labelStyle, minActionSize) {
+                            action.onTriggered()
+                            scope.launch { state.animateTo(SwipeState.Settled) }
                         }
                     }
                 },
@@ -399,21 +405,21 @@ fun SwipeActionRow(
                 val minPx = minActionSize.roundToPx()
                 val n = measurables.size
                 val actionH = (constraints.maxHeight - padPx * 2).coerceAtLeast(minPx)
-                val fixedSlotWidth = minPx + padPx
-                val outerAvailable = (offset - padPx - (n - 1) * fixedSlotWidth).coerceAtLeast(0f)
-                val outerW = (outerAvailable.toInt() - padPx).coerceAtLeast(minPx)
+                val slots = leadingLabelWidths.map { slotWidthPx(it, minPx) }
+                val outerAvailable = (offset - padPx - slots.dropLast(1).sumOf { it + padPx }).coerceAtLeast(0f)
+                val outerW = (outerAvailable.toInt() - padPx).coerceAtLeast(slots.last())
                 val placeables = measurables.mapIndexed { index, measurable ->
-                    measurable.measure(Constraints.fixed(if (index == n - 1) outerW else minPx, actionH))
+                    val h = if (leadingLabelWidths[index] != null) constraints.maxHeight else actionH
+                    measurable.measure(Constraints.fixed(if (index == n - 1) outerW else slots[index], h))
                 }
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     if (offset <= 0f) return@layout
-                    val yCenter = (constraints.maxHeight - actionH) / 2
                     var x = padPx
-                    placeables.last().place(x, yCenter)
+                    placeables.last().place(x, (constraints.maxHeight - placeables.last().height) / 2)
                     x += placeables.last().width
                     for (i in n - 2 downTo 0) {
                         x += padPx
-                        placeables[i].place(x, yCenter)
+                        placeables[i].place(x, (constraints.maxHeight - placeables[i].height) / 2)
                         x += placeables[i].width
                     }
                 }
@@ -431,6 +437,79 @@ fun SwipeActionRow(
                 ),
         ) {
             content()
+        }
+    }
+}
+
+/** An action's slot width: the circle's, or its label's when the label is wider. */
+private fun slotWidthPx(labelWidthPx: Int?, circlePx: Int): Int = maxOf(circlePx, labelWidthPx ?: 0)
+
+/** The reveal width for [labelWidths] (one per action, null when unlabelled), as a float like the anchors. */
+private fun revealWidthPx(labelWidths: List<Int?>, circlePx: Float, padPx: Float): Float =
+    labelWidths.sumOf { maxOf(circlePx, (it ?: 0).toFloat()).toDouble() }.toFloat() +
+        padPx * (labelWidths.size + 1)
+
+/**
+ * One action behind the row. Unlabelled, it is the pill the row measures it to. Labelled, it is a
+ * circle with the label centred under it, the pair centred in the row's height; when the outermost
+ * action is stretched by a full swipe the circle widens by the same amount and the label stays
+ * under it. The whole slot, label included, takes the tap; the ripple stays on the circle.
+ */
+@Composable
+private fun SwipeActionSlot(
+    action: SwipeAction,
+    labelStyle: TextStyle,
+    circleSize: Dp,
+    onClick: () -> Unit,
+) {
+    val label = action.label
+    if (label == null) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(action.background)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            action.content()
+        }
+        return
+    }
+    val interactions = remember { MutableInteractionSource() }
+    val gap = CodeTheme.dimens.grid.x1
+    Layout(
+        content = {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(action.background)
+                    .indication(interactions, ripple()),
+                contentAlignment = Alignment.Center,
+            ) {
+                action.content()
+            }
+            Text(
+                text = label,
+                style = labelStyle,
+                color = CodeTheme.colors.textSecondary,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+        },
+        modifier = Modifier.clickable(interactionSource = interactions, indication = null, onClick = onClick),
+    ) { measurables, constraints ->
+        val circlePx = circleSize.roundToPx()
+        val gapPx = gap.roundToPx()
+        val text = measurables[1].measure(Constraints())
+        val slot = slotWidthPx(text.width, circlePx)
+        val circle = measurables[0].measure(
+            Constraints.fixed(circlePx + (constraints.maxWidth - slot).coerceAtLeast(0), circlePx)
+        )
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            val top = (constraints.maxHeight - circle.height - gapPx - text.height) / 2
+            circle.place((constraints.maxWidth - circle.width) / 2, top)
+            text.place((constraints.maxWidth - text.width) / 2, top + circle.height + gapPx)
         }
     }
 }
