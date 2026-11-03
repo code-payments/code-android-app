@@ -13,10 +13,6 @@ import androidx.compose.ui.unit.sp
 
 private val Avenir: FontFamily get() = PlatformFonts.avenir
 
-// The true Medium face. `Avenir` deliberately renders FontWeight.Medium as Demi (many call sites
-// depend on that), so styles that need iOS's real Medium use this family instead.
-private val AvenirMedium: FontFamily get() = PlatformFonts.avenirMedium
-
 private val RobotoMono: FontFamily get() = PlatformFonts.robotoMono
 
 data class CodeTypography(
@@ -61,10 +57,11 @@ val codeTypography = CodeTypography(
         fontSize = 55.sp,
         fontWeight = FontWeight.Bold,
     ),
+    // Demi, like iOS appDisplayMedium (40 Bold).
     displayMedium = TextStyle(
         fontFamily = Avenir,
         fontSize = 40.sp,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
     ),
     // Mirrors iOS appDisplayCompact (30 Bold).
     displayCompact = TextStyle(
@@ -119,7 +116,7 @@ val codeTypography = CodeTypography(
     ),
     // Mirrors iOS appTextMessage (16 Medium): chat message body text.
     textMessage = TextStyle(
-        fontFamily = AvenirMedium,
+        fontFamily = Avenir,
         fontSize = 16.sp,
         fontWeight = FontWeight.Medium,
         lineHeight = 20.sp
@@ -128,7 +125,7 @@ val codeTypography = CodeTypography(
     caption = TextStyle(
         fontSize = 12.sp,
         lineHeight = 18.sp,
-        fontFamily = AvenirMedium,
+        fontFamily = Avenir,
         fontWeight = FontWeight.Medium,
     ),
     linkMedium = TextStyle(
@@ -142,7 +139,7 @@ val codeTypography = CodeTypography(
         fontSize = 14.sp,
         lineHeight = 18.sp,
         fontFamily = Avenir,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         textDecoration = TextDecoration.Underline,
     ),
     keyboard = TextStyle(

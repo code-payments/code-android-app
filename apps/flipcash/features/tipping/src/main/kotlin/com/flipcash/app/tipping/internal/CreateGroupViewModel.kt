@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.blob.BlobStorageCoordinator
 import com.flipcash.app.blob.ImageUploadPreparer
+import com.flipcash.app.blob.prepare
+import com.flipcash.app.blob.uri
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.moderation.moderationDescription
 import com.flipcash.app.core.ui.ConfirmationStyle
@@ -30,6 +32,7 @@ import com.flipcash.shared.amountentry.AmountEntryStyle
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatTitle
 import com.flipcash.shared.chat.GroupAccess
+import com.flipcash.shared.chat.HostInvites
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.internal.extensions.fractionDigits
@@ -98,6 +101,7 @@ internal class CreateGroupViewModel @AssistedInject constructor(
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalytics,
     private val groupKeys: GroupKeyEnvelopes,
+    private val hostInvites: HostInvites,
 ) : BaseViewModel<CreateGroupViewModel.State, CreateGroupViewModel.Event>(
     initialState = State(isPrivate = isPrivate),
     updateStateForEvent = updateStateForEvent,
@@ -458,6 +462,9 @@ internal class CreateGroupViewModel @AssistedInject constructor(
         awaitingKey = chat
         if (storeKeyWithRetry(chat)) {
             awaitingKey = null
+            // The host's first invite link, never expiring. Fire and forget: the chat opens
+            // without waiting on it, and the lazy create on first share covers a failure.
+            hostInvites.startFirstInvite(chat.chatId)
             dispatchSuccessThen(Event.UpdateProcessingState(success = true)) {
                 dispatchEvent(Event.ChatCreated(chat))
                 dispatchEvent(Event.UpdateProcessingState())

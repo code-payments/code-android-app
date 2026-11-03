@@ -676,8 +676,15 @@ builder = "result"
 properties = [
   { name = "Method", type = "AddMoneyMethod" },
   { group = "outcome" },
+  { name = "Order Time", type = "duration", optional = true },
+  { name = "Payment Time", type = "duration", optional = true },
+  { name = "Coinbase Time", type = "duration", optional = true },
+  { name = "Deposit Time", type = "duration", optional = true },
+  { name = "Swap Time", type = "duration", optional = true },
+  { name = "Credit Time", type = "duration", optional = true },
+  { name = "Total Time", type = "duration", optional = true },
 ]
-description = "The outcome of an add-money flow, sent as the event named `Add Money`."
+description = "The outcome of an add-money flow, sent as the event named `Add Money`. The seven Time properties split a Coinbase purchase into phases and are sent only when Method is Coinbase. Order Time: from the user confirming the amount to Coinbase returning the placed order. Payment Time: from the order placed to Coinbase's `onramp_api.payment_authorized` event, so it includes the user's own time on the payment sheet. Coinbase Time: from `onramp_api.payment_authorized` to Coinbase's `onramp_api.polling_success` event. Deposit Time: from `onramp_api.polling_success` to the app first seeing a nonzero USDC balance in the user's account, which includes waiting for Coinbase to send it on-chain. Swap Time: from the USDC being seen to the USDC to USDF swap returning success. Credit Time: from the swap succeeding to the app seeing the USDF credited and showing success. Total Time: from the user confirming the amount to this event being sent, on success or failure. On a failure, only the phases that finished are sent, plus Total Time. When the user is sent to verify a phone number or email first, both clocks restart when they come back and the amount is confirmed again."
 drift = "iOS sends Exchange Rate and no USDC (see Amount)."
 
 # Onramp
@@ -687,7 +694,6 @@ domain = "Onramp"
 name = "Onramp: {step}"
 builder = "step"
 placeholders = { step = "OnrampStep" }
-description = "Show Verification Info is Android only; part 2 decides whether iOS sends it."
 
 # Wallet
 
@@ -763,7 +769,7 @@ properties = [
   { group = "amount" },
   { name = "Error", type = "text", optional = true },
 ]
-description = "Phantom and Coinbase are Android only; part 2 decides whether iOS sends them. Currency is a buy paid with a held currency other than USDF reserves."
+description = "Currency is a buy paid with a held currency other than USDF reserves."
 drift = "(Reserves and Currency) iOS also sends State, Payment Mint and Payment Token Symbol, and sends only Fiat and Currency of the amount, with no USDC or Quarks."
 
 [[event]]
@@ -903,7 +909,7 @@ properties = [
   { name = "Currency", type = "text" },
   { name = "Owner Public Key", type = "text", param = "owner" },
 ]
-description = "Android only; part 2 decides whether iOS sends it. iOS's Create Account fires at registration and is a different moment."
+description = "The account-creation payment. It is a different moment from Create Account, which fires at registration."
 
 [[event]]
 domain = "Account"

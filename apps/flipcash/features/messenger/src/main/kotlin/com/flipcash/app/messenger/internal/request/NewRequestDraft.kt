@@ -8,6 +8,7 @@ import com.flipcash.services.models.paymentrequest.NewSplitRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.times
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -15,10 +16,10 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
- * A payment request a creator is putting together in a private group, from Total Amount to the
+ * A payment request a creator is putting together in a private group, from Amount Per Person to the
  * confirm sheet. Frames 04–06 of the group requests spec.
  *
- * @param total what the shares add up to; see [splitTotal].
+ * @param amount what each share asks for.
  * @param members who Split Between lists: the creator first, then the rest of the roster in its
  *   order. Shares are sent in this order, whatever order the boxes were checked in.
  * @param selected who is asked, the creator included when [viewerId] is in it.
@@ -31,7 +32,7 @@ internal data class NewRequestDraft(
     val viewerId: ID,
     val members: List<ID>,
     val title: String,
-    val total: Fiat? = null,
+    val amount: Fiat? = null,
     val selected: Set<ID> = if (members.size > MAX_SHARES) emptySet() else members.toSet(),
     val deadline: Deadline = Deadline.Week,
     val idempotencyKey: IdempotencyKey? = null,
@@ -50,17 +51,11 @@ internal data class NewRequestDraft(
     /** Who is asked, in [members] order. */
     val shares: List<ID> get() = members.filter { it in selected }
 
-    /** [total] split between [shares], or null with no total or a total too small to give everyone a unit. */
-    val split: List<NewShare>? get() = total?.let { splitTotal(it, shares, viewerId) }
+    /** Every share is [amount], or null with no amount or nobody selected. */
+    val split: List<NewShare>? get() = amount?.let { each -> shares.map { NewShare(it, each) }.ifEmpty { null } }
 
-    /** The largest share. */
-    val largestShare: Fiat? get() = split?.maxByOrNull { it.amount.quarks }?.amount
-
-    /** The smallest share: the amount in "Request ~$33.33 Each". */
-    val smallestShare: Fiat? get() = split?.minByOrNull { it.amount.quarks }?.amount
-
-    /** Some shares are a unit more than others, so the button's amount is shown with "~". */
-    val isUnevenSplit: Boolean get() = largestShare != smallestShare
+    /** What the request adds up to: [amount] for each of [shares], the creator's included when checked. */
+    val totalAmount: Fiat? get() = amount?.let { it * shares.size }
 
     val people: People
         get() {
@@ -83,7 +78,7 @@ internal data class NewRequestDraft(
 
     /** What Create sends, with [now] the moment Send Request was tapped. */
     fun toSplit(chatId: ChatId, text: PaymentRequestText.Encrypted, now: Instant): NewSplitRequest? {
-        val amount = total ?: return null
+        val amount = amount ?: return null
         if (!canContinue) return null
         return NewSplitRequest(
             chatId = chatId,
@@ -140,29 +135,5 @@ internal data class NewRequestDraft(
         /** The creator first, then the rest of [roster] in order, each once. */
         fun members(viewerId: ID, roster: List<ChatMember>): List<ID> =
             listOf(viewerId) + roster.map { it.userId }.filter { it != viewerId }.distinct()
-    }
-}
-
-/**
- * [total] split equally between [shares], in their order: each gets the total over the share
- * count, rounded down to the currency's smallest unit, and the units left over go one each to the
- * first shares that are not [creator]'s. The creator's share is marked paid from creation, so the
- * leftover lands on members who actually pay. The amounts always sum to [total].
- *
- * Null when there are no shares, or the total is fewer units than shares, since every share must
- * be at least one unit.
- */
-internal fun splitTotal(total: Fiat, shares: List<ID>, creator: ID): List<NewShare>? {
-    if (shares.isEmpty()) return null
-    val unit = total.smallestUnit.quarks.coerceAtLeast(1L)
-    val units = total.quarks / unit
-    val count = shares.size.toLong()
-    if (units < count) return null
-    val base = units / count
-    val remainder = (units % count).toInt()
-    val takesExtra = (shares.filter { it != creator } + shares.filter { it == creator }).take(remainder).toSet()
-    return shares.map { id ->
-        val shareUnits = if (id in takesExtra) base + 1 else base
-        NewShare(id, Fiat(quarks = shareUnits * unit, currencyCode = total.currencyCode))
     }
 }

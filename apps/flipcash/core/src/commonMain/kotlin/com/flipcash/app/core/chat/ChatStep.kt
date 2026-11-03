@@ -194,6 +194,19 @@ sealed interface ChatStep : FlowStep, Parcelable {
     ): ChatStep
 
     /**
+     * A group member's sheet (S3–S5), opened in place of [Profile] by their picture in the group
+     * profile's grids, their Members row, or their avatar in the transcript. View Profile pushes
+     * [Profile] with [origin], the one the tap would have pushed it with; hosts also get the
+     * group's Restrict and Remove here. Short and fixed, so it wraps its content.
+     */
+    @Parcelize
+    @Serializable
+    data class MemberSheet(
+        val contact: ChatParticipant,
+        val origin: ProfileOrigin,
+    ) : ChatStep, Sheet, WrapContentSheet
+
+    /**
      * The group's own profile — the counterpart of [Profile] for a chat that has no counterparty.
      *
      * Carries nothing, because there is nothing a group can be identified by that the flow does

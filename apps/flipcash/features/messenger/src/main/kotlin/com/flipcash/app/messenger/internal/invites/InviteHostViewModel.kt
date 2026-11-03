@@ -3,9 +3,11 @@ package com.flipcash.app.messenger.internal.invites
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.shared.chat.ApproveNewMembersStore
 import com.flipcash.shared.chat.HostInvites
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -18,6 +20,7 @@ import javax.inject.Inject
 @HiltViewModel
 internal class InviteHostViewModel @Inject constructor(
     private val hostInvites: HostInvites,
+    private val approveStore: ApproveNewMembersStore,
 ) : ViewModel() {
 
     /** Each checked chat's `can_invite`; a chat not checked yet reads as false. */
@@ -27,4 +30,7 @@ internal class InviteHostViewModel @Inject constructor(
     fun refresh(chatId: ChatId) {
         viewModelScope.launch { hostInvites.refreshAccess(chatId) }
     }
+
+    /** Whether Approve New Members is on for [chatId] on this device. */
+    suspend fun approveOn(chatId: ChatId): Boolean = approveStore.observe(chatId).first()
 }

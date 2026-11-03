@@ -35,26 +35,18 @@ actual fun Paint.makeBlur(shadowBlurRadius: Float) {
 }
 
 internal actual object PlatformFonts {
+    // Same weight-to-face table as iOS FontBook (UIKit): Regular up to Normal, the real Medium
+    // face for Medium, Demi from SemiBold up.
     actual val avenir = FontFamily(
         Font(R.font.avenir_next_regular, FontWeight.Thin),
         Font(R.font.avenir_next_regular, FontWeight.ExtraLight),
         Font(R.font.avenir_next_regular, FontWeight.Light),
         Font(R.font.avenir_next_regular, FontWeight.Normal),
-        Font(R.font.avenir_next_demi, FontWeight.Medium), // TODO: find a better medium OTF
+        Font(R.font.avenir_next_medium, FontWeight.Medium),
         Font(R.font.avenir_next_demi, FontWeight.SemiBold),
         Font(R.font.avenir_next_demi, FontWeight.Bold),
         Font(R.font.avenir_next_demi, FontWeight.ExtraBold),
         Font(R.font.avenir_next_demi, FontWeight.Black)
-    )
-
-    actual val avenirMedium = FontFamily(
-        Font(R.font.avenir_next_medium, FontWeight.Normal),
-        Font(R.font.avenir_next_medium, FontWeight.Medium),
-        // Heavier overrides (e.g. caption.copy(fontWeight = Bold)) stay on Demi, as they did under Avenir.
-        Font(R.font.avenir_next_demi, FontWeight.SemiBold),
-        Font(R.font.avenir_next_demi, FontWeight.Bold),
-        Font(R.font.avenir_next_demi, FontWeight.ExtraBold),
-        Font(R.font.avenir_next_demi, FontWeight.Black),
     )
 
     actual val robotoMono = FontFamily(

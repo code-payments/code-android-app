@@ -32,6 +32,7 @@ class SilenceUserViewModelTest {
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val analytics = RecordingAnalytics()
     private val toasts = mockk<SystemToastController>(relaxed = true)
+    private val restrictionWrites = GroupRestrictionWrites()
     private val chatId = ChatId(ByteArray(32) { 3 }.toList())
     private val userId = listOf<Byte>(1)
 
@@ -47,7 +48,7 @@ class SilenceUserViewModelTest {
         BottomBarManager.clear()
     }
 
-    private fun viewModel() = SilenceUserViewModel(chatController, resources, toasts, analytics)
+    private fun viewModel() = SilenceUserViewModel(chatController, resources, toasts, analytics, restrictionWrites)
 
     @Test
     fun `each option toasts its own length after a successful silence`() {

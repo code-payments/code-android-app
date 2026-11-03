@@ -16,7 +16,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
-/** The summary copy for the spec's cases 14–18, 49, 52 and 53. */
+/** The summary copy for the spec's cases 14–18 and 49–51. */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class RequestCopyTest {
@@ -29,57 +29,60 @@ class RequestCopyTest {
     // As the summary formats an amount: "$20" for a whole amount, "$33.34" otherwise.
     private fun Fiat.text(): String = formatted(Fiat.FormattingRule.Truncated)
 
-    private fun draft(memberCount: Int, total: Fiat = Fiat(520.0, CurrencyCode.USD)) = NewRequestDraft(
+    private fun draft(memberCount: Int, amount: Fiat = Fiat(20.0, CurrencyCode.USD)) = NewRequestDraft(
         viewerId = viewer,
         members = NewRequestDraft.members(
             viewer,
             (0 until memberCount).map { ChatMember(id(it), mockk<UserProfile>(relaxed = true), emptyList()) },
         ),
         title = "Saturday Request",
-        total = total,
+        amount = amount,
     )
+
+    private fun button(draft: NewRequestDraft) = requestButtonText(draft.totalAmount!!.text(), resources)
 
     // 14
     @Test
-    fun `520 between everyone reads everyone including you and requests 20 each`() {
+    fun `20 each between everyone reads everyone including you and requests 520 total`() {
         val draft = draft(26)
 
         assertEquals("Everyone, Including You", peopleValue(draft.people, resources))
         assertEquals("You'll be marked as paid", peopleDetail(draft.people, resources))
-        assertEquals("Request $20 Each", requestButtonText(draft.smallestShare!!.text(), draft.isUnevenSplit, resources))
+        assertEquals("Request $520 Total", button(draft))
     }
 
     // 15
     @Test
-    fun `creator and one other read in the singular`() {
-        val draft = draft(26, total = Fiat(40.0, CurrencyCode.USD)).copy(selected = setOf(viewer, id(4)))
+    fun `creator and one other read in the singular and request 40 total`() {
+        val draft = draft(26).copy(selected = setOf(viewer, id(4)))
 
         assertEquals("1 Person, Including You", peopleValue(draft.people, resources))
-        assertEquals("Request $20 Each", requestButtonText(draft.smallestShare!!.text(), draft.isUnevenSplit, resources))
+        assertEquals("Request $40 Total", button(draft))
     }
 
     // 49
     @Test
-    fun `100 between three requests about the smaller share each`() {
-        val draft = draft(26, total = Fiat(100.0, CurrencyCode.USD)).copy(selected = setOf(viewer, id(1), id(2)))
+    fun `creator unchecked leaves 25 shares and requests 500 total`() {
+        val start = draft(26)
+        val draft = start.copy(selected = start.toggled(viewer)!!)
 
-        assertEquals("Request ~$33.33 Each", requestButtonText(draft.smallestShare!!.text(), draft.isUnevenSplit, resources))
+        assertEquals("Request $500 Total", button(draft))
     }
 
-    // 53
+    // 50
     @Test
-    fun `100_02 between three splits evenly and has no tilde`() {
-        val draft = draft(26, total = Fiat(100.02, CurrencyCode.USD)).copy(selected = setOf(viewer, id(1), id(2)))
+    fun `a cent amount multiplies exactly`() {
+        val draft = draft(5, amount = Fiat(33.34, CurrencyCode.USD)).copy(selected = setOf(viewer, id(1), id(2)))
 
-        assertEquals("Request $33.34 Each", requestButtonText(draft.smallestShare!!.text(), draft.isUnevenSplit, resources))
+        assertEquals("Request $100.02 Total", button(draft))
     }
 
-    // 52
+    // 51
     @Test
-    fun `40 to one other requests 40 each`() {
-        val draft = draft(26, total = Fiat(40.0, CurrencyCode.USD)).copy(selected = setOf(id(2)))
+    fun `the total follows the selection`() {
+        val draft = draft(26).copy(selected = setOf(id(2)))
 
-        assertEquals("Request $40 Each", requestButtonText(draft.smallestShare!!.text(), draft.isUnevenSplit, resources))
+        assertEquals("Request $20 Total", button(draft))
     }
 
     // 16

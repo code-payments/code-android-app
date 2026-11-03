@@ -34,6 +34,7 @@ fun CoinbaseOnRampWebview(
     onPaymentSuccess: (String) -> Unit,
     onPaymentFailure: (CoinbaseOnRampWebError) -> Unit,
     onCancel: () -> Unit,
+    onPaymentAuthorized: () -> Unit = {},
 ) {
     var cleanup: (() -> Unit)? = null
     ComposeWebView(
@@ -47,6 +48,7 @@ fun CoinbaseOnRampWebview(
                 onPaymentSuccess = { onPaymentSuccess(orderId) },
                 onPaymentFailure = onPaymentFailure,
                 onCancel = onCancel,
+                onPaymentAuthorized = onPaymentAuthorized,
             )
         },
         onRelease = { cleanup?.invoke() },
@@ -59,6 +61,7 @@ private fun WebView.configureForCoinbaseOnRamp(
     onPaymentSuccess: () -> Unit,
     onPaymentFailure: (CoinbaseOnRampWebError) -> Unit,
     onCancel: () -> Unit,
+    onPaymentAuthorized: () -> Unit,
 ): () -> Unit {
     val startMark = TimeSource.Monotonic.markNow()
     val webViewVersion = WebViewCompat.getCurrentWebViewPackage(context)?.versionName.orEmpty()
@@ -177,6 +180,7 @@ private fun WebView.configureForCoinbaseOnRamp(
         onPaymentSuccess = wrappedOnPaymentSuccess,
         onPaymentFailure = wrappedOnPaymentFailure,
         onCancel = wrappedOnCancel,
+        onPaymentAuthorized = onPaymentAuthorized,
         onHeartbeat = heartbeat,
         onPauseWatchdog = pauseWatchdog,
         onAutoClickGPay = {

@@ -7,6 +7,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.libs.emojis.reactions.EmojiCatalog
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
 import com.getcode.libs.emojis.reactions.EmojiDrawability
+import com.getcode.libs.emojis.reactions.deviceGlyphProbe
 import com.getcode.libs.emojis.reactions.EmojiPickerModel
 import com.getcode.libs.emojis.reactions.RecentReactionsStore
 import com.getcode.view.BaseViewModel
@@ -45,7 +46,7 @@ class EmojiPickerViewModel internal constructor(
         dispatchers: DispatcherProvider,
         emojiCatalogLoader: EmojiCatalogLoader,
         recentReactionsStore: RecentReactionsStore,
-    ) : this(dispatchers, emojiCatalogLoader, recentReactionsStore, EmojiDrawability.PaintGlyphProbe)
+    ) : this(dispatchers, emojiCatalogLoader, recentReactionsStore, deviceGlyphProbe())
 
     data class State(
         val searchFieldState: TextFieldState = TextFieldState(),

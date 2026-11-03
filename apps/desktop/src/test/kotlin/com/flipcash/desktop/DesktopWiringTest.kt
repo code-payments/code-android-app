@@ -85,6 +85,15 @@ class DesktopWiringTest {
         assertSame(graph.tokenCoordinator, inSet, "TokenCoordinator in the listener set is a second instance")
     }
 
+    @Test
+    fun `photo upload resolves its desktop implementations`() {
+        // The platform seams behind photo upload: Skia for the codec, files for picked photos and the
+        // staging directory. Chat itself is not in this graph yet, only what it will need from it.
+        assertTrue(graph.imageUploadPreparer.photos.fromLocation("/tmp/x.jpg") is com.flipcash.app.blob.FilePickedPhoto)
+        assertTrue(graph.chatMediaLocation.directory.path.endsWith("pending-media"))
+        assertSame(graph.sentImageCache, graph.sentImageCache, "SentImageCache")
+    }
+
     /**
      * The repository subscribes to `Events.OnLoggedIn` on the shared bus. Closing that key with
      * REQUIRE_FLOW_IS_NOT_COLLECTING fails only while someone collects it; the subscription is

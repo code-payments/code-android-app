@@ -34,14 +34,6 @@ import com.getcode.opencode.model.core.errors.ValidationException
  * take. This is the only place Android-specific formatting of an analytics value lives.
  */
 
-val ChatType.analytics: AnalyticsChatType
-    get() = when (this) {
-        ChatType.CONTACT_DM -> AnalyticsChatType.CONTACT
-        ChatType.TIP_DM -> AnalyticsChatType.TIP
-        ChatType.GROUP -> AnalyticsChatType.GROUP
-        ChatType.UNKNOWN -> AnalyticsChatType.UNKNOWN
-    }
-
 /** Android's `Error` format. iOS sends `domain.error:code`; part 2 settles one. */
 val Throwable.analytics: String
     get() = message.orEmpty()
@@ -104,18 +96,6 @@ val LocalFiat.analytics: Amount
         exchangeRate = rate.fx,
         mint = mint.base58(),
     )
-
-/** No exchange rate or mint; `USDC` repeats the amount. */
-val Fiat.analytics: Amount
-    get() = Amount(
-        fiat = decimalValue,
-        currency = currencyCode.name,
-        usdc = decimalValue,
-        quarks = quarks,
-    )
-
-val Mint.analytics: String
-    get() = base58()
 
 val OnRampProvider.UsesDeeplinks.analytics: WalletProvider
     get() = when (this) {

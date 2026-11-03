@@ -302,8 +302,7 @@ private fun ConversationTitleBar(
                         )
                     }
                 }
-                // The payment request deck, beside the title rather than in the actions slot, so
-                // the bar keeps its height (group requests spec, concept B).
+                // At the title's end: where the expanded request deck's close button sits.
                 trailing()
             }
         }
