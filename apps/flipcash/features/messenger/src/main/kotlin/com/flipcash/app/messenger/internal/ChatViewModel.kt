@@ -2301,7 +2301,11 @@ internal class ChatViewModel @AssistedInject constructor(
 
     private suspend fun openTranscript(chatId: ChatId) {
         when (val hydration = chatCoordinator.hydrateChat(chatId)) {
-            ChatHydration.Stored,
+            ChatHydration.Stored -> coroutineScope {
+                // Its own GetChat, writing only the grant columns: the transcript need not wait.
+                launch { chatCoordinator.refreshViewerState(chatId) }
+                chatCoordinator.loadMessages(chatId)
+            }
             ChatHydration.Unavailable -> chatCoordinator.loadMessages(chatId)
             ChatHydration.Absent -> dispatchEvent(Event.ChatNotFound)
             is ChatHydration.Fetched -> {
