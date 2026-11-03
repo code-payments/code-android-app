@@ -300,20 +300,19 @@ class CashBubbleLinesTest {
     // The "$X each" line's styling.
 
     @Test
-    fun `each draws in the real Medium face, not the amount's Demi`() {
+    fun `each draws in the real Medium face of the amount's family`() {
         val text = eachAmountText(
             line = "~$0.33 each",
             amount = "$0.33",
-            eachFamily = codeTypography.caption.fontFamily,
             eachColor = Color.Gray,
         )
         val each = text.spanStyles.single { it.start == "~$0.33".length }
         assertEquals("~$0.33 each".length, each.end)
         assertEquals(FontWeight.Medium, each.item.fontWeight)
         assertEquals(0.5.em, each.item.fontSize)
-        assertEquals(mediumFace(each.item.fontFamily), themeR.font.avenir_next_medium)
-        // The amount's family draws Medium as Demi, which is the face " each" must not take.
-        assertEquals(mediumFace(codeTypography.displayMedium.fontFamily), themeR.font.avenir_next_demi)
+        // No family of its own: " each" takes the amount's Avenir, whose Medium is the Medium face.
+        assertNull(each.item.fontFamily)
+        assertEquals(mediumFace(codeTypography.displayMedium.fontFamily), themeR.font.avenir_next_medium)
 
         val tilde = text.spanStyles.single { it.start == 0 }
         assertEquals(1, tilde.end)

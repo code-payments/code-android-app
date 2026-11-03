@@ -8,7 +8,6 @@ import com.flipcash.core.R
 import com.flipcash.services.models.chat.MessageContent
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.AnnotatedString
@@ -193,12 +192,10 @@ private fun String?.orSomeone(resources: Resources): String =
 
 /**
  * The "$X each" line with [amount] already formatted inside [line]. A "~" before the amount draws at
- * 0.7.em in the amount's own style. " each" after it draws at 0.5.em, Medium, in [eachColor], from
- * [eachFamily]: the amount's Avenir family maps Medium to Demi on Android, the same face as the
- * amount, so " each" takes a family whose Medium is the real Medium face. Sizes are in em so the
- * auto-size that shrinks the amount shrinks them too and the line never wraps.
+ * 0.7.em in the amount's own style. " each" after it draws at 0.5.em, Medium, in [eachColor]. Sizes
+ * are in em so the auto-size that shrinks the amount shrinks them too and the line never wraps.
  */
-fun eachAmountText(line: String, amount: String, eachFamily: FontFamily?, eachColor: Color): AnnotatedString =
+fun eachAmountText(line: String, amount: String, eachColor: Color): AnnotatedString =
     buildAnnotatedString {
         append(line)
         val start = line.indexOf(amount)
@@ -207,7 +204,6 @@ fun eachAmountText(line: String, amount: String, eachFamily: FontFamily?, eachCo
         addStyle(
             SpanStyle(
                 fontSize = 0.5.em,
-                fontFamily = eachFamily,
                 fontWeight = FontWeight.Medium,
                 color = eachColor,
             ),
