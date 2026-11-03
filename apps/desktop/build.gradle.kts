@@ -57,6 +57,7 @@ dependencies {
     implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:features:chat-list"))
+    implementation(project(":apps:flipcash:shared:chat-ui"))
     implementation(project(":libs:emojis"))
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.dagger)

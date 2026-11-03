@@ -85,28 +85,16 @@ private fun TextButton(label: String, onClick: () -> Unit) {
     )
 }
 
-private const val ChatBlockers =
-    "The chat list and conversation live in :apps:flipcash:features:messenger and " +
-        ":apps:flipcash:shared:chat / :chat-ui, which build for Android only."
-
-/** The chat list in the sidebar, until the chat module builds for desktop (roadmap Plan 3b). */
-@Composable
-fun ChatListPlaceholder(onOpenChat: () -> Unit, modifier: Modifier = Modifier) {
-    PlaceholderPane(
-        title = "Chats",
-        blockedBy = ChatBlockers,
-        modifier = modifier,
-        action = "Open a conversation" to onOpenChat,
-    )
-}
+private const val ConversationBlocker =
+    "The conversation runs on ChatViewModel, which is Android-only until it moves to commonMain."
 
 /** The conversation in the main pane, capped at the message column width. */
 @Composable
-fun ConversationPlaceholder(modifier: Modifier = Modifier) {
+fun ConversationPlaceholder(chatName: String?, modifier: Modifier = Modifier) {
     Box(modifier, contentAlignment = Alignment.TopCenter) {
         PlaceholderPane(
-            title = "Conversation",
-            blockedBy = ChatBlockers,
+            title = chatName ?: "Conversation",
+            blockedBy = ConversationBlocker,
             modifier = Modifier.widthIn(max = DesktopDimens.MessagesMaxWidth),
         )
     }

@@ -14,7 +14,7 @@ import com.flipcash.app.analytics.LocalAnalytics
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.theme.FlipcashTheme
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
-import com.flipcash.desktop.shell.ChatListPlaceholder
+import com.flipcash.desktop.shell.DesktopChatList
 import com.flipcash.desktop.shell.ContextContent
 import com.flipcash.desktop.shell.ContextPane
 import com.flipcash.desktop.shell.ConversationPlaceholder
@@ -44,6 +44,7 @@ fun DesktopMainContent(
 ) {
     val walletViewModel = remember { graph.walletViewModel }
     val tokenViewModel = remember { graph.selectTokenViewModel }
+    val chatsViewModel = remember { graph.chatsViewModel }
     LaunchedEffect(tokenViewModel) {
         tokenViewModel.dispatchEvent(SelectTokenViewModel.Event.OnPurposeChanged(TokenPurpose.Balance))
     }
@@ -62,8 +63,8 @@ fun DesktopMainContent(
             Box(Modifier.fillMaxSize().background(CodeTheme.colors.background)) {
                 DesktopShell(
                     nav = nav,
-                    sidebar = { m -> ChatListPlaceholder(onOpenChat = nav::openChat, modifier = m) },
-                    main = { m -> ConversationPlaceholder(m) },
+                    sidebar = { m -> DesktopChatList(chatsViewModel, onOpenChat = nav::openChat, modifier = m) },
+                    main = { m -> ConversationPlaceholder(nav.openChat?.displayName, m) },
                     context = { content, m ->
                         ContextPane(
                             content = content,

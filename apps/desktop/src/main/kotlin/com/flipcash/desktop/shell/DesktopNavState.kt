@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.flipcash.app.core.AppRoute
+import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.solana.keys.Mint
 
 /** What the main pane shows. The leaderboard replaces the chat until Back (spec: Leaderboard). */
@@ -53,8 +54,13 @@ class DesktopNavState {
         sidebarPeek = false
     }
 
+    /** The chat open in the main pane, or null before the user picks one. */
+    var openChat: ConversationReference? by mutableStateOf(null)
+        private set
+
     /** A chat picked from the list: compact shows it, and a floating list folds back to the rail. */
-    fun openChat() {
+    fun openChat(chat: ConversationReference? = null) {
+        if (chat != null) openChat = chat
         compactShowsChat = true
         sidebarPeek = false
     }
