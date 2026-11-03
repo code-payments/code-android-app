@@ -944,8 +944,10 @@ private fun CashBubble(
     onSendBack: (() -> Unit)? = null,
 ) {
     // A filled Send Back row spans the bubble edge to edge along its bottom, so the bubble drops its
-    // own inset and the lines above the row put it back.
+    // own inset and the lines above the row put it back. The Sent Back footer takes the place of the
+    // bottom padding, so the lines above it put back every side but the bottom.
     val filledRow = sendBack == SendBackRow.Available || sendBack == SendBackRow.Sending
+    val sentBack = sendBack == SendBackRow.SentBack
     val insetH = BubbleDefaults.paddingHorizontal
     val insetV = BubbleDefaults.paddingVertical
     Bubble(
@@ -958,8 +960,8 @@ private fun CashBubble(
         onDoubleClick = onDoubleClick,
         modifier = modifier,
         attention = attention,
-        horizontalPadding = if (filledRow) Dp.Hairline else insetH,
-        verticalPadding = if (filledRow) Dp.Hairline else insetV,
+        horizontalPadding = if (filledRow || sentBack) Dp.Hairline else insetH,
+        verticalPadding = if (filledRow || sentBack) Dp.Hairline else insetV,
     ) {
         // The same number the bill's "You received" sheet reads: a USDF payment converts from the
         // USD it settled at, anything else from today's rates.
@@ -974,8 +976,17 @@ private fun CashBubble(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (filledRow) Modifier.padding(horizontal = insetH, vertical = insetV) else Modifier)
-                .padding(vertical = CodeTheme.dimens.staticGrid.x1),
+                .then(
+                    when {
+                        filledRow -> Modifier
+                            .padding(horizontal = insetH, vertical = insetV)
+                            .padding(vertical = CodeTheme.dimens.staticGrid.x1)
+                        sentBack -> Modifier
+                            .padding(start = insetH, end = insetH, top = insetV)
+                            .padding(top = CodeTheme.dimens.staticGrid.x1)
+                        else -> Modifier.padding(vertical = CodeTheme.dimens.staticGrid.x1)
+                    }
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -1087,9 +1098,16 @@ private fun CashBubble(
                 )
             }
 
-            if (sendBack == SendBackRow.SentBack) {
+        }
+
+        if (sentBack) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(CodeTheme.dimens.grid.x9),
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
-                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x4),
                     text = stringResource(Res.string.label_sentBack),
                     style = CodeTheme.typography.caption,
                     color = CodeTheme.colors.textSecondary,
@@ -1120,7 +1138,7 @@ private fun SendBackActionRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(CodeTheme.dimens.grid.x12)
+            .height(CodeTheme.dimens.grid.x11)
             .background(CodeTheme.colors.textMain)
             .then(
                 if (!sending && onClick != null) Modifier.clickable(onClick = onClick) else Modifier
