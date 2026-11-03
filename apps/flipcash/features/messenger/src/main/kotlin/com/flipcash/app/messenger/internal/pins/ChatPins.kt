@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal.pins
 
-import com.flipcash.app.messenger.internal.request.DeckPlacement
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.Pin
@@ -105,36 +104,6 @@ internal data class PinSegments(val count: Int, val lit: Int, val lowest: Int) {
 }
 
 internal const val SEGMENT_WINDOW = 2
-
-/** Where pins sit in the chat's chrome. */
-internal enum class PinSlot {
-    /** Nothing pinned that shows. */
-    None,
-
-    /** The bar under the top bar (C1, C6b, C7b). */
-    Bar,
-
-    /** A pin button in the top bar's trailing slot that opens the list (C6). */
-    TopBarButton,
-}
-
-/**
- * Where pins go given the request deck's resting place. Payment requests win the space under the
- * top bar: while the deck rests as the strip, pins step aside to the top bar's trailing slot, free
- * because the request isn't the pill. Once the deck rests as the pill, by scroll or by a swipe up on
- * the strip, the pill holds the trailing slot and the bar comes back. They swap; they never stack.
- *
- * @param hasPins whether the bar has something to show, fetching included.
- * @param deckRest where the request deck rests, or null when the chat has no requests drawn.
- * @param collapsing whether the strip is partway into the pill. The pill grows into the trailing
- * slot from the first pixel, so the button leaves then; the bar waits until the pill is at rest.
- */
-internal fun pinSlot(hasPins: Boolean, deckRest: DeckPlacement?, collapsing: Boolean = false): PinSlot = when {
-    !hasPins -> PinSlot.None
-    deckRest == DeckPlacement.Strip && collapsing -> PinSlot.None
-    deckRest == DeckPlacement.Strip -> PinSlot.TopBarButton
-    else -> PinSlot.Bar
-}
 
 internal val ChatMessage.isTombstone: Boolean
     get() = content.any { it is MessageContent.Deleted }
