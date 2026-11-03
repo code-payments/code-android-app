@@ -18,6 +18,7 @@ import com.flipcash.shared.chat.models.SendBackRow
 import com.flipcash.shared.payments.sendback.SendBackPaymentDelegate
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
@@ -142,7 +143,7 @@ internal class SendBackFlow(
         scope.launch {
             try {
                 val token = tokenFor(offer.mint)
-                val hasBalance = token?.let { hasBalanceFor(offer, it) }
+                val hasBalance = token?.let { checkBalance(offer, it) }?.hasBalance
                 if (token == null || hasBalance == null) {
                     presentFailed()
                     return@launch
@@ -159,22 +160,25 @@ internal class SendBackFlow(
         }
     }
 
-    /** The swipe. The balance can change while the sheet is up, so it is checked again. */
+    /**
+     * The swipe. The balance can change while the sheet is up, so it is checked again, and the
+     * amount that check priced is the one paid.
+     */
     fun confirm() {
         val open = _sheet.value ?: return
         val offer = synchronized(lock) { offers[open.messageId] } ?: return
         if (!claim()) return
         scope.launch {
-            val hasBalance = hasBalanceFor(offer, open.token)
+            val check = checkBalance(offer, open.token)
             _sheet.value = null
-            if (hasBalance != true) {
+            if (check?.hasBalance != true) {
                 busy = false
-                if (hasBalance == false) presentInsufficientBalance() else presentFailed()
+                if (check != null) presentInsufficientBalance() else presentFailed()
                 return@launch
             }
             setRow(offer.messageId, SendBackRow.Sending)
             try {
-                submit(offer, open.token)
+                submit(offer, open.token, check.priced)
             } finally {
                 busy = false
             }
@@ -185,7 +189,7 @@ internal class SendBackFlow(
         _sheet.value = null
     }
 
-    private suspend fun submit(offer: Offer, token: Token) {
+    private suspend fun submit(offer: Offer, token: Token, priced: VerifiedFiat) {
         val id = offer.messageId
         val chat = chatId()
         val owner = userManager.accountCluster
@@ -211,7 +215,7 @@ internal class SendBackFlow(
             chatId = chat,
             messageId = id,
             payee = offer.payee,
-            amount = offer.amount,
+            priced = priced,
             token = token,
             source = owner.withTimelockForToken(token),
             intentId = intentId,
@@ -243,18 +247,22 @@ internal class SendBackFlow(
     private fun sentCash(state: AnalyticsState, offer: Offer, error: String?) =
         TransferEvents.sentCash(state, offer.amount.analytics, error, SendContext.SEND_BACK)
 
+    /** [offer] priced once at today's rate, and whether the viewer holds that much. */
+    private class BalanceCheck(val priced: VerifiedFiat, val hasBalance: Boolean)
+
     /**
-     * Whether the viewer holds the token quarks [offer] needs at today's rate, or null when it
-     * can't be priced. While only a USD value of the holding is known (restored from Room, before
-     * the first balance fetch), the value is compared instead.
+     * Prices [offer] and checks the viewer holds the token quarks it needs, or null when it can't
+     * be priced. While only a USD value of the holding is known (restored from Room, before the
+     * first balance fetch), the value is compared instead.
      */
-    private suspend fun hasBalanceFor(offer: Offer, token: Token): Boolean? {
+    private suspend fun checkBalance(offer: Offer, token: Token): BalanceCheck? {
         val priced = payments.price(offer.amount, token).getOrNull() ?: return null
         val needed = priced.localFiat.underlyingTokenAmount.quarks
         val held = tokenCoordinator.heldQuarksForToken(offer.mint).first()
-        if (held != null) return held >= needed
+        if (held != null) return BalanceCheck(priced, held >= needed)
         val rate = exchange.rateFor(offer.amount.currencyCode) ?: return null
-        return !offer.amount.valueGreaterThan(tokenCoordinator.balanceForToken(token).convertingTo(rate))
+        val hasBalance = !offer.amount.valueGreaterThan(tokenCoordinator.balanceForToken(token).convertingTo(rate))
+        return BalanceCheck(priced, hasBalance)
     }
 
     private suspend fun tokenFor(mint: Mint): Token? =

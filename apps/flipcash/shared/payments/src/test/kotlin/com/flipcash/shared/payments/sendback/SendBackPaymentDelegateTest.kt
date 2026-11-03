@@ -21,9 +21,11 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.LiveSecrets
 import com.getcode.vendor.Base58
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -54,6 +56,7 @@ class SendBackPaymentDelegateTest {
     private val state = mockk<VerifiedState>()
     private val eur = mockk<Rate>()
     private val original = Fiat("5.00", CurrencyCode.EUR)
+    private val priced = VerifiedFiat(mockk<LocalFiat>(relaxed = true), state)
 
     init {
         every { exchange.rateFor(CurrencyCode.EUR) } returns eur
@@ -66,7 +69,7 @@ class SendBackPaymentDelegateTest {
         chatId = chatId,
         messageId = messageId,
         payee = originalSender,
-        amount = original,
+        priced = priced,
         token = token,
         source = source,
         intentId = PaymentIntentId(intentBytes),
@@ -74,23 +77,43 @@ class SendBackPaymentDelegateTest {
 
     @Test
     fun `12 the return pays the original's amount to its sender under the server's intent id`() = runTest {
-        val amount = slot<Fiat>()
-        val rate = slot<Rate>()
-        coEvery { calculator.compute(capture(amount), any(), any(), capture(rate), any()) } returns
-            Result.success(VerifiedFiat(mockk<LocalFiat>(relaxed = true), state))
+        val sent = slot<VerifiedFiat>()
         val metadata = slot<ByteArray>()
         val intentId = slot<PublicKey>()
         coEvery {
-            transactionController.directTransfer(any(), token, source, senderOwner, capture(metadata), any(), capture(intentId))
+            transactionController.directTransfer(capture(sent), token, source, senderOwner, capture(metadata), any(), capture(intentId))
         } returns Result.success(mockk())
 
         assertTrue(pay().isSuccess)
 
-        // Native amount and currency are the original's; the token count comes from today's rate.
-        assertEquals(original, amount.captured)
-        assertSame(eur, rate.captured)
+        assertSame(priced, sent.captured)
         assertContentEquals(intentBytes, intentId.captured.byteArray)
         assertContentEquals(buildReturnPaymentMetadata(chatId, messageId), metadata.captured)
+    }
+
+    @Test
+    fun `12 the return is priced in the original's amount and currency at today's rate`() = runTest {
+        val amount = slot<Fiat>()
+        val rate = slot<Rate>()
+        coEvery { calculator.compute(capture(amount), any(), any(), capture(rate), any()) } returns
+            Result.success(VerifiedFiat(mockk<LocalFiat>(relaxed = true), state))
+
+        assertTrue(delegate.price(original, token).isSuccess)
+
+        assertEquals(original, amount.captured)
+        assertSame(eur, rate.captured)
+    }
+
+    @Test
+    fun `pay sends the amount it is given and does not price again`() = runTest {
+        coEvery {
+            transactionController.directTransfer(any(), token, source, senderOwner, any(), any(), any())
+        } returns Result.success(mockk())
+
+        pay()
+
+        coVerify(exactly = 0) { calculator.compute(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { exchange.rateFor(any()) }
     }
 
     @Test

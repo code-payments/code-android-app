@@ -79,6 +79,12 @@ class SendBackFlowTest {
     private val needed = 500L
     private var held: Long? = 1_000L
 
+    private fun pricedAt(quarks: Long) = mockk<VerifiedFiat>(relaxed = true) {
+        every { localFiat.underlyingTokenAmount.quarks } returns quarks
+    }
+
+    private val priced = pricedAt(needed)
+
     private var statusCalls = 0
     private var statuses = ArrayDeque<Result<CashMessageReturnStatus>>()
 
@@ -90,9 +96,6 @@ class SendBackFlowTest {
         every { owner.withTimelockForToken(any()) } returns owner
         every { tokenCoordinator.cachedToken(any()) } returns token
         every { tokenCoordinator.heldQuarksForToken(any()) } answers { flowOf(held) }
-        val priced = mockk<VerifiedFiat>(relaxed = true) {
-            every { localFiat.underlyingTokenAmount.quarks } returns needed
-        }
         coEvery { payments.price(any(), any()) } returns Result.success(priced)
         coEvery { payments.pay(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(Unit)
     }
@@ -292,10 +295,23 @@ class SendBackFlowTest {
         assertEquals(SendBackRow.SentBack, f.rows.value[offeredId])
         assertEquals(listOf(sentCash(AnalyticsState.SUCCESS, null)), analytics.events)
         coVerify(exactly = 1) {
-            payments.pay(chat, offeredId, peer, amount, token, owner, intentId)
+            payments.pay(chat, offeredId, peer, priced, token, owner, intentId)
         }
         // The id from the DM-open check is reused; no second status call.
         assertEquals(1, statusCalls)
+    }
+
+    @Test
+    fun `the swipe pays the amount its balance check priced, without pricing again`() {
+        val atTap = pricedAt(needed)
+        val atSwipe = pricedAt(needed + 1)
+        coEvery { payments.price(any(), any()) } returnsMany listOf(Result.success(atTap), Result.success(atSwipe))
+
+        flow().available().swipe()
+
+        coVerify(exactly = 1) { payments.pay(chat, offeredId, peer, atSwipe, token, owner, intentId) }
+        // One price for the tap's check and one for the swipe's; none between the check and pay.
+        coVerify(exactly = 2) { payments.price(amount, token) }
     }
 
     @Test
