@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_sendBack
+import com.flipcash.core.resources.label_sentBack
 import com.flipcash.core.resources.label_edited
 import com.flipcash.core.resources.label_groupSendTotal
 import com.flipcash.core.resources.label_messageDeleted
@@ -79,6 +81,9 @@ import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.LinkCard
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.SendBackRow
+import com.getcode.ui.theme.CodeCircularProgressIndicator
+import androidx.compose.foundation.clickable
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.ui.media.MediaMessageBubble
 import com.flipcash.shared.chat.ui.media.photoBody
@@ -259,6 +264,12 @@ fun ContentBubble(
                     onLongClick = onLongClick?.takeIf { interactive },
                     onDoubleClick = onDoubleClick?.takeIf { interactive },
                     attention = attention,
+                    sendBack = item.sendBack,
+                    onSendBack = if (interactive) {
+                        { actionHandler(ChatAction.SendBack(item.messageId)) }
+                    } else {
+                        null
+                    },
                 )
 
                 // A reply is a text bubble with a citation above the body. Routing it through
@@ -929,7 +940,14 @@ private fun CashBubble(
     onDoubleClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     attention: () -> Float = { 0f },
+    sendBack: SendBackRow? = null,
+    onSendBack: (() -> Unit)? = null,
 ) {
+    // A filled Send Back row spans the bubble edge to edge along its bottom, so the bubble drops its
+    // own inset and the lines above the row put it back.
+    val filledRow = sendBack == SendBackRow.Available || sendBack == SendBackRow.Sending
+    val insetH = BubbleDefaults.paddingHorizontal
+    val insetV = BubbleDefaults.paddingVertical
     Bubble(
         isFromSelf = isFromSelf,
         position = position,
@@ -940,6 +958,8 @@ private fun CashBubble(
         onDoubleClick = onDoubleClick,
         modifier = modifier,
         attention = attention,
+        horizontalPadding = if (filledRow) Dp.Hairline else insetH,
+        verticalPadding = if (filledRow) Dp.Hairline else insetV,
     ) {
         // The same number the bill's "You received" sheet reads: a USDF payment converts from the
         // USD it settled at, anything else from today's rates.
@@ -948,11 +968,13 @@ private fun CashBubble(
         val secondary = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Medium)
         val amountStyle = CodeTheme.typography.displayMedium
 
+        Column(modifier = Modifier.fillMaxWidth()) {
         // The gaps use the static grid, like the bubble's own padding, so each spec value maps
         // down to the same 5dp step at every screen width.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(if (filledRow) Modifier.padding(horizontal = insetH, vertical = insetV) else Modifier)
                 .padding(vertical = CodeTheme.dimens.staticGrid.x1),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -1064,6 +1086,59 @@ private fun CashBubble(
                     overflow = TextOverflow.MiddleEllipsis,
                 )
             }
+
+            if (sendBack == SendBackRow.SentBack) {
+                Text(
+                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x4),
+                    text = stringResource(Res.string.label_sentBack),
+                    style = CodeTheme.typography.caption,
+                    color = CodeTheme.colors.textSecondary,
+                    maxLines = 1,
+                )
+            }
+        }
+
+        if (filledRow) {
+            SendBackActionRow(
+                sending = sendBack == SendBackRow.Sending,
+                onClick = onSendBack,
+            )
+        }
+        }
+    }
+}
+
+/**
+ * The white row along a cash bubble's bottom edge that offers Send Back, or holds a spinner while
+ * the return is submitted. Not clickable while sending, or when there is nothing to call.
+ */
+@Composable
+private fun SendBackActionRow(
+    sending: Boolean,
+    onClick: (() -> Unit)?,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(CodeTheme.dimens.grid.x12)
+            .background(CodeTheme.colors.textMain)
+            .then(
+                if (!sending && onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (sending) {
+            CodeCircularProgressIndicator(
+                modifier = Modifier.size(CodeTheme.dimens.grid.x4),
+                color = CodeTheme.colors.background,
+                strokeWidth = CodeTheme.dimens.thickBorder,
+            )
+        } else {
+            Text(
+                text = stringResource(Res.string.action_sendBack),
+                style = CodeTheme.typography.textSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = CodeTheme.colors.background,
+            )
         }
     }
 }
@@ -1353,6 +1428,7 @@ private fun PreviewCashBubble(
     isFromSelf: Boolean,
     viewerPaid: Boolean = false,
     people: CashBubblePeople?,
+    sendBack: SendBackRow? = null,
 ) {
     CompositionLocalProvider(
         LocalExchange provides ExchangeStub()
@@ -1367,7 +1443,31 @@ private fun PreviewCashBubble(
             onClick = null,
             onLongClick = null,
             onDoubleClick = null,
+            sendBack = sendBack,
+            onSendBack = {},
         )
+    }
+}
+
+/** Send Back frames S1, S2, S5 and S6, and the return bubble both ways. */
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_CashBubble_SendBack() {
+    val offered = previewCash(5.0).copy(
+        paymentReturn = MessageContent.Cash.PaymentReturn(offer = MessageContent.Cash.PaymentReturn.Offer),
+    )
+    val returned = previewCash(5.0).copy(
+        paymentReturn = MessageContent.Cash.PaymentReturn(returnOf = MessageContent.Cash.PaymentReturn.ReturnOf(1)),
+    )
+    val fred = CashBubblePeople.Direct("Fred Wilson")
+    Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
+        PreviewCashBubble(offered, isFromSelf = false, people = fred, sendBack = SendBackRow.Available)
+        PreviewCashBubble(offered, isFromSelf = false, people = fred, sendBack = SendBackRow.Sending)
+        PreviewCashBubble(offered, isFromSelf = false, people = fred, sendBack = SendBackRow.SentBack)
+        PreviewCashBubble(offered, isFromSelf = true, people = fred, sendBack = SendBackRow.SentBack)
+        PreviewCashBubble(returned, isFromSelf = true, people = fred)
+        PreviewCashBubble(returned, isFromSelf = false, people = fred)
     }
 }
 

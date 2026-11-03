@@ -214,6 +214,8 @@ sealed interface ChatListItem {
          * resolved them, which leaves the bubble its caption alone.
          */
         val cashPeople: CashBubblePeople? = null,
+        /** The Send Back row under a cash bubble, or null for none. */
+        val sendBack: SendBackRow? = null,
     ) : TranscriptMessage {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the

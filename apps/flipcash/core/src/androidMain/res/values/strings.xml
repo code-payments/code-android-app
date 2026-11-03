@@ -2064,6 +2064,23 @@
         <item quantity="other">You and %1$d others received</item>
     </plurals>
     <string name="label_cashFrom">from %1$s</string>
+    <!-- Send Back: a DM's opening payment returned to its sender. The return's bubble, its sender's view. -->
+    <string name="subtitle_youSentBack">You sent back</string>
+    <!-- The return's bubble, read by the person it was returned to; also their activity row title. -->
+    <string name="subtitle_senderSentBack">%1$s sent back</string>
+    <!-- The return's foot line, read by the person it was returned to. -->
+    <string name="label_cashToYou">to you</string>
+    <!-- The action row under an opening payment its receiver can return. -->
+    <string name="action_sendBack">Send Back</string>
+    <!-- The footer under an opening payment once it has been returned. -->
+    <string name="label_sentBack">Sent Back</string>
+    <!-- The Send Back confirm sheet, under the currency. -->
+    <string name="label_sendBackTo">Send back to %1$s</string>
+    <string name="action_swipeToSendBack">Swipe to Send Back</string>
+    <string name="error_title_couldntSendBack">Couldn\'t Send Back</string>
+    <string name="error_description_couldntSendBack">Something went wrong. Please try again.</string>
+    <!-- Activity row title for a payment the viewer returned. -->
+    <string name="title_activitySentBackTo">Sent back to %1$s</string>
     <!-- What a cash bubble calls a sender or recipient whose name has not resolved. -->
     <string name="label_cashSomeone">Someone</string>
     <string name="label_cashDetails_sent">Sent</string>

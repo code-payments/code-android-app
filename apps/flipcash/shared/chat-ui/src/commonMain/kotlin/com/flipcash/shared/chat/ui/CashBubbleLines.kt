@@ -5,15 +5,18 @@ import androidx.compose.runtime.Immutable
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.label_cashFrom
 import com.flipcash.core.resources.label_cashSomeone
+import com.flipcash.core.resources.label_cashToYou
 import com.flipcash.core.resources.label_groupSendEach
 import com.flipcash.core.resources.label_groupSendEachApprox
 import com.flipcash.core.resources.label_groupSendRecipients
 import com.flipcash.core.resources.label_groupSendTo
 import com.flipcash.core.resources.label_groupSendToPeople
 import com.flipcash.core.resources.subtitle_senderSent
+import com.flipcash.core.resources.subtitle_senderSentBack
 import com.flipcash.core.resources.subtitle_youAndOthersReceived
 import com.flipcash.core.resources.subtitle_youReceived
 import com.flipcash.core.resources.subtitle_youSent
+import com.flipcash.core.resources.subtitle_youSentBack
 import com.flipcash.core.resources.subtitle_youTipped
 import org.jetbrains.compose.resources.PluralStringResource
 import org.jetbrains.compose.resources.StringResource
@@ -55,6 +58,12 @@ sealed interface CashCaption {
 
     /** A group member who was not paid reads who sent it. */
     data class SenderSent(val sender: String?) : CashCaption
+
+    /** The viewer sent this payment back: it returns an opening payment they were paid. */
+    data object YouSentBack : CashCaption
+
+    /** [sender] sent this payment back to the viewer. */
+    data class SenderSentBack(val sender: String?) : CashCaption
 }
 
 /** The line at the foot of a cash bubble: who it went to, or who it came from. */
@@ -69,6 +78,9 @@ sealed interface CashCounterpart {
     data class ToPeople(val count: Int) : CashCounterpart
 
     data class From(val name: String?) : CashCounterpart
+
+    /** A returned payment, read by the person it was returned to. */
+    data object ToYou : CashCounterpart
 }
 
 @Immutable
@@ -97,6 +109,17 @@ fun MessageContent.Cash.bubbleLines(
         MessageContent.Cash.Action.TIPPED -> CashCaption.YouTipped
         MessageContent.Cash.Action.SENT -> CashCaption.YouSent
     }
+    // A return names itself on both sides, and reads "to you" rather than "from" for its receiver:
+    // the money is going back, not arriving (Send Back spec, "The return message").
+    if (paymentReturn?.returnOf != null && people !is CashBubblePeople.Group) {
+        val other = (people as? CashBubblePeople.Direct)?.other
+        return if (isFromSelf) {
+            CashBubbleLines(CashCaption.YouSentBack, people?.let { CashCounterpart.To(other) })
+        } else {
+            CashBubbleLines(CashCaption.SenderSentBack(other), people?.let { CashCounterpart.ToYou })
+        }
+    }
+
     // The verb splits only on the sending side: a received tip and a received payment are the same
     // money arriving.
     val captionOnly = CashBubbleLines(if (isFromSelf) own else CashCaption.YouReceived, counterpart = null)
@@ -212,6 +235,9 @@ internal inline fun CashCaption.resolve(
     is CashCaption.YouAndOthersReceived ->
         plural(Res.plurals.subtitle_youAndOthersReceived, others, arrayOf<Any>(others))
     is CashCaption.SenderSent -> string(Res.string.subtitle_senderSent, arrayOf<Any>(sender.orSomeone(string)))
+    CashCaption.YouSentBack -> string(Res.string.subtitle_youSentBack, emptyArray<Any>())
+    is CashCaption.SenderSentBack ->
+        string(Res.string.subtitle_senderSentBack, arrayOf<Any>(sender.orSomeone(string)))
 }
 
 internal inline fun CashCounterpart.resolve(
@@ -225,6 +251,7 @@ internal inline fun CashCounterpart.resolve(
     )
     is CashCounterpart.ToPeople -> plural(Res.plurals.label_groupSendToPeople, count, arrayOf<Any>(count))
     is CashCounterpart.From -> string(Res.string.label_cashFrom, arrayOf<Any>(name.orSomeone(string)))
+    CashCounterpart.ToYou -> string(Res.string.label_cashToYou, emptyArray<Any>())
 }
 
 private inline fun String?.orSomeone(string: (StringResource, Array<out Any>) -> String): String =

@@ -226,6 +226,30 @@ class CashBubbleLinesTest {
         )
     }
 
+    // Send Back: a return of a DM's opening payment.
+
+    private fun returnOf() = cash().copy(
+        paymentReturn = MessageContent.Cash.PaymentReturn(returnOf = MessageContent.Cash.PaymentReturn.ReturnOf(7)),
+    )
+
+    @Test
+    fun `8 - the sender of a return reads that they sent it back`() {
+        assertEquals("You sent back" to "to Noah Parker", returnOf().read(isFromSelf = true, people = dm))
+    }
+
+    @Test
+    fun `9 - the receiver of a return reads who sent it back, to them`() {
+        assertEquals("Noah Parker sent back" to "to you", returnOf().read(isFromSelf = false, people = dm))
+    }
+
+    @Test
+    fun `an offered payment that is not a return keeps its DM lines`() {
+        val offered = cash().copy(
+            paymentReturn = MessageContent.Cash.PaymentReturn(offer = MessageContent.Cash.PaymentReturn.Offer),
+        )
+        assertEquals("You received" to "from Noah Parker", offered.read(isFromSelf = false, people = dm))
+    }
+
     // Tips.
 
     @Test

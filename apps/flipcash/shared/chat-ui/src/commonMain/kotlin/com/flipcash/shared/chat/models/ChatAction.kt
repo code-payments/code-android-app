@@ -18,6 +18,9 @@ sealed interface ChatAction {
     /** Opens who a group send ([ChatListItem.ContentBubble] with a multi-receiver cash) paid. */
     data class ViewGroupSend(val bubble: ChatListItem.ContentBubble) : ChatAction
 
+    /** The receiver tapped Send Back under the opening payment in [messageId]. */
+    data class SendBack(val messageId: Long) : ChatAction
+
     /**
      * The group gate's Buy: opens the buy screen for [mint] straight away, so the reader comes back
      * to the gate once the buy lands. The gate sends [AddCash] instead when nothing they hold can
