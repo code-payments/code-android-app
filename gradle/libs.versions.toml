@@ -114,7 +114,7 @@ bignum = "0.3.10"
 
 bugsnag = "6.28.0"
 bugsnag-gradle-plugin = "1.2.0"
-rinku = "1.6.0"
+rinku = "1.9.0"
 compose-unstyled = "2.10.1"
 haze = "2.0.1"
 phantom-connect-kmp = "2.0.2-1.0.1"
