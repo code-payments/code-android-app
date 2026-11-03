@@ -5,6 +5,9 @@ plugins {
 kotlin {
     android {
         namespace = "${Gradle.codeNamespace}.libs.currency.math"
+        // The KMP android target skips res and assets unless this is on, and the curve tables
+        // ship as assets. Without it the app has no tables and crashes on the first token balance.
+        androidResources { enable = true }
         withDeviceTestBuilder {}.configure {
             instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         }

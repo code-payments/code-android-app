@@ -436,7 +436,8 @@ private fun BottomBarManager.BottomBarMessageType.backgroundColor(): Color = whe
     BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.bannerError
 
     BottomBarManager.BottomBarMessageType.INFO -> CodeTheme.colors.brandLight
-    BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.bannerThemed
+    // The screen's own background, so an options sheet matches the navigation sheets beside it.
+    BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.background
     BottomBarManager.BottomBarMessageType.WARNING -> CodeTheme.colors.bannerWarning
     // use themed banner's for success modals too
     BottomBarManager.BottomBarMessageType.SUCCESS -> CodeTheme.colors.bannerThemed // CodeTheme.colors.bannerSuccess

@@ -41,6 +41,7 @@ import dev.bmcreations.phantom.connect.wallet.PhantomWalletException
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -186,9 +187,22 @@ class PhantomWalletController @Inject constructor(
         requiredUsdcQuarks: Long,
     ): Result<Unit> {
         return withContext(Dispatchers.IO) {
+            // Two independent reads, so the USDC one is in flight while SOL is checked. SOL is
+            // still judged first, so a wallet short on both reports InsufficientSol as before; any
+            // early return cancels the USDC read, which withContext would otherwise wait out.
+            val usdcAta = PublicKey.deriveAssociatedAccount(
+                owner = PublicKey(sender.base58()),
+                mint = PublicKey(Mint.usdc.base58()),
+            )
+            val usdcRead = async { driver.getTokenAccountBalance(usdcAta.publicKey) }
+
             val solBalance = driver.getBalance(sender)
-                .getOrElse { return@withContext Result.failure(it) }
+                .getOrElse {
+                    usdcRead.cancel()
+                    return@withContext Result.failure(it)
+                }
             if (solBalance < MINIMUM_SOL_LAMPORTS) {
+                usdcRead.cancel()
                 return@withContext Result.failure(
                     DeeplinkOnRampError.InsufficientSol(
                         requiredLamports = MINIMUM_SOL_LAMPORTS,
@@ -197,11 +211,7 @@ class PhantomWalletController @Inject constructor(
                 )
             }
 
-            val usdcAta = PublicKey.deriveAssociatedAccount(
-                owner = PublicKey(sender.base58()),
-                mint = PublicKey(Mint.usdc.base58()),
-            )
-            val usdcBalance = driver.getTokenAccountBalance(usdcAta.publicKey)
+            val usdcBalance = usdcRead.await()
                 .getOrElse { return@withContext Result.failure(it) }
             if (usdcBalance < requiredUsdcQuarks) {
                 return@withContext Result.failure(

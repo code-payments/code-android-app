@@ -15,6 +15,5 @@ internal expect fun TransparentSystemBars()
 
 internal expect object PlatformFonts {
     val avenir: FontFamily
-    val avenirMedium: FontFamily
     val robotoMono: FontFamily
 }

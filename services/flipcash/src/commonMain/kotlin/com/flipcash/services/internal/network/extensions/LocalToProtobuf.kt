@@ -453,10 +453,10 @@ internal fun NewSplitRequest.asGroupChatPaymentRequest(): PaymentRequestModel.Gr
         .setCurrency(currency.name.lowercase())
         .setEndsAt(endsAt.asTimestamp())
         .addAllShares(
-            shares.map { userId ->
+            shares.map { share ->
                 PaymentRequestModel.Share.newBuilder()
-                    .setUserId(userId.asUserId())
-                    .setNativeAmount(perPerson.decimalValue)
+                    .setUserId(share.userId.asUserId())
+                    .setNativeAmount(share.amount.decimalValue)
                     .build()
             }
         )

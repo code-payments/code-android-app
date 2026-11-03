@@ -104,6 +104,7 @@ class ChatEntityMapper @Inject constructor() {
             canInvite = metadata.viewerState?.permissions?.canInvite ?: false,
             canSilence = metadata.viewerState?.permissions?.moderation?.canSilence ?: false,
             canBan = metadata.viewerState?.permissions?.moderation?.canBan ?: false,
+            canPin = metadata.viewerState?.permissions?.canPin ?: false,
             silenceUntilEpochMs = silenceUntilEpochMs(metadata.viewerState?.restrictions?.silence),
             silenceForever = isSilenceForever(metadata.viewerState?.restrictions?.silence),
             creatorHex = metadata.creator?.hexEncodedString(),
@@ -195,7 +196,7 @@ class ChatEntityMapper @Inject constructor() {
             silenceUntil != null -> SilenceState.Until(Instant.fromEpochMilliseconds(silenceUntil))
             else -> null
         }
-        if (mute == null && silence == null && viewerStateVersion == 0L && !canEdit && !canInvite && !canSilence && !canBan) {
+        if (mute == null && silence == null && viewerStateVersion == 0L && !canEdit && !canInvite && !canSilence && !canBan && !canPin) {
             return null
         }
         return ViewerState(
@@ -204,6 +205,7 @@ class ChatEntityMapper @Inject constructor() {
             permissions = ViewerState.Permissions(
                 canEdit = canEdit,
                 canInvite = canInvite,
+                canPin = canPin,
                 moderation = ViewerState.ModerationPermissions(canSilence = canSilence, canBan = canBan),
             ),
             restrictions = silence?.let { ViewerState.Restrictions(silence = it) },

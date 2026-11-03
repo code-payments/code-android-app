@@ -17,6 +17,8 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
@@ -125,18 +127,22 @@ internal class EditFeaturedGroupsViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    private suspend fun loadCandidates() {
+    private suspend fun loadCandidates() = coroutineScope {
+        // The joined feed reads nothing from the featured list, so it is in flight while the
+        // featured groups and their covers load.
+        val joinedFeed = async { chatController.getGroupChatFeed() }
         val username = userManager.state.value.userProfile?.username
         // No handle means nothing is featured and nothing to read.
         if (!username.isNullOrBlank() && !store.load(username)) {
+            joinedFeed.cancel()
             dispatchEvent(Event.OnLoadFailed)
-            return
+            return@coroutineScope
         }
         val featured = if (username.isNullOrBlank()) emptyList() else store.groups.value
         dispatchEvent(Event.OnFeaturedRead(featured.map { it.chatId }))
 
         // A failed read leaves only the featured groups on offer rather than an error.
-        val joined = chatController.getGroupChatFeed().getOrNull()?.chats.orEmpty()
+        val joined = joinedFeed.await().getOrNull()?.chats.orEmpty()
         val featuredIds = featured.map { it.chatId }.toSet()
         dispatchEvent(
             Event.OnCandidatesLoaded(

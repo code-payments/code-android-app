@@ -9,6 +9,13 @@ import kotlinx.serialization.Serializable
 class Mint(bytes: List<Byte>): PublicKey(bytes) {
     constructor(base58: String) : this(Base58.decode(base58).toList())
 
+    /**
+     * Whether this is a full 32-byte address. Anything shorter fails the server's
+     * `addresses`/`address` length rule (`at least 32 bytes`) if sent in a request.
+     */
+    val isValid: Boolean
+        get() = bytes.size == LENGTH_32
+
     companion object {
         @JvmField
         val CREATOR: Any = parcelableCreator({ arrayOfNulls<Mint>(it) }) { parcel -> Mint(parcel.readString().orEmpty()) }

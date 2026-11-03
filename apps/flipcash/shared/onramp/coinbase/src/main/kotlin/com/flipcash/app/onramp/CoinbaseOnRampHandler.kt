@@ -39,6 +39,9 @@ fun CoinbaseOnRampHandler(
                 onCancel = {
                     controller.onPaymentCancel()
                 },
+                onPaymentAuthorized = {
+                    controller.onPaymentAuthorized()
+                },
             )
         }
 
