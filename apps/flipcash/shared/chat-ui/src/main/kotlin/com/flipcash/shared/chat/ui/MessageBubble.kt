@@ -1083,10 +1083,12 @@ private fun CashBubble(
                 overflow = TextOverflow.Ellipsis,
             )
 
+            // The amount and total read as one block: the total sits right under the amount, the
+            // tightest pair in the bubble, and the currency sits a larger gap below the money, the
+            // same gap whether or not there is a total.
             Column(
                 modifier = Modifier.padding(top = CodeTheme.dimens.grid.x4),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
             ) {
                 if (parts.size >= 2) {
                     when (amount) {
@@ -1157,9 +1159,11 @@ private fun CashBubble(
                     )
                 }
 
+                val currencyGap = Modifier.padding(top = CodeTheme.dimens.grid.x3)
                 // A preview has no token image loader, so it draws the token row's shape instead.
                 if (LocalInspectionMode.current) {
                     Row(
+                        modifier = currencyGap,
                         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -1177,6 +1181,7 @@ private fun CashBubble(
                     }
                 } else if (content.tokenName.isNotBlank()) {
                     TokenIconWithName(
+                        modifier = currencyGap,
                         tokenName = content.tokenName,
                         tokenImage = content.tokenImageUrl,
                         imageSize = CodeTheme.dimens.staticGrid.x4,
