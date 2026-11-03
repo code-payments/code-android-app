@@ -70,6 +70,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.chat.ChatParticipant
 import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ProfileOrigin
@@ -128,6 +129,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val group = state.subject as? ChatSubject.Group
+    val viewerId = LocalUserManager.current?.accountId
     val isMember = group?.isMember == true
     val inviteHost = hiltViewModel<InviteHostViewModel>()
     val canInviteByChat by inviteHost.canInvite.collectAsStateWithLifecycle()
@@ -355,9 +357,10 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                             val member = gridMembers.firstOrNull { it.userId == item.userId }
                                 ?: return@GroupChattingGrid
                             flowNavigator.navigateTo(
-                                ChatStep.Profile(
-                                    contact = ChatParticipant.TipUser(item.userId, member.userProfile),
+                                memberTapStep(
+                                    participant = ChatParticipant.TipUser(item.userId, member.userProfile),
                                     origin = ProfileOrigin.GroupMember,
+                                    viewerId = viewerId,
                                 )
                             )
                         },
@@ -379,12 +382,13 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         onOpen = { item ->
                             val chatter = state.chatters.firstOrNull { it.userProfile.userId == item.userId }
                                 ?: return@GroupChattingGrid
-                            // Straight to the person's profile: resolving a DM destination first
+                            // Straight to the person's sheet: resolving a DM destination first
                             // would send a tap on a portrait to a chat.
                             flowNavigator.navigateTo(
-                                ChatStep.Profile(
-                                    contact = ChatParticipant.TipUser(item.userId, chatter.userProfile),
+                                memberTapStep(
+                                    participant = ChatParticipant.TipUser(item.userId, chatter.userProfile),
                                     origin = ProfileOrigin.GroupMember,
+                                    viewerId = viewerId,
                                 )
                             )
                         },

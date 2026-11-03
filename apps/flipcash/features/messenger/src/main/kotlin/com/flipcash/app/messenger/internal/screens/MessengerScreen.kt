@@ -6,23 +6,21 @@ import androidx.compose.animation.expandVertically
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.services.models.paymentrequest.unpaidShareOf
 import com.flipcash.app.messenger.internal.request.RequestDeckStrip
-import com.flipcash.app.messenger.internal.request.rememberDeckHostState
 import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.animation.core.rememberTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import com.flipcash.shared.chat.ui.media.ChatPhotoOverlay
@@ -36,7 +34,6 @@ import com.flipcash.app.updates.LocalAppUpdater
 import com.flipcash.features.messenger.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -47,7 +44,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -76,6 +72,8 @@ import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.MemberModerationViewModel
+import com.flipcash.app.core.chat.ProfileOrigin
+import com.flipcash.app.messenger.internal.screens.profile.memberTapStep
 import com.flipcash.app.messenger.internal.ownReactionEmoji
 import com.flipcash.app.messenger.internal.reactionStripFor
 import com.flipcash.app.messenger.internal.withLiveSelfReactions
@@ -89,11 +87,8 @@ import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge
 import com.flipcash.app.messenger.internal.screens.components.ChatTopEdge.softTopEdge
 import com.flipcash.app.messenger.internal.screens.components.GatedLandingRow
 import com.flipcash.app.messenger.internal.screens.components.JoinRequestsAnchor
-import com.flipcash.app.messenger.internal.screens.components.PinListButton
 import com.flipcash.app.messenger.internal.screens.components.PinnedMessageBar
 import com.flipcash.app.messenger.internal.pins.PinBar
-import com.flipcash.app.messenger.internal.pins.PinSlot
-import com.flipcash.app.messenger.internal.pins.pinSlot
 import com.flipcash.app.messenger.internal.screens.components.ReturnToChatChip
 import com.flipcash.app.messenger.internal.screens.components.MessageList
 import com.flipcash.app.messenger.internal.screens.components.UserControlBottomBar
@@ -123,14 +118,15 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.common.ui.profile.PrefetchProfileCover
 import com.flipcash.app.messenger.internal.request.ChatRequestsViewModel
 import com.flipcash.app.messenger.internal.request.rememberPaymentRequestCards
+import com.flipcash.app.messenger.internal.request.DeckPlacement
 import com.flipcash.app.messenger.internal.request.ExpandedRequests
 import com.flipcash.app.messenger.internal.request.RequestDeckLayout
-import com.flipcash.app.messenger.internal.request.RequestDeckPill
 import com.flipcash.app.messenger.internal.request.deckTitle
 import com.flipcash.shared.chat.ui.request.LocalPaymentRequestCards
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.utils.base58
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.messenger.internal.request.RequestPaySheet
 import com.flipcash.app.messenger.internal.request.RequestPayViewModel
 
@@ -183,6 +179,11 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     LaunchedEffect(privateOutsider) {
         if (privateOutsider) flowNavigator.replaceStack(listOf(ChatStep.GroupProfile))
     }
+
+    // The server's can_invite as the chat store carries it, the same field the group profile's
+    // Share button is built on, so no extra call when a chat opens.
+    val viewerCanInvite = state.viewerState?.permissions?.canInvite == true
+    val inviteHost = hiltViewModel<InviteHostViewModel>()
 
     // Here rather than in the action handler because the lookup comes first: the tap only knows a
     // handle, and where it leads is the view model's to decide once the handle has an answer.
@@ -426,8 +427,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             is ChatAction.ViewMemberProfile -> {
                 // Resolved in the view model: the profile that drew the picture in the gutter is
                 // the one to open, and the transcript already holds it.
+                // A group's sender opens their sheet; a DM's keeps the full profile.
                 viewModel.memberParticipant(action.userId)?.let {
-                    keyboard.hideIfVisible { navigator.push(ChatStep.Profile(it)) }
+                    val step = if (state.subject is ChatSubject.Group) {
+                        memberTapStep(it, ProfileOrigin.Chat, userManager?.accountId)
+                    } else {
+                        ChatStep.Profile(it)
+                    }
+                    keyboard.hideIfVisible { navigator.push(step) }
                 }
             }
 
@@ -494,20 +501,12 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val deckNow by requestsViewModel.now.collectAsStateWithLifecycle()
     val drawnDeck = remember(deck) { deck.filter { it.deckTitle != null } }
     val viewerId = requestsViewModel.viewerId
-    // One per visit: reopening the chat while still owing brings the strip back.
-    val owed = drawnDeck.filter { it.unpaidShareOf(viewerId, deckNow) != null }.map { it.id }.toSet()
-    val deckHosts = rememberDeckHostState(deckChat, owed)
-    val deckTransition = rememberTransition(deckHosts.transition, label = "request deck")
-    // Read here rather than in the effect, so expanding recomposes this scope and reaches the hosts.
-    val expandedNow = deckExpanded
-    SideEffect {
-        deckHosts.owing(owed, hasDeck = drawnDeck.isNotEmpty())
-        deckHosts.expanded = expandedNow
-    }
-    val expandDeck = {
-        // Partway into the pill, a tap waits for the scroll to settle it.
-        if (!deckHosts.collapsing) keyboard.hideIfVisible { requestsViewModel.setExpanded(true) }
-    }
+    // The front card moves between the stack and the expanded list on this, as one shared element.
+    val deckTransition = updateTransition(
+        targetState = if (deckExpanded) DeckPlacement.Expanded else DeckPlacement.Strip,
+        label = "request deck",
+    )
+    val expandDeck = { keyboard.hideIfVisible { requestsViewModel.setExpanded(true) } }
     val openRequest: (com.flipcash.services.models.paymentrequest.PaymentRequest) -> Unit = { request ->
         // The deck stays expanded while the details slide over it; the step minimizes it once covered.
         state.chatId?.let { chatId ->
@@ -521,14 +520,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val requestPayToken by requestPay.token.collectAsStateWithLifecycle()
     LaunchedEffect(requestPay) { requestPay.routes.collect { route -> navigator.navigate(route) } }
 
-    // Requests win the space under the top bar: while the strip is out, pins move to the top bar's
-    // trailing slot; once the strip is the pill, the pill has that slot and the bar comes back.
+    // Requests and pins stack under the top bar: the pin bar sits below the request stack.
     val pinBar = state.pins.bar(state.pinBarIndex)
-    val pinPlace = pinSlot(
-        hasPins = pinBar != null,
-        deckRest = deckHosts.rest.host.takeIf { state.chatType == ChatType.GROUP && drawnDeck.isNotEmpty() },
-        collapsing = deckHosts.collapsing,
-    )
     // The list is a sheet destination over the chat; a row tapped there comes back as a jump.
     val openPins = { pinAfterUnpin: Long? ->
         val chatId = state.chatId
@@ -547,8 +540,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             .collect { openPins(it.waiting.messageId) }
     }
 
-    // The collapsed pill's last bounds, where the expanded deck puts its close button.
-    var deckPill by remember { mutableStateOf<Rect?>(null) }
+    // The top bar's trailing slot, where the expanded deck puts its close button.
+    var deckCloseAnchor by remember { mutableStateOf<Rect?>(null) }
 
     RequestDeckLayout(modifier = Modifier.fillMaxSize()) {
     CodeScaffold(
@@ -572,35 +565,36 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     chatActionHandler = chatActionHandler,
                     dispatch = viewModel::dispatchEvent,
                     onConfirmRemove = moderation::confirmRemove,
-                    actions = {
-                        // Leaves the composition in the frame the slot goes: the pill takes the
-                        // title's end at full width as the strip starts to collapse, and
-                        // AnimatedVisibility keeps exiting content laid out for a few frames even
-                        // with no exit transition.
-                        if (pinPlace == PinSlot.TopBarButton) {
-                            val shown = remember { MutableTransitionState(false) }.apply { targetState = true }
-                            AnimatedVisibility(visibleState = shown, enter = fadeIn() + scaleIn()) {
-                                PinListButton(onClick = { openPins(null) })
-                            }
-                        }
-                    },
                     trailing = {
+                        // Takes no room: it marks where the expanded deck's close button goes.
                         if (state.chatType == ChatType.GROUP) {
-                            RequestDeckPill(
-                                deck = drawnDeck,
-                                now = deckNow,
-                                viewerId = viewerId,
-                                transition = deckTransition,
-                                onExpand = expandDeck,
-                                onCycle = requestsViewModel::cycle,
-                                modifier = Modifier.onGloballyPositioned {
-                                    // Kept from the last frame it had a size; it empties while expanded.
-                                    if (it.size.width > 0) deckPill = it.boundsInWindow()
-                                },
+                            Box(
+                                modifier = Modifier
+                                    .size(0.dp)
+                                    .onGloballyPositioned { deckCloseAnchor = it.boundsInWindow() },
                             )
                         }
                     },
                 )
+                // From the top: this anchor, the request stack, then the pin bar. The column's height
+                // is the transcript's top inset, so the oldest message clears whichever are showing.
+                // Hold the last list through the exit, so the card doesn't empty as it slides away.
+                var lastRequests by remember { mutableStateOf(state.joinRequests) }
+                if (state.joinRequests.isNotEmpty()) lastRequests = state.joinRequests
+                AnimatedVisibility(
+                    visible = state.showsJoinRequestsAnchor,
+                    enter = slideInVertically { -it } + fadeIn(),
+                    exit = slideOutVertically { -it } + fadeOut(),
+                ) {
+                    JoinRequestsAnchor(
+                        requests = lastRequests,
+                        onReview = { keyboard.hideIfVisible { navigator.push(ChatStep.JoinRequests) } },
+                        hazeState = hazeState,
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.grid.x2),
+                    )
+                }
                 if (state.chatType == ChatType.GROUP) {
                     // Behind the backdrop whenever the rows are, since it sits over them: a raised
                     // message or its reaction strip reads against a sharp stack otherwise. A tap on
@@ -613,7 +607,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                 now = deckNow,
                                 viewerId = viewerId,
                                 transition = deckTransition,
-                                rest = deckHosts.rest.host,
                                 onExpand = expandDeck,
                                 onCycle = requestsViewModel::cycle,
                                 // Straight to the swipe sheet over the chat; the card body opens details.
@@ -622,9 +615,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                         keyboard.hideIfVisible { requestPay.pay(chatId, request.id) }
                                     }
                                 },
-                                onHeightChange = { deckHosts.stripPx = it.toFloat() },
-                                onDock = deckHosts::dragDock,
-                                onDockReleased = deckHosts::releaseDock,
                             )
                         }
                         if (stripBehindBackdrop) {
@@ -647,7 +637,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                 // The expand alongside keeps the transcript's top inset (this column's height)
                 // moving with the bar, so the oldest message never snaps under it.
                 AnimatedVisibility(
-                    visible = pinPlace == PinSlot.Bar,
+                    visible = pinBar != null,
                     enter = expandVertically(expandFrom = Alignment.Top) +
                         slideInVertically { -it } + fadeIn(),
                     exit = shrinkVertically(shrinkTowards = Alignment.Top) +
@@ -667,28 +657,11 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             onOpenList = { openPins(null) },
                             hazeState = hazeState,
                             modifier = Modifier
-                                // Edges line up with the back button and the top bar's pin button.
+                                // Edges line up with the back button.
                                 .padding(horizontal = AppBarDefaults.ControlInset)
                                 .padding(top = CodeTheme.dimens.grid.x2),
                         )
                     }
-                }
-                // Hold the last list through the exit, so the card doesn't empty as it slides away.
-                var lastRequests by remember { mutableStateOf(state.joinRequests) }
-                if (state.joinRequests.isNotEmpty()) lastRequests = state.joinRequests
-                AnimatedVisibility(
-                    visible = state.showsJoinRequestsAnchor,
-                    enter = slideInVertically { -it } + fadeIn(),
-                    exit = slideOutVertically { -it } + fadeOut(),
-                ) {
-                    JoinRequestsAnchor(
-                        requests = lastRequests,
-                        onReview = { keyboard.hideIfVisible { navigator.push(ChatStep.JoinRequests) } },
-                        hazeState = hazeState,
-                        modifier = Modifier
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(top = CodeTheme.dimens.grid.x2),
-                    )
                 }
                 if (state.wrongKey) {
                     WrongKeyBanner(
@@ -765,7 +738,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         modifier = Modifier
                             .fillMaxSize()
                             .testTag("chat_message_list")
-                            .nestedScroll(deckHosts.scrollConnection)
                             .softTopEdge(ChatTopEdge.blurHold(barHeight))
                             .hazeSource(hazeState)
                             // Inside the edge blur and the haze, so a photo landing under the bars
@@ -790,6 +762,22 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         onOriginsReached = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnOriginsReached(it)) },
                         onReachedNewest = { viewModel.dispatchEvent(ChatViewModel.Event.ReturnStackCleared) },
                         hazeState = hazeState,
+                        viewerCanInvite = viewerCanInvite,
+                        onInvitePeople = {
+                            viewModel.dispatchEvent(
+                                ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.CHAT)
+                            )
+                            // Both branches of the group profile's Share button; see GroupProfileScreen.
+                            // The composer may have the keyboard up; it closes before the sheet opens.
+                            scope.launch {
+                                // Straight to the share sheet, not the host's Invite People sheet;
+                                // the profile's Share button still opens that one.
+                                val approve = state.chatId?.let { inviteHost.approveOn(it) } == true
+                                keyboard.hideIfVisible {
+                                    navigator.openInvitePeople(invitePeopleTarget(viewerCanInvite, approve))
+                                }
+                            }
+                        },
                     )
                 }
             }
@@ -825,7 +813,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         expanded = deckExpanded,
         transition = deckTransition,
         top = barHeight,
-        pill = deckPill,
+        closeAnchor = deckCloseAnchor,
         onCollapse = { requestsViewModel.setExpanded(false) },
         onOpen = openRequest,
     )

@@ -450,6 +450,12 @@ private fun MessageContent.toSerialized(): MessageContentSerialized = when (this
             )
         },
         paymentRequestId = paymentRequestId?.base58,
+        paymentReturn = paymentReturn?.let {
+            MessageContentSerialized.CashPaymentReturn(
+                offered = it.offer != null,
+                returnOfMessageId = it.returnOf?.messageId,
+            )
+        },
     )
     is MessageContent.Reply -> MessageContentSerialized.Reply(
         repliedMessageId = repliedMessageId,
@@ -516,6 +522,12 @@ private fun MessageContentSerialized.toDomain(): MessageContent = when (this) {
             )
         },
         paymentRequestId = paymentRequestId?.decodeBase58()?.toList(),
+        paymentReturn = paymentReturn?.let {
+            MessageContent.Cash.PaymentReturn(
+                offer = if (it.offered) MessageContent.Cash.PaymentReturn.Offer else null,
+                returnOf = it.returnOfMessageId?.let(MessageContent.Cash.PaymentReturn::ReturnOf),
+            )
+        },
     )
     is MessageContentSerialized.Reply -> MessageContent.Reply(
         repliedMessageId = repliedMessageId,

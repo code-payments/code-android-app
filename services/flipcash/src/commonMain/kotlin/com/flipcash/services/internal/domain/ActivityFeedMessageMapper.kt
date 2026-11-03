@@ -15,6 +15,7 @@ import com.flipcash.services.internal.network.extensions.toPublicKey
 import com.flipcash.services.models.ActivityFeedNotification
 import com.flipcash.services.models.BoostedReaction
 import com.flipcash.services.models.RequestedPayment
+import com.flipcash.services.models.ReturnedPayment
 import com.flipcash.services.models.NotificationMetadata
 import com.flipcash.services.models.chat.Emoji
 import com.flipcash.services.internal.network.extensions.toChatId
@@ -57,6 +58,7 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                         ) meta.userId.value.toByteArray().toList() else null,
                         boostedReaction = if (meta.hasBoostedReaction()) meta.boostedReaction.toDomain() else null,
                         requestedPayment = if (meta.hasRequestedPayment()) meta.requestedPayment.toDomain() else null,
+                        returnedPayment = if (meta.hasReturnedPayment()) meta.returnedPayment.toDomain() else null,
                     )
                 }
                 Model.Notification.AdditionalMetadataCase.RECEIVED_CRYPTO -> {
@@ -70,6 +72,7 @@ internal class ActivityFeedMessageMapper @Inject constructor(
                         ) meta.userId.value.toByteArray().toList() else null,
                         boostedReaction = if (meta.hasBoostedReaction()) meta.boostedReaction.toDomain() else null,
                         requestedPayment = if (meta.hasRequestedPayment()) meta.requestedPayment.toDomain() else null,
+                        returnedPayment = if (meta.hasReturnedPayment()) meta.returnedPayment.toDomain() else null,
                     )
                 }
                 Model.Notification.AdditionalMetadataCase.WITHDREW_CRYPTO -> NotificationMetadata.WithdrewCrypto(
@@ -179,4 +182,9 @@ private fun Model.BoostedReaction.toDomain(): BoostedReaction = BoostedReaction(
     chatId = chatId.toChatId(),
     messageId = messageId.value,
     emoji = Emoji(emoji.value),
+)
+
+private fun Model.ReturnedPayment.toDomain(): ReturnedPayment = ReturnedPayment(
+    chatId = chatId.toChatId(),
+    messageId = messageId.value,
 )

@@ -205,10 +205,10 @@ class TransactionDetailsViewModel @Inject constructor(
                 onSuccess = {
                     // The screen stays open on the cancelled entry, so it needs the entry's new
                     // state written to the cache — the observation above redraws from it.
-                    viewModelScope.launch {
-                        feedCoordinator.checkPendingMessagesForUpdates()
-                        tokenCoordinator.update()
-                    }
+                    // Separate data (the feed row, the balances), and each reports a failure in its
+                    // Result, so neither has to wait for the other.
+                    viewModelScope.launch { feedCoordinator.checkPendingMessagesForUpdates() }
+                    viewModelScope.launch { tokenCoordinator.update() }
                 }
             ).launchIn(viewModelScope)
     }

@@ -63,6 +63,8 @@ sealed interface NotificationMetadata {
         val boostedReaction: BoostedReaction? = null,
         // Mutually exclusive with [boostedReaction] (a oneof on the wire).
         val requestedPayment: RequestedPayment? = null,
+        // Same `context` oneof as [boostedReaction] and [requestedPayment], so at most one is set.
+        val returnedPayment: ReturnedPayment? = null,
     ) : NotificationMetadata
 
     /**
@@ -85,6 +87,8 @@ sealed interface NotificationMetadata {
         val boostedReaction: BoostedReaction? = null,
         // Mutually exclusive with [boostedReaction] (a oneof on the wire).
         val requestedPayment: RequestedPayment? = null,
+        // Same `context` oneof as [boostedReaction] and [requestedPayment], so at most one is set.
+        val returnedPayment: ReturnedPayment? = null,
     ) : NotificationMetadata
 
     /**
@@ -138,6 +142,18 @@ data class BoostedReaction(
 data class RequestedPayment(
     val chatId: ChatId,
     val paymentRequestId: ID,
+)
+
+/**
+ * Set on a sent/received payment notification when the payment returned a payment made in a DM.
+ * On a directly-sent payment the sender is giving back what the recipient paid them; on a received
+ * one the payer returned the recipient's payment. Not kept up to date: [messageId] may since have
+ * been deleted.
+ */
+@Serializable
+data class ReturnedPayment(
+    val chatId: ChatId,
+    val messageId: Long,
 )
 
 enum class SwapState {

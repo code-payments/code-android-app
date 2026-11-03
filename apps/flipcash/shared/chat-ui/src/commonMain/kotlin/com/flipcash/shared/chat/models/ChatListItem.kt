@@ -1,0 +1,478 @@
+package com.flipcash.shared.chat.models
+
+import com.flipcash.services.models.chat.MessageContent
+import com.flipcash.shared.chat.MessageCapability
+import com.flipcash.shared.chat.reactions.ReactionPill
+import com.flipcash.shared.chat.reactions.SelfReaction
+import com.flipcash.shared.chat.ui.CashBubblePeople
+import com.flipcash.shared.chat.ui.DetectedMention
+import com.flipcash.shared.chat.ui.UndecryptableHint
+import com.flipcash.shared.chat.ui.linkableText
+import com.flipcash.shared.chat.ui.mediaBody
+import com.getcode.opencode.model.core.ID
+import kotlin.time.Instant
+
+enum class ReceiptStatus { SENDING, SENT, READ, FAILED, DENIED }
+
+sealed interface ChatListItem {
+    val itemKey: Any
+    val itemContentType: Any
+
+    data class DateSeparator(val timestamp: Instant) : ChatListItem {
+        override val itemKey: Any = "sep-${timestamp.epochSeconds}"
+        override val itemContentType: Any = "date-separator"
+    }
+
+    /**
+     * "N Unread Messages", above the first message that arrived after the viewer last read the
+     * chat. [date] is set when a day also changes at that gap: the list takes one item per gap, so
+     * the date is drawn above the divider rather than as a separator of its own.
+     *
+     * At most one per transcript, so its key is fixed.
+     */
+    data class UnreadDivider(val count: Int, val date: Instant? = null) : ChatListItem {
+        override val itemKey: Any = "unread-divider"
+        override val itemContentType: Any = "unread-divider"
+    }
+
+    /**
+     * "Encrypted", above the oldest message in the transcript that arrived end-to-end encrypted
+     * (node 10416:1404). Placed from the transcript, not from the chat's flag, so it can't claim
+     * encryption that isn't happening.
+     *
+     * The list takes one item per gap, so [above] is the [DateSeparator] or [UnreadDivider] the
+     * marker displaced from that gap, drawn above it. At the head of the transcript it is the oldest
+     * message's date, which the list would otherwise draw as a trailing header.
+     *
+     * At most one per transcript, so its key is fixed.
+     */
+    data class EncryptedMarker(val above: ChatListItem? = null) : ChatListItem {
+        override val itemKey: Any = "encrypted-marker"
+        override val itemContentType: Any = "encrypted-marker"
+    }
+
+    /**
+     * A row that stands for one message in the transcript: a [ContentBubble], or a [SystemMessage]
+     * notice. Separators, auto-scroll and the read pointer care about the message, not how it is
+     * drawn; sender runs, receipts and bubble corners are bubble-only and cast to [ContentBubble].
+     */
+    sealed interface TranscriptMessage : ChatListItem {
+        val messageId: Long
+        val timestamp: Instant
+        val isFromSelf: Boolean
+    }
+
+    /**
+     * A server notice such as "Alex joined the group": no bubble, no sender and no gestures.
+     *
+     * Not a [ContentBubble], so every `as? ContentBubble` that groups runs, places receipts or
+     * rounds corners passes over it without comparing senders. [contentIndex] is non-zero only for
+     * the second and later contents of one message, which keeps the key unique.
+     */
+    data class SystemMessage(
+        override val messageId: Long,
+        val contentIndex: Int,
+        override val timestamp: Instant,
+        val text: String,
+        /** Names in [text] that open a profile when tapped. */
+        val userLinks: List<SystemUserLink> = emptyList(),
+    ) : TranscriptMessage {
+        override val isFromSelf: Boolean = false
+        override val itemKey: Any =
+            if (contentIndex == 0) "sys-$messageId" else "sys-$messageId-$contentIndex"
+        override val itemContentType: Any = "system-message"
+    }
+
+    /** Whether this is the unread divider, alone or drawn above the Encrypted marker. */
+    val holdsUnreadDivider: Boolean
+        get() = this is UnreadDivider || (this is EncryptedMarker && above is UnreadDivider)
+
+    data class ContentBubble(
+        override val messageId: Long,
+        val contentIndex: Int,
+        val content: MessageContent,
+        override val isFromSelf: Boolean,
+        override val timestamp: Instant,
+        val receiptStatus: ReceiptStatus? = null,
+        val pendingClientIdHex: String? = null,
+        /** Drives the corner-pinned "Edited" marker. */
+        val isEdited: Boolean = false,
+        /** Chooses between "You deleted this message" and "This message was deleted". */
+        val deletedByViewer: Boolean = false,
+        /**
+         * What the viewer may do to the message this bubble belongs to, resolved once in the
+         * transcript pipeline by
+         * [resolveCapabilities][com.flipcash.shared.chat.resolveCapabilities].
+         *
+         * Carried on the bubble so no surface re-derives it: the selection bar asks the set what to
+         * offer, and a later role taxonomy changes the resolver rather than the menu.
+         */
+        val capabilities: Set<MessageCapability> = emptySet(),
+        /**
+         * The message this one cites, resolved in the transcript pipeline, or `null` when it cites
+         * nothing — or when it cites a message this device has never stored. The absent case
+         * renders the body without a panel rather than an error, so a reply to history that was
+         * never synced still reads as a message.
+         */
+        val quote: ChatQuote? = null,
+        /**
+         * A link in this bubble's text that renders as a card above it, or `null` when the text
+         * carries no card-eligible link. Built in the chat mapper, which is the only layer that
+         * can see both the router and the network; `chat-ui` only draws what it is handed.
+         */
+        val linkCard: LinkCard? = null,
+        /**
+         * The `@handle`s in the text this row draws, in that text's own offsets. Detected once over
+         * the whole message, beside the links, so a handle inside a link is the link's; then
+         * [splitAroundLinkCard] rebases each into the row it falls in.
+         *
+         * Kept apart from [linkCard] and the underlined links: a mention takes no part in choosing
+         * a card or in where the message splits.
+         */
+        val mentions: List<DetectedMention> = emptyList(),
+        /**
+         * Who sent this, when that is not implied. Null for the viewer's own messages and for every
+         * message in a DM; set only for another member's message in a group.
+         */
+        val sender: SenderIdentity? = null,
+        /**
+         * The id of whoever sent this, for every incoming message — set whether or not their
+         * profile has resolved, and whether or not the chat attributes its bubbles.
+         *
+         * [sender] cannot stand in for it: a group's profile map arrives after the first page does,
+         * so early on every member's bubble has a null [sender] and two members read as one author.
+         */
+        val senderId: ID? = null,
+        /**
+         * Which row of a message split around its link card this is, or `null` for a row that is
+         * the whole message. See [splitAroundLinkCard].
+         *
+         * Every row of one message carries the same [messageId], [content] and [capabilities], so
+         * the selection bar, copy, edit, reply, retry and a jump act on the message from whichever
+         * row they start on.
+         */
+        val part: MessagePart? = null,
+        /**
+         * The text a [MessagePart.Leading] or [MessagePart.Trailing] row draws. [content] keeps the
+         * whole message, because that is what Copy and Edit act on.
+         */
+        val partText: String? = null,
+        /** Whether this is the topmost row of its message, which is where a reply's citation goes. */
+        val isFirstRow: Boolean = true,
+        /**
+         * Whether this is the bottommost row of its message, which is where the "Edited" marker and
+         * the receipt go.
+         */
+        val isLastRow: Boolean = true,
+        /**
+         * This message's reaction pills, in display order — the live overlay when one exists,
+         * otherwise `MessageReactions.from` applied to the message's own stored summary. Empty
+         * for a message with no reactions.
+         */
+        val reactionPills: List<ReactionPill> = emptyList(),
+        /**
+         * The emoji the viewer reacted to this message with, from the same source as
+         * [reactionPills]. Unlike the pills, every row of a split message carries it: the quick
+         * strip is built from it for whichever row was pressed.
+         */
+        val selfReactions: List<SelfReaction> = emptyList(),
+        /**
+         * Whether the viewer may react to this message — system messages and messages still
+         * pending send are excluded. See `com.flipcash.shared.chat.canReact`.
+         */
+        val canReact: Boolean = false,
+        /**
+         * Whether the viewer may boost one of their own reactions on this message with money: a
+         * reactable message in a group, written by someone else, that the viewer has reacted to.
+         */
+        val canBoost: Boolean = false,
+        /**
+         * What the bubble tells the reader when [content] is ciphertext that didn't open, or
+         * content this build can't draw. See
+         * [undecryptableHint][com.flipcash.shared.chat.ui.undecryptableHint] and
+         * [unsupportedContentHint][com.flipcash.shared.chat.ui.unsupportedContentHint].
+         */
+        val undecryptableHint: UndecryptableHint = UndecryptableHint.UpdateApp,
+        /** What a photo message needs beyond its content to load and gate its photo. */
+        val photo: PhotoMessageContext? = null,
+        /**
+         * Whether [content] is the server's placeholder for a body the viewer may not read
+         * ([ChatMessage.redacted][com.flipcash.services.models.chat.ChatMessage.redacted]). Its
+         * text is drawn blurred and kept out of the accessibility tree, so it is never read,
+         * selected or copied.
+         */
+        val redacted: Boolean = false,
+        /**
+         * The viewer's own part of a cash message that names its recipients
+         * ([MessageContent.Cash.multiReceiver] or [MessageContent.Cash.receiver]), which the bubble
+         * shows as "You received". Null when the message names others and not the viewer.
+         */
+        val receivedPart: MessageContent.Cash.Payment? = null,
+        /**
+         * The names a cash bubble's caption and foot line need: the other member of a DM, or a
+         * group send's sender and first recipient. Null for anything but cash, and wherever nobody
+         * resolved them, which leaves the bubble its caption alone.
+         */
+        val cashPeople: CashBubblePeople? = null,
+    ) : TranscriptMessage {
+        /**
+         * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the
+         * pipeline supplies it; [sender] covers a caller that builds a bubble from a resolved
+         * profile alone.
+         */
+        val authorId: ID? get() = senderId ?: sender?.userId
+
+        /**
+         * Whether [other] was sent by the same person as this bubble.
+         *
+         * `isFromSelf` cannot answer this in a group, where every other member's message is
+         * incoming alike: two members' bubbles would read as one run. [authorId] is what tells them
+         * apart, and it is null only for the viewer's own messages — a case `isFromSelf` already
+         * decides — and for an incoming message whose sender the backend did not name.
+         */
+        fun isSameAuthorAs(other: ContentBubble): Boolean = when {
+            isFromSelf != other.isFromSelf -> false
+            isFromSelf -> true
+            else -> authorId == other.authorId
+        }
+
+        /**
+         * The body a Copy or an Edit acts on, or `null` for a bubble that carries no text. A
+         * photo's body is its caption.
+         *
+         * Copy and edit act on what the user wrote, not on the citation around it.
+         * PendingMutation.replacingText unwraps the same way when the edit is applied.
+         */
+        val plainText: String?
+            get() = content.linkableText()
+
+        /**
+         * Whether long-pressing this bubble should open the selection bar.
+         *
+         * Any capability is enough. Reply used to be excluded because it had no surface, which left
+         * a cash bubble — whose only capability is Reply — unselectable.
+         */
+        val isSelectable: Boolean
+            get() = capabilities.isNotEmpty()
+
+        /**
+         * The message this row draws, shared by every row it is split into. Selection compares on
+         * this rather than on [itemKey], so the whole message stays sharp behind the backdrop.
+         */
+        val messageKey: Any get() = pendingClientIdHex ?: "$messageId-$contentIndex"
+
+        override val itemKey: Any = (pendingClientIdHex ?: "$messageId-$contentIndex")
+            .let { key -> part?.let { "$key#${it.id}" } ?: key }
+
+        // A tombstone shares the text bubble's content type on purpose: deleting a message is an
+        // in-place update of a row the list already holds, and giving it a type of its own would
+        // make the list drop that row and insert a new one.
+        //
+        // A carded bubble is the exception, and deliberately so: it is a taller, differently
+        // shaped subtree, and recycling it against a plain text bubble would hand the card's
+        // slot to text. Deleting one does drop and re-insert the row, which is right -- the
+        // card has to go, and there is no in-place update that removes it.
+        override val itemContentType: Any = when {
+            part == MessagePart.Card -> "link-card-bubble"
+            else -> when (content) {
+                is MessageContent.Text -> "text-bubble"
+                is MessageContent.Deleted -> "text-bubble"
+                is MessageContent.Cash -> "cash-bubble"
+                is MessageContent.Media -> "media"
+                is MessageContent.Reply -> "reply-message"
+                // Unreachable: System content is emitted as a SystemMessage, not a bubble.
+                is MessageContent.System -> "system-message"
+                is MessageContent.Widget -> "widget-message"
+                is MessageContent.Encrypted -> "encrypted-message"
+                MessageContent.Unsupported -> "unsupported-message"
+            }
+        }
+    }
+}
+
+/**
+ * One row of a message the transcript split around its link card, in the order the sender wrote
+ * them. [id] is the suffix on the row's [ChatListItem.itemKey]; iOS uses the same three.
+ */
+enum class MessagePart(val id: String) {
+    /** The text before the link. */
+    Leading("leading"),
+
+    /** The card, drawn bare. */
+    Card("card"),
+
+    /** The text after the link. */
+    Trailing("trailing"),
+}
+
+/**
+ * The rows this bubble draws, top to bottom: the text before its card, the card, and the text after
+ * it, each dropped when it would hold nothing but whitespace and punctuation. A bubble with no card
+ * is one row, as it always was.
+ *
+ * The punctuation touching the link and the whitespace past it go with the link -- they were the
+ * gap and the brackets around a word that now has a row of its own. Punctuation past a space
+ * belongs to the words beside it. Other links stay in whichever text row they fell in, underlined.
+ *
+ * The reply citation goes on the first row and the "Edited" marker, receipt and reaction pills on
+ * the last, so a split message reads as one message stacked in three pieces rather than as three
+ * messages.
+ *
+ * A card whose span does not fit the text is dropped rather than split, and the message renders as
+ * text with its links underlined.
+ */
+fun ChatListItem.ContentBubble.splitAroundLinkCard(): List<ChatListItem.ContentBubble> {
+    val card = linkCard ?: return listOf(this)
+    // A photo draws its caption inside the photo's own bubble, so the photo row is never split:
+    // the bubble draws the caption's rows itself, in the order a text message's are (see
+    // [captionRowsAround]). A Flipcash card that is not money is kept for that whenever its span
+    // fits the caption. Cash and token cards are kept only when they are all the caption says,
+    // and a web card is dropped: no sender attaches a preview to a caption, so there is never one
+    // to draw.
+    if (content.mediaBody() != null) {
+        val caption = plainText ?: return listOf(copy(linkCard = null))
+        val keep = card.isAloneIn(caption) ||
+            (card.drawsAroundCaption() && card.marginsIn(caption) != null)
+        return listOf(if (keep) this else copy(linkCard = null))
+    }
+    // A web card draws inside the text bubble, under the text, with the link left in the text. A
+    // split row would carry the receipt and the reaction pills, and they would vanish whenever the
+    // card is empty, which is most of the time.
+    if (card is LinkCard.Web) return listOf(this)
+    val text = plainText ?: return listOf(copy(linkCard = null))
+    val (leadingEnd, trailingStart) = card.marginsIn(text)
+        ?: return listOf(copy(linkCard = null))
+
+    val parts = listOfNotNull(
+        text.substring(0, leadingEnd).takeIf { it.saysSomething() }?.let { MessagePart.Leading to it },
+        MessagePart.Card to null,
+        text.substring(trailingStart).takeIf { it.saysSomething() }?.let { MessagePart.Trailing to it },
+    )
+
+    return parts.mapIndexed { index, (part, segment) ->
+        copy(
+            part = part,
+            partText = segment,
+            linkCard = card.takeIf { part == MessagePart.Card },
+            mentions = when (part) {
+                MessagePart.Leading -> mentions.rebased(from = 0, until = leadingEnd)
+                MessagePart.Card -> emptyList()
+                MessagePart.Trailing -> mentions.rebased(from = trailingStart, until = text.length)
+            },
+            isFirstRow = index == 0,
+            isLastRow = index == parts.lastIndex,
+            reactionPills = reactionPills.takeIf { index == parts.lastIndex }.orEmpty(),
+        )
+    }
+}
+
+/** Whether this card may draw under a photo caption that has words around its link. */
+private fun LinkCard.drawsAroundCaption(): Boolean = when (this) {
+    is LinkCard.GroupInvite, is LinkCard.InviteLink, is LinkCard.User, is LinkCard.Message -> true
+    is LinkCard.Cash, is LinkCard.TokenInfo, is LinkCard.Web -> false
+}
+
+/**
+ * The rows of a photo caption around [this] card, split as [splitAroundLinkCard] splits a text
+ * message: the text before the link, then the card, then the text after, each text row dropped when
+ * it says nothing. Mentions are rebased into the row they fall in. Null when the caption is not
+ * drawn around a card.
+ */
+internal fun LinkCard.captionRowsAround(
+    caption: String,
+    mentions: List<DetectedMention>,
+): CaptionRows? {
+    if (!drawsAroundCaption() || isAloneIn(caption)) return null
+    val (leadingEnd, trailingStart) = marginsIn(caption) ?: return null
+    return CaptionRows(
+        leading = caption.substring(0, leadingEnd).takeIf { it.saysSomething() }
+            ?.let { it to mentions.rebased(from = 0, until = leadingEnd) },
+        trailing = caption.substring(trailingStart).takeIf { it.saysSomething() }
+            ?.let { it to mentions.rebased(from = trailingStart, until = caption.length) },
+    )
+}
+
+/** The text rows of a caption on either side of its card; each is its text and its mentions. */
+internal data class CaptionRows(
+    val leading: Pair<String, List<DetectedMention>>?,
+    val trailing: Pair<String, List<DetectedMention>>?,
+)
+
+/**
+ * Where the text around [this] card's link ends and begins, or null when the card's span does not
+ * fit [text].
+ *
+ * Punctuation touching the link first -- the "." ending a sentence, the brackets or quotes around
+ * it -- then the gap. The text before `first` and from `second` on is what the message says besides
+ * the link.
+ */
+private fun LinkCard.marginsIn(text: String): Pair<Int, Int>? {
+    if (start < 0 || end > text.length || start >= end) return null
+    var leadingEnd = start
+    while (leadingEnd > 0 && text[leadingEnd - 1].isPunctuation()) leadingEnd--
+    while (leadingEnd > 0 && text[leadingEnd - 1].isWhitespace()) leadingEnd--
+    var trailingStart = end
+    while (trailingStart < text.length && text[trailingStart].isPunctuation()) trailingStart++
+    while (trailingStart < text.length && text[trailingStart].isWhitespace()) trailingStart++
+    return leadingEnd to trailingStart
+}
+
+/**
+ * Whether [text] says nothing besides this card's link: what is left once the link, the
+ * punctuation touching it and the whitespace past that are removed is empty. The same rule
+ * [splitAroundLinkCard] uses to drop a text row, so a web card and a Flipcash card agree on what
+ * "only the link" means.
+ */
+internal fun LinkCard.isAloneIn(text: String): Boolean {
+    val (leadingEnd, trailingStart) = marginsIn(text) ?: return false
+    return !text.substring(0, leadingEnd).saysSomething() && !text.substring(trailingStart).saysSomething()
+}
+
+/**
+ * The mentions lying wholly inside `[from, until)` of the message, in that row's own offsets.
+ * A mention can only straddle a row's edge if it overlapped the card's link, and those were
+ * dropped at detection.
+ */
+private fun List<DetectedMention>.rebased(from: Int, until: Int): List<DetectedMention> =
+    filter { it.start >= from && it.end <= until }
+        .map { it.copy(start = it.start - from, end = it.end - from) }
+
+/**
+ * Unicode punctuation, the general categories iOS's `CharacterSet.punctuationCharacters` covers.
+ * Symbols such as `$` and emoji are not punctuation, so they stay with their words.
+ */
+private fun Char.isPunctuation(): Boolean = when (category) {
+    CharCategory.CONNECTOR_PUNCTUATION,
+    CharCategory.DASH_PUNCTUATION,
+    CharCategory.START_PUNCTUATION,
+    CharCategory.END_PUNCTUATION,
+    CharCategory.INITIAL_QUOTE_PUNCTUATION,
+    CharCategory.FINAL_QUOTE_PUNCTUATION,
+    CharCategory.OTHER_PUNCTUATION -> true
+    else -> false
+}
+
+/** Whether a text row would hold anything but whitespace and stray punctuation. */
+private fun String.saysSomething(): Boolean = any { !it.isWhitespace() && !it.isPunctuation() }
+
+/**
+ * What a photo bubble needs besides its [MessageContent.Media]: the chat the blob is fetched
+ * under, whether its bytes are sealed, and the two reasons to draw only its BlurHash.
+ *
+ * @property redacted the message was redacted, so its photo is never fetched.
+ * @property previewing the viewer is reading a group they have not joined, which may show the
+ * transcript but not its media.
+ */
+data class PhotoMessageContext(
+    val chatId: com.flipcash.services.models.chat.ChatId,
+    /**
+     * The author, own id included. [ChatListItem.Message.senderId] is null for own messages, but
+     * opening a sealed photo needs the real sender to pick the key roles.
+     */
+    val senderId: ID? = null,
+    val sealed: Boolean,
+    val redacted: Boolean,
+    val previewing: Boolean,
+) {
+    val blurhashOnly: Boolean get() = redacted || previewing
+}

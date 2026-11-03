@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal.pins
 
-import com.flipcash.app.messenger.internal.request.DeckPlacement
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.Pin
@@ -138,36 +137,6 @@ class ChatPinsTest {
     fun `the bar waits on the list when the summary says there are pins`() {
         assertEquals(PinBar.Fetching, ChatPins(summaryCount = 2).bar(0))
         assertNull(ChatPins(summaryCount = 0).bar(0))
-    }
-
-    // C1: no requests drawn, the bar is under the top bar.
-    @Test
-    fun `without a request deck pins take the bar`() {
-        assertEquals(PinSlot.Bar, pinSlot(hasPins = true, deckRest = null))
-    }
-
-    // C6: the strip holds the space under the top bar, so pins move to its trailing slot.
-    @Test
-    fun `while the strip is out pins are a top bar button`() {
-        assertEquals(PinSlot.TopBarButton, pinSlot(hasPins = true, deckRest = DeckPlacement.Strip))
-    }
-
-    // C6b and C7b: scrolled or swiped into the pill, the pill has the trailing slot and the bar returns.
-    @Test
-    fun `once the strip is the pill pins take the bar`() {
-        assertEquals(PinSlot.Bar, pinSlot(hasPins = true, deckRest = DeckPlacement.Pill))
-    }
-
-    // C7a: the pill grows into the trailing slot as the strip collapses, so the button leaves first.
-    @Test
-    fun `a strip partway into the pill takes the button away and holds the bar back`() {
-        assertEquals(PinSlot.None, pinSlot(hasPins = true, deckRest = DeckPlacement.Strip, collapsing = true))
-    }
-
-    @Test
-    fun `nothing pinned takes no slot`() {
-        assertEquals(PinSlot.None, pinSlot(hasPins = false, deckRest = DeckPlacement.Strip))
-        assertEquals(PinSlot.None, pinSlot(hasPins = false, deckRest = null))
     }
 
     @Test

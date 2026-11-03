@@ -218,7 +218,16 @@ sealed interface MessageContentSerialized {
         val multiReceiver: List<CashPayment> = emptyList(),
         // Base58, like [intentId]. Null unless the payment paid a payment-request share.
         val paymentRequestId: String? = null,
+        // Null for rows stored before this existed, and for payments with no return involvement.
+        val paymentReturn: CashPaymentReturn? = null,
     ) : MessageContentSerialized
+
+    @Serializable
+    data class CashPaymentReturn(
+        val offered: Boolean = false,
+        // The message id of the payment this one returns; null if it is not a return.
+        val returnOfMessageId: Long? = null,
+    )
 
     @Serializable
     data class CashPayment(

@@ -85,6 +85,25 @@ class DesktopWiringTest {
         assertSame(graph.tokenCoordinator, inSet, "TokenCoordinator in the listener set is a second instance")
     }
 
+    @Test
+    fun `photo upload resolves its desktop implementations`() {
+        // The platform seams behind photo upload: Skia for the codec, files for picked photos and the
+        // staging directory. Chat itself is not in this graph yet, only what it will need from it.
+        assertTrue(graph.imageUploadPreparer.photos.fromLocation("/tmp/x.jpg") is com.flipcash.app.blob.FilePickedPhoto)
+        assertTrue(graph.chatMediaLocation.directory.path.endsWith("pending-media"))
+        assertSame(graph.sentImageCache, graph.sentImageCache, "SentImageCache")
+    }
+
+    @Test
+    fun `chat list resolves and its coordinator is a session listener`() {
+        // ChatsViewModel is the sidebar list's state holder; RealChatCoordinator in the listener set is
+        // what starts the feed sync on login, so a missing @IntoSet leaves the list empty without an error.
+        val viewModel = graph.chatsViewModel
+        assertTrue(viewModel is com.flipcash.app.tipping.internal.ChatsViewModel)
+        val coordinator = graph.sessionListeners.filterIsInstance<com.flipcash.shared.chat.internal.RealChatCoordinator>()
+        assertEquals(1, coordinator.size, "RealChatCoordinator in the SessionListener set")
+    }
+
     /**
      * The repository subscribes to `Events.OnLoggedIn` on the shared bus. Closing that key with
      * REQUIRE_FLOW_IS_NOT_COLLECTING fails only while someone collects it; the subscription is

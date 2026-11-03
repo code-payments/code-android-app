@@ -57,16 +57,6 @@ data class ChattingGridItem(
 )
 
 /**
- * What a chatter is called under their portrait: their display name, else their handle, else
- * [fallback]. Blank counts as missing, since the server sends an empty display name for a profile
- * that has none.
- */
-fun chatterName(displayName: String?, username: String?, fallback: String): String =
-    displayName?.takeIf { it.isNotBlank() }
-        ?: username?.takeIf { it.isNotBlank() }?.let { "@$it" }
-        ?: fallback
-
-/**
  * Who has been talking in a public group: a "Chatting" heading over portraits four to a row, the
  * host badged. Draws nothing for an empty list, heading included.
  *

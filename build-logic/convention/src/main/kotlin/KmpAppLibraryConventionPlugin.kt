@@ -9,6 +9,7 @@ import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 /**
@@ -75,6 +76,15 @@ class KmpAppLibraryConventionPlugin : Plugin<Project> {
                         }
                     }
                     minSdk = minSdkVersion
+                    // The single-variant KMP target picks one build type of each Android-library
+                    // dependency, and AGP defaults that to release. Prefer debug: the host tests run
+                    // under `flipcashTestDebug` next to the Android modules' debug unit tests, and
+                    // selecting release made that task build a second, release copy of every Android
+                    // library a KMP module reaches (25 modules, compileReleaseKotlin included). The
+                    // app still resolves the release variants for its own release build.
+                    localDependencySelection {
+                        selectBuildTypeFrom.set(listOf("debug", "release"))
+                    }
                     // Hilt's KSP processors emit Java (factories, hilt_aggregated_deps), which the
                     // KMP Android target only compiles when Java compilation is enabled.
                     withJava()
@@ -91,6 +101,14 @@ class KmpAppLibraryConventionPlugin : Plugin<Project> {
                     compilerOptions {
                         jvmTarget.set(JvmTarget.fromTarget(javaVersion))
                     }
+                }
+
+                // KGP compiles the Java its KSP processors emit (Dagger factories) against
+                // jvmMainCompileClasspath, which does not ask for a platform type. With debug and
+                // release both selectable above, a library that publishes android and jvm variants
+                // (libsodium bindings) is ambiguous there. Ask for jvm.
+                project.configurations.matching { it.name == "jvmMainCompileClasspath" }.configureEach {
+                    attributes.attribute(KotlinPlatformType.attribute, KotlinPlatformType.jvm)
                 }
 
                 compilerOptions {

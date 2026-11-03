@@ -21,8 +21,13 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -45,6 +50,9 @@ class TokenController @Inject constructor(
 
     companion object {
         private const val TAG = "TokenController"
+
+        // Caps the burst of metadata lookups a cold cache sends for a wallet holding many tokens.
+        private const val METADATA_LOOKUP_CONCURRENCY = 8
     }
 
     /**
@@ -109,7 +117,15 @@ class TokenController @Inject constructor(
     suspend fun fetchTokenAccounts(
         cluster: AccountCluster,
         metadataProvider: TokenMetadataProvider,
-    ): Result<List<TokenWithBalance>> {
+    ): Result<List<TokenWithBalance>> =
+        fetchPrimaryAccounts(cluster).map { accounts -> buildTokenBalances(accounts, metadataProvider) }
+
+    /**
+     * The primary token accounts for [cluster], without their metadata. Split from
+     * [fetchTokenAccounts] so a caller can warm its metadata cache while this round trip is out,
+     * then build with [buildTokenBalances].
+     */
+    suspend fun fetchPrimaryAccounts(cluster: AccountCluster): Result<List<AccountInfo>> {
         trace(tag = TAG, message = "Fetching all primary token accounts", type = TraceType.Process)
 
         val response = retryable(maxRetries = 3) {
@@ -118,18 +134,32 @@ class TokenController @Inject constructor(
             )
         } ?: return Result.failure(IllegalStateException("Failed to fetch accounts after retries"))
 
-        return response.map { accountResponse ->
-            accountResponse.accounts.values.mapNotNull { account ->
-                buildTokenWithBalance(account, metadataProvider)
-            }.also {
-                trace(
-                    tag = TAG,
-                    message = "Built ${it.size} token balances from ${accountResponse.accounts.size} accounts",
-                    type = TraceType.Process
-                )
-            }
-        }
+        return response.map { it.accounts.values.toList() }
     }
+
+    /**
+     * A [TokenWithBalance] for each of [accounts], in order. An account whose metadata
+     * [metadataProvider] cannot resolve is dropped.
+     *
+     * The lookups run concurrently, at most [METADATA_LOOKUP_CONCURRENCY] at a time. Behind a warm
+     * cache each is a memory read; without one (a fresh login) each is a round trip, and running
+     * them one after another made the first balance wait on every token in turn.
+     */
+    suspend fun buildTokenBalances(
+        accounts: List<AccountInfo>,
+        metadataProvider: TokenMetadataProvider,
+    ): List<TokenWithBalance> = coroutineScope {
+        val gate = Semaphore(METADATA_LOOKUP_CONCURRENCY)
+        accounts.map { account ->
+            async { gate.withPermit { buildTokenWithBalance(account, metadataProvider) } }
+        }.awaitAll().filterNotNull()
+    }.also {
+            trace(
+                tag = TAG,
+                message = "Built ${it.size} token balances from ${accounts.size} accounts",
+                type = TraceType.Process
+            )
+        }
 
     /**
      * Like [fetchTokenAccounts], for an owner with no warm metadata cache: one account lookup and

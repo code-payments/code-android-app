@@ -3,6 +3,7 @@ import com.android.build.api.variant.BuildConfigField
 import com.bugsnag.gradle.dsl.debug
 import com.bugsnag.gradle.dsl.release
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -34,9 +35,12 @@ fun gitVersionCode(): Int {
 // omits `build-uuid` unless it is set on the upload task below. The commit SHA gives both
 // sides the same value — the app build and the upload task run against the same HEAD in the
 // release workflow — and going through the manifest keeps it out of the shrinker's reach.
-val bugsnagBuildId: String = providers.exec {
+// Lazy, and wired only into non-debug variants (see onVariants below): Bugsnag is disabled for
+// debug, and reading the SHA while configuring changed the debug manifest and invalidated the
+// configuration cache on every commit.
+val bugsnagBuildId: Provider<String> = providers.exec {
     commandLine("git", "rev-parse", "HEAD")
-}.standardOutput.asText.get().trim()
+}.standardOutput.asText.map { it.trim() }
 
 val contributorsSigningConfig = ContributorsSignatory(rootDir)
 val appNamespace = "${Gradle.flipcashNamespace}.app.android"
@@ -66,7 +70,6 @@ android {
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
 
         manifestPlaceholders["BUGSNAG_API_KEY"] = tryReadProperty(rootProject.rootDir, "BUGSNAG_API_KEY")
-        manifestPlaceholders["BUGSNAG_BUILD_UUID"] = bugsnagBuildId
     }
 
     signingConfigs {
@@ -138,9 +141,6 @@ android {
 }
 
 configurations.all {
-    // protobuf-javalite 4.x already includes well-known types, making
-    // Firebase's protolite-well-known-types redundant and conflicting.
-    exclude(group = "com.google.firebase", module = "protolite-well-known-types")
     // Crashlytics SDK is pulled transitively via firebase-bom but we use Bugsnag
     // for error reporting. Without the Crashlytics Gradle plugin the SDK crashes
     // at startup due to a missing build ID resource.
@@ -223,6 +223,12 @@ abstract class CheckPackagedAssets : DefaultTask() {
 // BuildConfig.UI_TESTABLE. Refs Bugsnag 6a46563b.
 androidComponents {
     onVariants { variant ->
+        if (variant.buildType == "debug") {
+            variant.manifestPlaceholders.put("BUGSNAG_BUILD_UUID", "debug")
+        } else {
+            variant.manifestPlaceholders.put("BUGSNAG_BUILD_UUID", bugsnagBuildId)
+        }
+
         variant.buildConfigFields?.put(
             "UI_TESTABLE",
             BuildConfigField(
@@ -317,6 +323,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:search"))
     implementation(project(":apps:flipcash:features:user-profile"))
     implementation(project(":apps:flipcash:features:userflags"))
+    implementation(project(":apps:flipcash:features:chat-list"))
     implementation(project(":apps:flipcash:features:tipping"))
 
     implementation(project(":libs:crypto:solana"))

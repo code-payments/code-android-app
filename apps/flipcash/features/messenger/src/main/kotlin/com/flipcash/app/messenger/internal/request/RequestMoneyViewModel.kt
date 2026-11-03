@@ -161,20 +161,20 @@ internal class RequestMoneyViewModel @Inject constructor(
         _state.update { it.copy(stage = Stage.Amount, draft = null) }
     }
 
-    /** Total Amount's Next. Zero stays put. */
+    /** Amount Per Person's Next. Zero stays put. */
     fun amountEntered() {
         val entered = amountDelegate.state.value.enteredAmount
         if (entered <= 0.0) return
-        val total = Fiat(entered, currency)
+        val amount = Fiat(entered, currency)
         val viewerId = userManager.accountId ?: return
         val chatId = _state.value.chatId ?: return
         val roster = rosters.state.value[chatId].orEmpty()
         _state.update { s ->
-            val draft = s.draft?.copy(total = total) ?: NewRequestDraft(
+            val draft = s.draft?.copy(amount = amount) ?: NewRequestDraft(
                 viewerId = viewerId,
                 members = NewRequestDraft.members(viewerId, roster),
                 title = defaultTitle(),
-                total = total,
+                amount = amount,
             )
             s.copy(stage = Stage.Summary, draft = draft)
         }
@@ -262,7 +262,7 @@ internal class RequestMoneyViewModel @Inject constructor(
                 val created = requests.create(split, key).getOrElse { return@launch failed(it, chatId, draft) }
                 // Once per confirm: a retry reuses createdRequestId and never reaches here.
                 analytics.track(
-                    PaymentRequestEvents.created(draft.requestedCount, AnalyticsState.SUCCESS, draft.total?.analytics, null),
+                    PaymentRequestEvents.created(draft.requestedCount, AnalyticsState.SUCCESS, draft.totalAmount?.analytics, null),
                 )
                 created.id
             }
@@ -298,7 +298,7 @@ internal class RequestMoneyViewModel @Inject constructor(
             PaymentRequestEvents.created(
                 draft.requestedCount,
                 AnalyticsState.FAILURE,
-                draft.total?.analytics,
+                draft.totalAmount?.analytics,
                 error.analytics,
             ),
         )

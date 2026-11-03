@@ -26,6 +26,8 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -287,6 +289,23 @@ class CoinbaseOnRampControllerTest {
 
         coVerify(exactly = 0) { googlePayReadiness.check() }
         coVerify(exactly = 0) { webViewChannelDetector.detect() }
+    }
+
+    // endregion
+
+    // region milestones
+
+    @Test
+    fun `no milestones are emitted outside a payment`() = runTest {
+        val seen = mutableListOf<CoinbaseOnRampMilestone>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            controller.milestones.collect { seen += it }
+        }
+
+        controller.onPaymentAuthorized()
+        controller.onPaymentSuccess("order")
+
+        assertEquals(emptyList(), seen)
     }
 
     // endregion

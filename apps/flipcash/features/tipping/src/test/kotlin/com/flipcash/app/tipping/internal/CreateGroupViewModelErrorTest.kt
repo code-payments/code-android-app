@@ -78,6 +78,7 @@ class CreateGroupViewModelErrorTest {
     private val imagePreparer = mockk<ImageUploadPreparer>(relaxed = true)
     private val contentReader = mockk<ContentReader>(relaxed = true)
     private val analytics = RecordingAnalytics()
+    private val hostInvites = mockk<com.flipcash.shared.chat.HostInvites>(relaxed = true)
 
     private lateinit var dispatchers: TestDispatchers
 
@@ -108,6 +109,7 @@ class CreateGroupViewModelErrorTest {
         resources = resources,
         analytics = analytics,
         groupKeys = mockk(relaxed = true),
+        hostInvites = hostInvites,
     )
 
     private fun token(seed: Byte, symbol: String) = MintMetadata(
@@ -338,6 +340,20 @@ class CreateGroupViewModelErrorTest {
 
         assertEquals(2, keys.size)
         assertTrue(!keys[0].bytes.contentEquals(keys[1].bytes))
+    }
+
+    @Test
+    fun `a created public group makes no invite link`() = runTest(mainCoroutineRule.dispatcher) {
+        dispatchers = TestDispatchers(testScheduler)
+        val vm = createViewModel()
+        vm.completeDraft()
+        coEvery { chatCoordinator.create(any(), any()) } returns Result.success(created())
+
+        vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
+        advanceUntilIdle()
+
+        assertEquals(created(), vm.stateFlow.value.created)
+        io.mockk.verify(exactly = 0) { hostInvites.startFirstInvite(any()) }
     }
 
     /**

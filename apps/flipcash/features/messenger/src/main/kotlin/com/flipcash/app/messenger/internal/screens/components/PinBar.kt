@@ -47,7 +47,6 @@ import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.ui.ChatQuoteContent
 import com.flipcash.shared.chat.ui.ChatQuoteRule
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.CircularIconButton
 import com.getcode.ui.components.chat.ChatInputDefaults
 import dev.chrisbanes.haze.HazeInput
 import dev.chrisbanes.haze.HazeState
@@ -200,26 +199,6 @@ private fun SegmentedRule(color: Color, segments: PinSegments) {
                 )
             }
         }
-    }
-}
-
-/**
- * The top bar's trailing list button (C6): stands in for the bar while the request strip holds the
- * space under the top bar, and opens the list.
- */
-@Composable
-internal fun PinListButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    CircularIconButton(
-        modifier = modifier,
-        onClick = onClick,
-        testTag = "action_open_pinned_list_top_bar",
-    ) { size ->
-        Icon(
-            painter = painterResource(R.drawable.ic_list_bullet_pin),
-            contentDescription = stringResource(R.string.cd_openPinnedMessages),
-            tint = Color.White,
-            modifier = Modifier.requiredSize(size),
-        )
     }
 }
 

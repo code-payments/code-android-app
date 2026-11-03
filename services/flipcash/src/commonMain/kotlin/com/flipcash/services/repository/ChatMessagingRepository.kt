@@ -1,6 +1,7 @@
 package com.flipcash.services.repository
 
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.chat.CashMessageReturnStatus
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ClientMessageId
@@ -22,6 +23,12 @@ interface ChatMessagingRepository {
         messageId: Long,
         viewMode: ViewMode = ViewMode.FULL,
     ): Result<ChatMessage>
+
+    suspend fun getCashMessageReturnStatus(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageId: Long,
+    ): Result<CashMessageReturnStatus>
 
     suspend fun getMessages(
         owner: KeyPair,
