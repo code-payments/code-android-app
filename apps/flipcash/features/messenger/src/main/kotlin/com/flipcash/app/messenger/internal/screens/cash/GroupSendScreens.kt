@@ -33,7 +33,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import com.flipcash.app.messenger.internal.screens.boost.CurrencyPickerContent
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,10 +50,7 @@ import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.common.ui.profile.chatterName
-import com.flipcash.shared.payments.group.GroupSendPlan
-import com.flipcash.shared.payments.group.GroupSendSplit
 import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
@@ -65,7 +61,7 @@ import com.getcode.ui.theme.CodeScaffold
 import com.getcode.view.LoadingSuccessState
 
 /**
- * Select People, node 11293:6918: the group's members less the sender, checked one by one in the
+ * Send To, node 11293:6918: the group's members less the sender, checked one by one in the
  * order that decides the split. There is no Select All.
  */
 @Composable
@@ -82,6 +78,8 @@ internal fun GroupSelectPeopleContent(
     viewerId: ID? = null,
     /** The sender's own row, first, for a split they can take a part of. Null leaves it out. */
     you: ChatMember? = null,
+    /** The "Members" caption over the list. Requests keep it; a group send has none. */
+    showsMembersHeader: Boolean = true,
 ) {
     val selectedIds = selected.toSet()
     CodeScaffold(
@@ -113,15 +111,17 @@ internal fun GroupSelectPeopleContent(
                 .padding(innerPadding),
             contentPadding = PaddingValues(bottom = CodeTheme.dimens.grid.x4),
         ) {
-            item {
-                Text(
-                    modifier = Modifier
-                        .padding(horizontal = CodeTheme.dimens.inset)
-                        .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x1),
-                    text = stringResource(R.string.header_groupSendMembers),
-                    style = CodeTheme.typography.caption,
-                    color = CodeTheme.colors.textSecondary,
-                )
+            if (showsMembersHeader) {
+                item {
+                    Text(
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x1),
+                        text = stringResource(R.string.header_groupSendMembers),
+                        style = CodeTheme.typography.caption,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                }
             }
             if (you != null) {
                 item(key = "you") {
@@ -199,8 +199,7 @@ private fun MemberCheckRow(
  * gets, and the swipe. Closing it goes back to Select People; it can't be closed mid-send. Closed
  * by back, as iOS's confirm is, never by a drag or a tap outside it.
  *
- * The token pill swaps this sheet's content for the currency list and back, rather than opening a
- * sheet of its own, which a navigation sheet would draw over this one.
+ * The token pill opens the currency list as a half sheet over this one, which stays up beneath it.
  */
 @Composable
 internal fun GroupSendConfirmSheet(
@@ -209,8 +208,8 @@ internal fun GroupSendConfirmSheet(
     swipePay: SwipePayUiState,
     actions: SwipePayActions,
 ) {
+    val amount = groupSend.amount ?: return
     val total = groupSend.total ?: return
-    val pay = groupSend.plan as? GroupSendPlan.Pay ?: return
     val unknownName = stringResource(R.string.title_unnamedUser)
 
     SwipePaySheet(
@@ -234,37 +233,27 @@ internal fun GroupSendConfirmSheet(
         },
         amount = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = total.formatted(),
-                    style = CodeTheme.typography.displayMedium,
-                    color = CodeTheme.colors.textMain,
-                )
-                if (pay.showsEach) {
+                if (recipients.size >= 2) {
                     Text(
-                        text = eachLabel(pay, total.currencyCode),
+                        text = stringResource(R.string.label_groupSendEach, amount.formatted()),
+                        style = CodeTheme.typography.displayMedium,
+                        color = CodeTheme.colors.textMain,
+                    )
+                    Text(
+                        text = stringResource(R.string.label_groupSendTotal, total.formatted()),
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
+                    )
+                } else {
+                    Text(
+                        text = amount.formatted(),
+                        style = CodeTheme.typography.displayMedium,
+                        color = CodeTheme.colors.textMain,
                     )
                 }
             }
         },
     )
-}
-
-/**
- * "$1.00 Each" when every part, the sender's included, is equal, else "~$0.33 Each" for the
- * smallest paid part; ", including You" when the sender is in the split.
- */
-@Composable
-private fun eachLabel(pay: GroupSendPlan.Pay, currency: CurrencyCode): String {
-    val smallest = GroupSendSplit.fiat(pay.smallest, currency).formatted()
-    val res = when {
-        pay.includesViewer && pay.isEven -> R.string.label_groupSendEachIncludingYou
-        pay.includesViewer -> R.string.label_groupSendEachApproxIncludingYou
-        pay.isEven -> R.string.label_groupSendEach
-        else -> R.string.label_groupSendEachApprox
-    }
-    return stringResource(res, smallest)
 }
 
 /** The first few recipients' faces, overlapping, as in the design's pair of avatars. */

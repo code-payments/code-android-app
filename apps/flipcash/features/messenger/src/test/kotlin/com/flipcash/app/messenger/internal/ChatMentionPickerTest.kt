@@ -3,17 +3,13 @@ package com.flipcash.app.messenger.internal
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.snapshots.Snapshot
-import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.MainCoroutineRule
-import com.flipcash.libs.coroutines.TestDispatcherProvider
-import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatMembership
-import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.chat.MemberMatch
 import com.flipcash.shared.chat.RosterSearchSource
 import com.flipcash.shared.chat.models.ChatQuote
@@ -87,41 +83,15 @@ class ChatMentionPickerTest {
         coEvery { chatCoordinator.sendMessage(any(), any(), any()) } returns Result.success(mockk<ChatMessage>(relaxed = true))
     }
 
-    private fun createViewModel(): ChatViewModel = ChatViewModel(
+    private fun createViewModel(): ChatViewModel = chatViewModel(
+        dispatcher = mainCoroutineRule.dispatcher,
         chatCoordinator = chatCoordinator,
-        wrongKeyChats = com.flipcash.services.chat.WrongKeyChats(),
-        mediaUploads = noMediaUploads(),
-        e2eePolicy = E2eePolicy(),
-        contactCoordinator = mockk(relaxed = true),
-        contactPaymentDelegate = mockk(relaxed = true),
         tipPaymentDelegate = tipPaymentDelegate,
         transactionController = transactionController,
         tokenCoordinator = tokenCoordinator,
         exchange = exchange,
-        verifiedFiatCalculator = mockk(relaxed = true),
-        startChattingPayer = mockk(relaxed = true),
         userManager = userManager,
-        resources = mockk(relaxed = true),
-        analytics = RecordingAnalytics(),
-        clipboardManager = mockk(relaxed = true),
-        userFlags = mockk(relaxed = true),
-        linkCardClassifier = mockk(relaxed = true),
-        linkCardResolver = mockk(relaxed = true),
-        cashLinkClaims = mockk(relaxed = true) { every { claimInFlight } returns MutableStateFlow(null) },
-        chatCashLinks = mockk(relaxed = true),
-        groupSendPayments = mockk(relaxed = true),
-        chatDraftStore = mockk(relaxed = true),
-        recentReactionsStore = mockk(relaxed = true),
-        toastController = mockk(relaxed = true),
-        emojiCatalogLoader = mockk(relaxed = true),
-        userProfileDataSource = mockk(relaxed = true),
         rosterSearch = rosterSearch,
-        featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
-        lobbyRequests = mockk(relaxed = true),
-        hostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
-        groupRosters = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
-        dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
-        identifier = null,
     )
 
     private fun ChatViewModel.openGroup() {
