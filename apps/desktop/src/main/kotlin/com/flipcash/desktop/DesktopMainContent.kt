@@ -14,10 +14,11 @@ import com.flipcash.app.analytics.LocalAnalytics
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.theme.FlipcashTheme
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
-import com.flipcash.desktop.shell.DesktopChatList
+import com.flipcash.desktop.shell.ConversationPane
+import com.flipcash.desktop.shell.ConversationToolbarTitle
+import com.flipcash.desktop.shell.DesktopSidebar
 import com.flipcash.desktop.shell.ContextContent
 import com.flipcash.desktop.shell.ContextPane
-import com.flipcash.desktop.shell.ConversationPlaceholder
 import com.flipcash.desktop.shell.DesktopNavState
 import com.flipcash.desktop.shell.DesktopShell
 import com.flipcash.desktop.shell.RailFooter
@@ -40,6 +41,7 @@ fun DesktopMainContent(
     graph: DesktopGraph,
     initialContext: ContextContent? = null,
     onSettings: () -> Unit = {},
+    initialChatIndex: Int? = null,
     nav: DesktopNavState = remember { DesktopNavState().apply { context = initialContext } },
 ) {
     val walletViewModel = remember { graph.walletViewModel }
@@ -47,6 +49,13 @@ fun DesktopMainContent(
     val chatsViewModel = remember { graph.chatsViewModel }
     LaunchedEffect(tokenViewModel) {
         tokenViewModel.dispatchEvent(SelectTokenViewModel.Event.OnPurposeChanged(TokenPurpose.Balance))
+    }
+    val chatsState by chatsViewModel.stateFlow.collectAsState()
+    // Snapshots only: opens the chat at this index once the list loads, so a render shows a selection.
+    if (initialChatIndex != null) {
+        LaunchedEffect(chatsState.chats) {
+            chatsState.visibleChats.getOrNull(initialChatIndex)?.let { if (nav.openChat == null) nav.openChat(it) }
+        }
     }
     val user by graph.userManager.state.collectAsState()
     val displayName = user.userProfile?.displayName.orEmpty()
@@ -63,8 +72,9 @@ fun DesktopMainContent(
             Box(Modifier.fillMaxSize().background(CodeTheme.colors.background)) {
                 DesktopShell(
                     nav = nav,
-                    sidebar = { m -> DesktopChatList(chatsViewModel, onOpenChat = nav::openChat, modifier = m) },
-                    main = { m -> ConversationPlaceholder(nav.openChat?.displayName, m) },
+                    sidebar = { m -> DesktopSidebar(chatsState, nav, chatsViewModel::selectFilter, m) },
+                    main = { m -> ConversationPane(nav.openChat, m) },
+                    toolbar = { ConversationToolbarTitle(nav.openChat) },
                     context = { content, m ->
                         ContextPane(
                             content = content,

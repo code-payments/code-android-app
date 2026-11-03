@@ -77,9 +77,17 @@ class DesktopCommandsTest {
     @Test
     fun `commands without a screen yet are not consumed`() {
         val nav = DesktopNavState()
-        for (c in listOf(DesktopCommand.Search, DesktopCommand.NewChat, DesktopCommand.OpenInNewWindow, DesktopCommand.Settings)) {
+        for (c in listOf(DesktopCommand.NewChat, DesktopCommand.OpenInNewWindow, DesktopCommand.Settings)) {
             assertFalse(nav.perform(c, ContextPaneMode.Column))
         }
+    }
+
+    @Test
+    fun `search is consumed and asks the sidebar to focus its field`() {
+        val nav = DesktopNavState().apply { sidebarHidden = true }
+        assertTrue(nav.perform(DesktopCommand.Search, ContextPaneMode.Column))
+        assertTrue(nav.searchFocusRequested)
+        assertFalse(nav.sidebarHidden)
     }
 
     @Test

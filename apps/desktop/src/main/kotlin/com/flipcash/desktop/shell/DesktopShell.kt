@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -64,6 +65,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White08
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -93,6 +95,7 @@ fun DesktopShell(
     rail: @Composable (Modifier) -> Unit = {},
     railFooter: @Composable (Modifier) -> Unit = {},
     title: String = "",
+    toolbar: (@Composable RowScope.() -> Unit)? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val widthClass = widthClassFor(maxWidth)
@@ -102,12 +105,12 @@ fun DesktopShell(
         val shown = nav.context
 
         // The floating list belongs to the rail; it can't outlive it.
-        LaunchedEffect(sidebarMode) { if (sidebarMode != SidebarMode.Rail) nav.sidebarPeek = false }
+        LaunchedEffect(sidebarMode, nav.sidebarPeek) { if (sidebarMode != SidebarMode.Rail) nav.sidebarPeek = false }
 
-        // The title row is left empty: the traffic lights and the toggle sit over it.
+        // The sidebar draws its own title row (new chat at the trailing end); the traffic lights and
+        // the toggle sit over its leading end.
         val listColumn: @Composable (Modifier) -> Unit = { m ->
             Column(m.testTag("sidebar")) {
-                Spacer(Modifier.height(DesktopDimens.TitleRowHeight))
                 sidebar(Modifier.weight(1f).fillMaxWidth())
                 footer(Modifier.fillMaxWidth())
             }
@@ -129,6 +132,7 @@ fun DesktopShell(
             Column(m.testTag("main")) {
                 Toolbar(
                     title = title,
+                    content = toolbar,
                     leadingInset = leadingInset,
                     onBack = onBack,
                     onInfo = nav::toggleInfo,
@@ -368,6 +372,7 @@ private fun SidebarToggle(onClick: () -> Unit) {
 @Composable
 private fun Toolbar(
     title: String,
+    content: (@Composable RowScope.() -> Unit)?,
     leadingInset: Dp,
     onBack: (() -> Unit)?,
     onInfo: () -> Unit,
@@ -377,9 +382,9 @@ private fun Toolbar(
             .fillMaxWidth()
             .height(DesktopDimens.TitleRowHeight)
             .padding(start = leadingInset)
-            .padding(horizontal = 12.dp),
+            .padding(start = 20.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (onBack != null) {
             Text(
@@ -393,21 +398,30 @@ private fun Toolbar(
                     .testTag("compact_back"),
             )
         }
-        Text(
-            text = title,
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
-            modifier = Modifier.weight(1f),
-        )
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .clickable(role = Role.Button, onClick = onInfo)
-                .testTag("toolbar_info"),
-            contentAlignment = Alignment.Center,
+        if (content != null) {
+            content()
+        } else {
+            Text(
+                text = title,
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        // A glass capsule (node 13011:253): the only glass on the window, as the sidebar is flat.
+        Row(
+            modifier = Modifier.clip(CircleShape).background(White08).padding(horizontal = 4.dp, vertical = 2.dp),
         ) {
-            Icon(Icons.Outlined.Info, contentDescription = "Info", tint = CodeTheme.colors.textSecondary, modifier = Modifier.size(20.dp))
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .clickable(role = Role.Button, onClick = onInfo)
+                    .testTag("toolbar_info"),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Outlined.Info, contentDescription = "Info", tint = CodeTheme.colors.textSecondary, modifier = Modifier.size(20.dp))
+            }
         }
     }
 }

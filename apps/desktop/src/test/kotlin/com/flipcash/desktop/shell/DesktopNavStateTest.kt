@@ -2,6 +2,8 @@ package com.flipcash.desktop.shell
 
 import com.flipcash.app.core.AppRoute
 import com.getcode.solana.keys.Mint
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.shared.chat.ui.ConversationReference
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -136,5 +138,29 @@ class DesktopNavStateTest {
         s.sidebarPeek = true
         s.openChat()
         assertFalse(s.sidebarPeek)
+    }
+
+    private fun chat(id: Int, name: String?, title: String? = null) =
+        ConversationReference(chatId = ChatId(byteArrayOf(id.toByte())), displayName = name, title = title, isGroup = title != null)
+
+    @Test
+    fun `only the open chat is selected, matched by id`() {
+        val s = DesktopNavState()
+        val a = chat(1, "Ann")
+        val b = chat(2, "Bob")
+        assertFalse(s.isOpen(a))
+        s.openChat(a)
+        assertTrue(s.isOpen(a))
+        assertFalse(s.isOpen(b))
+        assertTrue(s.isOpen(a.copy(lastMessagePreview = "newer")))
+    }
+
+    @Test
+    fun `search matches names case-insensitively and finds groups by title`() {
+        val rows = listOf(chat(1, "Ann Lee"), chat(2, "Bob"), chat(3, null, title = "Ballers"))
+        assertEquals(rows, rows.matching("  "))
+        assertEquals(listOf(rows[1], rows[2]), rows.matching("B"))
+        assertEquals(listOf(rows[0]), rows.matching("lee"))
+        assertEquals(emptyList(), rows.matching("zzz"))
     }
 }

@@ -33,6 +33,8 @@ fun main(args: Array<String>) {
     val height = args.getOrNull(3)?.toIntOrNull() ?: 760
     val motion = args.getOrNull(4)?.takeIf { it.isNotEmpty() }
     val linkScreen = screen == "link"
+    // `chat` opens the second chat so a render shows the selected row and the conversation pane.
+    val selectChat = screen == "chat"
     val context = when (screen) {
         "shell-wallet", "money", "wallet" -> ContextContent.Wallet
         "you" -> ContextContent.You
@@ -46,7 +48,7 @@ fun main(args: Array<String>) {
     val scale = 2f
     val nav = DesktopNavState().apply { this.context = context }
     ImageComposeScene(width = (width * scale).toInt(), height = (height * scale).toInt(), density = Density(scale)) {
-        if (linkScreen) DesktopLinkContent(graph, onSignedIn = {}) else DesktopMainContent(graph, nav = nav)
+        if (linkScreen) DesktopLinkContent(graph, onSignedIn = {}) else DesktopMainContent(graph, initialChatIndex = if (selectChat) 1 else null, nav = nav)
     }.use { scene ->
         var nanos = 0L
         repeat(80) {

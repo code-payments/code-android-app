@@ -55,7 +55,7 @@ fun commandFor(
 
 /**
  * Runs [command] and says whether it did anything, so an unhandled key still reaches the focused
- * field. Search and New Chat arrive with chat (roadmap Plan 3b), a new window with Plans 3b and 5,
+ * field. New Chat arrives with chat (roadmap Plan 3b), a new window with Plans 3b and 5,
  * and Settings with Plan 7; until then they do nothing.
  */
 fun DesktopNavState.perform(command: DesktopCommand, mode: ContextPaneMode): Boolean = when (command) {
@@ -63,10 +63,11 @@ fun DesktopNavState.perform(command: DesktopCommand, mode: ContextPaneMode): Boo
     DesktopCommand.ToggleSidebar -> { toggleSidebar(); true }
     DesktopCommand.Back -> back()
     DesktopCommand.Escape -> onEscape(mode)
-    DesktopCommand.Search, DesktopCommand.NewChat, DesktopCommand.OpenInNewWindow, DesktopCommand.Settings -> false
+    DesktopCommand.Search -> { requestSearchFocus(); true }
+    DesktopCommand.NewChat, DesktopCommand.OpenInNewWindow, DesktopCommand.Settings -> false
 }
 
 /** Whether [perform] does anything for [command] yet; the menu bar greys out the rest. */
 val DesktopCommand.available: Boolean
-    get() = this == DesktopCommand.ToggleInfo || this == DesktopCommand.ToggleSidebar ||
+    get() = this == DesktopCommand.ToggleInfo || this == DesktopCommand.Search || this == DesktopCommand.ToggleSidebar ||
         this == DesktopCommand.Back || this == DesktopCommand.Escape

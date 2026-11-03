@@ -3,12 +3,14 @@ package com.flipcash.desktop.shell
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -28,6 +30,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White
 
 /**
  * The bottom of the chat list (node 13000:91): avatar and name open You, the balance opens Wallet,
@@ -44,16 +47,15 @@ fun SidebarFooter(
     avatar: @Composable (Modifier) -> Unit = {},
 ) {
     Row(
-        modifier = modifier.height(56.dp).padding(horizontal = 8.dp),
+        modifier = modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(
             modifier = Modifier
                 .weight(1f)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .clickable(role = Role.Button, onClick = onYou)
-                .padding(6.dp)
                 .testTag("footer_you"),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -61,32 +63,43 @@ fun SidebarFooter(
             avatar(Modifier.size(28.dp))
             Text(
                 text = displayName,
-                style = CodeTheme.typography.textMedium,
+                style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textMain,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Text(
-            text = balance,
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
-            maxLines = 1,
+        // The balance pill (node 13000:230): the wallet's total, which opens Wallet.
+        Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
+                .height(30.dp)
+                .widthIn(min = 120.dp)
+                .clip(CircleShape)
+                .background(White.copy(alpha = 0.12f))
+                .border(1.dp, White.copy(alpha = 0.35f), CircleShape)
                 .clickable(role = Role.Button, onClick = onWallet)
-                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .padding(start = 10.dp, end = 12.dp)
                 .testTag("footer_balance"),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null, tint = CodeTheme.colors.textMain, modifier = Modifier.size(16.dp))
+            Text(
+                text = balance,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textMain,
+                maxLines = 1,
+            )
+        }
         Box(
             modifier = Modifier
-                .size(32.dp)
+                .size(26.dp)
                 .clip(CircleShape)
                 .clickable(role = Role.Button, onClick = onSettings)
                 .testTag("footer_settings"),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = CodeTheme.colors.textSecondary, modifier = Modifier.size(20.dp))
+            Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = CodeTheme.colors.textSecondary, modifier = Modifier.size(18.dp))
         }
     }
 }

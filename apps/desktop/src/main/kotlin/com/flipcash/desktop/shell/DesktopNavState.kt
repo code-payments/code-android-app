@@ -65,6 +65,23 @@ class DesktopNavState {
         sidebarPeek = false
     }
 
+    /** Whether [chat] is the one open in the main pane, which is what the sidebar marks selected. */
+    fun isOpen(chat: ConversationReference): Boolean = openChat?.chatId == chat.chatId
+
+    /** What the sidebar's search field holds. Here rather than in the field so the peek shares it. */
+    var searchQuery: String by mutableStateOf("")
+
+    /** Set by the Search command (⌘K); the sidebar's search field takes focus and clears it. */
+    var searchFocusRequested: Boolean by mutableStateOf(false)
+
+    /** Brings the search field up: out of hiding, out of a chat at compact, or floated over the rail. */
+    fun requestSearchFocus() {
+        sidebarHidden = false
+        compactShowsChat = false
+        sidebarPeek = true
+        searchFocusRequested = true
+    }
+
     fun toggleInfo() {
         context = if (context == ContextContent.Info) null else ContextContent.Info
     }

@@ -1,6 +1,13 @@
 package com.flipcash.shared.chat.ui
 
 import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.subtitle_peopleWantToJoin
+import com.flipcash.core.resources.subtitle_wantsToJoin
+import com.flipcash.core.resources.title_unnamedUser
+import com.flipcash.services.models.chat.LobbyMember
+import com.flipcash.shared.common.ui.profile.chatterName
+import org.jetbrains.compose.resources.pluralStringResource
+import androidx.compose.ui.text.TextStyle
 import com.getcode.util.resources.ic_chevron_right
 import com.flipcash.core.resources.label_chat_preview_inviteToStart
 import com.flipcash.core.resources.label_chat_preview_noMessages
@@ -84,11 +91,12 @@ fun ChatRowSubtitle(
     preview: String?,
     hasMessages: Boolean = true,
     awaitsInvites: Boolean = false,
+    style: TextStyle = CodeTheme.typography.textSmall,
     fallback: @Composable () -> Unit = {},
 ) {
     when {
-        isTyping -> SubtitleText(stringResource(Res.string.label_isTyping))
-        !preview.isNullOrEmpty() -> SubtitleText(preview)
+        isTyping -> SubtitleText(stringResource(Res.string.label_isTyping), style = style)
+        !preview.isNullOrEmpty() -> SubtitleText(preview, style = style)
         !hasMessages -> SubtitleText(
             text = stringResource(
                 if (awaitsInvites) Res.string.label_chat_preview_inviteToStart
@@ -97,6 +105,7 @@ fun ChatRowSubtitle(
             // Italic marks it as the row talking about itself rather than quoting a message —
             // the same distinction the tombstone bubble draws.
             fontStyle = FontStyle.Italic,
+            style = style,
         )
         else -> fallback()
     }
@@ -104,10 +113,14 @@ fun ChatRowSubtitle(
 
 /** Standard single-line secondary text used for chat/contact row subtitles. */
 @Composable
-fun SubtitleText(text: String, fontStyle: FontStyle = FontStyle.Normal) {
+fun SubtitleText(
+    text: String,
+    fontStyle: FontStyle = FontStyle.Normal,
+    style: TextStyle = CodeTheme.typography.textSmall,
+) {
     Text(
         text = text,
-        style = CodeTheme.typography.textSmall,
+        style = style,
         color = CodeTheme.colors.textSecondary,
         fontStyle = fontStyle,
         maxLines = 1,
@@ -121,7 +134,11 @@ fun SubtitleText(text: String, fontStyle: FontStyle = FontStyle.Normal) {
  * secondary colour. One line, cut off at the end, so the request is what stays readable.
  */
 @Composable
-fun JoinRequestSubtitle(request: String, preview: String?) {
+fun JoinRequestSubtitle(
+    request: String,
+    preview: String?,
+    style: TextStyle = CodeTheme.typography.textSmall,
+) {
     val requestColor = CodeTheme.colors.indicator
     val previewColor = CodeTheme.colors.textSecondary
     Text(
@@ -134,8 +151,29 @@ fun JoinRequestSubtitle(request: String, preview: String?) {
                 }
             }
         },
-        style = CodeTheme.typography.textSmall,
+        style = style,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )
+}
+
+/**
+ * "Jasper wants to join" for one requester, "3 people want to join" for several, or null with
+ * nobody waiting. Named the way the in-chat Join Requests anchor names them.
+ */
+@Composable
+fun joinRequestText(waiting: List<LobbyMember>): String? {
+    val only = waiting.singleOrNull()
+    return when {
+        waiting.isEmpty() -> null
+        only != null -> stringResource(
+            Res.string.subtitle_wantsToJoin,
+            chatterName(
+                only.userProfile.displayName,
+                only.userProfile.username,
+                stringResource(Res.string.title_unnamedUser),
+            ),
+        )
+        else -> pluralStringResource(Res.plurals.subtitle_peopleWantToJoin, waiting.size, waiting.size)
+    }
 }
