@@ -68,5 +68,5 @@ object MessageNodeDefaults {
     }
 
     val ContentStyle: TextStyle
-        @Composable get() = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
+        @Composable get() = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.SemiBold)
 }

@@ -48,7 +48,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.TokenSelectionPill
-import com.flipcash.app.messenger.internal.screens.boost.CurrencyPickerContent
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
@@ -95,19 +94,24 @@ internal fun RequestPaySheet(
     PayShareSheet(
         creator = members[request.creator],
         share = share,
-        swipePay = SwipePayUiState(
-            token = token,
-            progress = pay.progress,
-            tokenPickable = true,
-            swipeTestTag = "request_pay_swipe",
-        ),
+        swipePay = requestPaySwipeState(pay, token),
         actions = actions,
     )
 }
 
+/** The swipe for a share: the viewer pays the request, so it reads "Swipe to Pay". */
+internal fun requestPaySwipeState(pay: RequestPayFlow.State, token: Token?): SwipePayUiState =
+    SwipePayUiState(
+        token = token,
+        progress = pay.progress,
+        tokenPickable = true,
+        swipeLabel = R.string.action_swipeToPay,
+        swipeTestTag = "request_pay_swipe",
+    )
+
 /**
- * Frame 10: who is being paid, the share, the token, and the swipe. The token pill swaps this
- * sheet's content for the currency list, as on the group send confirm sheet.
+ * Frame 10: who is being paid, the share, the token, and the swipe. The token pill opens the
+ * currency list as a half sheet over this one, as on the group send confirm sheet.
  */
 @Composable
 private fun PayShareSheet(

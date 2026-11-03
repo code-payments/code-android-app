@@ -118,17 +118,45 @@ private fun InviteSheetFrame(subject: ShareToChatsSubject, selection: List<ChatI
         onMessageChanged = {},
         onInvite = {},
         onDismiss = {},
-        onShowCard = if (subject is ShareToChatsSubject.Group) ({}) else null,
+        onShowCard = if (subject is ShareToChatsSubject.Group || subject is ShareToChatsSubject.GroupInviteLink) ({}) else null,
     )
 }
 
-/** Frame 1a, node 12844:60. */
+/** Frame 1m, node 13137:204: Approve new members off, the current invite link. */
 @Preview(heightDp = 520)
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
-internal fun InviteFrame1aHostSheet() = BottomBarFrame {
-    showInviteHostSheet(it, "Bad Boys", {}, {}, {})
-}
+internal fun InviteFrame1mHostSheet() = HostSheetPreview(
+    InviteHostSheetViewModel.State(
+        invite = InviteLinkState.Ready(
+            url = "https://app.flipcash.com/chat/invite#s=kQ3vR8mZp4LwN2yTb7cXe1aFhJ6sDg0uVq5oIrKxT9a",
+            expiresAt = null,
+            useCount = 0,
+            maxUses = 0,
+        ),
+    )
+)
+
+/** Frame 1m′: Approve new members on, the plain link. */
+@Preview(heightDp = 520)
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+internal fun InviteFrame1mPrimeHostSheet() = HostSheetPreview(
+    InviteHostSheetViewModel.State(
+        approve = true,
+        plainUrl = "https://flipcash.com/chat/6f1c0b2e-3a4d-4c5e-8f90-123456789abc",
+    )
+)
+
+@Composable
+private fun HostSheetPreview(state: InviteHostSheetViewModel.State) = InviteHostSheetContent(
+    groupName = "Bad Boys",
+    state = state,
+    onShare = {},
+    onApproveChanged = {},
+    onManageInvites = {},
+    onDismiss = {},
+)
 
 /** Frame 1b, node 12933:210: the first tap is making the link. */
 @Preview(heightDp = 817)

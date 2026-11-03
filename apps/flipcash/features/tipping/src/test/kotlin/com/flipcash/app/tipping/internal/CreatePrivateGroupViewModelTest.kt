@@ -14,6 +14,7 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.HostInvites
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.util.resources.ContentReader
@@ -21,6 +22,8 @@ import com.getcode.util.resources.FakeResourceHelper
 import com.getcode.view.SuccessHoldDuration
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
+import io.mockk.verify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -56,6 +59,7 @@ class CreatePrivateGroupViewModelTest {
     private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true)
     private val blobStorage = mockk<BlobStorageCoordinator>(relaxed = true)
     private val groupKeys = mockk<GroupKeyEnvelopes>()
+    private val hostInvites = mockk<HostInvites>(relaxed = true)
 
     @Before
     fun setUp() {
@@ -82,6 +86,7 @@ class CreatePrivateGroupViewModelTest {
         resources = FakeResourceHelper(R::class.java),
         analytics = RecordingAnalytics(),
         groupKeys = groupKeys,
+        hostInvites = hostInvites,
     )
 
     private val chat = ChatMetadata(
@@ -145,5 +150,36 @@ class CreatePrivateGroupViewModelTest {
 
         coVerify(exactly = 1) { chatCoordinator.create(any(), any()) }
         assertEquals(chat, vm.stateFlow.value.created)
+    }
+
+    @Test
+    fun `the first invite link starts once, after the key lands`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = TestDispatchers(testScheduler).viewModel()
+        vm.stateFlow.value.titleFieldState.setTextAndPlaceCursorAtEnd("Ballers")
+        coEvery { chatCoordinator.create(any(), any()) } returns Result.success(chat)
+        coEvery { groupKeys.storeNewKey(chat.chatId) } returns Result.success(Unit)
+
+        vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
+        advanceTimeBy(SuccessHoldDuration)
+        advanceUntilIdle()
+
+        coVerifyOrder {
+            groupKeys.storeNewKey(chat.chatId)
+            hostInvites.startFirstInvite(chat.chatId)
+        }
+        verify(exactly = 1) { hostInvites.startFirstInvite(any()) }
+    }
+
+    @Test
+    fun `no invite link starts while the key has not landed`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = TestDispatchers(testScheduler).viewModel()
+        vm.stateFlow.value.titleFieldState.setTextAndPlaceCursorAtEnd("Ballers")
+        coEvery { chatCoordinator.create(any(), any()) } returns Result.success(chat)
+        coEvery { groupKeys.storeNewKey(chat.chatId) } returns Result.failure(IllegalStateException())
+
+        vm.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
+        advanceUntilIdle()
+
+        verify(exactly = 0) { hostInvites.startFirstInvite(any()) }
     }
 }

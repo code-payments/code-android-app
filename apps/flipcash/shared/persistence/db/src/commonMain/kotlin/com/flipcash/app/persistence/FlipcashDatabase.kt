@@ -144,8 +144,9 @@ import kotlin.jvm.Synchronized
         // The group_key_envelopes table: wrapped chat keys, so a private group opens offline. An
         // AutoMigration for the same reason as payment_requests.
         AutoMigration(from = 49, to = 50), // group_key_envelopes table
+        AutoMigration(from = 50, to = 51, spec = FlipcashDatabase.Migration50To51::class), // chat_metadata.can_pin (default 0)
     ],
-    version = 50,
+    version = 51,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 @ConstructedBy(FlipcashDatabaseConstructor::class)
@@ -322,6 +323,17 @@ abstract class FlipcashDatabase : RoomDatabase() {
      * on every private group created before the upgrade until its viewer state version moves.
      */
     class Migration45To46 : AutoMigrationSpec {
+        override fun onPostMigrate(connection: SQLiteConnection) {
+            connection.execSQL(Migration36To37.REARM_VIEWER_STATE)
+        }
+    }
+
+    /**
+     * Re-arms the viewer-state gate for the new `can_pin` column, for the reason [Migration36To37]
+     * gives for `can_edit`: without it Pin stays missing from the message menu on every chat stored
+     * before the upgrade until its viewer state version moves.
+     */
+    class Migration50To51 : AutoMigrationSpec {
         override fun onPostMigrate(connection: SQLiteConnection) {
             connection.execSQL(Migration36To37.REARM_VIEWER_STATE)
         }

@@ -8,19 +8,6 @@ import com.getcode.manager.BottomBarCheckbox
 import com.getcode.manager.BottomBarManager
 import java.net.IDN
 
-/**
- * The hosts that are Flipcash's own: the union of Android's manifest intent filters and iOS's
- * associated-domains entitlement. The chat card classifier and the external-link warning both
- * read this one list.
- */
-val FIRST_PARTY_HOSTS: Set<String> = setOf(
-    "app.flipcash.com",
-    "send.flipcash.com",
-    "flipcash.com",
-    "www.flipcash.com",
-    "jump.flipcash.com",
-)
-
 /** Where a link goes, as far as the external-link warning is concerned. */
 sealed interface LinkDestination {
     /** The host is exactly one of [FIRST_PARTY_HOSTS]; open without asking. */
