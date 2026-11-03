@@ -6,6 +6,7 @@ import org.gradle.api.plugins.ExtensionAware
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 /**
@@ -80,6 +81,14 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
                     compilerOptions {
                         jvmTarget.set(JvmTarget.fromTarget(javaVersion))
                     }
+                }
+
+                // KGP compiles the Java its KSP processors emit (Dagger factories) against
+                // jvmMainCompileClasspath, which does not ask for a platform type. With debug and
+                // release both selectable above, a library that publishes android and jvm variants
+                // (libsodium bindings) is ambiguous there. Ask for jvm.
+                project.configurations.matching { it.name == "jvmMainCompileClasspath" }.configureEach {
+                    attributes.attribute(KotlinPlatformType.attribute, KotlinPlatformType.jvm)
                 }
             }
         }

@@ -1,0 +1,283 @@
+package com.flipcash.shared.chat.ui
+
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_cancelReply
+import com.flipcash.core.resources.label_chat_media_photo
+import com.flipcash.core.resources.label_inviteLinkPreview
+import com.flipcash.shared.chat.ui.media.QuotedPhotoThumbnail
+import com.flipcash.shared.chat.media.ChatMediaText
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import org.jetbrains.compose.resources.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import com.flipcash.shared.chat.models.ChatQuote
+import com.flipcash.shared.chat.models.ChatQuoteSnippet
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.ChatInputDefaults
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.hazeBlur
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
+
+/**
+ * The quoted original above the composer while a reply is being written: a card carrying a rule in
+ * the author's own colour, their name over one or two lines of what they said, and the way out on
+ * the trailing edge.
+ *
+ * The card is glass rather than a flat fill, matching iOS, so it reads as a surface floating over
+ * the transcript rather than as part of the bar. That is also why the dismiss control is a filled
+ * disc: the ground behind it samples whatever message is scrolled underneath, and a hairline glyph
+ * on its own changed contrast as the transcript moved.
+ *
+ * The glass is the composer's own — the same [HazeMaterials.ultraThin] over the background, the same
+ * hairline in the divider colour, and the same shape as the field and the send-cash button. The
+ * strip sits directly above both, so anything else reads as a second, lighter surface.
+ *
+ * Deliberately not [ChatQuotePanel], which sits inside a filled bubble and is tinted by the author's
+ * colour rather than blurred.
+ */
+@Composable
+fun ComposerReplyStrip(
+    quote: ChatQuote,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    hazeState: HazeState? = null,
+) {
+    val shape = CodeTheme.shapes.medium
+    // The composer's material, not a brighter one: a tint of the background itself rather than of a
+    // grey lifted off it. `clip` must precede `hazeBlur` to bound the blur to the rounded rect.
+    // Falls back to the flat stand-in the bar's other controls use when the host has no HazeState to
+    // sample.
+    val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
+    val ground = if (hazeState != null) {
+        Modifier
+            .hazeBlur(HazeInput.Sources(hazeState), material)
+            // The input field's own fill over the same glass, so strip and field read as one surface.
+            .background(ChatInputDefaults.ContainerColor)
+    } else {
+        Modifier.background(Color.White.copy(alpha = 0.1f))
+    }
+
+    Row(
+        // heightIn before the intrinsic pass: `height(IntrinsicSize.Min)` enforces the incoming
+        // constraints, so the floor survives it. Intrinsic minimum, in turn, is what lets the rule
+        // fill a height the text column decides — a fillMaxHeight child in an unbounded Row measures
+        // to zero.
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .then(ground)
+            .border(CodeTheme.dimens.border, CodeTheme.colors.divider, shape)
+            .heightIn(min = ComposerReplyStripDefaults.minHeight)
+            .height(IntrinsicSize.Min)
+            .padding(end = ComposerReplyStripDefaults.trailingPadding),
+        horizontalArrangement = Arrangement.spacedBy(ComposerReplyStripDefaults.gap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ChatQuoteContent(
+            quote = quote,
+            modifier = Modifier.weight(1f),
+            snippetMaxLines = ComposerReplyStripDefaults.textMaxLines,
+        )
+
+        // A disc rather than a bare ✕, in a hit target wider than the disc.
+        Box(
+            modifier = Modifier
+                .size(ComposerReplyStripDefaults.dismissTarget)
+                .clickable(onClick = onDismiss)
+                .testTag("action_cancel_reply"),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(ComposerReplyStripDefaults.dismissDisc)
+                    .background(
+                        CodeTheme.colors.textSecondary.copy(alpha = 0.35f),
+                        CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    modifier = Modifier.requiredSize(ComposerReplyStripDefaults.dismissGlyph),
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(Res.string.action_cancelReply),
+                    tint = CodeTheme.colors.textMain,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * A quote's body as the reply strip draws it: the rule in the author's colour flush to the leading
+ * edge, their name over the snippet, then a photo's thumbnail. The caller owns the ground and what
+ * trails it, so the reply strip and the pin bar can share it on their own surfaces.
+ *
+ * Lays out as a row filling the caller's height; give it a parent with a bounded or intrinsic
+ * height so [rule] can fill it.
+ *
+ * @param rule what runs down the leading edge, given the author's colour. The reply strip's is a
+ *   single bar; the pin bar splits it into one segment per pin.
+ * @param gap the space between [rule] and the text.
+ * @param textVerticalPadding the space above and below the text. The pin bar pads itself, so it
+ *   passes none.
+ */
+@Composable
+fun ChatQuoteContent(
+    quote: ChatQuote,
+    modifier: Modifier = Modifier,
+    snippetMaxLines: Int = 1,
+    rule: @Composable (Color) -> Unit = { color -> ChatQuoteRule(color) },
+    gap: Dp = ComposerReplyStripDefaults.gap,
+    textVerticalPadding: Dp = ComposerReplyStripDefaults.textPadding,
+) {
+    val ruleColor = quote.accent ?: CodeTheme.colors.tertiary
+    val name = quote.nameAccent ?: ruleColor
+    Row(
+        modifier = modifier.fillMaxHeight(),
+        horizontalArrangement = Arrangement.spacedBy(gap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        rule(ruleColor)
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = textVerticalPadding),
+        ) {
+            if (quote.authorName.isNotEmpty()) {
+                Text(
+                    text = quote.authorName,
+                    style = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Bold),
+                    color = name,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            QuoteLine(quote.snippet, snippetMaxLines)
+        }
+
+        // After the text, centred on the row, as iOS lays it. Nothing for a redacted photo or any
+        // other kind of quote.
+        val photo = quote.snippet as? ChatQuoteSnippet.Photo
+        if (photo != null && !photo.redacted) QuotedPhotoThumbnail(photo)
+    }
+}
+
+/** The reply strip's rule: square, flush to the card's leading edge; the card's clip rounds it. */
+@Composable
+fun ChatQuoteRule(color: Color, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .width(ComposerReplyStripDefaults.ruleWidth)
+            .fillMaxHeight()
+            .background(color),
+    )
+}
+
+/**
+ * The quoted original itself, one step under the bubble body's size and in the same weight: the
+ * quote is the subject of the strip, so it is read rather than glanced at. Primary text for the same
+ * reason — dimming it makes it look like placeholder text for the field below.
+ */
+@Composable
+private fun QuoteLine(snippet: ChatQuoteSnippet, maxLines: Int) {
+    val style = CodeTheme.typography.textSmall.copy(fontWeight = FontWeight.Medium)
+    when (snippet) {
+        is ChatQuoteSnippet.Text -> Text(
+            text = labelInviteLinks(snippet.body, stringResource(Res.string.label_inviteLinkPreview)),
+            style = style,
+            color = CodeTheme.colors.textMain,
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        // Plain text: the thumbnail is its own item in the strip's row, not part of this line.
+        is ChatQuoteSnippet.Photo -> Text(
+            text = ChatMediaText.preview(
+                snippet.caption?.let { labelInviteLinks(it, stringResource(Res.string.label_inviteLinkPreview)) },
+                stringResource(Res.string.label_chat_media_photo),
+            ),
+            style = style,
+            color = CodeTheme.colors.textMain,
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        // A payment carries the mint's name the cash card leads with. The amount alone reads as a
+        // number; with the token beside it, it reads as the payment being answered.
+        is ChatQuoteSnippet.Cash -> {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(ComposerReplyStripDefaults.cashGap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = cashInDisplayCurrency(snippet.amount, snippet.settledUsd).formatted(),
+                    style = style,
+                    color = CodeTheme.colors.textMain,
+                    maxLines = 1,
+                )
+                Text(
+                    text = snippet.tokenName,
+                    style = style,
+                    color = CodeTheme.colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+/** Every measurement the strip makes, on the grid; iOS's values, to the nearest step. */
+private object ComposerReplyStripDefaults {
+    val ruleWidth: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x1
+    val gap: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x2
+    val cashGap: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x1
+    val textPadding: Dp
+        @Composable get() = ChatInputDefaults.FieldPadding
+    val trailingPadding: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x2
+
+    /** The composer field's own height, so a one-line quote does not sit shorter than it. */
+    val minHeight: Dp
+        @Composable get() = ChatInputDefaults.OutsideSize
+
+    val dismissTarget: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x7
+    val dismissDisc: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x4
+    val dismissGlyph: Dp
+        @Composable get() = CodeTheme.dimens.staticGrid.x2
+    const val textMaxLines = 2
+}
