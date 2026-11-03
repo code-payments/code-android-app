@@ -4,6 +4,7 @@ import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.getcode.view.PaymentSuccessHoldDuration
 import com.getcode.view.holdPaymentSuccess
 import com.flipcash.shared.chat.ui.settledUsd
+import com.flipcash.shared.chat.ui.CashBubblePeople
 import com.flipcash.shared.chat.ui.partFor
 import com.flipcash.shared.chat.media.ChatPhoto
 import com.flipcash.services.models.chat.MediaItemRendition
@@ -1379,6 +1380,8 @@ internal class ChatViewModel @AssistedInject constructor(
         val creatorId: ID?,
         /** `can_pin`, read from the viewer state for DMs and groups alike. */
         val canPin: Boolean,
+        /** What a DM's cash bubbles call the other member; null in a group or until it resolves. */
+        val counterpartName: String?,
     )
 
     /**
@@ -1542,12 +1545,21 @@ internal class ChatViewModel @AssistedInject constructor(
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     /**
-     * The foot line of a group's cash bubble, matching iOS's `ChatItem.groupSend`: a split names its
-     * first recipient (or "You" when the viewer was paid) and counts the rest, falling back to a head count while that name is unknown,
-     * and a payment to one member names them ("to You" when that is the viewer). Null for a payment
-     * with no receiver, or to one member nobody has a name for yet.
+     * The names a cash bubble needs ([CashBubblePeople]): a DM's other member, or a group send's
+     * sender and first recipient in the order they were picked. A name nobody has yet is null, which
+     * the bubble reads as "Someone", and asks for the profile so it fills in. Null while the chat's
+     * type is unknown.
      */
-    private fun groupSendRecipients(cash: MessageContent.Cash, profiles: Map<String, UserProfile>?): String? {
+    private fun cashPeople(
+        cash: MessageContent.Cash,
+        chatType: ChatType?,
+        senderId: ID?,
+        profiles: Map<String, UserProfile>?,
+        counterpartName: String?,
+    ): CashBubblePeople? {
+        // Until the chat's type is known, a group's bubble would read as a DM's: caption alone.
+        if (chatType == null || chatType == ChatType.UNKNOWN) return null
+        if (chatType != ChatType.GROUP) return CashBubblePeople.Direct(counterpartName)
         val self = userManager.accountId
         fun nameOf(id: ID): String? {
             if (id == self) return resources.getString(R.string.title_you)
@@ -1555,22 +1567,11 @@ internal class ChatViewModel @AssistedInject constructor(
             if (profile == null || profile.displayName.isBlank()) chatCoordinator.requestSenderProfile(id)
             return profile?.let { nameOrHandle(it.displayName, it.handle) }
         }
-
-        val parts = cash.multiReceiver
-        if (parts.size < 2) {
-            val receiver = cash.receiver ?: return null
-            return nameOf(receiver)?.let { resources.getString(R.string.label_groupSendTo, it) }
-        }
-        val others = parts.size - 1
-        val lead = parts.firstOrNull { it.receiver == self } ?: parts.first()
-        return nameOf(lead.receiver)
-            ?.let { first ->
-                resources.getString(
-                    R.string.label_groupSendTo,
-                    resources.getQuantityString(R.plurals.label_groupSendRecipients, others, first, others),
-                )
-            }
-            ?: resources.getQuantityString(R.plurals.label_groupSendToPeople, parts.size, parts.size)
+        val lead = cash.multiReceiver.firstOrNull()?.receiver ?: cash.receiver
+        return CashBubblePeople.Group(
+            sender = senderId?.takeIf { it != self }?.let(::nameOf),
+            leadRecipient = lead?.let(::nameOf),
+        )
     }
 
     /**
@@ -1598,6 +1599,7 @@ internal class ChatViewModel @AssistedInject constructor(
                         canBan = it.chatType == ChatType.GROUP && moderation?.canBan == true,
                         creatorId = (it.subject as? ChatSubject.Group)?.creator,
                         canPin = it.canPin,
+                        counterpartName = it.participant?.name,
                     )
                 }.distinctUntilChanged(),
                 ::ViewerGates,
@@ -1763,9 +1765,15 @@ internal class ChatViewModel @AssistedInject constructor(
                                 ?: resources.getString(R.string.title_unnamedUser),
                         ) ?: UndecryptableHint.UpdateApp,
                         receivedPart = (enriched as? MessageContent.Cash)?.partFor(userManager.accountId),
-                        groupSendRecipients = (enriched as? MessageContent.Cash)
-                            ?.takeIf { chatType == ChatType.GROUP }
-                            ?.let { groupSendRecipients(it, profiles) },
+                        cashPeople = (enriched as? MessageContent.Cash)?.let { cash ->
+                            cashPeople(
+                                cash = cash,
+                                chatType = chatType,
+                                senderId = message.senderId,
+                                profiles = profiles,
+                                counterpartName = facts.counterpartName,
+                            )
+                        },
                     )
                         // A carded link takes a row of its own, with the prose either side of it
                         // on rows above and below. Reversed because the list is: this page runs
@@ -4400,9 +4408,15 @@ internal class ChatViewModel @AssistedInject constructor(
                     isEdited = message.lastEditedTs != null,
                     quote = content.quoteOrNull(),
                     receivedPart = (content as? MessageContent.Cash)?.partFor(selfId),
-                    groupSendRecipients = (content as? MessageContent.Cash)
-                        ?.takeIf { stateFlow.value.chatType == ChatType.GROUP }
-                        ?.let { groupSendRecipients(it, senderProfiles.value) },
+                    cashPeople = (content as? MessageContent.Cash)?.let { cash ->
+                        cashPeople(
+                            cash = cash,
+                            chatType = stateFlow.value.chatType,
+                            senderId = message.senderId,
+                            profiles = senderProfiles.value,
+                            counterpartName = stateFlow.value.participant?.name,
+                        )
+                    },
                 ),
                 sender = pinPerson(message.senderId),
                 pinnedByName = if (pin.pinnedBy == selfId) {
