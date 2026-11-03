@@ -2,6 +2,7 @@ package com.flipcash.app.core.feed
 
 import com.flipcash.services.models.BoostedReaction
 import com.flipcash.services.models.RequestedPayment
+import com.flipcash.services.models.ReturnedPayment
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -115,6 +116,8 @@ sealed interface MessageMetadata {
         val boostedReaction: BoostedReaction? = null,
         // Defaulted like [boostedReaction]. A oneof with it on the wire, so at most one is set.
         val requestedPayment: RequestedPayment? = null,
+        // Defaulted like [boostedReaction]; the same oneof on the wire.
+        val returnedPayment: ReturnedPayment? = null,
     ) : MessageMetadata
 
     @Serializable
@@ -131,6 +134,8 @@ sealed interface MessageMetadata {
         val boostedReaction: BoostedReaction? = null,
         // Defaulted like [boostedReaction]. A oneof with it on the wire, so at most one is set.
         val requestedPayment: RequestedPayment? = null,
+        // Defaulted like [boostedReaction]; the same oneof on the wire.
+        val returnedPayment: ReturnedPayment? = null,
     ) : MessageMetadata
 
     /**

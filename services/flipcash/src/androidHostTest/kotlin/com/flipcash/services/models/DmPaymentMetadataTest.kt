@@ -100,4 +100,23 @@ class DmPaymentMetadataTest {
     }
 
     private fun bytes(size: Int, value: (Int) -> Int) = ByteArray(size) { value(it).toByte() }
+
+    @Test
+    fun `return payment metadata carries the chat and the returned message id`() {
+        val bytes = buildReturnPaymentMetadata(chatId = chatId, messageId = 42L)
+
+        val decoded = FlipcashIntentModel.AppMetadata.parseFrom(bytes!!)
+
+        assertEquals(chatId.bytes.toByteString(), decoded.chat.chatId.value)
+        assertEquals(42L, decoded.chat.returnPayment.messageId.value)
+        assertEquals(
+            FlipcashIntentModel.ChatMetadata.TypeCase.RETURN_PAYMENT,
+            decoded.chat.typeCase,
+        )
+    }
+
+    @Test
+    fun `return payment metadata is null without a chat id`() {
+        assertNull(buildReturnPaymentMetadata(chatId = null, messageId = 42L))
+    }
 }

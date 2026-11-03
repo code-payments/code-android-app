@@ -2,6 +2,7 @@ package com.flipcash.services.models
 
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.intent.v1.Model as FlipcashIntentModel
+import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.utils.toByteString
 
@@ -93,6 +94,31 @@ fun buildTipDmPaymentMetadata(
                                     FlipcashIntentModel.PaymentAction.TIP
                             }
                         )
+                )
+        ).build().toByteArray()
+}
+
+/**
+ * Builds the serialized Flipcash `AppMetadata` proto bytes for a return payment: the receiver of a
+ * DM cash message paying it back to its sender (`ChatMetadata.return_payment`).
+ *
+ * The intent this metadata rides on MUST be submitted under the server-issued `payment_intent_id`
+ * from `GetCashMessageReturnStatus`, not a generated one; the server rejects any other id. Pass it
+ * as `intentId` to `TransactionController.directTransfer`. Returns `null` when [chatId] is missing
+ * so the caller can pass the result through unconditionally.
+ */
+fun buildReturnPaymentMetadata(
+    chatId: ChatId?,
+    messageId: Long,
+): ByteArray? {
+    if (chatId == null) return null
+    return FlipcashIntentModel.AppMetadata.newBuilder()
+        .setChat(
+            FlipcashIntentModel.ChatMetadata.newBuilder()
+                .setChatId(Common.ChatId.newBuilder().setValue(chatId.bytes.toByteString()))
+                .setReturnPayment(
+                    FlipcashIntentModel.ChatMetadata.ReturnPayment.newBuilder()
+                        .setMessageId(MessagingModel.MessageId.newBuilder().setValue(messageId))
                 )
         ).build().toByteArray()
 }

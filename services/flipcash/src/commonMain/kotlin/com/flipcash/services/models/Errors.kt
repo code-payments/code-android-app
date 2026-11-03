@@ -577,6 +577,16 @@ sealed class GetMessageError(
     data class Other(override val cause: Throwable? = null) : GetMessageError(message = cause?.message, cause = cause), NotifiableError
 }
 
+sealed class GetCashMessageReturnStatusError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetCashMessageReturnStatusError("Denied")
+    class NotFound : GetCashMessageReturnStatusError("Not found")
+    class Unrecognized : GetCashMessageReturnStatusError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetCashMessageReturnStatusError(message = cause?.message, cause = cause), NotifiableError
+}
+
 sealed class GetMessagesError(
     override val message: String? = null,
     override val cause: Throwable? = null

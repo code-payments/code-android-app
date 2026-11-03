@@ -3,6 +3,8 @@ package com.flipcash.services.internal.repositories
 import com.flipcash.services.internal.network.extensions.toChatMessage
 import com.flipcash.services.internal.network.services.ChatMessagingService
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.GetCashMessageReturnStatusError
+import com.flipcash.services.models.chat.CashMessageReturnStatus
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ClientMessageId
@@ -33,6 +35,13 @@ internal class InternalChatMessagingRepository(
     ): Result<ChatMessage> = service.getMessage(owner, chatId, messageId, viewMode)
         .onFailure { ErrorUtils.handleError(it) }
         .map { it.toChatMessage() }
+
+    override suspend fun getCashMessageReturnStatus(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageId: Long,
+    ): Result<CashMessageReturnStatus> = service.getCashMessageReturnStatus(owner, chatId, messageId)
+        .onFailure { if (it !is GetCashMessageReturnStatusError.NotFound) ErrorUtils.handleError(it) }
 
     override suspend fun getMessages(
         owner: KeyPair,

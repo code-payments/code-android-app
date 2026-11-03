@@ -1,6 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.chat.CashMessageReturnStatus
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ClientMessageId
@@ -582,6 +583,13 @@ private class FakeChatMessagingRepository : ChatMessagingRepository {
     override suspend fun getMessage(owner: Ed25519.KeyPair, chatId: ChatId, messageId: Long, viewMode: ViewMode): Result<ChatMessage> {
         lastChatId = chatId; lastMessageId = messageId
         return getMessageResult
+    }
+
+    var getCashMessageReturnStatusResult: Result<CashMessageReturnStatus> = Result.failure(RuntimeException("not configured"))
+
+    override suspend fun getCashMessageReturnStatus(owner: Ed25519.KeyPair, chatId: ChatId, messageId: Long): Result<CashMessageReturnStatus> {
+        lastChatId = chatId; lastMessageId = messageId
+        return getCashMessageReturnStatusResult
     }
 
     override suspend fun getMessages(owner: Ed25519.KeyPair, chatId: ChatId, queryOptions: QueryOptions, viewMode: ViewMode): Result<List<ChatMessage>> {

@@ -393,4 +393,39 @@ class ActivityFeedMessageMapperTest {
         assertNotNull(amount)
         assertEquals(12_000_000L, amount.underlyingTokenAmount.quarks)
     }
+
+    // --- Returned payment ---
+
+    private fun returnedPayment() = Model.ReturnedPayment.newBuilder()
+        .setChatId(com.codeinc.flipcash.gen.common.v1.Common.ChatId.newBuilder().setValue(ByteString.copyFrom(ByteArray(32) { 7 })))
+        .setMessageId(com.codeinc.flipcash.gen.messaging.v1.Model.MessageId.newBuilder().setValue(99L))
+        .build()
+
+    @Test
+    fun `returned payment on a sent notification is mapped`() {
+        val proto = baseNotification {
+            directlySentCrypto = Model.DirectlySentCryptoNotificationMetadata.newBuilder()
+                .setReturnedPayment(returnedPayment())
+                .build()
+        }
+
+        val meta = assertIs<NotificationMetadata.DirectlySentCrypto>(mapper.map(proto).metadata)
+
+        assertEquals(99L, meta.returnedPayment?.messageId)
+        assertNull(meta.boostedReaction)
+        assertNull(meta.requestedPayment)
+    }
+
+    @Test
+    fun `returned payment on a received notification is mapped`() {
+        val proto = baseNotification {
+            receivedCrypto = Model.ReceivedCryptoNotificationMetadata.newBuilder()
+                .setReturnedPayment(returnedPayment())
+                .build()
+        }
+
+        val meta = assertIs<NotificationMetadata.ReceivedCrypto>(mapper.map(proto).metadata)
+
+        assertEquals(99L, meta.returnedPayment?.messageId)
+    }
 }
