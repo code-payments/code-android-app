@@ -86,6 +86,7 @@ description = "The `Context` property on Sent Cash: which send the payment came 
 DIRECT = "Direct"
 GROUP_SEND = "Group Send"
 PAYMENT_REQUEST = "Payment Request"
+SEND_BACK = "Send Back"
 
 [lists.AddMoneySource]
 description = "The `Source` property on Add Money: Opened: where the user opened Add Money from."
@@ -595,8 +596,17 @@ properties = [
   { name = "Context", type = "SendContext", optional = true },
   { name = "Recipient Count", type = "count", optional = true },
 ]
-description = "Cash was sent to a person or to several people, or a share of a payment request was paid. `Context` says which: Direct for a send to one person, Group Send for a send to several members of a group, Payment Request for paying a share. `Recipient Count` is the number of members paid and is sent for a Group Send only."
+description = "Cash was sent to a person or to several people, or a share of a payment request was paid. `Context` says which: Direct for a send to one person, Group Send for a send to several members of a group, Payment Request for paying a share, Send Back for returning a DM's opening payment. `Recipient Count` is the number of members paid and is sent for a Group Send only."
 drift = "iOS sends Exchange Rate and no USDC (see Amount)."
+
+[[event]]
+domain = "Transfer"
+name = "Send Back: Tapped"
+builder = "sendBackTapped"
+properties = [
+  { name = "Has Balance", type = "yes/no" },
+]
+description = "The receiver of a DM's opening payment tapped Send Back. `Has Balance` is false when their balance of the payment's token is too low, so the insufficient-balance modal showed instead of the confirm sheet."
 
 [[event]]
 domain = "Transfer"
