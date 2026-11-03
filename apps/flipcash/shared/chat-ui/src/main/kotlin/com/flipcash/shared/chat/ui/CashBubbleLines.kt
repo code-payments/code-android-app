@@ -6,6 +6,13 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.platform.LocalResources
 import com.flipcash.core.R
 import com.flipcash.services.models.chat.MessageContent
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.graphics.Color
 
 /**
  * The people a cash bubble names, as the view model resolved them. A null name is one nobody has
@@ -183,3 +190,28 @@ fun CashCounterpart.text(resources: Resources): String = when (this) {
 
 private fun String?.orSomeone(resources: Resources): String =
     this?.takeIf { it.isNotBlank() } ?: resources.getString(R.string.label_cashSomeone)
+
+/**
+ * The "$X each" line with [amount] already formatted inside [line]. A "~" before the amount draws at
+ * 0.7.em in the amount's own style. " each" after it draws at 0.5.em, Medium, in [eachColor], from
+ * [eachFamily]: the amount's Avenir family maps Medium to Demi on Android, the same face as the
+ * amount, so " each" takes a family whose Medium is the real Medium face. Sizes are in em so the
+ * auto-size that shrinks the amount shrinks them too and the line never wraps.
+ */
+fun eachAmountText(line: String, amount: String, eachFamily: FontFamily?, eachColor: Color): AnnotatedString =
+    buildAnnotatedString {
+        append(line)
+        val start = line.indexOf(amount)
+        val suffix = if (start < 0) 0 else start + amount.length
+        if (start > 0) addStyle(SpanStyle(fontSize = 0.7.em), 0, start)
+        addStyle(
+            SpanStyle(
+                fontSize = 0.5.em,
+                fontFamily = eachFamily,
+                fontWeight = FontWeight.Medium,
+                color = eachColor,
+            ),
+            suffix,
+            line.length,
+        )
+    }

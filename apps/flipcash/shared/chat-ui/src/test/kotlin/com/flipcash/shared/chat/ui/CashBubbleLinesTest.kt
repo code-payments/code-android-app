@@ -11,6 +11,15 @@ import org.robolectric.annotation.Config
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import com.getcode.theme.R as themeR
+import com.getcode.theme.codeTypography
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.text.font.ResourceFont
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontListFontFamily
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.Color
 
 /**
  * The caption and foot line of every cash bubble in `docs/specs/cash-bubbles.md`, as the viewer
@@ -287,4 +296,36 @@ class CashBubbleLinesTest {
         assertEquals(CashAmountLine.Whole, cash(receiver = alex).amountLine())
         assertEquals(CashAmountLine.Whole, cash(multiReceiver = listOf(alex)).amountLine())
     }
+
+    // The "$X each" line's styling.
+
+    @Test
+    fun `each draws in the real Medium face, not the amount's Demi`() {
+        val text = eachAmountText(
+            line = "~$0.33 each",
+            amount = "$0.33",
+            eachFamily = codeTypography.caption.fontFamily,
+            eachColor = Color.Gray,
+        )
+        val each = text.spanStyles.single { it.start == "~$0.33".length }
+        assertEquals("~$0.33 each".length, each.end)
+        assertEquals(FontWeight.Medium, each.item.fontWeight)
+        assertEquals(0.5.em, each.item.fontSize)
+        assertEquals(mediumFace(each.item.fontFamily), themeR.font.avenir_next_medium)
+        // The amount's family draws Medium as Demi, which is the face " each" must not take.
+        assertEquals(mediumFace(codeTypography.displayMedium.fontFamily), themeR.font.avenir_next_demi)
+
+        val tilde = text.spanStyles.single { it.start == 0 }
+        assertEquals(1, tilde.end)
+        assertEquals(0.7.em, tilde.item.fontSize)
+        assertNull(tilde.item.fontFamily)
+        assertNull(tilde.item.fontWeight)
+    }
+
+    /** The font resource [family] draws for FontWeight.Medium. */
+    private fun mediumFace(family: FontFamily?): Int =
+        (family as FontListFontFamily).fonts
+            .filterIsInstance<ResourceFont>()
+            .single { it.weight == FontWeight.Medium && it.style == FontStyle.Normal }
+            .resId
 }

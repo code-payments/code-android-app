@@ -1096,27 +1096,12 @@ private fun CashBubble(
                             val each = content.partInDisplayCurrency(amount.part).formatted()
                             val eachLine = amount.text(LocalResources.current, each)
                             val secondaryColor = CodeTheme.colors.textSecondary
+                            // The caption's family: its Medium is the real Medium face, where the
+                            // amount's family draws Medium as Demi.
+                            val eachFamily = CodeTheme.typography.caption.fontFamily
                             Text(
-                                // A "~" before the amount is a little smaller, in the amount's
-                                // weight and color; " each" after it is half size, Medium, in the
-                                // secondary color. Both in em, so the auto-size that shrinks the
-                                // amount shrinks them too and the line never wraps.
-                                text = remember(eachLine, each, secondaryColor) {
-                                    buildAnnotatedString {
-                                        append(eachLine)
-                                        val start = eachLine.indexOf(each)
-                                        val suffix = if (start < 0) 0 else start + each.length
-                                        if (start > 0) addStyle(SpanStyle(fontSize = 0.7.em), 0, start)
-                                        addStyle(
-                                            SpanStyle(
-                                                fontSize = 0.5.em,
-                                                fontWeight = FontWeight.Medium,
-                                                color = secondaryColor,
-                                            ),
-                                            suffix,
-                                            eachLine.length,
-                                        )
-                                    }
+                                text = remember(eachLine, each, eachFamily, secondaryColor) {
+                                    eachAmountText(eachLine, each, eachFamily, secondaryColor)
                                 },
                                 style = amountStyle,
                                 color = CodeTheme.colors.textMain,
