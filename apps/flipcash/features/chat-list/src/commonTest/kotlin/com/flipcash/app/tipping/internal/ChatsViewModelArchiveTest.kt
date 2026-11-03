@@ -1,7 +1,5 @@
 package com.flipcash.app.tipping.internal
 
-import com.flipcash.app.core.MainCoroutineRule
-import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
@@ -13,7 +11,7 @@ import com.flipcash.shared.chat.ChatFeeds
 import com.flipcash.shared.chat.ChatSummary
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.financial.Rate
-import com.getcode.util.resources.FakeResourceHelper
+import com.getcode.util.resources.ResourceHelper
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,8 +21,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -37,8 +39,13 @@ import kotlin.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatsViewModelArchiveTest {
 
-    @get:Rule
-    var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
+    private val mainDispatcher = UnconfinedTestDispatcher()
+
+    @BeforeTest
+    fun setUp() = Dispatchers.setMain(mainDispatcher)
+
+    @AfterTest
+    fun tearDown() = Dispatchers.resetMain()
 
     private val chat = ChatSummary(
         metadata = ChatMetadata(
@@ -55,7 +62,7 @@ class ChatsViewModelArchiveTest {
 
     @Test
     fun `archiving the last main chat never shows the no-chats prompt`() =
-        runTest(mainCoroutineRule.dispatcher) {
+        runTest(mainDispatcher) {
             val feeds = MutableStateFlow(ChatFeeds(main = listOf(chat), archived = emptyList()))
             val chatCoordinator = mockk<ChatCoordinator>(relaxed = true).also {
                 every { it.feedWithArchived(*anyVararg()) } returns feeds
@@ -74,7 +81,7 @@ class ChatsViewModelArchiveTest {
                 chatCoordinator = chatCoordinator,
                 userManager = mockk<UserManager>(relaxed = true),
                 tokenCoordinator = tokenCoordinator,
-                resources = FakeResourceHelper(),
+                resources = mockk<ResourceHelper>(relaxed = true),
                 dispatchers = TestDispatchers(testScheduler),
                 archiveStore = ChatArchiveStore.None,
                 lobbyRequests = mockk(relaxed = true),

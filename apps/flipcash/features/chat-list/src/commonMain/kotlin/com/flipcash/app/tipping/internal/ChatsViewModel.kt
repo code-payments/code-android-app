@@ -2,7 +2,6 @@ package com.flipcash.app.tipping.internal
 
 import com.getcode.opencode.exchange.Exchange
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.tokens.TokenCoordinator
@@ -39,9 +38,11 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Backs the "Chats" tab: the user's tip DMs and groups. */
-@HiltViewModel
-internal class ChatsViewModel @Inject constructor(
+/**
+ * Backs the "Chats" tab: the user's tip DMs and groups. Android injects it through
+ * `HiltChatsViewModel`; desktop builds it from its own graph.
+ */
+open class ChatsViewModel @Inject constructor(
     private val exchange: Exchange,
     private val chatCoordinator: ChatCoordinator,
     userManager: UserManager,
@@ -198,7 +199,7 @@ internal class ChatsViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    internal companion object {
+    companion object {
         internal val updateStateForEvent: (Event) -> (State.() -> State) = { event ->
             when (event) {
                 is Event.ChatsUpdated -> { state ->

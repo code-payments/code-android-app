@@ -5,10 +5,10 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ChatListFilter
 import com.flipcash.shared.chat.ChatListProjection
 import com.flipcash.shared.chat.ui.ConversationReference
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import kotlin.test.Test
 
 class ChatsViewModelStateTest {
 

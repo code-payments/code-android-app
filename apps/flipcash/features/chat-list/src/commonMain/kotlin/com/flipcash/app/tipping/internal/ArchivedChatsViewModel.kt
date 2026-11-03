@@ -13,7 +13,6 @@ import com.flipcash.shared.chat.archivedChatListFeed
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import com.flipcash.shared.chat.HostLobbies
 import com.flipcash.shared.chat.PaymentRequests
@@ -24,8 +23,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** Backs the Archived screen: the archived chats, newest first, and unarchive. */
-@HiltViewModel
-internal class ArchivedChatsViewModel @Inject constructor(
+/** Android injects it through `HiltArchivedChatsViewModel`. */
+internal open class ArchivedChatsViewModel @Inject constructor(
     private val exchange: Exchange,
     private val chatCoordinator: ChatCoordinator,
     private val archiveStore: ChatArchiveStore,

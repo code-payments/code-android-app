@@ -1,7 +1,5 @@
 package com.flipcash.app.tipping.internal
 
-import com.flipcash.app.core.MainCoroutineRule
-import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
@@ -18,7 +16,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.solana.keys.Mint
-import com.getcode.util.resources.FakeResourceHelper
+import com.getcode.util.resources.ResourceHelper
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,8 +26,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Instant
 
@@ -41,8 +43,13 @@ import kotlin.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatsViewModelRatesTest {
 
-    @get:Rule
-    var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
+    private val mainDispatcher = UnconfinedTestDispatcher()
+
+    @BeforeTest
+    fun setUp() = Dispatchers.setMain(mainDispatcher)
+
+    @AfterTest
+    fun tearDown() = Dispatchers.resetMain()
 
     private val cad = Rate(fx = 1.4, currency = CurrencyCode.CAD)
     private val gbp = Rate(fx = 0.8, currency = CurrencyCode.GBP)
@@ -74,7 +81,7 @@ class ChatsViewModelRatesTest {
 
     @Test
     fun `a payment preview redraws when the sent currency's rate lands after the display rate`() =
-        runTest(mainCoroutineRule.dispatcher) {
+        runTest(mainDispatcher) {
             val preferred = MutableStateFlow(cad)
             val rates = MutableStateFlow(mapOf(CurrencyCode.CAD to cad))
             val exchange = mockk<Exchange>(relaxed = true).also {
@@ -98,7 +105,7 @@ class ChatsViewModelRatesTest {
                 chatCoordinator = chatCoordinator,
                 userManager = mockk<UserManager>(relaxed = true),
                 tokenCoordinator = tokenCoordinator,
-                resources = FakeResourceHelper(),
+                resources = mockk<ResourceHelper>(relaxed = true),
                 dispatchers = TestDispatchers(testScheduler),
                 archiveStore = ChatArchiveStore.None,
                 lobbyRequests = mockk(relaxed = true),

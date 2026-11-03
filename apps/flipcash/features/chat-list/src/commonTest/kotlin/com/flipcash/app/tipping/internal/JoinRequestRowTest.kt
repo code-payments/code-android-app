@@ -5,9 +5,9 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.solana.keys.PublicKey
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.Test
 import kotlin.time.Instant
 
 /** What a hosted group's row draws while someone waits to join it, and where it sits. */
