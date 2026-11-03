@@ -273,10 +273,11 @@ internal fun MemberSwipeRow(
     val restrictLabel = stringResource(R.string.content_description_restrictMember)
     val liftLabel = stringResource(R.string.content_description_liftRestriction)
     val removeLabel = stringResource(R.string.content_description_removeMember)
-    // The member sheet's titles for the same actions, drawn under the circles.
+    // Labels drawn under the swipe pills: the member sheet's titles, with Remove
+    // shortened since the row is already in the group.
     val restrictTitle = stringResource(R.string.action_silenceMemberShort)
     val liftTitle = stringResource(R.string.action_liftRestriction)
-    val removeTitle = stringResource(R.string.action_removeFromGroup)
+    val removeTitle = stringResource(R.string.action_removeMemberShort)
     val swipeActions = buildList {
         if (actions.restrict) {
             add(

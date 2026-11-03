@@ -998,6 +998,7 @@
     <string name="error_description_failedToUnban">We were unable to unban this member. Please try again</string>
     <string name="action_silenceMemberShort">Restrict</string>
     <string name="action_removeFromGroup">Remove from Group</string>
+    <string name="action_removeMemberShort">Remove</string>
     <string name="title_menuSection_inGroup">In %1$s</string>
     <!-- The host's shortcuts: a trailing swipe on a Members row and the member sheet opened by
          tapping someone's picture. The time left is cut to its two largest units, rounded down. -->
