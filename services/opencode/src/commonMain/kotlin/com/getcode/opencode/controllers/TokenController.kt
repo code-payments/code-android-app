@@ -109,7 +109,15 @@ class TokenController @Inject constructor(
     suspend fun fetchTokenAccounts(
         cluster: AccountCluster,
         metadataProvider: TokenMetadataProvider,
-    ): Result<List<TokenWithBalance>> {
+    ): Result<List<TokenWithBalance>> =
+        fetchPrimaryAccounts(cluster).map { accounts -> buildTokenBalances(accounts, metadataProvider) }
+
+    /**
+     * The primary token accounts for [cluster], without their metadata. Split from
+     * [fetchTokenAccounts] so a caller can warm its metadata cache while this round trip is out,
+     * then build with [buildTokenBalances].
+     */
+    suspend fun fetchPrimaryAccounts(cluster: AccountCluster): Result<List<AccountInfo>> {
         trace(tag = TAG, message = "Fetching all primary token accounts", type = TraceType.Process)
 
         val response = retryable(maxRetries = 3) {
@@ -118,18 +126,26 @@ class TokenController @Inject constructor(
             )
         } ?: return Result.failure(IllegalStateException("Failed to fetch accounts after retries"))
 
-        return response.map { accountResponse ->
-            accountResponse.accounts.values.mapNotNull { account ->
-                buildTokenWithBalance(account, metadataProvider)
-            }.also {
-                trace(
-                    tag = TAG,
-                    message = "Built ${it.size} token balances from ${accountResponse.accounts.size} accounts",
-                    type = TraceType.Process
-                )
-            }
-        }
+        return response.map { it.accounts.values.toList() }
     }
+
+    /**
+     * A [TokenWithBalance] for each of [accounts], in order. An account whose metadata
+     * [metadataProvider] cannot resolve is dropped.
+     */
+    suspend fun buildTokenBalances(
+        accounts: List<AccountInfo>,
+        metadataProvider: TokenMetadataProvider,
+    ): List<TokenWithBalance> =
+        accounts.mapNotNull { account ->
+            buildTokenWithBalance(account, metadataProvider)
+        }.also {
+            trace(
+                tag = TAG,
+                message = "Built ${it.size} token balances from ${accounts.size} accounts",
+                type = TraceType.Process
+            )
+        }
 
     /**
      * Like [fetchTokenAccounts], for an owner with no warm metadata cache: one account lookup and
