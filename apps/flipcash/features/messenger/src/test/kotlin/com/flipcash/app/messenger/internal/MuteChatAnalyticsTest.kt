@@ -69,6 +69,27 @@ class MuteChatAnalyticsTest {
         )
     }
 
+    // Spec case 14: select mode's Mute opens the sheet once for the whole selection, and the one
+    // duration picked applies to every chat in it, the one already muted included.
+    @Test
+    fun `a bulk mute applies one duration to every selected chat`() = runTest(mainCoroutineRule.dispatcher) {
+        coEvery { chatCoordinator.mute(any(), any()) } returns Result.success(Unit)
+        val alreadyMuted = ChatId(ByteArray(16) { 4 }.toList())
+
+        viewModel().muteAll(listOf(chatId, alreadyMuted), listOf(ChatType.TIP_DM, ChatType.GROUP), MuteOption.EightHours)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { chatCoordinator.mute(chatId, match { it is MuteState.Until }) }
+        coVerify(exactly = 1) { chatCoordinator.mute(alreadyMuted, match { it is MuteState.Until }) }
+        assertEquals(
+            listOf(
+                ChatEvents.muted(AnalyticsChatType.TIP, MuteDuration.EIGHT_HOURS, AnalyticsState.SUCCESS, error = null),
+                ChatEvents.muted(AnalyticsChatType.GROUP, MuteDuration.EIGHT_HOURS, AnalyticsState.SUCCESS, error = null),
+            ),
+            analytics.events,
+        )
+    }
+
     @Test
     fun `a refused mute reports the result name`() = runTest(mainCoroutineRule.dispatcher) {
         coEvery { chatCoordinator.mute(any(), any()) } returns Result.failure(MuteChatError.NotFound())

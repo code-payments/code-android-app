@@ -94,6 +94,7 @@ fun ChatSummary.toConversationReference(
         lastActivity = metadata.lastActivity,
         unreadCount = unreadCount,
         viewerState = metadata.viewerState,
+        markedUnread = markedUnread,
     )
 }
 

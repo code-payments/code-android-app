@@ -66,7 +66,12 @@ data class ConversationReference(
      * otherwise. Requests read as unread on the row: they add to its count and move its time.
      */
     val joinRequests: List<LobbyMember> = emptyList(),
+    /** Marked unread on this device ([com.flipcash.shared.chat.ChatMarkedUnreadStore]). */
+    val markedUnread: Boolean = false,
 ) {
+    /** Unread messages, or marked unread: what the read actions and Read All go by. */
+    val isUnread: Boolean get() = unreadCount != 0 || markedUnread
+
     /** The time the row shows and sorts by: the later of [lastActivity] and the newest request. */
     val rowActivity: Instant?
         get() {
@@ -76,9 +81,15 @@ data class ConversationReference(
 
     /**
      * The row's unread pill: unread messages plus pending requests. A null [unreadCount] stays
-     * null (unread by an unknown count), since adding to an unknown number gives an unknown one.
+     * null (unread by an unknown count), since adding to an unknown number gives an unknown one,
+     * and so does a [markedUnread] chat with nothing to count.
      */
-    val rowUnreadCount: Int? get() = unreadCount?.plus(joinRequests.size)
+    val rowUnreadCount: Int?
+        get() {
+            val count = unreadCount?.plus(joinRequests.size) ?: return null
+            // A marked chat with nothing counted draws the no-count dot; a known count wins.
+            return if (count == 0 && markedUnread) null else count
+        }
 
     /**
      * What to call this row: the chat's [title] for a group, otherwise the counterparty's

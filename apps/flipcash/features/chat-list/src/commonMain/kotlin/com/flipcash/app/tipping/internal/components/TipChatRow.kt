@@ -4,7 +4,23 @@ import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.subtitle_peopleWantToJoin
 import com.flipcash.core.resources.subtitle_wantsToJoin
 import com.flipcash.core.resources.title_unnamedUser
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.layout
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.requiredSize
@@ -35,24 +51,46 @@ import com.getcode.theme.CodeTheme
 import kotlin.time.Clock
 
 
+/** Test tags for select mode's circle and the avatar it pushes right. */
+internal const val SELECT_CIRCLE_TAG = "chat_row_select_circle"
+internal const val AVATAR_TAG = "chat_row_avatar"
+
 @Composable
 internal fun TipChatRow(
     chat: ConversationReference,
     modifier: Modifier = Modifier,
     showDivider: Boolean = true,
+    // Select mode: whether this row is picked, or null outside select mode. In it a circle leads
+    // the row, the content shifts right to make room, and the chevron goes (a tap toggles).
+    selected: Boolean? = null,
+    // How far select mode's circle has slid in (0 to 1) and whether it is checked. The screen
+    // drives both so the slide survives the row being rebuilt when select mode starts or ends, and
+    // a circle sliding out keeps the state it had.
+    circleReveal: () -> Float = { if (selected != null) 1f else 0f },
+    circleChecked: Boolean = selected == true,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
+    val selectedTint = CodeTheme.colors.surfaceVariant
     ChatListRow(
-        modifier = modifier,
+        modifier = modifier.drawWithContent {
+            drawContent()
+            // Over the row rather than behind it: the shared row paints its own opaque background.
+            if (selected == true) drawRect(selectedTint)
+        },
         avatar = {
-            ContactAvatar(
-                image = chat.image,
-                displayName = chat.name.orEmpty(),
-                access = chat.avatarAccess,
-                modifier = Modifier
-                    .requiredSize(CodeTheme.dimens.staticGrid.x9)
-                    .clip(CircleShape),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SelectCircleSlot(circleReveal, circleChecked)
+                ContactAvatar(
+                    modifier = Modifier
+                        .testTag(AVATAR_TAG)
+                        .requiredSize(CodeTheme.dimens.staticGrid.x9)
+                        .clip(CircleShape),
+                    image = chat.image,
+                    displayName = chat.name.orEmpty(),
+                    access = chat.avatarAccess,
+                )
+            }
         },
         title = {
             Row(
@@ -81,7 +119,7 @@ internal fun TipChatRow(
             ChatRowTrailing(
                 lastActivity = chat.rowActivity,
                 unreadCount = chat.rowUnreadCount,
-                canOpen = true,
+                canOpen = selected == null,
             )
         },
         subtitle = {
@@ -109,8 +147,69 @@ internal fun TipChatRow(
             )
         },
         showDivider = showDivider,
+        onLongClick = onLongClick,
         onClick = onClick,
     )
+}
+
+/**
+ * Select mode's leading circle. As select mode starts ([reveal] going 0 to 1) the slot widens and
+ * pushes the row content right, while the circle stays at its final position and fades in; as it
+ * ends, the reverse. The slot clips the circle, so the content sliding off uncovers it rather than
+ * overlapping it. Toggling a row changes the circle in place. Reads [reveal] in layout and draw
+ * only, so the slide doesn't recompose the row.
+ */
+@Composable
+private fun SelectCircleSlot(reveal: () -> Float, checked: Boolean) {
+    Box(
+        Modifier
+            .clipToBounds()
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                val width = (placeable.width * reveal()).roundToInt()
+                // Placed at its final position for every width, so only the content moves.
+                layout(width, placeable.height) { placeable.placeRelative(0, 0) }
+            }
+            .graphicsLayer { alpha = reveal() }
+    ) {
+        Box(
+            Modifier
+                .testTag(SELECT_CIRCLE_TAG)
+                .padding(end = CodeTheme.dimens.staticGrid.x3)
+        ) { SelectCircle(checked) }
+    }
+}
+
+/**
+ * An outline in the secondary text colour when not picked, a white check on the unread blue when
+ * picked. Both fill the same circle, so a toggle only crossfades between them.
+ */
+@Composable
+private fun SelectCircle(selected: Boolean) {
+    val size = CodeTheme.dimens.staticGrid.x4
+    Crossfade(targetState = selected, label = "select circle") { picked ->
+        if (picked) {
+            Box(
+                modifier = Modifier
+                    .requiredSize(size)
+                    .background(CodeTheme.colors.indicator, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x3),
+                )
+            }
+        } else {
+            Box(
+                Modifier
+                    .requiredSize(size)
+                    .border(1.5.dp, CodeTheme.colors.textSecondary, CircleShape)
+            )
+        }
+    }
 }
 
 /**

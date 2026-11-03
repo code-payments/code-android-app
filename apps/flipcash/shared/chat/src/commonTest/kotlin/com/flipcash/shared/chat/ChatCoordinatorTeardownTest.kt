@@ -51,6 +51,8 @@ class ChatCoordinatorTeardownTest {
     private lateinit var memberDataSource: ChatMemberDataSource
     private lateinit var draftStore: ChatDraftStore
     private lateinit var archiveStore: ChatArchiveStore
+    private lateinit var markedUnreadStore: ChatMarkedUnreadStore
+    private val scheduler = TestCoroutineScheduler()
     private lateinit var groupFeedDelegate: GroupFeedDelegate
     private lateinit var hostInvites: HostInvites
     private lateinit var groupKeyEnvelopes: com.flipcash.services.chat.GroupKeyEnvelopeStore
@@ -74,6 +76,7 @@ class ChatCoordinatorTeardownTest {
         memberDataSource = mockk(relaxed = true)
         draftStore = mockk(relaxed = true)
         archiveStore = mockk(relaxed = true)
+        markedUnreadStore = mockk(relaxed = true)
         groupFeedDelegate = mockk(relaxed = true)
         hostInvites = mockk(relaxed = true)
         groupKeyEnvelopes = mockk(relaxed = true)
@@ -124,10 +127,11 @@ class ChatCoordinatorTeardownTest {
             draftStore = draftStore,
             userManager = userManager,
             networkObserver = mockk<NetworkConnectivityListener>(relaxed = true),
-            dispatchers = TestDispatchers(TestCoroutineScheduler()),
+            dispatchers = TestDispatchers(scheduler),
             groupFeedDelegate = groupFeedDelegate,
             reactionsDelegate = mockk(relaxed = true),
             archiveStore = archiveStore,
+            markedUnreadStore = markedUnreadStore,
             hostInvites = hostInvites,
             groupKeyEnvelopes = groupKeyEnvelopes,
         )
@@ -217,5 +221,56 @@ class ChatCoordinatorTeardownTest {
         coordinator.leave(chatId)
 
         coVerify(exactly = 0) { archiveStore.unarchive(any()) }
+    }
+
+    // Like the archive set: logout keeps the marks (the database is per account; test case 8 is in
+    // RealChatMarkedUnreadStoreTest), erasure wipes them.
+    @Test
+    fun `clearCache drops the unread marks, teardown keeps them`() = runTest {
+        coordinator.teardown()
+        coVerify(exactly = 0) { markedUnreadStore.clearAll() }
+
+        coordinator.clearCache()
+        coVerify(exactly = 1) { markedUnreadStore.clearAll() }
+    }
+
+    // Test case 7.
+    @Test
+    fun `a successful leave clears the unread mark`() = runTest {
+        val chatId = ChatId("aabbccdd")
+        coEvery { groupFeedDelegate.leave(chatId) } returns Result.success(Unit)
+
+        coordinator.leave(chatId)
+
+        coVerify(exactly = 1) { markedUnreadStore.clear(chatId) }
+    }
+
+    @Test
+    fun `a failed leave keeps the unread mark`() = runTest {
+        val chatId = ChatId("aabbccdd")
+        coEvery { groupFeedDelegate.leave(chatId) } returns Result.failure(RuntimeException("nope"))
+
+        coordinator.leave(chatId)
+
+        coVerify(exactly = 0) { markedUnreadStore.clear(any<ChatId>()) }
+    }
+
+    // Test case 4: every way into a chat makes the chat screen call setActiveChatId.
+    @Test
+    fun `opening a chat clears its unread mark`() = runTest {
+        val chatId = ChatId("aabbccdd")
+
+        coordinator.setActiveChatId(chatId)
+        scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { markedUnreadStore.clear(chatId) }
+    }
+
+    @Test
+    fun `releasing the active chat clears nothing`() = runTest {
+        coordinator.setActiveChatId(null)
+        scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { markedUnreadStore.clear(any<ChatId>()) }
     }
 }

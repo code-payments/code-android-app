@@ -23,6 +23,7 @@ import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.shared.chat.ChatArchiveStore
+import com.flipcash.shared.chat.ChatMarkedUnreadStore
 import com.flipcash.shared.chat.ChatFeeds
 import com.flipcash.shared.chat.ChatSummary
 import com.flipcash.shared.chat.FeedOperations
@@ -84,6 +85,7 @@ class FeedSyncDelegate @Inject constructor(
     private val userManager: UserManager,
     private val messagingController: ChatMessagingController,
     private val archiveStore: ChatArchiveStore = ChatArchiveStore.None,
+    private val markedUnreadStore: ChatMarkedUnreadStore = ChatMarkedUnreadStore.None,
     private val feedWriter: ChatFeedWriter =
         ChatFeedWriter(metadataDataSource, memberDataSource, messageDataSource),
 ) : FeedOperations {
@@ -210,12 +212,12 @@ class FeedSyncDelegate @Inject constructor(
             .filter { isRenderable(it, selfId, selfPhone) }
             .map { metadata ->
                 val count = unreadCount(metadata, selfId) { id -> state.readStampAt(metadata.chatId, id) }
-                ChatSummary(metadata = metadata, unreadCount = count)
+                ChatSummary(metadata = metadata, unreadCount = count, markedUnread = metadata.chatId in state.markedUnread)
             }
     }
 
     override fun observeUnreadConversations(vararg chatTypes: ChatType): Flow<Int> {
-        return feed(*chatTypes).map { summaries -> summaries.count { it.unreadCount != 0 } }
+        return feed(*chatTypes).map { summaries -> summaries.count { it.isUnread } }
     }
 
     override fun feedPaged(vararg chatTypes: ChatType): Flow<PagingData<ChatSummary>> {
@@ -294,9 +296,10 @@ class FeedSyncDelegate @Inject constructor(
                 .onStart { emit(emptyList()) }
                 .distinctUntilChanged(),
             archiveStore.observeArchived(),
-        ) { metadataEntities, membersByChat, _, archived ->
-            buildFeedFromDb(metadataEntities, membersByChat) to archived
-        }.onEach { (built, archived) ->
+            markedUnreadStore.observeMarked(),
+        ) { metadataEntities, membersByChat, _, archived, marked ->
+            Triple(buildFeedFromDb(metadataEntities, membersByChat), archived, marked)
+        }.onEach { (built, archived, marked) ->
             val (feed, readStamps) = built
             val staged = drainStagedStamps()
             stateHolder.update {
@@ -305,6 +308,7 @@ class FeedSyncDelegate @Inject constructor(
                     readStamps = readStamps,
                     fetchedReadStamps = if (staged.isEmpty()) it.fetchedReadStamps else it.fetchedReadStamps + staged,
                     archived = archived,
+                    markedUnread = marked,
                 )
             }
             // Until the first sync settles, the reconcile looks the stamps up itself, bounded and

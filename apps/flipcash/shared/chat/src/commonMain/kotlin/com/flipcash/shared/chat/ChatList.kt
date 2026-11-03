@@ -21,12 +21,12 @@ fun FeedOperations.chatListFeed(): Flow<List<ChatSummary>> = feed(*chatListTypes
 /** [FeedOperations.currentFeed] for the chats the Chats list shows. */
 fun FeedOperations.currentChatListFeed(): List<ChatSummary>? = currentFeed(*chatListTypes)
 
-/** How many of the chats the Chats list shows have unread messages. */
+/** How many of the chats the Chats list shows are unread: unread messages or marked unread. */
 fun FeedOperations.observeUnreadChatListCount(): Flow<Int> = observeUnreadConversations(*chatListTypes)
 
 /**
- * The Chats tab badge: the chats the list shows that read as unread, which is unread messages or,
- * on a group [selfId] hosts, someone waiting in [lobbies] to join. Counted the way
+ * The Chats tab badge: the chats the list shows that read as unread, which is unread messages, a mark,
+ * or, on a group [selfId] hosts, someone waiting in [lobbies] to join. Counted the way
  * [projectChatList] counts its Unread chip, so the badge and the chip agree.
  */
 fun FeedOperations.observeUnreadChatListCount(
@@ -34,7 +34,7 @@ fun FeedOperations.observeUnreadChatListCount(
     selfId: () -> ID?,
 ): Flow<Int> = combine(feed(*chatListTypes), lobbies) { summaries, waiting ->
     val self = selfId()
-    summaries.count { it.unreadCount != 0 || waiting.waitingFor(it.metadata, self).isNotEmpty() }
+    summaries.count { it.isUnread || waiting.waitingFor(it.metadata, self).isNotEmpty() }
 }
 
 /** [FeedOperations.archivedFeed] for the chats the Chats list shows. */

@@ -1,6 +1,9 @@
-// kmp-audit: hiltViewModel is Android-only; the screen content is ArchivedChatsContent in commonMain.
+// kmp-audit: hiltViewModel and BackHandler are Android-only; the screen content is ArchivedChatsContent in commonMain.
 package com.flipcash.app.tipping
 
+import com.flipcash.app.tipping.internal.components.ChatSelectionTopBar
+import com.flipcash.app.tipping.internal.components.SelectionArchiveAction
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -26,17 +29,39 @@ fun ArchivedChatsScreen() {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
 
+    // Close, system back, or deselecting the last row leaves select mode.
+    BackHandler(enabled = state.isSelecting) { viewModel.endSelection() }
+
     ArchivedChatsContent(
         chats = state.chats.dataOrNull.orEmpty(),
         isLoaded = state.chats.isLoaded(),
         onOpen = { chatId -> navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chatId))) },
         onUnarchive = viewModel::unarchive,
+        selection = state.selection,
+        onStartSelection = viewModel::startSelection,
+        onToggleSelection = viewModel::toggleSelection,
+        onToggleRead = viewModel::toggleRead,
         topBar = {
-            AppBarWithTitle(
-                title = stringResource(Res.string.title_archived),
-                titleAlignment = Alignment.CenterHorizontally,
-                onBackIconClicked = { navigator.pop() },
-            )
+            ChatSelectionTopBar(
+                selectionActions = if (state.isSelecting) state.selectionActions else null,
+                archiveAction = SelectionArchiveAction.Unarchive,
+                onClose = viewModel::endSelection,
+                onRead = viewModel::readSelection,
+                onMute = {
+                    viewModel.muteSelection()?.let { (ids, types) ->
+                        navigator.push(AppRoute.Messaging.MuteChats(ids, types))
+                    }
+                },
+                onUnmute = viewModel::unmuteSelection,
+                onArchive = viewModel::unarchiveSelection,
+                label = "archived list bar",
+            ) {
+                AppBarWithTitle(
+                    title = stringResource(Res.string.title_archived),
+                    titleAlignment = Alignment.CenterHorizontally,
+                    onBackIconClicked = { navigator.pop() },
+                )
+            }
         },
     )
 }

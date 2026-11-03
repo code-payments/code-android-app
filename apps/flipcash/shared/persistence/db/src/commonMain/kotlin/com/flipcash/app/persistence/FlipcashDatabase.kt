@@ -19,6 +19,7 @@ import com.flipcash.app.persistence.converters.ChatTypeConverters
 import com.flipcash.app.persistence.converters.TokenTypeConverters
 import com.flipcash.app.persistence.dao.BlockedUserDao
 import com.flipcash.app.persistence.dao.ChatArchiveDao
+import com.flipcash.app.persistence.dao.ChatMarkedUnreadDao
 import com.flipcash.app.persistence.dao.ChatDraftDao
 import com.flipcash.app.persistence.dao.ChatMemberDao
 import com.flipcash.app.persistence.dao.ChatMessageDao
@@ -34,6 +35,7 @@ import com.flipcash.app.persistence.dao.TokenDao
 import com.flipcash.app.persistence.dao.UserProfileDao
 import com.flipcash.app.persistence.entities.BlockedUserEntity
 import com.flipcash.app.persistence.entities.ChatArchiveEntity
+import com.flipcash.app.persistence.entities.ChatMarkedUnreadEntity
 import com.flipcash.app.persistence.entities.ChatDraftEntity
 import com.flipcash.app.persistence.entities.ChatMemberEntity
 import com.flipcash.app.persistence.entities.ChatMessageEntity
@@ -70,6 +72,7 @@ import kotlin.jvm.Synchronized
         ChatMemberEntity::class,
         ChatDraftEntity::class,
         ChatArchiveEntity::class,
+        ChatMarkedUnreadEntity::class,
         BlockedUserEntity::class,
         UserProfileEntity::class,
         LinkPreviewEntity::class,
@@ -145,8 +148,11 @@ import kotlin.jvm.Synchronized
         // AutoMigration for the same reason as payment_requests.
         AutoMigration(from = 49, to = 50), // group_key_envelopes table
         AutoMigration(from = 50, to = 51, spec = FlipcashDatabase.Migration50To51::class), // chat_metadata.can_pin (default 0)
+        // The chat_marked_unread table, an AutoMigration for the same reason as chat_archive: a
+        // mark cannot be re-fetched until the server stores it.
+        AutoMigration(from = 51, to = 52), // chat_marked_unread table
     ],
-    version = 51,
+    version = 52,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 @ConstructedBy(FlipcashDatabaseConstructor::class)
@@ -161,6 +167,8 @@ abstract class FlipcashDatabase : RoomDatabase() {
     abstract fun chatMemberDao(): ChatMemberDao
     abstract fun chatDraftDao(): ChatDraftDao
     abstract fun chatArchiveDao(): ChatArchiveDao
+
+    abstract fun chatMarkedUnreadDao(): ChatMarkedUnreadDao
     abstract fun blockedUserDao(): BlockedUserDao
     abstract fun userProfileDao(): UserProfileDao
     abstract fun linkPreviewDao(): LinkPreviewDao

@@ -80,7 +80,7 @@ import com.getcode.ui.core.measured
 import com.getcode.ui.core.noRippleClickable
 import com.getcode.ui.utils.KeyboardController
 import com.getcode.ui.utils.rememberKeyboardController
-import com.getcode.util.resources.icons.SpeakerSlash
+import androidx.compose.material.icons.outlined.MicOff
 
 @Composable
 internal fun ChatTopBar(
@@ -446,7 +446,7 @@ private fun MessageSelectionBar(
             add(
                 MessageAction(
                     label = stringResource(R.string.action_silenceMember, firstName),
-                    icon = SpeakerSlash,
+                    icon = Icons.Outlined.MicOff,
                     testTag = "action_silence_member",
                     onClick = onSilence,
                 )

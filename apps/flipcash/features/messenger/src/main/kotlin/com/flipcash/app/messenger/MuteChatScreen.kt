@@ -44,3 +44,25 @@ fun MuteChatScreen(chatId: ChatId, chatType: ChatType) {
         onDismiss = dismissSheet,
     )
 }
+
+/**
+ * The mute sheet for several chats, behind `AppRoute.Messaging.MuteChats`: the chat list's select
+ * mode opens it once for the whole selection. It always offers the durations (the selection holds
+ * at least one audible chat, or the bar would have offered Unmute), and the one picked applies to
+ * every chat in [chatIds], already muted ones included.
+ */
+@Composable
+fun MuteChatsScreen(chatIds: List<ChatId>, chatTypes: List<ChatType>) {
+    val viewModel = hiltViewModel<MuteChatViewModel>()
+    val dismissSheet = LocalBottomSheetDismissDispatcher.current
+
+    MuteChatSheet(
+        isMuted = false,
+        onMute = { option ->
+            viewModel.muteAll(chatIds, chatTypes, option)
+            dismissSheet()
+        },
+        onUnmute = dismissSheet,
+        onDismiss = dismissSheet,
+    )
+}

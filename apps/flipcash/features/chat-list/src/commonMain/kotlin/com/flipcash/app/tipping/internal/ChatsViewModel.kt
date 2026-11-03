@@ -7,6 +7,7 @@ import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.isMutedAt
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatArchiveStore
@@ -25,6 +26,8 @@ import com.flipcash.shared.chat.chatListFeeds
 import com.flipcash.shared.chat.hostedPrivateGroups
 import com.flipcash.shared.chat.currentChatListFeeds
 import com.flipcash.shared.chat.projectChatList
+import com.flipcash.shared.chat.toggledSelection
+import com.flipcash.analytics.ChatReadSource
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
@@ -53,6 +56,7 @@ open class ChatsViewModel @Inject constructor(
     private val lobbyRequests: LobbyRequests,
     private val hostLobbies: HostLobbies,
     private val paymentRequests: PaymentRequests,
+    private val rowActions: ChatRowActions,
 ) : BaseViewModel<ChatsViewModel.State, ChatsViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -69,7 +73,23 @@ open class ChatsViewModel @Inject constructor(
         // Whether a pull from the top has brought the chips on. Held here rather than in the
         // screen so it survives opening a chat and coming back.
         val chipsRevealed: Boolean = false,
+        // Select mode: the chats picked so far, or null outside it. Empty right after Select Chats.
+        val selection: Set<ChatId>? = null,
     ) {
+
+        val isSelecting: Boolean get() = selection != null
+
+        /** The selected rows still in the main list, in list order. */
+        val selectedChats: List<ConversationReference>
+            get() {
+                val ids = selection ?: return emptyList()
+                return chats.dataOrNull.orEmpty().filter { it.chatId in ids }
+            }
+
+        val selectionActions: ChatSelectionActions get() = ChatSelectionActions.of(selectedChats)
+
+        /** Read All has something to do: a main-list chat with unread messages, or marked. */
+        val canReadAll: Boolean get() = chats.dataOrNull.orEmpty().any { it.isUnread }
 
         /** The chips stay once revealed, and always show under a filter other than All. */
         val showsChips: Boolean get() = chipsRevealed || filter != ChatListFilter.All
@@ -101,6 +121,12 @@ open class ChatsViewModel @Inject constructor(
         data class FilterSelected(val filter: ChatListFilter) : Event
 
         data object ChipsRevealed : Event
+
+        data class SelectionStarted(val chatId: ChatId?) : Event
+
+        data class SelectionToggled(val chatId: ChatId) : Event
+
+        data object SelectionEnded : Event
     }
 
     fun selectFilter(filter: ChatListFilter) = dispatchEvent(Event.FilterSelected(filter))
@@ -113,6 +139,62 @@ open class ChatsViewModel @Inject constructor(
 
     fun unarchive(chatId: ChatId) {
         viewModelScope.launch { archiveStore.unarchive(chatId) }
+    }
+
+    /** The leading swipe: Mark as Read or Mark as Unread, whichever the row offers. */
+    fun toggleRead(chatId: ChatId) {
+        viewModelScope.launch { rowActions.toggleRead(chatId, ChatReadSource.SWIPE) }
+    }
+
+    /** A long press (with that chat) or Select Chats (with none). */
+    fun startSelection(chatId: ChatId? = null) = dispatchEvent(Event.SelectionStarted(chatId))
+
+    fun toggleSelection(chatId: ChatId) = dispatchEvent(Event.SelectionToggled(chatId))
+
+    fun endSelection() = dispatchEvent(Event.SelectionEnded)
+
+    /** Select mode's read toggle. Leaves select mode. */
+    fun readSelection() = actOnSelection { ids -> viewModelScope.launch { rowActions.toggleRead(ids) } }
+
+    /** Select mode's Unmute, offered when every selected chat is muted. Leaves select mode. */
+    fun unmuteSelection() = actOnSelection { ids -> viewModelScope.launch { rowActions.unmute(ids) } }
+
+    /**
+     * Select mode's Mute: the selection and its chat types for the one mute sheet, or null with
+     * nothing selected. Leaves select mode; the sheet applies the duration.
+     */
+    fun muteSelection(): Pair<List<ChatId>, List<ChatType>>? {
+        var target: Pair<List<ChatId>, List<ChatType>>? = null
+        actOnSelection { ids -> target = rowActions.chatTypes(ids) }
+        return target
+    }
+
+    /** Select mode's Archive: archives the selection and returns it, for the toast's Undo. */
+    fun archiveSelection(): List<ChatId> {
+        var archived = emptyList<ChatId>()
+        actOnSelection { ids ->
+            archived = ids
+            viewModelScope.launch { rowActions.archive(ids) }
+        }
+        return archived
+    }
+
+    fun unarchive(chatIds: List<ChatId>) {
+        viewModelScope.launch { rowActions.unarchive(chatIds) }
+    }
+
+    /**
+     * Read All, once confirmed. The screen asks first (it moves the READ pointer, which everyone in
+     * those chats sees), so Cancel leaves everything as it was.
+     */
+    fun readAll() {
+        viewModelScope.launch { rowActions.readAll() }
+    }
+
+    private inline fun actOnSelection(action: (List<ChatId>) -> Unit) {
+        val ids = stateFlow.value.selectedChats.map { it.chatId }
+        if (ids.isNotEmpty()) action(ids)
+        endSelection()
     }
 
     init {
@@ -145,7 +227,9 @@ open class ChatsViewModel @Inject constructor(
                 archived = isArchived,
                 muted = row.viewerState.isMutedAt(),
                 hidden = false,
-                unread = row.unreadCount,
+                // A marked chat with nothing counted is unread by an unknown count, which the
+                // projection already counts as unread: one chat in the badge and the Unread chip.
+                unread = if (row.markedUnread && row.unreadCount == 0) null else row.unreadCount,
                 pendingRequests = row.joinRequests.size,
                 newestRequestMs = row.joinRequests.maxOfOrNull { it.enteredAt.toEpochMilliseconds() } ?: 0L,
             )
@@ -208,6 +292,11 @@ open class ChatsViewModel @Inject constructor(
                 // A chip can only be tapped once the row is on screen, so choosing one reveals it.
                 is Event.FilterSelected -> { state -> state.copy(filter = event.filter, chipsRevealed = true) }
                 Event.ChipsRevealed -> { state -> state.copy(chipsRevealed = true) }
+                is Event.SelectionStarted -> { state -> state.copy(selection = setOfNotNull(event.chatId)) }
+                is Event.SelectionToggled -> { state ->
+                    state.copy(selection = state.selection?.toggledSelection(event.chatId))
+                }
+                Event.SelectionEnded -> { state -> state.copy(selection = null) }
             }
         }
     }

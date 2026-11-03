@@ -12,6 +12,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -166,6 +167,12 @@ class ColorScheme(
     accessKey: GradientSpec,
     contactAvatar: GradientSpec,
     chat: ChatColors,
+    /**
+     * The ground [indicator] sits on when it labels an action rather than counting something, e.g.
+     * the chat row's Mark as Read/Unread swipe: the indicator at a tenth of its strength over
+     * [background], baked flat. Only true against the main background; it is not a general wash.
+     */
+    indicatorSecondary: Color = indicator.copy(alpha = 0.1f).compositeOver(background),
 ) {
     var brand by mutableStateOf(brand)
         private set
@@ -220,6 +227,8 @@ class ColorScheme(
     var indicator by mutableStateOf(indicator)
         private set
     var badgeFocus by mutableStateOf(badgeFocus)
+        private set
+    var indicatorSecondary by mutableStateOf(indicatorSecondary)
         private set
     var action by mutableStateOf(action)
         private set
@@ -291,6 +300,7 @@ class ColorScheme(
         tertiary = other.tertiary
         indicator = other.indicator
         badgeFocus = other.badgeFocus
+        indicatorSecondary = other.indicatorSecondary
         action = other.action
         onAction = other.onAction
         border = other.border
@@ -359,6 +369,7 @@ class ColorScheme(
         accessKey = accessKey,
         contactAvatar = contactAvatar,
         chat = chat,
+        indicatorSecondary = indicatorSecondary,
     )
 }
 

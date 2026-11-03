@@ -10,6 +10,7 @@ public typealias TrackedEvent = SharedCore.AnalyticsEvent
 // `Amount` are renamed here so they don't read as SwiftUI's `Button` and `@State`, or as
 // one of the app's money types.
 public typealias ChatType = SharedCore.ChatType
+public typealias ChatReadSource = SharedCore.ChatReadSource
 public typealias EventState = SharedCore.State
 public typealias AddMoneySource = SharedCore.AddMoneySource
 public typealias AddMoneyMethod = SharedCore.AddMoneyMethod

@@ -1,9 +1,14 @@
 package com.flipcash.app.tipping
 
+import com.flipcash.core.resources.action_unarchive
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.flipcash.app.tipping.internal.components.markReadSwipeAction
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.content_description_unarchiveChat
 import com.flipcash.core.resources.title_noArchivedChats
 import androidx.compose.foundation.layout.Box
+import com.flipcash.app.tipping.internal.components.rememberSelectCircles
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -43,15 +48,22 @@ internal fun ArchivedChatsContent(
     onOpen: (ChatId) -> Unit,
     onUnarchive: (ChatId) -> Unit,
     topBar: @Composable () -> Unit,
+    // Select mode: the chats picked so far, or null outside it, and what the bar can do to them.
+    selection: Set<ChatId>? = null,
+    onStartSelection: (ChatId) -> Unit = {},
+    onToggleSelection: (ChatId) -> Unit = {},
+    onToggleRead: (ChatId) -> Unit = {},
 ) {
     // One row open at a time, as on the Chats list.
     val revealGroup = rememberSwipeRevealGroup()
+    val haptics = LocalHapticFeedback.current
 
     CodeScaffold(
         topBar = topBar,
     ) { padding ->
         // One list for the rows and the empty state alike, so unarchiving the last chat fades its
         // row out and the message in, rather than swapping the whole list for the message at once.
+        val circles = rememberSelectCircles(selection)
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("archived_list"),
             contentPadding = PaddingValues(top = padding.calculateTopPadding()),
@@ -80,13 +92,29 @@ internal fun ArchivedChatsContent(
             itemsIndexed(chats, key = { _, chat -> chat.chatId }) { index, chat ->
                 UnarchiveSwipeRow(
                     modifier = Modifier.animateItem(),
+                    isUnread = chat.isUnread,
+                    // Swipes are off while selecting.
+                    swipeEnabled = selection == null,
+                    onToggleRead = { onToggleRead(chat.chatId) },
                     onUnarchive = { onUnarchive(chat.chatId) },
                     stateKey = chat.chatId,
                     revealGroup = revealGroup,
                 ) {
                     // The row draws its divider below itself, so none sits above the first row.
-                    TipChatRow(chat = chat, showDivider = index < chats.lastIndex) {
-                        onOpen(chat.chatId)
+                    TipChatRow(
+                        chat = chat,
+                        showDivider = index < chats.lastIndex,
+                        selected = selection?.let { chat.chatId in it },
+                        circleReveal = circles.reveal,
+                        circleChecked = chat.chatId in circles.checked,
+                        onLongClick = {
+                            if (selection == null) {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onStartSelection(chat.chatId)
+                            }
+                        },
+                    ) {
+                        if (selection != null) onToggleSelection(chat.chatId) else onOpen(chat.chatId)
                     }
                 }
             }
@@ -96,6 +124,9 @@ internal fun ArchivedChatsContent(
 
 @Composable
 private fun UnarchiveSwipeRow(
+    isUnread: Boolean,
+    swipeEnabled: Boolean,
+    onToggleRead: () -> Unit,
     onUnarchive: () -> Unit,
     stateKey: Any,
     revealGroup: SwipeRevealGroup,
@@ -103,11 +134,19 @@ private fun UnarchiveSwipeRow(
     content: @Composable () -> Unit,
 ) {
     val label = stringResource(Res.string.content_description_unarchiveChat)
+    val unarchiveTitle = stringResource(Res.string.action_unarchive)
+    val (readAction, readLabel) = markReadSwipeAction(isUnread, onToggleRead)
+    if (!swipeEnabled) {
+        Box(modifier) { content() }
+        return
+    }
     SwipeActionRow(
+        leadingActions = listOf(readAction),
         actions = listOf(
             SwipeAction(
                 background = CodeTheme.colors.surfaceVariant,
                 onTriggered = onUnarchive,
+                label = unarchiveTitle,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Unarchive,
@@ -119,7 +158,10 @@ private fun UnarchiveSwipeRow(
         ),
         // A swipe is out of reach with a screen reader, so the row offers the action there.
         modifier = modifier.semantics {
-            customActions = listOf(CustomAccessibilityAction(label) { onUnarchive(); true })
+            customActions = listOf(
+                CustomAccessibilityAction(readLabel) { onToggleRead(); true },
+                CustomAccessibilityAction(label) { onUnarchive(); true },
+            )
         },
         stateKey = stateKey,
         revealGroup = revealGroup,

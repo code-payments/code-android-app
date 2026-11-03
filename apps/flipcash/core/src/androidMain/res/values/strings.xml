@@ -1362,6 +1362,27 @@
     <string name="content_description_archiveChat">Archive chat</string>
     <string name="content_description_unarchiveChat">Unarchive chat</string>
 
+    <!-- Mark as read / unread on the chat list: the leading swipe, select mode and the "…" menu. -->
+    <string name="action_markAsUnread">Mark as Unread</string>
+    <string name="action_markAsRead">Mark as Read</string>
+    <string name="action_unread">Unread</string>
+    <string name="action_read">Read</string>
+    <string name="action_readAll">Read All</string>
+    <string name="action_selectChats">Select Chats</string>
+    <string name="action_mute">Mute</string>
+    <string name="action_unmute">Unmute</string>
+    <string name="action_archive">Archive</string>
+    <string name="action_unarchive">Unarchive</string>
+    <string name="action_closeChatSelection">Close</string>
+    <string name="content_description_moreChatActions">More</string>
+    <string name="title_chatsSelected">%1$d Selected</string>
+    <plurals name="message_chatsArchived">
+        <item quantity="one">Chat archived</item>
+        <item quantity="other">%1$d chats archived</item>
+    </plurals>
+    <string name="prompt_title_readAllChats">Mark All Chats as Read?</string>
+    <string name="prompt_description_readAllChats">Everyone in these chats will see that you\'ve read their messages</string>
+
     <!-- Starting a chat by @handle from the Chats tab's "+" (nodes 9442:5825 / 9442:103386). -->
     <string name="title_newChat">Enter Flipcash username</string>
     <string name="subtitle_newChat">Enter the Flipcash username of the person you want to chat with</string>

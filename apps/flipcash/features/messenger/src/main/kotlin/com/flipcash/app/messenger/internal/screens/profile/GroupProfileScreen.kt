@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.unit.Dp
-import com.getcode.util.resources.icons.SpeakerSlash
+import androidx.compose.material.icons.outlined.MicOff
 import dev.chrisbanes.haze.HazeState
 import androidx.compose.ui.text.style.TextAlign
 import kotlin.time.Duration.Companion.minutes
@@ -571,7 +571,7 @@ internal fun GroupProfileMenu(
             }
             if (item == GroupProfileMenuAction.Moderation) {
                 Submenu(label = stringResource(item.labelRes()), icon = item.icon(isPrivate)) {
-                    ModerationEntry(R.string.title_silencedMembers, SpeakerSlash) {
+                    ModerationEntry(R.string.title_silencedMembers, Icons.Outlined.MicOff) {
                         onDismiss()
                         onSilenced()
                     }

@@ -25,13 +25,24 @@ data class ChatState(
     // The chats the viewer archived, read in the same combine that builds [feed] so the feed and
     // the archive set always change together. `feed` and `archivedFeed` split on it.
     val archived: Set<ChatId> = emptySet(),
+    // The chats the viewer marked as unread, read in that same combine for the same reason.
+    val markedUnread: Set<ChatId> = emptySet(),
 )
 
 data class ChatSummary(
     val metadata: ChatMetadata,
     /** Messages past the viewer's READ pointer: 0 when read, null when unread by an unknown count. */
     val unreadCount: Int?,
-)
+    /** The viewer marked the chat as unread. Kept apart from [unreadCount], which stays the real count. */
+    val markedUnread: Boolean = false,
+) {
+    /**
+     * Unread messages or a mark. The one test every unread count uses (the Chats tab badge, the
+     * Unread chip, Read All), so a marked chat counts once wherever it counts.
+     */
+    val isUnread: Boolean
+        get() = unreadCount != 0 || markedUnread
+}
 
 data class ActiveTypist(
     val userId: ID,

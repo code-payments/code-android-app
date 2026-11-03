@@ -61,7 +61,7 @@ import com.getcode.ui.components.SwipeActionRow
 import com.getcode.ui.components.SwipeRevealGroup
 import com.getcode.ui.components.rememberSwipeRevealGroup
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.util.resources.icons.SpeakerSlash
+import androidx.compose.material.icons.outlined.MicOff
 
 /**
  * Node 11210:70 — every member of a private group: the creator pinned first with a Host tag, then
@@ -273,6 +273,11 @@ internal fun MemberSwipeRow(
     val restrictLabel = stringResource(R.string.content_description_restrictMember)
     val liftLabel = stringResource(R.string.content_description_liftRestriction)
     val removeLabel = stringResource(R.string.content_description_removeMember)
+    // Labels drawn under the swipe pills: the member sheet's titles, with Remove
+    // shortened since the row is already in the group.
+    val restrictTitle = stringResource(R.string.action_silenceMemberShort)
+    val liftTitle = stringResource(R.string.action_liftRestriction)
+    val removeTitle = stringResource(R.string.action_remove)
     val swipeActions = buildList {
         if (actions.restrict) {
             add(
@@ -280,8 +285,9 @@ internal fun MemberSwipeRow(
                     background = CodeTheme.colors.warning.copy(alpha = 0.15f),
                     onTriggered = onRestrict,
                     resetOnDismiss = true,
+                    label = restrictTitle,
                 ) {
-                    SwipeIcon(SpeakerSlash, restrictLabel, CodeTheme.colors.warning)
+                    SwipeIcon(Icons.Outlined.MicOff, restrictLabel, CodeTheme.colors.warning)
                 }
             )
         }
@@ -291,6 +297,7 @@ internal fun MemberSwipeRow(
                     background = CodeTheme.colors.surfaceVariant,
                     onTriggered = onLift,
                     resetOnDismiss = true,
+                    label = liftTitle,
                 ) {
                     SwipeIcon(Icons.Outlined.LockOpen, liftLabel, CodeTheme.colors.textMain)
                 }
@@ -302,6 +309,7 @@ internal fun MemberSwipeRow(
                     background = CodeTheme.colors.error.copy(alpha = 0.15f),
                     onTriggered = onRemove,
                     resetOnDismiss = true,
+                    label = removeTitle,
                 ) {
                     SwipeIcon(Icons.Outlined.PersonRemove, removeLabel, CodeTheme.colors.error)
                 }

@@ -4,6 +4,7 @@ import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.label_chatReceipt_yesterday
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,8 @@ fun ChatListRow(
     modifier: Modifier = Modifier,
     showDivider: Boolean = true,
     endAction: @Composable () -> Unit = {},
+    /** A long press, for the chat list's select mode. Null leaves the row a plain click target. */
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     Column(
@@ -51,7 +54,13 @@ fun ChatListRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("send_contact_row")
-                .clickable(onClick = onClick)
+                .then(
+                    if (onLongClick != null) {
+                        Modifier.combinedClickable(onLongClick = onLongClick, onClick = onClick)
+                    } else {
+                        Modifier.clickable(onClick = onClick)
+                    }
+                )
                 .padding(
                     horizontal = CodeTheme.dimens.staticGrid.x4,
                     vertical = CodeTheme.dimens.staticGrid.x3,

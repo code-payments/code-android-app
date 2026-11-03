@@ -52,6 +52,32 @@ app has no value for it.
 | State | list | no | [State](#state) |
 | Error | text | yes | |
 
+### Chat Marked Unread
+
+The viewer marked a chat as unread from the chat list. Stored on the device only; nothing is sent to the server. Select mode sends one per selected chat.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Chat Type | list | no | [ChatType](#chattype) |
+| Source | list | no | [ChatReadSource](#chatreadsource) |
+
+### Chat Marked Read
+
+The viewer marked a chat as read from the chat list. Select mode sends one per selected chat.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Chat Type | list | no | [ChatType](#chattype) |
+| Source | list | no | [ChatReadSource](#chatreadsource) |
+
+### Chats Read All
+
+The viewer confirmed Read All on the chat list.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Count | count | no | |
+
 ## Group
 
 Group chats. `Member Count` is the member count before the action, from what the screen already holds. `Gate Mint` is left out when the group has no token gate. `Error` is the RPC's result name as the proto spells it, such as RulesNotSatisfied, or Network for a transport failure.
@@ -878,6 +904,16 @@ The `Duration` property on Chat Muted: the mute option picked. Both apps offer t
 | 8 Hours | `EIGHT_HOURS` | |
 | 1 Week | `ONE_WEEK` | |
 | Always | `ALWAYS` | |
+
+### ChatReadSource
+
+The `Source` property on Chat Marked Unread and Chat Marked Read: where on the chat list the action was taken.
+
+| Value sent | Name in code | Drift |
+|---|---|---|
+| Swipe | `SWIPE` | |
+| Menu | `MENU` | Android doesn't send this source: a long press on Android enters select mode, so its actions go out as Selection. |
+| Selection | `SELECTION` | |
 
 ### SilenceDuration
 
