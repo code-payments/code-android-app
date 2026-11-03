@@ -948,10 +948,12 @@ private fun CashBubble(
         val secondary = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Medium)
         val amountStyle = CodeTheme.typography.displayMedium
 
+        // The gaps use the static grid, like the bubble's own padding, so each spec value maps
+        // down to the same 5dp step at every screen width.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = CodeTheme.dimens.grid.x2),
+                .padding(vertical = CodeTheme.dimens.staticGrid.x1),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -963,10 +965,10 @@ private fun CashBubble(
             )
 
             // The amount and total read as one block: the total sits right under the amount, the
-            // tightest pair in the bubble, and the currency sits a larger gap below the money, the
+            // tightest pair in the bubble, and the currency sits a small gap below the money, the
             // same gap whether or not there is a total.
             Column(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x4),
+                modifier = Modifier.padding(top = CodeTheme.dimens.staticGrid.x2),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (parts.size >= 2) {
@@ -1019,7 +1021,7 @@ private fun CashBubble(
                     )
                 }
 
-                val currencyGap = Modifier.padding(top = CodeTheme.dimens.grid.x3)
+                val currencyGap = Modifier.padding(top = CodeTheme.dimens.staticGrid.x1)
                 // A preview has no token image loader, so it draws the token row's shape instead.
                 if (LocalInspectionMode.current) {
                     Row(
@@ -1054,7 +1056,7 @@ private fun CashBubble(
 
             lines.counterpart?.let { counterpart ->
                 Text(
-                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x4),
+                    modifier = Modifier.padding(top = CodeTheme.dimens.staticGrid.x2),
                     text = counterpart.text(),
                     style = secondary,
                     color = CodeTheme.colors.textSecondary,
