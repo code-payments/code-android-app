@@ -1,5 +1,6 @@
 package com.flipcash.shared.transactionhistory
 
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.UserProfile
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
@@ -59,4 +60,6 @@ data class TransactionListItem(
     val amount: LocalFiat?,              // message.amount, or null if non-financial
     val fee: Fiat?,                      // converts only: what the swap cost, shown under the amount
     val canCancel: Boolean,
+    // The DM a send-back was paid in, so tapping the row opens that chat (see [TransactionRouter]).
+    val returnChatId: ChatId? = null,
 )

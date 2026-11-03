@@ -162,13 +162,16 @@ internal class TransactionDetailsMapper @Inject constructor(
  */
 private fun kindOf(meta: MessageMetadata?, text: String): TransactionKind = when (meta) {
     is MessageMetadata.DirectlySentCrypto -> when {
+        // A send-back always names a DM peer; the verb heuristics below must not reclassify it.
+        meta.returnedPayment != null -> TransactionKind.Sent
         meta.boostedReaction != null -> TransactionKind.Boosted
         isUnidentifiedBill(meta) -> TransactionKind.GaveCash
         text.isTipVerb() -> TransactionKind.Tipped
         else -> TransactionKind.Sent
     }
     is MessageMetadata.ReceivedCrypto ->
-        if (meta.boostedReaction != null) TransactionKind.BoostReceived
+        if (meta.returnedPayment != null) TransactionKind.Received
+        else if (meta.boostedReaction != null) TransactionKind.BoostReceived
         else if (isUnidentifiedBill(meta)) TransactionKind.ReceivedCash else TransactionKind.Received
     is MessageMetadata.IndirectlySentCrypto -> TransactionKind.SentCashLink
     is MessageMetadata.WithdrewCrypto -> TransactionKind.Withdraw

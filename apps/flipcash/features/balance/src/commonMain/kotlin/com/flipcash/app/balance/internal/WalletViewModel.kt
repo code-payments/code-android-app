@@ -8,6 +8,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
 import com.flipcash.shared.transactionhistory.FeedSyncState
 import com.flipcash.shared.transactionhistory.TransactionListItem
+import com.flipcash.shared.transactionhistory.TransactionRouter
 import com.flipcash.app.funding.PurchaseMethodController
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.WalletReveal
@@ -40,6 +41,7 @@ open class WalletViewModel @Inject constructor(
     feedCoordinator: ActivityFeedCoordinator,
     tokenCoordinator: TokenCoordinator,
     walletReveal: WalletRevealCoordinator,
+    transactionRouter: TransactionRouter = TransactionRouter.DetailsOnly,
 ) : BaseViewModel<WalletViewModel.State, WalletViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
@@ -117,6 +119,7 @@ open class WalletViewModel @Inject constructor(
         data object OpenCurrencySelection : Event
 
         data class OpenScreen(val screen: AppRoute) : Event
+        data class OpenTransaction(val item: TransactionListItem) : Event
         data object PresentDepositOptions: Event
     }
 
@@ -149,6 +152,11 @@ open class WalletViewModel @Inject constructor(
             .flatMapLatest { userFlags.resolvedFlags }
             .mapNotNull { it.preferredOnRampProvider.effectiveValue }
             .onEach { provider -> dispatchEvent(Event.OnPreferredOnRampProviderChanged(provider)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OpenTransaction>()
+            .onEach { dispatchEvent(Event.OpenScreen(transactionRouter.routeFor(it.item))) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -211,6 +219,7 @@ open class WalletViewModel @Inject constructor(
                 }
                 Event.PresentDepositOptions -> { state -> state }
                 is Event.OpenScreen -> { state -> state }
+                is Event.OpenTransaction -> { state -> state }
             }
         }
     }

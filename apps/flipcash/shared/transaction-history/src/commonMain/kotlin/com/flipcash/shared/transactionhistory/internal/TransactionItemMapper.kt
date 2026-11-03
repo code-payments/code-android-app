@@ -4,12 +4,15 @@ import com.flipcash.shared.transactionhistory.generated.resources.Res
 import com.flipcash.shared.transactionhistory.generated.resources.title_activity_convert
 import com.flipcash.shared.transactionhistory.generated.resources.title_activity_receivedFrom
 import com.flipcash.shared.transactionhistory.generated.resources.title_activity_sentTo
+import com.flipcash.shared.transactionhistory.generated.resources.title_activity_sentBack
+import com.flipcash.shared.transactionhistory.generated.resources.title_activity_sentBackTo
 import com.flipcash.shared.transactionhistory.generated.resources.title_activity_tipFrom
 import com.flipcash.app.core.feed.ActivityFeedMessageWithToken
 import com.flipcash.app.core.feed.MessageMetadata
 import com.flipcash.app.core.feed.MessageSubstitution
 import com.flipcash.services.models.BoostedReaction
 import com.flipcash.services.models.RequestedPayment
+import com.flipcash.services.models.ReturnedPayment
 import com.flipcash.services.models.UserProfile
 import com.flipcash.shared.transactionhistory.TransactionAvatar
 import com.flipcash.shared.transactionhistory.TransactionListItem
@@ -69,6 +72,7 @@ internal class TransactionItemMapper @Inject constructor(
             messageId = msg.id,
             title = convertTitle(resources, source)
                 ?: boostTitle(resources, meta, counterparty, source.boostChatName)
+                ?: returnTitle(resources, meta, counterparty)
                 ?: resolveTitle(resources, meta, msg.text, msg.textSubstitutions, counterparty, profiles),
             timestamp = msg.timestamp,
             avatar = avatar,
@@ -76,6 +80,7 @@ internal class TransactionItemMapper @Inject constructor(
             amount = msg.amount,
             fee = convert?.fee,
             canCancel = (meta as? MessageMetadata.IndirectlySentCrypto)?.canCancel == true,
+            returnChatId = returnedPaymentOf(meta)?.chatId,
         )
     }
 }
@@ -131,6 +136,30 @@ internal fun boostTitle(
 internal fun boostedReactionOf(meta: MessageMetadata?): BoostedReaction? = when (meta) {
     is MessageMetadata.DirectlySentCrypto -> meta.boostedReaction
     is MessageMetadata.ReceivedCrypto -> meta.boostedReaction
+    else -> null
+}
+
+/**
+ * The title of a payment that sent back a DM's opening payment, or null when [meta] carries no
+ * return or the counterparty's name is not known yet, so the row falls back to the server's title.
+ */
+private fun returnTitle(
+    resources: ResourceHelper,
+    meta: MessageMetadata?,
+    counterparty: UserProfile?,
+): String? {
+    if (returnedPaymentOf(meta) == null) return null
+    val name = counterparty?.displayName?.takeIf { it.isNotBlank() } ?: return null
+    return when (meta) {
+        is MessageMetadata.DirectlySentCrypto -> resources.getString(Res.string.title_activity_sentBackTo, name)
+        is MessageMetadata.ReceivedCrypto -> resources.getString(Res.string.title_activity_sentBack, name)
+        else -> null
+    }
+}
+
+internal fun returnedPaymentOf(meta: MessageMetadata?): ReturnedPayment? = when (meta) {
+    is MessageMetadata.DirectlySentCrypto -> meta.returnedPayment
+    is MessageMetadata.ReceivedCrypto -> meta.returnedPayment
     else -> null
 }
 

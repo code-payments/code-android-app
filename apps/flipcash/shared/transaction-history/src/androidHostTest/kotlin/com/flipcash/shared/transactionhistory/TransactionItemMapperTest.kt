@@ -13,6 +13,10 @@ import com.flipcash.app.core.feed.MessageSubstitution
 import com.flipcash.app.core.feed.SwapState
 import com.flipcash.app.core.feed.SwappedCryptoMetadata
 import com.flipcash.services.models.BoostedReaction
+import com.flipcash.services.models.ReturnedPayment
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
+import kotlinx.coroutines.test.runTest
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Emoji
@@ -39,6 +43,8 @@ class TransactionItemMapperTest {
         .stub(R.string.title_activity_tipFrom, "Tip from %1\$s")
         .stub(R.string.title_activity_sentTo, "Sent to %1\$s")
         .stub(R.string.title_activity_receivedFrom, "Received from %1\$s")
+        .stub(R.string.title_activity_sentBackTo, "Sent back to %1\$s")
+        .stub(R.string.title_activity_sentBack, "%1\$s sent back")
         .stub(R.string.title_activity_convert, "%1\$s → %2\$s")
         .stub(R.string.title_activity_boostedFor, "Boosted %1\$s for %2\$s")
         .stub(R.string.title_activity_boostFrom, "Boost %1\$s from %2\$s")
@@ -554,5 +560,68 @@ class TransactionItemMapperTest {
         assertEquals("-", item.signedAmountPrefix)
         assertEquals(TransactionAvatar.TokenIcon(usdfToken()), item.avatar)
         assertEquals(msg.amount, item.amount)
+    }
+
+    // --- Send back (spec test cases 16 and 17) ---
+
+    private val dmId = ChatId(ByteArray(32) { 4 })
+    private val returned = ReturnedPayment(chatId = dmId, messageId = 11L)
+
+    private fun returnItem(metadata: MessageMetadata, profiles: Map<String, UserProfile> = cached) =
+        mapper.map(
+            ActivityFeedMessageWithToken(feedMessage(metadata).copy(text = "Sent"), token = null) to profiles
+        )
+
+    @Test
+    fun `16 a sent return reads Sent back to the peer and opens the DM`() = runTest {
+        val item = returnItem(MessageMetadata.DirectlySentCrypto(userId = knownUserId, returnedPayment = returned))
+
+        assertEquals("Sent back to Sally The Streamer", item.title)
+        assertEquals(dmId, item.returnChatId)
+        assertEquals(
+            AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(dmId)),
+            TransactionRouter.forChats { true }.routeFor(item),
+        )
+    }
+
+    @Test
+    fun `17 a received return reads the peer sent back and opens the DM`() = runTest {
+        val item = returnItem(MessageMetadata.ReceivedCrypto(userId = knownUserId, returnedPayment = returned))
+
+        assertEquals("Sally The Streamer sent back", item.title)
+        assertEquals(
+            AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(dmId)),
+            TransactionRouter.forChats { true }.routeFor(item),
+        )
+    }
+
+    @Test
+    fun `a return with an unresolved peer keeps the server title`() {
+        val item = returnItem(
+            MessageMetadata.ReceivedCrypto(userId = knownUserId, returnedPayment = returned),
+            profiles = emptyMap(),
+        )
+
+        assertEquals("Sent", item.title)
+    }
+
+    @Test
+    fun `a return whose DM is gone opens its details`() = runTest {
+        val item = returnItem(MessageMetadata.DirectlySentCrypto(userId = knownUserId, returnedPayment = returned))
+
+        assertEquals(
+            AppRoute.Sheets.TransactionDetails(item.messageId),
+            TransactionRouter.forChats { false }.routeFor(item),
+        )
+    }
+
+    @Test
+    fun `a row with no return opens its details without asking for the chat`() = runTest {
+        val item = returnItem(MessageMetadata.DirectlySentCrypto(userId = knownUserId))
+
+        assertEquals(
+            AppRoute.Sheets.TransactionDetails(item.messageId),
+            TransactionRouter.forChats { error("no chat lookup expected") }.routeFor(item),
+        )
     }
 }

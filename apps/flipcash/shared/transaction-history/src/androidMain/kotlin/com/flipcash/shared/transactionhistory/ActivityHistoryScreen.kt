@@ -1,5 +1,7 @@
 package com.flipcash.shared.transactionhistory
 
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -35,6 +37,7 @@ import dev.chrisbanes.haze.rememberHazeState
 fun ActivityHistoryScreen() {
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<ActivityHistoryViewModel>()
+    val scope = rememberCoroutineScope()
     val items = viewModel.transactions.collectAsLazyPagingItems()
 
     val listState = rememberLazyListState()
@@ -73,7 +76,7 @@ fun ActivityHistoryScreen() {
                     ActivityFeedRow(
                         item = item,
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = { navigator.push(AppRoute.Sheets.TransactionDetails(item.messageId)) },
+                        onClick = { scope.launch { navigator.push(viewModel.routeFor(item)) } },
                     )
                 }
 
