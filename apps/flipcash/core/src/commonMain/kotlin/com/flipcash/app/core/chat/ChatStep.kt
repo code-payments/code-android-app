@@ -34,6 +34,10 @@ data class GroupInviteResult(val chatId: ChatId) : Parcelable
 @Serializable
 enum class InviteLinkAction : Parcelable { Share, Revoke }
 
+/** What the host's Invite sheet (frame 1m) hands back to the screen beneath it to open. */
+@Parcelize
+enum class InviteHostAction : Parcelable { ShareInvite, ShareJoin, ManageInvites }
+
 /**
  * What the host picked on New Invite Link (frame 2d): the preset names, not the presets, because
  * this module cannot see `shared:chat`. Presets only; never a key or link.
@@ -41,6 +45,11 @@ enum class InviteLinkAction : Parcelable { Share, Revoke }
 @Parcelize
 @Serializable
 data class NewInviteLinkChoice(val expiry: String, val uses: String) : Parcelable
+
+/** The pinned message tapped in [ChatStep.PinnedMessages]: the chat jumps to it once the list closes. */
+@Parcelize
+@Serializable
+data class PinnedMessageJump(val messageId: Long) : Parcelable
 
 /** A custom paid-reaction amount, in whole US cents. */
 @Parcelize
@@ -118,6 +127,19 @@ sealed interface ChatStep : FlowStep, Parcelable {
         com.getcode.navigation.FullscreenSheet
 
     /**
+     * Frames 1m to 1m″: a host's link card, Approve new members and Manage Invites, from the
+     * profile's share circle and Join Requests' empty state. Carries nothing: the card's link is
+     * the host's own, rebuilt from their invites, and is never on a step.
+     */
+    @Parcelize
+    @Serializable
+    data object InviteHost :
+        ChatStep,
+        NavigationRetVal<InviteHostAction>,
+        Sheet,
+        WrapContentSheet
+
+    /**
      * Frame 2b: Share Link and Revoke Link for one invite on Manage Invites. Returns the pick and
      * leaves the work to Manage Invites, which is still on screen beneath it and owns the revoke
      * confirm (2c).
@@ -170,6 +192,19 @@ sealed interface ChatStep : FlowStep, Parcelable {
         val contact: ChatParticipant,
         val origin: ProfileOrigin = ProfileOrigin.Chat,
     ): ChatStep
+
+    /**
+     * A group member's sheet (S3–S5), opened in place of [Profile] by their picture in the group
+     * profile's grids, their Members row, or their avatar in the transcript. View Profile pushes
+     * [Profile] with [origin], the one the tap would have pushed it with; hosts also get the
+     * group's Restrict and Remove here. Short and fixed, so it wraps its content.
+     */
+    @Parcelize
+    @Serializable
+    data class MemberSheet(
+        val contact: ChatParticipant,
+        val origin: ProfileOrigin,
+    ) : ChatStep, Sheet, WrapContentSheet
 
     /**
      * The group's own profile — the counterpart of [Profile] for a chat that has no counterparty.
@@ -357,6 +392,21 @@ sealed interface ChatStep : FlowStep, Parcelable {
     @Parcelize
     @Serializable
     data class Reactors(val chatId: ChatId, val messageId: Long) : ChatStep, Sheet, HalfSheet
+
+    /**
+     * The chat's pinned messages, newest first (L1). The pins are the conversation's, read when the
+     * chat opened; the route names the chat only. [pinAfterUnpin] is set when it opened because the
+     * chat is at its pin cap (L1b): that message is pinned once an unpin frees a slot.
+     *
+     * Returns the tapped row as a [PinnedMessageJump]; the conversation jumps to it.
+     */
+    @Parcelize
+    @Serializable
+    data class PinnedMessages(val chatId: ChatId, val pinAfterUnpin: Long? = null) :
+        ChatStep,
+        NavigationRetVal<PinnedMessageJump>,
+        Sheet,
+        HalfSheet
 }
 
 /** What opened a [ChatStep.Profile], which decides the actions it offers. */

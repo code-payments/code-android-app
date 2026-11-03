@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -24,7 +25,9 @@ import com.flipcash.app.tokens.ui.HiltSelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenList
 import com.flipcash.app.tokens.ui.TokenListPresentation
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
+import com.getcode.navigation.scenes.LocalSheetNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.utils.LocalSheetGesturesState
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -39,6 +42,21 @@ import kotlinx.coroutines.flow.onEach
 internal fun ReactionBoostCurrencySheet() {
     // Exit through the sheet so it animates down rather than having its scene deleted mid-frame.
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
+
+    // The send and boost flows turn sheet dragging off for themselves, and that flag belongs to the
+    // navigator every sheet shares, so this half sheet would open undraggable: it could neither
+    // grow to full nor be pulled down. Give the drag back while it is up, and put the flag back
+    // when it closes.
+    val sheetNavigator = LocalSheetNavigator.current
+    val setSheetGesturesEnabled = LocalSheetGesturesState.current
+    DisposableEffect(sheetNavigator) {
+        val previous = sheetNavigator?.sheetDragDisabled ?: false
+        sheetNavigator?.sheetDragDisabled = false
+        // The scene decided whether this sheet can be dragged away before the flag was cleared.
+        setSheetGesturesEnabled(true)
+        onDispose { sheetNavigator?.sheetDragDisabled = previous }
+    }
+
     CurrencyPickerContent(onPicked = { dismissSheet() })
 }
 
@@ -78,7 +96,7 @@ internal fun CurrencyPickerContent(onPicked: () -> Unit) {
             styling = rememberTokenBalanceRowStyling(
                 nameTextStyle = CodeTheme.typography.textMedium,
                 balanceDisplayStyle = TokenBalanceStyle.Plain(
-                    textStyle = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.Medium),
+                    textStyle = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = CodeTheme.colors.textSecondary,
                 ),
                 iconSize = CodeTheme.dimens.staticGrid.x8,

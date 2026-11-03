@@ -132,6 +132,7 @@
                 <data android:pathPattern="/login.*" />
                 <data android:pathPattern="/token.*" />
                 <data android:pathPattern="/verify.*" />
+                <data android:pathPattern="/tab/.*" />
             </intent-filter>
 
             <!-- send.flipcash.com App Links -->
@@ -157,19 +158,13 @@
                     />
             </intent-filter>
 
-            <!-- Custom scheme (codewallet) -->
+            <!-- Custom scheme: flipcash://{route}. The route sits in the host slot, as on iOS. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="codewallet" />
-                <data android:host="send.flipcash.com" />
-                <data android:pathPattern="/c/.*" />
-
-                <data android:scheme="codewallet" />
-                <data android:host="app.flipcash.com" />
-                <data android:pathPattern="/token/.*" />
+                <data android:scheme="flipcash" />
             </intent-filter>
 
             <intent-filter android:autoVerify="true">
@@ -338,18 +333,6 @@
                 <data
                     android:host="jump.flipcash.com"
                     android:scheme="https" />
-            </intent-filter>
-
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:host="send.flipcash.com"
-                    android:pathPattern="/c/.*"
-                    android:scheme="codewallet" />
             </intent-filter>
         </activity>
 

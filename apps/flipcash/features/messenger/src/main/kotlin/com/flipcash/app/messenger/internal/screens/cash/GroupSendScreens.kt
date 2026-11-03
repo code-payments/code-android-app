@@ -33,7 +33,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import com.flipcash.app.messenger.internal.screens.boost.CurrencyPickerContent
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,10 +50,7 @@ import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.common.ui.profile.chatterName
-import com.flipcash.shared.payments.group.GroupSendPlan
-import com.flipcash.shared.payments.group.GroupSendSplit
 import com.getcode.opencode.model.core.ID
-import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
@@ -65,7 +61,7 @@ import com.getcode.ui.theme.CodeScaffold
 import com.getcode.view.LoadingSuccessState
 
 /**
- * Select People, node 11293:6918: the group's members less the sender, checked one by one in the
+ * Send To, node 11293:6918: the group's members less the sender, checked one by one in the
  * order that decides the split. There is no Select All.
  */
 @Composable
@@ -75,16 +71,21 @@ internal fun GroupSelectPeopleContent(
     onBack: () -> Unit,
     onToggle: (ChatMember) -> Unit,
     onSend: () -> Unit,
+    title: String = stringResource(R.string.title_selectPeople),
     buttonText: String = pluralStringResource(R.plurals.action_sendToPeople, selected.size, selected.size),
     buttonEnabled: Boolean = selected.isNotEmpty(),
     /** Shown as "You" rather than by name, for a list the viewer is on. */
     viewerId: ID? = null,
+    /** The sender's own row, first, for a split they can take a part of. Null leaves it out. */
+    you: ChatMember? = null,
+    /** The "Members" caption over the list. Requests keep it; a group send has none. */
+    showsMembersHeader: Boolean = true,
 ) {
     val selectedIds = selected.toSet()
     CodeScaffold(
         topBar = {
             AppBarWithTitle(
-                title = stringResource(R.string.title_selectPeople),
+                title = title,
                 titleAlignment = Alignment.CenterHorizontally,
                 onBackIconClicked = onBack,
             )
@@ -103,28 +104,40 @@ internal fun GroupSelectPeopleContent(
         },
     ) { innerPadding ->
         val unknownName = stringResource(R.string.title_unnamedUser)
-        val you = stringResource(R.string.label_selectPeople_you)
+        val youLabel = stringResource(R.string.label_selectPeople_you)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
             contentPadding = PaddingValues(bottom = CodeTheme.dimens.grid.x4),
         ) {
-            item {
-                Text(
-                    modifier = Modifier
-                        .padding(horizontal = CodeTheme.dimens.inset)
-                        .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x1),
-                    text = stringResource(R.string.header_groupSendMembers),
-                    style = CodeTheme.typography.caption,
-                    color = CodeTheme.colors.textSecondary,
-                )
+            if (showsMembersHeader) {
+                item {
+                    Text(
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.grid.x2, bottom = CodeTheme.dimens.grid.x1),
+                        text = stringResource(R.string.header_groupSendMembers),
+                        style = CodeTheme.typography.caption,
+                        color = CodeTheme.colors.textSecondary,
+                    )
+                }
+            }
+            if (you != null) {
+                item(key = "you") {
+                    MemberCheckRow(
+                        member = you,
+                        name = youLabel,
+                        selected = you.userId in selectedIds,
+                        onClick = { onToggle(you) },
+                    )
+                }
             }
             items(candidates, key = { it.userId }) { member ->
                 MemberCheckRow(
                     member = member,
                     name = if (member.userId == viewerId) {
-                        you
+                        youLabel
                     } else {
                         chatterName(member.userProfile.displayName, member.userProfile.username, unknownName)
                     },
@@ -186,8 +199,7 @@ private fun MemberCheckRow(
  * gets, and the swipe. Closing it goes back to Select People; it can't be closed mid-send. Closed
  * by back, as iOS's confirm is, never by a drag or a tap outside it.
  *
- * The token pill swaps this sheet's content for the currency list and back, rather than opening a
- * sheet of its own, which a navigation sheet would draw over this one.
+ * The token pill opens the currency list as a half sheet over this one, which stays up beneath it.
  */
 @Composable
 internal fun GroupSendConfirmSheet(
@@ -196,8 +208,8 @@ internal fun GroupSendConfirmSheet(
     swipePay: SwipePayUiState,
     actions: SwipePayActions,
 ) {
+    val amount = groupSend.amount ?: return
     val total = groupSend.total ?: return
-    val parts = (groupSend.plan as? GroupSendPlan.Pay)?.parts ?: return
     val unknownName = stringResource(R.string.title_unnamedUser)
 
     SwipePaySheet(
@@ -221,29 +233,27 @@ internal fun GroupSendConfirmSheet(
         },
         amount = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = total.formatted(),
-                    style = CodeTheme.typography.displayMedium,
-                    color = CodeTheme.colors.textMain,
-                )
-                if (parts.size >= 2) {
+                if (recipients.size >= 2) {
                     Text(
-                        text = eachLabel(parts, total.currencyCode),
+                        text = stringResource(R.string.label_groupSendEach, amount.formatted()),
+                        style = CodeTheme.typography.displayMedium,
+                        color = CodeTheme.colors.textMain,
+                    )
+                    Text(
+                        text = stringResource(R.string.label_groupSendTotal, total.formatted()),
                         style = CodeTheme.typography.textSmall,
                         color = CodeTheme.colors.textSecondary,
+                    )
+                } else {
+                    Text(
+                        text = amount.formatted(),
+                        style = CodeTheme.typography.displayMedium,
+                        color = CodeTheme.colors.textMain,
                     )
                 }
             }
         },
     )
-}
-
-/** "$1.00 Each" when the parts are equal, else "~$0.33 Each" for the smallest. */
-@Composable
-private fun eachLabel(parts: List<Long>, currency: CurrencyCode): String {
-    val smallest = GroupSendSplit.fiat(parts.min(), currency).formatted()
-    return if (parts.distinct().size == 1) stringResource(R.string.label_groupSendEach, smallest)
-    else stringResource(R.string.label_groupSendEachApprox, smallest)
 }
 
 /** The first few recipients' faces, overlapping, as in the design's pair of avatars. */

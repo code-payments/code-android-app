@@ -73,6 +73,7 @@ class GroupInviteViewModelTest {
         clipboardManager = mockk(relaxed = true),
         tipCodePreviewCache = mockk(relaxed = true),
         e2eePolicy = com.flipcash.services.chat.E2eePolicy(),
+        cardLinks = com.flipcash.shared.chat.GroupCardLinks(),
     )
 
     @Test

@@ -10,7 +10,9 @@ import androidx.annotation.RawRes
 import androidx.annotation.StringRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
+import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString as getComposeString
 import timber.log.Timber
 import java.io.File
 
@@ -26,12 +28,11 @@ class AndroidResources(
         return context.getString(resourceId, *formatArgs)
     }
 
-    // Compose resources keep the Android resource name as their key, and every module's resources are
-    // merged into the app package, so the key resolves to the same R entry Android always read.
-    override fun getString(resource: StringResource, vararg formatArgs: Any): String {
-        val id = getIdentifier(resource.key, ResourceType.String) ?: return ""
-        return context.getString(id, *formatArgs)
-    }
+    // Read through the Compose loader (the packaged composeResources assets), not R by the resource's
+    // key: a string reached only through that name lookup looks unused to the release resource
+    // shrinker, which strips it, so every such title rendered blank in shipped builds.
+    override fun getString(resource: StringResource, vararg formatArgs: Any): String =
+        runBlocking { getComposeString(resource, *formatArgs) }
 
     override fun getRawResource(@RawRes resourceId: Int): String {
         return try {

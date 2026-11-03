@@ -52,6 +52,17 @@ class GroupCardQrTest {
         assertEquals(caseOneUrl, decode(bitmap))
     }
 
+    // 32 random bytes as unpadded base64url: the longest link a card encodes (spec Open 5).
+    private val inviteUrl = "https://app.flipcash.com/chat/invite#s=kQ3vR8nYw2pLx7TzA0bC9dEfGhIjKlMnOpQrStUxT9a"
+
+    @Test
+    fun `3b - an invite link fits version 6 and the styled qr with its logo decodes to it`() {
+        assertEquals(82, inviteUrl.length)
+        val matrix = QrMatrix.encodeGroupCard(inviteUrl)
+        assertEquals(41, matrix.size)
+        assertEquals(inviteUrl, decode(StyledQrBitmap.render(matrix)))
+    }
+
     @Test
     fun `4 - the qr is error correction Q, version 6, 41 modules`() {
         // encodeGroupCard checks level and version itself; this proves it ran and the size is 41.

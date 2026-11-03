@@ -1,7 +1,9 @@
+import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.variant.BuildConfigField
 import com.bugsnag.gradle.dsl.debug
 import com.bugsnag.gradle.dsl.release
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -33,9 +35,12 @@ fun gitVersionCode(): Int {
 // omits `build-uuid` unless it is set on the upload task below. The commit SHA gives both
 // sides the same value — the app build and the upload task run against the same HEAD in the
 // release workflow — and going through the manifest keeps it out of the shrinker's reach.
-val bugsnagBuildId: String = providers.exec {
+// Lazy, and wired only into non-debug variants (see onVariants below): Bugsnag is disabled for
+// debug, and reading the SHA while configuring changed the debug manifest and invalidated the
+// configuration cache on every commit.
+val bugsnagBuildId: Provider<String> = providers.exec {
     commandLine("git", "rev-parse", "HEAD")
-}.standardOutput.asText.get().trim()
+}.standardOutput.asText.map { it.trim() }
 
 val contributorsSigningConfig = ContributorsSignatory(rootDir)
 val appNamespace = "${Gradle.flipcashNamespace}.app.android"
@@ -65,7 +70,6 @@ android {
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
 
         manifestPlaceholders["BUGSNAG_API_KEY"] = tryReadProperty(rootProject.rootDir, "BUGSNAG_API_KEY")
-        manifestPlaceholders["BUGSNAG_BUILD_UUID"] = bugsnagBuildId
     }
 
     signingConfigs {
@@ -194,12 +198,40 @@ kotlin {
     }
 }
 
+// Fails when an asset the app can't start without is missing from the merged assets. A library on
+// the KMP android target drops its assets unless it sets `androidResources { enable = true }`, and
+// that build still succeeds: :libs:currency-math lost its curve tables that way in #1894, and every
+// launch crashed (Bugsnag 6aadeebd).
+abstract class CheckPackagedAssets : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val assetsDir: DirectoryProperty
+
+    @get:Input
+    abstract val required: ListProperty<String>
+
+    @TaskAction
+    fun check() {
+        val dir = assetsDir.get().asFile
+        val missing = required.get().filterNot { dir.resolve(it).isFile }
+        if (missing.isNotEmpty()) {
+            throw GradleException("Merged assets in $dir are missing: ${missing.joinToString()}")
+        }
+    }
+}
+
 // Expose Compose testTags as resource-ids (for UiAutomator/Maestro/baseline-profile
 // generation) on every variant EXCEPT the shipping `release` — keeps internal ids like
 // `seed_input_field` out of the production wallet build. Read in App.kt as
 // BuildConfig.UI_TESTABLE. Refs Bugsnag 6a46563b.
 androidComponents {
     onVariants { variant ->
+        if (variant.buildType == "debug") {
+            variant.manifestPlaceholders.put("BUGSNAG_BUILD_UUID", "debug")
+        } else {
+            variant.manifestPlaceholders.put("BUGSNAG_BUILD_UUID", bugsnagBuildId)
+        }
+
         variant.buildConfigFields?.put(
             "UI_TESTABLE",
             BuildConfigField(
@@ -208,6 +240,17 @@ androidComponents {
                 "testTags exposed as resource-ids; false only for shipping release",
             ),
         )
+
+        val checkCurveAssets = tasks.register<CheckPackagedAssets>(
+            "check${variant.name.replaceFirstChar { it.uppercase() }}CurveAssets",
+        ) {
+            assetsDir.set(variant.artifacts.get(SingleArtifact.ASSETS))
+            required.set(listOf("discrete_pricing_table.bin", "discrete_cumulative_table.bin"))
+        }
+        if (variant.name == "release") {
+            tasks.matching { it.name == "bundleRelease" || it.name == "assembleRelease" }
+                .configureEach { dependsOn(checkCurveAssets) }
+        }
     }
 }
 

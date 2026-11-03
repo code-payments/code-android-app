@@ -643,6 +643,20 @@ class ChatEntityMapperTest {
     }
 
     @Test
+    fun `the pin grant survives the round trip`() {
+        val entity = mapper.toEntity(
+            groupMetadata().copy(
+                viewerState = ViewerState(version = 0, permissions = ViewerState.Permissions(canPin = true))
+            )
+        )
+        assertEquals(true, entity.canPin)
+
+        val restored = mapper.toMetadata(entity, emptyList(), null)
+
+        assertEquals(true, restored.viewerState?.permissions?.canPin)
+    }
+
+    @Test
     fun `a timed silence survives the round trip as its deadline`() {
         val until = Instant.fromEpochMilliseconds(9_000)
         val entity = mapper.toEntity(

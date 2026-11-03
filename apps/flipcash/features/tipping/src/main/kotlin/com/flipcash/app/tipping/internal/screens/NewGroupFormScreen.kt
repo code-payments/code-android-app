@@ -24,6 +24,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,6 +95,17 @@ internal fun NewGroupFormScreen(viewModel: CreateGroupViewModel) {
         }
     }
 
+    // A private group's form opens on its name with the keyboard up; the public form keeps its own.
+    val nameFocus = remember { FocusRequester() }
+    // Focus asked for before the push transition settles is dropped, so it waits the transition
+    // out; the keyboard follows the focus.
+    if (state.isPrivate) {
+        LaunchedEffect(Unit) {
+            delay(NameFocusDelayMs)
+            nameFocus.requestFocus()
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         AppBarWithTitle(
             title = stringResource(
@@ -126,7 +142,7 @@ internal fun NewGroupFormScreen(viewModel: CreateGroupViewModel) {
                         DisplayTextInput(
                             state = state.titleFieldState,
                             placeholder = stringResource(R.string.hint_groupName),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().focusRequester(nameFocus),
                             style = CodeTheme.typography.screenTitle.copy(
                                 color = CodeTheme.colors.textMain,
                             ),
@@ -478,3 +494,6 @@ private val LabelStyle
 
 private val ChipStyle
     @Composable get() = AmountChipDefaults.TextStyle
+
+/** Long enough for the form's push transition to finish before it asks for focus. */
+private const val NameFocusDelayMs = 400L

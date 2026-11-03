@@ -1,6 +1,7 @@
 package com.flipcash.app.userprofile.internal.name
 
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import com.flipcash.app.core.DisplayNameSource
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -98,5 +99,22 @@ class NameEntryStateTest {
 
         assertEquals("Brandon McAnshx", refreshed.nameFieldState.text.toString())
         assertTrue(refreshed.isChanged)
+    }
+
+    @Test
+    fun `outside onboarding a name at the 64 limit can be submitted and one over cannot`() {
+        for (source in listOf(DisplayNameSource.MyAccount, DisplayNameSource.TipCardSetup)) {
+            assertTrue(stateWith(saved = "", typed = "a".repeat(64)).isSubmittable(source))
+            assertFalse(stateWith(saved = "", typed = "a".repeat(65)).isSubmittable(source))
+        }
+    }
+
+    @Test
+    fun `outside onboarding the limit counts code points and a blank name is refused`() {
+        val source = DisplayNameSource.MyAccount
+
+        assertTrue(stateWith(saved = "", typed = "\uD83D\uDE00".repeat(64)).isSubmittable(source))
+        assertFalse(stateWith(saved = "", typed = "\uD83D\uDE00".repeat(65)).isSubmittable(source))
+        assertFalse(stateWith(saved = "", typed = "   ").isSubmittable(source))
     }
 }

@@ -49,7 +49,7 @@ class MemberModerationAnalyticsTest {
         BottomBarManager.clear()
     }
 
-    private fun viewModel() = MemberModerationViewModel(chatController, resources, groupRosters, analytics)
+    private fun viewModel() = MemberModerationViewModel(chatController, resources, groupRosters, analytics, mockk(relaxed = true), GroupRestrictionWrites())
 
     private fun MemberModerationViewModel.confirm() {
         confirmRemove(chatId, userId, "Ada", "Group")

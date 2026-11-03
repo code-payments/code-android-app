@@ -370,7 +370,7 @@ sealed interface AppRoute : NavKey, Parcelable {
 
         /**
          * A group's scan card: its invite link as a QR, full screen, with Download. Opened from the
-         * Show Group Card tile of the group invite sheet, which stays open beneath it. The group's
+         * Show QR Code tile of the group invite sheet, which stays open beneath it. The group's
          * identity rides on the route because the host screen already holds it and the card makes
          * no request of its own.
          */

@@ -119,7 +119,12 @@ internal fun ProfileMenu(
                 // A divider wherever the red rows start or stop, so they sit apart, as on iOS.
                 HorizontalDivider(color = CodeTheme.colors.divider)
             }
-            val tint = if (item.isDestructive) CodeTheme.colors.errorText else CodeTheme.colors.textMain
+            // Restrict is timed and can be lifted, so it takes the amber its swipe and "Restricted" status use.
+            val tint = when {
+                item == ChatProfileAction.Silence -> CodeTheme.colors.warningText
+                item.isDestructive -> CodeTheme.colors.errorText
+                else -> CodeTheme.colors.textMain
+            }
             DropdownMenuItem(
                 leadingIcon = {
                     Icon(imageVector = item.icon(), contentDescription = null, tint = tint)
