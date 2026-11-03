@@ -2034,9 +2034,17 @@
     </plurals>
     <string name="label_groupSendEach">%1$s each</string>
     <string name="label_groupSendTotal">%1$s total</string>
-        <string name="label_groupBubbleEach">%1$s each</string>
-    <string name="label_groupBubbleEachApprox">~%1$s each</string>
+    <!-- A group send whose parts differ: the smallest part, for the sender and members not paid. -->
+    <string name="label_groupSendEachApprox">~%1$s each</string>
     <string name="subtitle_senderSent">%1$s sent</string>
+    <!-- A group send's cash bubble, read by someone it paid. -->
+    <plurals name="subtitle_youAndOthersReceived">
+        <item quantity="one">You and %1$d other received</item>
+        <item quantity="other">You and %1$d others received</item>
+    </plurals>
+    <string name="label_cashFrom">from %1$s</string>
+    <!-- What a cash bubble calls a sender or recipient whose name has not resolved. -->
+    <string name="label_cashSomeone">Someone</string>
     <string name="label_cashDetails_sent">Sent</string>
     <string name="label_cashDetails_from">From</string>
     <string name="label_cashDetails_to">To</string>

@@ -42,11 +42,11 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
@@ -63,11 +63,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.paging.compose.LazyPagingItems
 import com.flipcash.app.core.ui.TokenIconWithName
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.MessageContent
+import com.getcode.solana.keys.Mint
 import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.shared.chat.RequestCardState
 import com.flipcash.shared.chat.ui.request.FetchWhenAbsent
@@ -257,44 +259,31 @@ fun ContentBubble(
                     attention = attention,
                 )
 
-                is MessageContent.Cash -> if (content.multiReceiver.isNotEmpty() || item.groupSendRecipients != null) GroupSendBubble(
+                is MessageContent.Cash -> CashBubble(
                     modifier = modifier,
                     content = content,
-                    senderName = item.sender?.displayName,
+                    lines = content.bubbleLines(
+                        isFromSelf = item.isFromSelf,
+                        viewerPaid = item.receivedPart != null,
+                        people = item.cashPeople,
+                    ),
+                    amount = content.amountLine(),
                     isFromSelf = item.isFromSelf,
-                    recipients = item.groupSendRecipients,
-                    position = position,
-                    maxWidth = bubbleMaxWidth,
-                    onClick = if (interactive) {
-                        { actionHandler(ChatAction.ViewGroupSend(item)) }
-                    } else {
-                        null
-                    },
-                    onLongClick = onLongClick?.takeIf { interactive },
-                    onDoubleClick = onDoubleClick?.takeIf { interactive },
-                    attention = attention,
-                ) else CashBubble(
-                    modifier = modifier,
-                    amount = content.amount,
-                    tokenName = content.tokenName,
-                    tokenImageUrl = content.tokenImageUrl,
-                    isFromSelf = item.isFromSelf,
-                    action = content.action,
-                    settledUsd = content.settledUsd(),
-                    // A one-person group send names its recipient; everyone else in the group
-                    // reads who sent it rather than "You received".
-                    paidOtherBy = if (!item.isFromSelf && content.receiver != null && item.receivedPart == null) {
-                        item.sender?.displayName ?: stringResource(R.string.title_unnamedUser)
-                    } else {
-                        null
-                    },
                     position = position,
                     maxWidth = bubbleMaxWidth,
                     // Dropped rather than ignored while the transcript is behind a backdrop: with
                     // no click installed the tap reaches the backdrop and dismisses it, which is
-                    // what a tap anywhere else on the dimmed transcript already does.
+                    // what a tap anywhere else on the dimmed transcript already does. A group send
+                    // opens its details whether it paid one person or several, even though one
+                    // person draws the DM layout.
                     onClick = if (interactive) {
-                        { actionHandler(ChatAction.ViewToken(content.mint)) }
+                        val groupSend = content.multiReceiver.isNotEmpty() ||
+                            (item.cashPeople is CashBubblePeople.Group && content.receiver != null)
+                        if (groupSend) {
+                            { actionHandler(ChatAction.ViewGroupSend(item)) }
+                        } else {
+                            { actionHandler(ChatAction.ViewToken(content.mint)) }
+                        }
                     } else {
                         null
                     },
@@ -1039,125 +1028,21 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
     }
 }
 
-@Composable
-private fun CashBubble(
-    amount: Fiat,
-    tokenName: String,
-    tokenImageUrl: String,
-    isFromSelf: Boolean,
-    position: BubblePosition,
-    maxWidth: Dp,
-    action: MessageContent.Cash.Action = MessageContent.Cash.Action.SENT,
-    settledUsd: Fiat? = null,
-    paidOtherBy: String? = null,
-    onClick: (() -> Unit)? = null,
-    onLongClick: (() -> Unit)? = null,
-    onDoubleClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-    attention: () -> Float = { 0f },
-) {
-    Bubble(
-        isFromSelf = isFromSelf,
-        position = position,
-        minWidth = maxWidth,
-        maxWidth = maxWidth,
-        onClick = onClick,
-        onLongClick = onLongClick,
-        onDoubleClick = onDoubleClick,
-        modifier = modifier,
-        attention = attention,
-    ) {
-        // The same number the bill's "You received" sheet reads: a USDF payment converts from the
-        // USD it settled at, anything else from today's rates.
-        val shown = cashInDisplayCurrency(amount, settledUsd)
-
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            if (LocalInspectionMode.current) {
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.Start),
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(CodeTheme.dimens.staticGrid.x2)
-                            .background(Color(0xFF3F3F3F), CircleShape)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(CodeTheme.dimens.staticGrid.x5)
-                            .height(CodeTheme.dimens.staticGrid.x1)
-                            .background(Color(0xFF3F3F3F), CircleShape)
-                    )
-                }
-            } else {
-                if (tokenName.isNotBlank()) {
-                    TokenIconWithName(
-                        modifier = Modifier.align(Alignment.Start),
-                        tokenName = tokenName,
-                        tokenImage = tokenImageUrl,
-                        imageSize = CodeTheme.dimens.staticGrid.x4,
-                        spacing = CodeTheme.dimens.grid.x1,
-                        textStyle = CodeTheme.typography.caption,
-                        textColor = CodeTheme.colors.textSecondary,
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .padding(top = CodeTheme.dimens.grid.x5, bottom = CodeTheme.dimens.grid.x8),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                // The verb splits the two only on the sending side. A recipient reads
-                // "You received" either way: the money that arrived is the same money, and which
-                // button the sender pressed to send it isn't something the thread needs to relay.
-                val subtitleRes = if (!isFromSelf) {
-                    R.string.subtitle_youReceived
-                } else when (action) {
-                    MessageContent.Cash.Action.TIPPED -> R.string.subtitle_youTipped
-                    MessageContent.Cash.Action.SENT -> R.string.subtitle_youSent
-                }
-                Text(
-                    text = paidOtherBy?.let { stringResource(R.string.subtitle_senderSent, it) }
-                        ?: stringResource(subtitleRes),
-                    style = CodeTheme.typography.caption.copy(
-                        fontWeight = FontWeight.Medium,
-                    ),
-                    color = CodeTheme.colors.textSecondary,
-                )
-                Text(
-                    text = shown.formatted(),
-                    style = CodeTheme.typography.displayMedium,
-                    color = CodeTheme.colors.textMain,
-                    autoSize = TextAutoSize.StepBased(
-                        minFontSize = 20.sp,
-                        maxFontSize = CodeTheme.typography.displayMedium.fontSize
-                    ),
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-}
-
 /**
- * A cash message in a group that names who it paid, node 11293:6918 frames 08 and 09, laid out as
- * iOS's `ChatCashCardCell` lays out a group card: who sent it, the total, what each person got, the
- * viewer's own part when they were paid, the token, and who it went to at the foot. A payment to one
- * other member ([MessageContent.Cash.receiver]) draws the same card with no per-person line.
+ * A cash message in the transcript (`docs/specs/cash-bubbles.md`, node 13266:348), centered top to
+ * bottom: who did what, the amount, the total for a group send to two or more people, the token,
+ * and who it went to or came from.
+ *
+ * A group send to two or more people ([MessageContent.Cash.multiReceiver]) leads with what each
+ * person got, "$1.00 each", with the total under it. Anything else, a DM or a group send to one
+ * person, shows the whole amount alone.
  */
 @Composable
-private fun GroupSendBubble(
+private fun CashBubble(
     content: MessageContent.Cash,
-    senderName: String?,
+    lines: CashBubbleLines,
+    amount: CashAmountLine,
     isFromSelf: Boolean,
-    recipients: String?,
     position: BubblePosition,
     maxWidth: Dp,
     onClick: (() -> Unit)?,
@@ -1177,71 +1062,130 @@ private fun GroupSendBubble(
         modifier = modifier,
         attention = attention,
     ) {
-        val total = cashInDisplayCurrency(content.amount, content.settledUsd())
+        // The same number the bill's "You received" sheet reads: a USDF payment converts from the
+        // USD it settled at, anything else from today's rates.
+        val whole = cashInDisplayCurrency(content.amount, content.settledUsd())
         val parts = content.multiReceiver
         val secondary = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Medium)
+        val amountStyle = CodeTheme.typography.displayMedium
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = CodeTheme.dimens.grid.x2),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
         ) {
             Text(
-                text = when {
-                    isFromSelf -> stringResource(R.string.subtitle_youSent)
-                    else -> stringResource(
-                        R.string.subtitle_senderSent,
-                        senderName ?: stringResource(R.string.title_unnamedUser),
-                    )
-                },
+                text = lines.caption.text(),
                 style = secondary,
                 color = CodeTheme.colors.textSecondary,
-            )
-            Text(
-                text = total.formatted(),
-                style = CodeTheme.typography.displayMedium,
-                color = CodeTheme.colors.textMain,
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = 20.sp,
-                    maxFontSize = CodeTheme.typography.displayMedium.fontSize
-                ),
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            if (parts.size >= 2) {
-                // Uneven parts differ by one minor unit, so the smallest one with a "~" is the
-                // honest per-person figure; the vectors put the larger parts first.
-                val smallest = parts.minBy { it.nativeAmount }
-                val even = parts.all { it.nativeAmount == smallest.nativeAmount }
+
+            // The amount and total read as one block: the total sits right under the amount, the
+            // tightest pair in the bubble, and the currency sits a larger gap below the money, the
+            // same gap whether or not there is a total.
+            Column(
+                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x4),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                if (parts.size >= 2) {
+                    when (amount) {
+                        is CashAmountLine.Each -> {
+                            val each = content.partInDisplayCurrency(amount.part).formatted()
+                            val eachLine = amount.text(LocalResources.current, each)
+                            val secondaryColor = CodeTheme.colors.textSecondary
+                            // The caption's family: its Medium is the real Medium face, where the
+                            // amount's family draws Medium as Demi.
+                            val eachFamily = CodeTheme.typography.caption.fontFamily
+                            Text(
+                                text = remember(eachLine, each, eachFamily, secondaryColor) {
+                                    eachAmountText(eachLine, each, eachFamily, secondaryColor)
+                                },
+                                style = amountStyle,
+                                color = CodeTheme.colors.textMain,
+                                autoSize = TextAutoSize.StepBased(
+                                    minFontSize = 20.sp,
+                                    maxFontSize = amountStyle.fontSize,
+                                ),
+                                maxLines = 1,
+                            )
+                        }
+
+                        CashAmountLine.Whole -> Text(
+                            text = whole.formatted(),
+                            style = amountStyle,
+                            color = CodeTheme.colors.textMain,
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 20.sp,
+                                maxFontSize = amountStyle.fontSize,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.label_groupSendTotal, whole.formatted()),
+                        style = secondary,
+                        color = CodeTheme.colors.textSecondary,
+                        maxLines = 1,
+                    )
+                } else {
+                    Text(
+                        text = whole.formatted(),
+                        style = amountStyle,
+                        color = CodeTheme.colors.textMain,
+                        autoSize = TextAutoSize.StepBased(
+                            minFontSize = 20.sp,
+                            maxFontSize = amountStyle.fontSize,
+                        ),
+                        maxLines = 1,
+                    )
+                }
+
+                val currencyGap = Modifier.padding(top = CodeTheme.dimens.grid.x3)
+                // A preview has no token image loader, so it draws the token row's shape instead.
+                if (LocalInspectionMode.current) {
+                    Row(
+                        modifier = currencyGap,
+                        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(CodeTheme.dimens.staticGrid.x2)
+                                .background(Color(0xFF3F3F3F), CircleShape)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(CodeTheme.dimens.staticGrid.x5)
+                                .height(CodeTheme.dimens.staticGrid.x1)
+                                .background(Color(0xFF3F3F3F), CircleShape)
+                        )
+                    }
+                } else if (content.tokenName.isNotBlank()) {
+                    TokenIconWithName(
+                        modifier = currencyGap,
+                        tokenName = content.tokenName,
+                        tokenImage = content.tokenImageUrl,
+                        imageSize = CodeTheme.dimens.staticGrid.x4,
+                        spacing = CodeTheme.dimens.grid.x1,
+                        textStyle = CodeTheme.typography.caption,
+                        textColor = CodeTheme.colors.textMain,
+                    )
+                }
+            }
+
+            lines.counterpart?.let { counterpart ->
                 Text(
-                    text = stringResource(
-                        if (even) R.string.label_groupBubbleEach else R.string.label_groupBubbleEachApprox,
-                        content.partInDisplayCurrency(smallest).formatted(),
-                    ),
+                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x4),
+                    text = counterpart.text(),
                     style = secondary,
                     color = CodeTheme.colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.MiddleEllipsis,
                 )
             }
-            if (content.tokenName.isNotBlank() && !LocalInspectionMode.current) {
-                TokenIconWithName(
-                    tokenName = content.tokenName,
-                    tokenImage = content.tokenImageUrl,
-                    imageSize = CodeTheme.dimens.staticGrid.x4,
-                    spacing = CodeTheme.dimens.grid.x1,
-                    textStyle = CodeTheme.typography.caption,
-                    textColor = CodeTheme.colors.textMain,
-                )
-            }
-            Text(
-                modifier = Modifier.padding(top = CodeTheme.dimens.grid.x4),
-                text = recipients
-                    ?: pluralStringResource(R.plurals.label_groupSendToPeople, parts.size, parts.size),
-                style = secondary,
-                color = CodeTheme.colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.MiddleEllipsis,
-            )
         }
     }
 }
@@ -1738,77 +1682,101 @@ private fun Preview_TextBubble_LongMessage() {
     )
 }
 
-@Preview
-@PreviewWrapper(FlipcashThemeWrapper::class)
+private fun previewCash(
+    amount: Double,
+    tokenName: String = "Jeffy",
+    receiver: List<Byte>? = null,
+    recipients: Int = 0,
+    action: MessageContent.Cash.Action = MessageContent.Cash.Action.SENT,
+) = MessageContent.Cash(
+    intentId = listOf(0),
+    amount = Fiat(fiat = amount * maxOf(recipients, 1)),
+    mint = Mint.usdf,
+    tokenName = tokenName,
+    action = action,
+    receiver = receiver,
+    multiReceiver = List(recipients) { MessageContent.Cash.Payment(listOf(it.toByte()), amount, 0L) },
+)
+
 @Composable
-private fun Preview_CashBubble_Outgoing() {
+private fun PreviewCashBubble(
+    content: MessageContent.Cash,
+    isFromSelf: Boolean,
+    viewerPaid: Boolean = false,
+    people: CashBubblePeople?,
+) {
     CompositionLocalProvider(
         LocalExchange provides ExchangeStub(context = LocalContext.current)
     ) {
         CashBubble(
-            amount = Fiat(fiat = 5.0),
-            tokenName = "USDF",
-            tokenImageUrl = "",
-            isFromSelf = true,
+            content = content,
+            lines = content.bubbleLines(isFromSelf = isFromSelf, viewerPaid = viewerPaid, people = people),
+            amount = content.amountLine(),
+            isFromSelf = isFromSelf,
             position = BubblePosition.Solo,
-            maxWidth = 300.dp,
+            maxWidth = 250.dp,
+            onClick = null,
+            onLongClick = null,
+            onDoubleClick = null,
         )
     }
 }
 
+/** Frame C. */
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
-private fun Preview_CashBubble_Incoming() {
-    CompositionLocalProvider(
-        LocalExchange provides ExchangeStub(context = LocalContext.current)
-    ) {
-        CashBubble(
-            amount = Fiat(fiat = 1.0),
-            tokenName = "Waylon",
-            tokenImageUrl = "",
-            isFromSelf = false,
-            position = BubblePosition.Solo,
-            maxWidth = 300.dp,
-        )
-    }
+private fun Preview_CashBubble_DmSender() {
+    PreviewCashBubble(previewCash(5.0), isFromSelf = true, people = CashBubblePeople.Direct("Noah Parker"))
 }
 
+/** Frame D, as a received tip. */
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
-private fun Preview_CashBubble_NoTokenName() {
-    CompositionLocalProvider(
-        LocalExchange provides ExchangeStub(context = LocalContext.current)
-    ) {
-        CashBubble(
-            amount = Fiat(fiat = 25.0),
-            tokenName = "",
-            tokenImageUrl = "",
-            isFromSelf = true,
-            position = BubblePosition.Solo,
-            maxWidth = 300.dp,
-        )
-    }
+private fun Preview_CashBubble_DmTipReceived() {
+    PreviewCashBubble(
+        previewCash(5.0, action = MessageContent.Cash.Action.TIPPED),
+        isFromSelf = false,
+        people = CashBubblePeople.Direct("Noah Parker"),
+    )
 }
 
+/** Frame A. */
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)
 @Composable
-private fun Preview_CashBubble_Tipped() {
-    CompositionLocalProvider(
-        LocalExchange provides ExchangeStub(context = LocalContext.current)
-    ) {
-        CashBubble(
-            amount = Fiat(fiat = 5.0),
-            tokenName = "USDF",
-            tokenImageUrl = "",
-            isFromSelf = false,
-            position = BubblePosition.Solo,
-            maxWidth = 300.dp,
-            action = MessageContent.Cash.Action.TIPPED,
-        )
-    }
+private fun Preview_CashBubble_GroupSender() {
+    PreviewCashBubble(
+        previewCash(1.0, recipients = 3),
+        isFromSelf = true,
+        people = CashBubblePeople.Group(sender = null, leadRecipient = "Alex Morgan"),
+    )
+}
+
+/** Frame B. */
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_CashBubble_GroupRecipient() {
+    PreviewCashBubble(
+        previewCash(1.0, recipients = 3),
+        isFromSelf = false,
+        viewerPaid = true,
+        people = CashBubblePeople.Group(sender = "Fred Wilson", leadRecipient = "Alex Morgan"),
+    )
+}
+
+/** Frame G3. */
+@Preview
+@PreviewWrapper(FlipcashThemeWrapper::class)
+@Composable
+private fun Preview_CashBubble_GroupOneMemberNotPaid() {
+    PreviewCashBubble(
+        previewCash(5.0, receiver = listOf(9)),
+        isFromSelf = false,
+        people = CashBubblePeople.Group(sender = "Fred Wilson", leadRecipient = "Noah Parker"),
+    )
 }
 
 @Preview
@@ -1842,7 +1810,7 @@ private fun Preview_Conversation() {
                 TextBubble("What's up?", true, BubblePosition.Solo, 300.dp)
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-                CashBubble(Fiat(fiat = 5.0), "USDF", "", false, BubblePosition.Solo, 300.dp)
+                PreviewCashBubble(previewCash(5.0), isFromSelf = false, people = CashBubblePeople.Direct("Noah Parker"))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextBubble("Thanks!", true, BubblePosition.Solo, 300.dp)
