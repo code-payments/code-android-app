@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -341,8 +342,16 @@ fun SwipeActionRow(
 
         Layout(
             content = {
-                actions.forEach { action ->
-                    SwipeActionSlot(action, labelStyle, minActionSize) {
+                actions.forEachIndexed { index, action ->
+                    // The inner actions fade as a full swipe commits; the outermost grows instead.
+                    val fade = if (index < actions.lastIndex) {
+                        Modifier.graphicsLayer {
+                            alpha = innerActionAlpha(-state.offset, totalRevealWidthPx, rowWidthPx)
+                        }
+                    } else {
+                        Modifier
+                    }
+                    SwipeActionSlot(action, labelStyle, minActionSize, fade) {
                         action.onTriggered()
                         scope.launch { state.animateTo(SwipeState.Settled) }
                     }
@@ -391,8 +400,15 @@ fun SwipeActionRow(
         if (hasLeading) {
             Layout(
                 content = {
-                    leadingActions.forEach { action ->
-                        SwipeActionSlot(action, labelStyle, minActionSize) {
+                    leadingActions.forEachIndexed { index, action ->
+                        val fade = if (index < leadingActions.lastIndex) {
+                            Modifier.graphicsLayer {
+                                alpha = innerActionAlpha(state.offset, leadingRevealWidthPx, rowWidthPx)
+                            }
+                        } else {
+                            Modifier
+                        }
+                        SwipeActionSlot(action, labelStyle, minActionSize, fade) {
                             action.onTriggered()
                             scope.launch { state.animateTo(SwipeState.Settled) }
                         }
@@ -457,6 +473,17 @@ private fun pillWidthPx(circlePx: Float): Float = circlePx * PillWidthRatio
 private fun slotWidthPx(labelWidthPx: Int?, circlePx: Int): Int =
     if (labelWidthPx == null) circlePx else maxOf(pillWidthPx(circlePx.toFloat()).roundToInt(), labelWidthPx)
 
+/**
+ * The alpha of an action that is not the outermost, for a side open by [openPx]: 1 up to the
+ * reveal width, falling linearly to 0 at the point past which releasing commits the full swipe
+ * (halfway from the reveal to the row's width, the drag's default positional threshold).
+ */
+internal fun innerActionAlpha(openPx: Float, revealPx: Float, rowWidthPx: Float): Float {
+    val span = (rowWidthPx - revealPx) / 2f
+    if (span <= 0f) return 1f
+    return 1f - ((openPx - revealPx) / span).coerceIn(0f, 1f)
+}
+
 /** The reveal width for [labelWidths] (one per action, null when unlabelled), as a float like the anchors. */
 private fun revealWidthPx(labelWidths: List<Int?>, circlePx: Float, padPx: Float): Float =
     labelWidths.sumOf { slotWidthPx(it, circlePx.roundToInt()).toDouble() }.toFloat() +
@@ -474,12 +501,13 @@ private fun SwipeActionSlot(
     action: SwipeAction,
     labelStyle: TextStyle,
     circleSize: Dp,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val label = action.label
     if (label == null) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .clip(RoundedCornerShape(50))
                 .background(action.background)
                 .clickable(onClick = onClick),
@@ -511,7 +539,7 @@ private fun SwipeActionSlot(
                 modifier = Modifier.clearAndSetSemantics {},
             )
         },
-        modifier = Modifier.clickable(interactionSource = interactions, indication = null, onClick = onClick),
+        modifier = modifier.clickable(interactionSource = interactions, indication = null, onClick = onClick),
     ) { measurables, constraints ->
         val circlePx = circleSize.roundToPx()
         val gapPx = gap.roundToPx()

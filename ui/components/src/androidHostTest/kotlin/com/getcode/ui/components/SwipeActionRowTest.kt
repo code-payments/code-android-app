@@ -1,5 +1,6 @@
 package com.getcode.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +13,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -21,14 +23,18 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
+import androidx.compose.ui.graphics.toPixelMap
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.GraphicsMode
+import kotlin.math.abs
 import kotlin.test.assertEquals
 
 /**
@@ -206,6 +212,83 @@ class SwipeActionRowTest {
         assertEquals(0.dp, rowLeft())
     }
 
+    // A slow drag past the reveal toward a full swipe: the inner action fades with the offset, from
+    // full at the reveal to nearly gone at the point a release would commit, and is back to full
+    // once the row is released short of that point and settles revealed.
+    @Test
+    fun `the inner trailing action fades as a full swipe commits and returns on release`() {
+        var revealWidth = 0.dp
+        composeTestRule.setContent {
+            DesignSystem {
+                revealWidth = CodeTheme.dimens.staticGrid.x10 * 2 + CodeTheme.dimens.inset * 3
+                Box(Modifier.fillMaxWidth().background(Color.Black)) {
+                    SwipeActionRow(
+                        actions = listOf(
+                            SwipeAction(background = Color.Red, onTriggered = {}) {
+                                Box(Modifier.fillMaxSize().semantics { contentDescription = INNER })
+                            },
+                            SwipeAction(background = Color.Gray, onTriggered = { trailingFired++ }) {},
+                        ),
+                    ) {
+                        Box(Modifier.fillMaxWidth().height(72.dp).testTag(ROW))
+                    }
+                }
+            }
+        }
+        // Releasing past halfway from the reveal to the row's width commits the full swipe.
+        val rowWidth = composeTestRule.onNodeWithTag(ROW).getUnclippedBoundsInRoot().let { it.right - it.left }
+        val threshold = revealWidth + (rowWidth - revealWidth) / 2
+        fun innerRed(): Float {
+            val pixels = composeTestRule.onNodeWithContentDescription(INNER).captureToImage().toPixelMap()
+            return pixels[pixels.width / 2, pixels.height / 2].red
+        }
+        fun opened() = -rowLeft()
+        // A slow drag in small steps, steered by where the row actually is: injected moves can
+        // land a frame late, so each step is sized from the measured offset. The first step also
+        // covers the touch slop. Moved by deltas because the node's bounds move with the row.
+        var started = false
+        fun openTo(open: Dp) {
+            repeat(200) {
+                val remaining = open - opened()
+                if (abs(remaining.value) < 1f) return
+                val step = remaining.coerceIn(-4.dp, 4.dp)
+                composeTestRule.onNodeWithTag(ROW).performTouchInput {
+                    val slop = if (started) 0f else viewConfiguration.touchSlop
+                    moveBy(androidx.compose.ui.geometry.Offset(-(slop + step.toPx()), 0f))
+                }
+                started = true
+                composeTestRule.waitForIdle()
+            }
+        }
+
+        composeTestRule.onNodeWithTag(ROW).performTouchInput { down(androidx.compose.ui.geometry.Offset(right - 1f, centerY)) }
+        openTo(revealWidth)
+        composeTestRule.waitForIdle()
+        assertEquals(revealWidth.value, opened().value, 2f)
+        assert(innerRed() > 0.95f) { "at the reveal the inner action should be opaque, red ${innerRed()}" }
+
+        val midway = revealWidth + (threshold - revealWidth) / 2
+        openTo(midway)
+        composeTestRule.waitForIdle()
+        // Linear in how far past the reveal the row is, measured on the row itself.
+        val expected = 1f - (opened() - revealWidth) / (threshold - revealWidth)
+        assert(expected in 0.2f..0.8f) { "midway drag opened ${opened()}, expected alpha $expected" }
+        assertEquals(expected, innerRed(), 0.05f)
+
+        openTo(threshold - 2.dp)
+        composeTestRule.waitForIdle()
+        assertEquals((threshold - 2.dp).value, opened().value, 2f)
+        assert(innerRed() < 0.1f) { "near the threshold the inner action should be nearly gone, red ${innerRed()}" }
+
+        // Back short of the threshold and let go: the row settles revealed, the action opaque again.
+        openTo(revealWidth + 10.dp)
+        composeTestRule.onNodeWithTag(ROW).performTouchInput { up() }
+        composeTestRule.waitForIdle()
+        assertEquals(revealWidth.value, opened().value, 2f)
+        assert(innerRed() > 0.95f) { "after release the inner action should be opaque, red ${innerRed()}" }
+        assertEquals(0, trailingFired)
+    }
+
     private companion object {
         const val ROW = "row"
         // Wider than the circle, as the Members row's titles are.
@@ -213,5 +296,6 @@ class SwipeActionRowTest {
         // The chat list's leading title: no wider than the circle.
         const val SHORT_LABEL = "Unread"
         const val LEADING_DESCRIPTION = "Mark chat as unread"
+        const val INNER = "Inner action"
     }
 }
