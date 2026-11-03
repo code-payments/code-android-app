@@ -2646,8 +2646,11 @@ internal class ChatViewModel @AssistedInject constructor(
             .onEach {
                 val chatId = stateFlow.value.chatId ?: return@onEach
                 val group = stateFlow.value.subject as? ChatSubject.Group ?: return@onEach
-                if (group.isMember == false) chatCoordinator.refreshRules(chatId)
-                if (group.coverPicture == null) chatCoordinator.refreshCover(chatId)
+                // Each is its own GetChat writing its own column, and both swallow a failure.
+                coroutineScope {
+                    if (group.isMember == false) launch { chatCoordinator.refreshRules(chatId) }
+                    if (group.coverPicture == null) launch { chatCoordinator.refreshCover(chatId) }
+                }
             }
             .launchIn(viewModelScope)
 
