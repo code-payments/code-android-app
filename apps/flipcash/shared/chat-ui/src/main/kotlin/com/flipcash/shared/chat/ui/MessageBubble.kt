@@ -1096,12 +1096,9 @@ private fun CashBubble(
                             val each = content.partInDisplayCurrency(amount.part).formatted()
                             val eachLine = amount.text(LocalResources.current, each)
                             val secondaryColor = CodeTheme.colors.textSecondary
-                            // The caption's family: its Medium is the real Medium face, where the
-                            // amount's family draws Medium as Demi.
-                            val eachFamily = CodeTheme.typography.caption.fontFamily
                             Text(
-                                text = remember(eachLine, each, eachFamily, secondaryColor) {
-                                    eachAmountText(eachLine, each, eachFamily, secondaryColor)
+                                text = remember(eachLine, each, secondaryColor) {
+                                    eachAmountText(eachLine, each, secondaryColor)
                                 },
                                 style = amountStyle,
                                 color = CodeTheme.colors.textMain,

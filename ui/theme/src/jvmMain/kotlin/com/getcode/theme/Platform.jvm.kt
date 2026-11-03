@@ -40,15 +40,6 @@ internal actual object PlatformFonts {
         font("avenir_next_regular.otf", FontWeight.ExtraLight),
         font("avenir_next_regular.otf", FontWeight.Light),
         font("avenir_next_regular.otf", FontWeight.Normal),
-        font("avenir_next_demi.otf", FontWeight.Medium),
-        font("avenir_next_demi.otf", FontWeight.SemiBold),
-        font("avenir_next_demi.otf", FontWeight.Bold),
-        font("avenir_next_demi.otf", FontWeight.ExtraBold),
-        font("avenir_next_demi.otf", FontWeight.Black),
-    )
-
-    actual val avenirMedium = FontFamily(
-        font("avenir_next_medium.otf", FontWeight.Normal),
         font("avenir_next_medium.otf", FontWeight.Medium),
         font("avenir_next_demi.otf", FontWeight.SemiBold),
         font("avenir_next_demi.otf", FontWeight.Bold),
