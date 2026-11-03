@@ -125,10 +125,10 @@ class TransactionHistoryViewModel @Inject constructor(
                     )
                 },
                 onSuccess = {
-                    viewModelScope.launch {
-                        feedCoordinator.checkPendingMessagesForUpdates()
-                        tokenCoordinator.update()
-                    }
+                    // Separate data (the feed row, the balances), and each reports a failure in its
+                    // Result, so neither has to wait for the other.
+                    viewModelScope.launch { feedCoordinator.checkPendingMessagesForUpdates() }
+                    viewModelScope.launch { tokenCoordinator.update() }
                 }
             ).launchIn(viewModelScope)
     }

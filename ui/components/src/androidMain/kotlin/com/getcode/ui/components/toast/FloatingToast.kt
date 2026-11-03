@@ -26,12 +26,9 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.R
 import com.getcode.theme.White
 import com.getcode.ui.components.glass.floatingGlass
 import dev.chrisbanes.haze.HazeState
@@ -84,7 +81,7 @@ fun FloatingToast(
         }
         Text(
             text = message,
-            style = CodeTheme.typography.textSmall.copy(fontFamily = AvenirMedium, fontWeight = FontWeight.Medium),
+            style = CodeTheme.typography.textSmall.copy(fontWeight = FontWeight.Medium),
             color = CodeTheme.colors.textMain,
             modifier = Modifier
                 // Weighted children measure after the fixed ones, so a long message wraps rather
@@ -126,7 +123,3 @@ fun FloatingToast(
 
 // No theme token sits at 12%; White10 is the nearest below it.
 private val ActionFill = White.copy(alpha = 0.12f)
-
-// The theme maps Medium to the Demi file, so name the Medium cut directly: iOS sets this message in
-// Avenir Next Medium.
-private val AvenirMedium = FontFamily(Font(R.font.avenir_next_medium, FontWeight.Medium))

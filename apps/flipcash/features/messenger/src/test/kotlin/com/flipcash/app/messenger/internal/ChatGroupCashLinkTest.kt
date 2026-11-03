@@ -15,8 +15,6 @@ import com.flipcash.app.session.CashLinkClaims
 import com.flipcash.app.session.ChatCashLinks
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.userflags.UserFlagsCoordinator
-import com.flipcash.libs.coroutines.TestDispatcherProvider
-import com.flipcash.services.chat.E2eePolicy
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
@@ -24,7 +22,6 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.ChatDraftStore
 import com.flipcash.shared.chat.ChatMembership
-import com.flipcash.shared.chat.FeaturedGroupsStore
 import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
 import com.getcode.manager.BottomBarManager
@@ -44,6 +41,7 @@ import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.verify
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,7 +62,6 @@ import com.getcode.opencode.model.financial.SendLimit
 import com.flipcash.app.messenger.internal.groupsend.GroupSendState
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.shared.payments.group.GroupSendPaymentDelegate
-import com.flipcash.shared.payments.group.GroupSendPlan
 import com.getcode.opencode.model.financial.CurrencyCode
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -86,6 +83,7 @@ class ChatGroupCashLinkTest {
     var mainCoroutineRule = MainCoroutineRule(UnconfinedTestDispatcher())
 
     private val chatCoordinator = mockk<ChatCoordinator>(relaxed = true) {
+        coEvery { getPinnedMessages(any()) } returns Result.failure(IllegalStateException("no pins in this test"))
         coEvery { sampleChatters(any()) } returns Result.failure(IllegalStateException("not sampled"))
         every { observeMediaSendProgress() } returns kotlinx.coroutines.flow.emptyFlow()
     }
@@ -129,7 +127,7 @@ class ChatGroupCashLinkTest {
         every { userManager.accountCluster } returns owner
         every { userManager.accountId } returns viewerId
         coEvery {
-            groupSendPayments.send(any(), any(), any(), any(), any(), any())
+            groupSendPayments.send(any(), any(), any(), any(), any())
         } returns Result.success(Unit)
         every { exchange.preferredRate } returns Rate.oneToOne
         every { transactionController.limits } returns MutableStateFlow(
@@ -165,11 +163,9 @@ class ChatGroupCashLinkTest {
         BottomBarManager.clear()
     }
 
-    private fun createViewModel(): ChatViewModel = ChatViewModel(
+    private fun createViewModel(): ChatViewModel = chatViewModel(
+        dispatcher = mainCoroutineRule.dispatcher,
         chatCoordinator = chatCoordinator,
-        wrongKeyChats = com.flipcash.services.chat.WrongKeyChats(),
-        mediaUploads = noMediaUploads(),
-        e2eePolicy = E2eePolicy(),
         contactCoordinator = contactCoordinator,
         contactPaymentDelegate = contactPaymentDelegate,
         tipPaymentDelegate = tipPaymentDelegate,
@@ -189,17 +185,6 @@ class ChatGroupCashLinkTest {
         chatCashLinks = chatCashLinks,
         groupSendPayments = groupSendPayments,
         chatDraftStore = chatDraftStore,
-        recentReactionsStore = mockk(relaxed = true),
-        emojiCatalogLoader = mockk(relaxed = true),
-        toastController = mockk(relaxed = true),
-        userProfileDataSource = mockk(relaxed = true),
-        rosterSearch = mockk(relaxed = true),
-        featuredGroups = FeaturedGroupsStore(mockk(relaxed = true)),
-        lobbyRequests = mockk(relaxed = true),
-        hostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
-        groupRosters = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
-        dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
-        identifier = null,
     )
 
     private fun member(id: ID) = ChatMember(id, mockk<UserProfile>(relaxed = true), emptyList())
@@ -253,7 +238,7 @@ class ChatGroupCashLinkTest {
         val actions = sheet.actions
         // The spec's sheet is two rows: no title and no Dismiss.
         assertEquals("", sheet.title)
-        assertEquals(listOf("money_action_send", "money_action_request"), actions.map { it.testTag })
+        assertEquals(listOf("money_action_request", "money_action_send"), actions.map { it.testTag })
         assertTrue(events.none { it is ChatViewModel.Event.NavigateToAmountEntry })
 
         actions.first { it.testTag == "money_action_request" }.onClick()
@@ -377,7 +362,7 @@ class ChatGroupCashLinkTest {
 
         assertNull(vm.stateFlow.value.groupSend)
         coVerify(exactly = 1) { chatCashLinks.sendToChat(chatId, any(), token, owner) }
-        coVerify(exactly = 0) { groupSendPayments.send(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { groupSendPayments.send(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -388,7 +373,7 @@ class ChatGroupCashLinkTest {
 
         val state = vm.stateFlow.value
         assertEquals(GroupSendState.Stage.People, state.groupSend?.stage)
-        assertEquals(Fiat(2.0), state.groupSend?.total)
+        assertEquals(Fiat(2.0), state.groupSend?.amount)
         assertEquals(roster.map { it.userId }, state.groupSendCandidates.map { it.userId })
         coVerify(exactly = 0) { chatCashLinks.sendToChat(any(), any(), any(), any()) }
     }
@@ -405,19 +390,7 @@ class ChatGroupCashLinkTest {
     }
 
     @Test
-    fun `a total under a cent each alerts and stays on Select People`() = runTest(mainCoroutineRule.dispatcher) {
-        val vm = createViewModel()
-        selectingPeople(vm, total = 0.05)
-        vm.check(6)
-        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
-        advanceUntilIdle()
-
-        assertEquals(GroupSendState.Stage.People, vm.stateFlow.value.groupSend?.stage)
-        assertEquals(1, BottomBarManager.messages.value.size)
-    }
-
-    @Test
-    fun `the swipe pays the checked members in the order they were checked`() = runTest(mainCoroutineRule.dispatcher) {
+    fun `the swipe pays each checked member the amount entered, in the order they were checked`() = runTest(mainCoroutineRule.dispatcher) {
         val vm = createViewModel()
         val events = recordEvents(vm)
         selectingPeople(vm, total = 2.0)
@@ -434,13 +407,81 @@ class ChatGroupCashLinkTest {
             groupSendPayments.send(
                 chatId = chatId,
                 recipients = roster.take(6).reversed().map { it.userId },
-                plan = GroupSendPlan.Pay(listOf(34, 34, 33, 33, 33, 33)),
-                currency = CurrencyCode.USD,
+                amount = Fiat(2.0),
                 token = token,
                 source = any(),
             )
         }
         coVerify(exactly = 0) { chatCashLinks.sendToChat(any(), any(), any(), any()) }
         assertTrue(events.any { it is ChatViewModel.Event.SendComplete })
+    }
+
+    @Test
+    fun `a group send total above the balance passes the amount step and stops at confirm`() = runTest(mainCoroutineRule.dispatcher) {
+        every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(1.0)
+        val vm = createViewModel()
+        selectingPeople(vm, total = 5.0)
+
+        // The amount step does not check the balance: it moves on to Select People.
+        assertEquals(GroupSendState.Stage.People, vm.stateFlow.value.groupSend?.stage)
+        verify(exactly = 0) { startChattingPayer.presentInsufficientBalance(any()) }
+
+        vm.check(2)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
+        assertEquals(GroupSendState.Stage.Confirm, vm.stateFlow.value.groupSend?.stage)
+
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested)
+        advanceUntilIdle()
+
+        verify(exactly = 1) { startChattingPayer.presentInsufficientBalance(any()) }
+        coVerify(exactly = 0) { groupSendPayments.send(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a group send has no hint or ceiling on the amount step`() = runTest(mainCoroutineRule.dispatcher) {
+        every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(1.0)
+        val vm = createViewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.amountDelegate.config.collect { } }
+        vm.openGroup(isPrivate = true)
+        enterAmount(vm, 5.0)
+        advanceUntilIdle()
+        val hint = vm.amountDelegate.config.value.hint
+        assertEquals(com.flipcash.shared.amountentry.AmountEntryHint.None, hint)
+        assertTrue(vm.amountDelegate.config.value.canConfirm)
+    }
+
+    @Test
+    fun `the total is the amount times the people checked and the sender is not listed`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        selectingPeople(vm, total = 3.0)
+        vm.check(2)
+
+        val groupSend = vm.stateFlow.value.groupSend
+        assertEquals(Fiat(6.0), groupSend?.total)
+        assertTrue(vm.stateFlow.value.groupSendCandidates.none { it.userId == viewerId })
+    }
+
+    @Test
+    fun `nobody checked does not move on to confirm`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel()
+        selectingPeople(vm, total = 1.0)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
+        advanceUntilIdle()
+
+        assertEquals(GroupSendState.Stage.People, vm.stateFlow.value.groupSend?.stage)
+    }
+
+    @Test
+    fun `the balance is checked against the total, not the amount each`() = runTest(mainCoroutineRule.dispatcher) {
+        every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(5.0)
+        val vm = createViewModel()
+        selectingPeople(vm, total = 3.0)
+        vm.check(2)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendPeopleConfirmed)
+        vm.dispatchEvent(ChatViewModel.Event.OnGroupSendRequested)
+        advanceUntilIdle()
+
+        verify(exactly = 1) { startChattingPayer.presentInsufficientBalance(any()) }
+        coVerify(exactly = 0) { groupSendPayments.send(any(), any(), any(), any(), any()) }
     }
 }

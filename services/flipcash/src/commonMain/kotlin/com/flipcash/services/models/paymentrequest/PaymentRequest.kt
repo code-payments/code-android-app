@@ -141,16 +141,19 @@ fun newerOf(held: PaymentRequest?, incoming: PaymentRequest): PaymentRequest = w
 
 /**
  * What a creator sends to open a split in a private group. [text] is already sealed under the
- * group's chat key; [shares] lists who is asked, in roster order, the creator first when included.
+ * group's chat key; [shares] lists who is asked and for how much, in roster order, the creator
+ * first when included.
  */
 data class NewSplitRequest(
     val chatId: ChatId,
     val text: PaymentRequestText.Encrypted,
     val currency: CurrencyCode,
     val endsAt: Instant,
-    val shares: List<ID>,
-    val perPerson: Fiat,
+    val shares: List<NewShare>,
 )
+
+/** One member's part of a [NewSplitRequest]: a whole number, at least one, of the currency's smallest unit. */
+data class NewShare(val userId: ID, val amount: Fiat)
 
 /**
  * The intent id a viewer's share payment must use. Anyone who learns it before the share is paid

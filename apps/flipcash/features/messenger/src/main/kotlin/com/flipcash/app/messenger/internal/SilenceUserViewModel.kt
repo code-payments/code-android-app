@@ -22,7 +22,8 @@ import javax.inject.Inject
  *
  * Fire-and-forget like [MuteChatViewModel]: the sheet closes on the tap, and a failure is reported
  * by the error bar over whatever is on screen by then. Nothing is stored on success; the silence
- * is the silenced member's state, and the host's Silenced list applies it locally.
+ * is the silenced member's state; it goes out on [GroupRestrictionWrites] for the host's screens
+ * that show it.
  */
 @HiltViewModel
 internal class SilenceUserViewModel @Inject constructor(
@@ -30,15 +31,18 @@ internal class SilenceUserViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val toastController: SystemToastController,
     private val analytics: FlipcashAnalytics,
+    private val restrictionWrites: GroupRestrictionWrites,
 ) : ViewModel() {
 
     fun silence(chatId: ChatId, userId: ID, firstName: String, option: SilenceOption) {
+        val silence = option.toSilenceState()
         viewModelScope.launch {
             // Scoped to the sheet's entry, which is gone by the time the answer lands.
             withContext(NonCancellable) {
-                chatController.silenceUser(chatId, userId, option.toSilenceState()).also {
+                chatController.silenceUser(chatId, userId, silence).also {
                     analytics.trackMemberSilenced(option, it)
                 }.onSuccess {
+                    restrictionWrites.silenced(chatId, userId, silence)
                     toastController.showToast(option.toastRes, firstName, replacePrevious = true)
                 }.onFailure {
                     trace("failed to silence user - ${it.localizedMessage}")

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -58,6 +59,10 @@ import com.flipcash.app.messenger.internal.screens.profile.edit.NameEditScaffold
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.messenger.internal.swipepay.LocalSwipePayCurrencyPicker
+import com.getcode.navigation.core.LocalCodeNavigator
+import androidx.compose.runtime.CompositionLocalProvider
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.getcode.utils.base58
 import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
@@ -100,6 +105,8 @@ internal fun RequestMoneyScreen(
             }
         }
     }
+    // The chat flow's navigator, read before this screen's own FlowHost shadows it.
+    val chatNavigator = LocalCodeNavigator.current
     val back = { if (!viewModel.back()) onClose() }
     val target = stackFor(state.stage)
     // Seeded once. FlowHost re-seeds, without a transition, when initialStack changes before
@@ -166,6 +173,7 @@ internal fun RequestMoneyScreen(
                         onBack = back,
                         onToggle = { viewModel.toggle(it.userId) },
                         onSend = back,
+                        title = stringResource(R.string.title_splitBetween),
                         buttonText = stringResource(R.string.action_done),
                         buttonEnabled = draft.canContinue,
                         viewerId = viewModel.viewerId,
@@ -174,13 +182,18 @@ internal fun RequestMoneyScreen(
             }
             annotatedEntry<RequestStep.Details> { step ->
                 val flowNavigator = rememberFlowNavigator<RequestStep, Parcelable>()
-                RequestDetailsScreen(
-                    chatId = chatId,
-                    requestId = step.requestId,
-                    onBack = { flowNavigator.back() },
-                    onOpenScreen = onOpenScreen,
-                    pushed = true,
-                )
+                // The pay sheet's currency pill opens a half sheet on the chat flow, not on this host.
+                CompositionLocalProvider(
+                    LocalSwipePayCurrencyPicker provides { chatNavigator.push(ChatStep.SendCurrency) },
+                ) {
+                    RequestDetailsScreen(
+                        chatId = chatId,
+                        requestId = step.requestId,
+                        onBack = { flowNavigator.back() },
+                        onOpenScreen = onOpenScreen,
+                        pushed = true,
+                    )
+                }
             }
             annotatedEntry<RequestStep.Name> {
                 FollowStage(RequestStep.Name, target, onBack = back)
@@ -371,7 +384,8 @@ private fun RequestSummaryContent(
     onTiming: () -> Unit,
     onRequest: () -> Unit,
 ) {
-    val amount = draft.perPerson?.text().orEmpty()
+    val amount = draft.amount?.text().orEmpty()
+    val total = draft.totalAmount?.text().orEmpty()
     val resources = LocalResources.current
     CodeScaffold(
         topBar = {
@@ -389,7 +403,7 @@ private fun RequestSummaryContent(
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(bottom = CodeTheme.dimens.grid.x2)
                     .testTag("request_summary_send"),
-                text = requestButtonText(draft, amount, resources),
+                text = requestButtonText(total, resources),
                 enabled = draft.canSend,
                 isLoading = sending,
                 onClick = onRequest,
@@ -403,16 +417,21 @@ private fun RequestSummaryContent(
                 .padding(horizontal = CodeTheme.dimens.inset),
         ) {
             Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
-            Text(
-                text = amount,
-                style = CodeTheme.typography.displayLarge,
-                color = CodeTheme.colors.textMain,
-            )
-            Text(
-                text = stringResource(R.string.label_perPerson),
-                style = CodeTheme.typography.textMedium,
-                color = CodeTheme.colors.textSecondary,
-            )
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = amount,
+                    style = CodeTheme.typography.displayLarge,
+                    color = CodeTheme.colors.textMain,
+                    modifier = Modifier.alignByBaseline(),
+                )
+                Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
+                Text(
+                    text = stringResource(R.string.label_requestEach),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textSecondary,
+                    modifier = Modifier.alignByBaseline(),
+                )
+            }
             Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
             SummaryRow(
                 label = stringResource(R.string.label_requestName),

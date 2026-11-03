@@ -8,6 +8,7 @@ import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatTitle
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import com.getcode.view.LoadingSuccessState

@@ -84,10 +84,13 @@ The feature plugin automatically includes `:libs:logging`, `:ui:core`, `:ui:comp
 - **Feature modules are self-contained**: Each has its own state, controllers, and UI; communicates via shared modules
 - **Protobuf models**: Backend models come from the published `com.flipcash:{ocp,flipcash2}-client-protocol` artifacts, not from protos in this repo; the contracts are generated in their own repos
 - **Dark mode only**: App forces `MODE_NIGHT_YES`
+- **Mode state lives at screen level**: drive mode transitions (select, edit) from screen-level state. A composable whose structure changes with the mode rebuilds its children and drops their running transitions (the chat list's select circle lost its slide-in this way).
 
 ## Definition of Done
 
 A code change is done when the touched modules' unit tests pass and `./gradlew :apps:flipcash:app:compileDebugKotlin` succeeds.
+
+Tests for gestures and pointer input replay the sequence a finger makes on the device, such as a partial reveal followed by a full swipe. A semantics action or a single fling can pass while the real gesture fails: the leading swipe's reset and the desktop peek toggle both did.
 
 ## Namespaces
 

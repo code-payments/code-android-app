@@ -85,13 +85,10 @@ fun NewGroupFlowScreen(
                     navigator.popUntil {
                         it !is AppRoute.Messaging.NewGroup && it !is AppRoute.Messaging.NewChat
                     }
-                    // A private group opens on its profile (surface 6): nothing can happen in the
-                    // chat until the host approves someone, and the profile is where requests are.
+                    // Every new group opens on the conversation, private or not. A group with only
+                    // its creator in it shows the "Your Group Is Ready" invite card there.
                     navigator.push(
-                        AppRoute.Messaging.Chat(
-                            identifier = ChatIdentifier.ByChatId(chatId),
-                            openOnProfile = route.isPrivate,
-                        )
+                        AppRoute.Messaging.Chat(identifier = ChatIdentifier.ByChatId(chatId))
                     )
                 }
             }

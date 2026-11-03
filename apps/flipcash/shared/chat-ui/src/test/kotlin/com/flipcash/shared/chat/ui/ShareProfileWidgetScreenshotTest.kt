@@ -64,6 +64,11 @@ class ShareProfileWidgetScreenshotTest {
         PreviewShareProfileWidget(state = LinkCard.User.State.NotFound, username = "satoshi")
     }
 
+    @Test
+    fun rendersGroupReadyCard() = render("group_ready_card.png") {
+        GroupReadyCardBubble(groupName = "Brothers", onInvite = {})
+    }
+
     private fun render(name: String, content: @Composable () -> Unit) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {

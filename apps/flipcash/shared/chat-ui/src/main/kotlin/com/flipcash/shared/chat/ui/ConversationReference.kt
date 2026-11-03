@@ -43,6 +43,11 @@ data class ConversationReference(
      * spoken in, which is the one case a row can call empty.
      */
     val hasMessages: Boolean = true,
+    /**
+     * Whether this is a group still waiting for its first guests (see [groupAwaitsInvites]). Only
+     * changes what an empty row says: a chat with messages has something better to show.
+     */
+    val awaitsInvites: Boolean = false,
     /** The chat's last-activity timestamp; drives recency sorting and the row's trailing timestamp. */
     val lastActivity: Instant? = null,
     /** Messages past the viewer's READ pointer: 0 when read, null when unread by an unknown count. */

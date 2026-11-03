@@ -71,19 +71,25 @@ fun RowScope.ChatRowTrailing(
  * not the same thing: a chat whose newest message is media or a system event previews as nothing
  * but is not empty, and telling the viewer it is would be a lie. Rows that cannot tell the
  * difference leave [hasMessages] alone and keep their own fallback.
+ *
+ * An empty group that [awaitsInvites] says so instead of "Nothing yet", to encourage the first invites.
  */
 @Composable
 fun ChatRowSubtitle(
     isTyping: Boolean,
     preview: String?,
     hasMessages: Boolean = true,
+    awaitsInvites: Boolean = false,
     fallback: @Composable () -> Unit = {},
 ) {
     when {
         isTyping -> SubtitleText(stringResource(R.string.label_isTyping))
         !preview.isNullOrEmpty() -> SubtitleText(preview)
         !hasMessages -> SubtitleText(
-            text = stringResource(R.string.label_chat_preview_noMessages),
+            text = stringResource(
+                if (awaitsInvites) R.string.label_chat_preview_inviteToStart
+                else R.string.label_chat_preview_noMessages,
+            ),
             // Italic marks it as the row talking about itself rather than quoting a message —
             // the same distinction the tombstone bubble draws.
             fontStyle = FontStyle.Italic,

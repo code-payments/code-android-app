@@ -12,18 +12,15 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.SharedTransitionScope.ResizeMode.Companion.scaleToBounds
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -45,7 +42,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -60,8 +56,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.CoroutineScope
-import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material.icons.filled.Close
@@ -69,9 +63,9 @@ import androidx.compose.material.icons.Icons
 import com.flipcash.shared.chat.ui.ActionCapsule
 import com.flipcash.shared.chat.ui.ActionCapsuleButton
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -123,13 +117,13 @@ import kotlin.math.roundToInt
 import kotlin.time.Instant
 
 /**
- * The shared-element scope the deck pill (in the app bar) and the expanded list (over the
+ * The shared-element scope the deck's stack (under the app bar) and the expanded list (over the
  * transcript) share, so the front card can move between them. Null outside [RequestDeckLayout].
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 private val LocalDeckTransition = compositionLocalOf<SharedTransitionScope?> { null }
 
-/** Hosts the screen so the deck's front card can move between the app bar and the expanded list. */
+/** Hosts the screen so the deck's front card can move between the stack and the expanded list. */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 internal fun RequestDeckLayout(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
@@ -149,7 +143,7 @@ private fun sharedKey(id: ID, part: String) = "payment-request-${id.hashCode()}-
 /**
  * Ties one piece of the front card (the container, the title, the ring or the amounts) to its
  * counterpart in the other state, so each moves on its own rather than fading with the card.
- * Text scales to its new bounds, since the pill and the card set it in different styles.
+ * Text scales to its new bounds, since the stack and the expanded card set it in different styles.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -180,12 +174,9 @@ private fun Modifier.deckShared(
     }
 }
 
-/** Where the deck sits and how loud it is. */
+/** Where the deck is: resting as the stack under the app bar, or expanded over the transcript. */
 internal enum class DeckPlacement {
-    /** The grey pill in the app bar: the viewer owes nothing, or the strip has collapsed into it. */
-    Pill,
-
-    /** The full-width card under the app bar: the viewer owes. */
+    /** The full-width card stack under the app bar, for every viewer (concept node 12670:1262). */
     Strip,
 
     /** Every request as a card over the transcript. */
@@ -193,52 +184,11 @@ internal enum class DeckPlacement {
 }
 
 /**
- * The app-bar deck (concept B): the front request with up to two cards peeking beneath it. Swipe
- * down cycles; tap expands. Shown while [transition] is at the pill; the front card moves from
- * there to the strip and the expanded list as one shared element.
- */
-@Composable
-internal fun RequestDeckPill(
-    deck: List<PaymentRequest>,
-    now: Instant,
-    viewerId: ID?,
-    transition: Transition<DeckPlacement>,
-    onExpand: () -> Unit,
-    onCycle: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    // Held through the exit, so the pill doesn't empty as it fades out.
-    var shown by remember { mutableStateOf(deck) }
-    if (deck.isNotEmpty()) shown = deck
-    // Arriving and leaving: a fade and a slight scale in place, while the width eases so the title
-    // makes room. A deck that is there when the chat opens starts visible, so it doesn't fade.
-    AnimatedVisibility(
-        visible = deck.isNotEmpty(),
-        enter = fadeIn(tween(APPEAR_MILLIS)) +
-            scaleIn(tween(APPEAR_MILLIS), initialScale = APPEAR_SCALE) +
-            expandHorizontally(tween(APPEAR_MILLIS), expandFrom = Alignment.End, clip = false),
-        exit = fadeOut(tween(APPEAR_MILLIS)) +
-            scaleOut(tween(APPEAR_MILLIS), targetScale = APPEAR_SCALE) +
-            shrinkHorizontally(tween(APPEAR_MILLIS), shrinkTowards = Alignment.End, clip = false),
-        modifier = modifier,
-    ) {
-        DeckStack(
-            deck = shown,
-            now = now,
-            viewerId = viewerId,
-            style = DeckPlacement.Pill,
-            transition = transition,
-            onExpand = onExpand,
-            onCycle = onCycle,
-            onPay = {},
-        )
-    }
-}
-
-/**
- * The deck as a full-width card under the app bar (concept node 12670:1262), shown while the
- * viewer owes and the timeline is at its newest messages. It keeps its room while [expanded], so
- * the timeline doesn't move under the expanded cards, and gives it up as it leaves for the pill.
+ * The deck as a full-width card stack under the app bar (concept node 12670:1262), for every
+ * viewer. It stays put while the timeline scrolls, and keeps its room while expanded so the
+ * timeline doesn't move under the expanded cards. Arriving or leaving after the chat is on screen
+ * it fades and scales in place while the room under it opens or closes; a deck there when the chat
+ * opens is in place on the first frame.
  */
 @Composable
 internal fun RequestDeckStrip(
@@ -246,39 +196,35 @@ internal fun RequestDeckStrip(
     now: Instant,
     viewerId: ID?,
     transition: Transition<DeckPlacement>,
-    rest: DeckPlacement,
     onExpand: () -> Unit,
     onCycle: () -> Unit,
     onPay: (PaymentRequest) -> Unit,
-    onHeightChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var shown by remember { mutableStateOf(deck) }
     if (deck.isNotEmpty()) shown = deck
-    // Linear, so a scroll that seeks it into the pill takes its height off at the scroll's pace.
-    transition.AnimatedVisibility(
-        visible = {
-            deck.isNotEmpty() &&
-                (it == DeckPlacement.Strip || it == DeckPlacement.Expanded && rest == DeckPlacement.Strip)
-        },
-        enter = expandVertically(tween(STRIP_MILLIS, easing = LinearEasing), expandFrom = Alignment.Top),
-        exit = shrinkVertically(tween(STRIP_MILLIS, easing = LinearEasing), shrinkTowards = Alignment.Top),
+    AnimatedVisibility(
+        visible = deck.isNotEmpty(),
+        enter = expandVertically(tween(APPEAR_MILLIS), expandFrom = Alignment.Top) +
+            fadeIn(tween(APPEAR_MILLIS)) +
+            scaleIn(tween(APPEAR_MILLIS), initialScale = APPEAR_SCALE),
+        exit = shrinkVertically(tween(APPEAR_MILLIS), shrinkTowards = Alignment.Top) +
+            fadeOut(tween(APPEAR_MILLIS)) +
+            scaleOut(tween(APPEAR_MILLIS), targetScale = APPEAR_SCALE),
         modifier = modifier,
     ) {
         Box(
             modifier = Modifier
-                // Its whole height, padding included: the scroll that collapses it into the pill.
-                .onSizeChanged { onHeightChange(it.height) }
+                .testTag(DECK_TAG)
                 .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .padding(top = CodeTheme.dimens.grid.x2)
-                .height(DeckStyle.Strip.height + DeckStyle.Strip.step * 2),
+                .height(STRIP_HEIGHT + STRIP_STEP * 2),
         ) {
             DeckStack(
                 deck = shown,
                 now = now,
                 viewerId = viewerId,
-                style = DeckPlacement.Strip,
                 transition = transition,
                 onExpand = onExpand,
                 onCycle = onCycle,
@@ -288,26 +234,35 @@ internal fun RequestDeckStrip(
     }
 }
 
-/** The stack's measurements in each placement. */
-private class DeckStyle(
-    val height: Dp,
-    val shape: RoundedCornerShape,
-    val inset: Dp,
-    val step: Dp,
-) {
-    companion object {
-        val Pill = DeckStyle(height = 43.dp, shape = RoundedCornerShape(18.dp), inset = 7.dp, step = 5.dp)
-        val Strip = DeckStyle(height = 64.dp, shape = RoundedCornerShape(20.dp), inset = 8.dp, step = 6.dp)
+/**
+ * Where the front card goes for one step of a vertical drag on the stack, from [value] by [delta],
+ * with [heightPx] the card's height. Down follows the finger, rubber-banding past one card height;
+ * with one request, or upward, it's a small elastic pull and nothing more.
+ */
+internal fun deckDragTarget(value: Float, delta: Float, canCycle: Boolean, heightPx: Float): Float {
+    val pull = heightPx * ELASTIC_PULL
+    return when {
+        // Upward, or anywhere with one request: a small elastic pull.
+        !canCycle -> (value + delta * ELASTIC_RESISTANCE).coerceIn(-pull, pull)
+        value < 0f || (value == 0f && delta < 0f) ->
+            (value + delta * ELASTIC_RESISTANCE).coerceIn(-pull, 0f)
+        // Past one card height the card rubber-bands instead of sliding on into the chat.
+        delta > 0f && value >= heightPx -> {
+            val over = (value - heightPx) / (heightPx * RUBBER_BAND)
+            value + delta * 0.5f * (1f - over).coerceAtLeast(0f)
+        }
+        else -> (value + delta).coerceAtLeast(0f)
     }
 }
 
-private val DeckPlacement.deckStyle: DeckStyle
-    get() = if (this == DeckPlacement.Strip) DeckStyle.Strip else DeckStyle.Pill
+/** Whether a drag let go at [value] (moving at [velocity], px/s) moves the front card to the back. */
+internal fun deckDragCycles(value: Float, velocity: Float, canCycle: Boolean, heightPx: Float): Boolean =
+    canCycle && value > 0f && (value > heightPx * CYCLE_THRESHOLD || velocity > FLING_VELOCITY)
 
 /**
- * The front request with up to two cards peeking beneath it, in one of the deck's placements.
- * Swipe down cycles; tap expands. Shown while [transition] is at [style], whose scope its front
- * card moves between placements in.
+ * The front request with up to two cards peeking beneath it. Swipe down cycles; tap expands; a
+ * drag up is only an elastic pull. Shown while [transition] rests, whose scope its front card
+ * moves to the expanded list in.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -315,21 +270,18 @@ private fun DeckStack(
     deck: List<PaymentRequest>,
     now: Instant,
     viewerId: ID?,
-    style: DeckPlacement,
     transition: Transition<DeckPlacement>,
     onExpand: () -> Unit,
     onCycle: () -> Unit,
     onPay: (PaymentRequest) -> Unit,
 ) {
     transition.AnimatedVisibility(
-        visible = { it == style },
+        visible = { it == DeckPlacement.Strip },
         enter = fadeIn(tween(STRIP_MILLIS)),
         exit = fadeOut(tween(STRIP_MILLIS)),
     ) {
         val front = deck.firstOrNull() ?: return@AnimatedVisibility
-        val geometry = style.deckStyle
-        val shape = geometry.shape
-        val strip = style == DeckPlacement.Strip
+        val shape = STRIP_SHAPE
         val transition = LocalDeckTransition.current
         val density = LocalDensity.current
         val scope = rememberCoroutineScope()
@@ -339,13 +291,12 @@ private fun DeckStack(
         // the swipe that was. The hand-over starts every card from there.
         var releaseDrag by remember { mutableFloatStateOf(0f) }
         var releaseProgress by remember { mutableFloatStateOf(1f) }
-        val pillHeightPx = with(density) { geometry.height.toPx() }
+        val cardHeightPx = with(density) { STRIP_HEIGHT.toPx() }
         val canCycle = deck.size > 1
-        val pillWidth = remember(scope) { PillWidth(scope) }
 
-        val label = deckLabel(deck, now, viewerId, strip)
+        val label = deckLabel(deck, now, viewerId)
         val nextLabel = stringResource(R.string.action_nextRequest)
-        // The strip's Pay is a button of its own, so the deck's label goes on the rest of its card.
+        // Pay is a button of its own, so the deck's label goes on the rest of the front card.
         val deckSemantics = Modifier.clearAndSetSemantics {
             contentDescription = label
             role = Role.Button
@@ -353,20 +304,18 @@ private fun DeckStack(
             if (canCycle) customActions = listOf(CustomAccessibilityAction(nextLabel) { onCycle(); true })
         }
         Box(
-            modifier = Modifier
-                .padding(bottom = geometry.step * 2)
-                .then(if (strip) Modifier else deckSemantics),
+            modifier = Modifier.padding(bottom = STRIP_STEP * 2),
         ) {
             // How far the front card is through being swiped to the back, 0 to 1. The cards behind
             // rise a slot with it, so the next request is already in place when the swipe lands.
-            val progress = (drag.value / pillHeightPx).coerceIn(0f, 1f)
-            val insetPx = with(density) { geometry.inset.toPx() }
-            val stepPx = with(density) { geometry.step.toPx() }
-            // The card just swiped off, travelling from below the pill to its slot at the back.
+            val progress = (drag.value / cardHeightPx).coerceIn(0f, 1f)
+            val insetPx = with(density) { STRIP_INSET.toPx() }
+            val stepPx = with(density) { STRIP_STEP.toPx() }
+            // The card just swiped off, travelling from below the front slot to its slot at the back.
             val swiped = if (canCycle && arrive.value < 1f) deck.last() else null
             val swipedDepth = (deck.size - 1).coerceAtMost(2).toFloat()
             // How far each card still has to rise after a hand-over: the swipe was let go short of
-            // a full pill height, so the cards behind finish the step on the same spring.
+            // a full card height, so the cards behind finish the step on the same spring.
             val handover = (1f - releaseProgress) * (1f - arrive.value)
 
             @Composable
@@ -375,19 +324,18 @@ private fun DeckStack(
                     modifier = Modifier
                         .matchParentSize()
                         .graphicsLayer(layer)
-                        // The request rising from behind is wider or narrower than the pill until
-                        // the swipe is let go; it shows clipped to the card until then.
+                        // The request rising from behind shows clipped to its card until the
+                        // swipe is let go.
                         .clip(shape)
                         .background(CodeTheme.colors.background, shape)
-                        .background(peekColor(style, depth), shape)
+                        .background(peekColor(depth), shape)
                         .border(1.dp, CodeTheme.colors.border, shape),
                 ) {
                     if (content) {
-                        DeckCardFront(
+                        StripFront(
                             request = request,
                             now = now,
                             viewerId = viewerId,
-                            style = style,
                             visibility = null,
                             onPay = {},
                             modifier = Modifier.fillMaxSize(),
@@ -434,16 +382,15 @@ private fun DeckStack(
                     },
                 )
             }
-            DeckCardFront(
+            StripFront(
                 request = front,
                 now = now,
                 viewerId = viewerId,
-                style = style,
                 visibility = this@AnimatedVisibility,
                 onPay = { onPay(front) },
-                bodyModifier = if (strip) deckSemantics else Modifier,
+                bodyModifier = deckSemantics,
                 modifier = Modifier
-                    .then(if (strip) Modifier.fillMaxWidth() else pillWidth.modifier)
+                    .fillMaxWidth()
                     .then(
                         if (transition != null) with(transition) {
                             Modifier.sharedBounds(
@@ -465,29 +412,15 @@ private fun DeckStack(
                         orientation = Orientation.Vertical,
                         state = rememberDraggableState { delta ->
                             scope.launch {
-                                val value = drag.value
-                                val next = if (!canCycle) {
-                                    // One request: a small elastic pull and nothing more.
-                                    (value + delta * 0.3f).coerceIn(0f, pillHeightPx * 0.25f)
-                                } else if (delta > 0f && value >= pillHeightPx) {
-                                    // Past one pill height the card rubber-bands instead of
-                                    // sliding on into the chat.
-                                    val over = (value - pillHeightPx) / (pillHeightPx * RUBBER_BAND)
-                                    value + delta * 0.5f * (1f - over).coerceAtLeast(0f)
-                                } else {
-                                    (value + delta).coerceAtLeast(0f)
-                                }
-                                drag.snapTo(next)
+                                drag.snapTo(deckDragTarget(drag.value, delta, canCycle, cardHeightPx))
                             }
                         },
                         onDragStopped = { velocity ->
-                            val past = drag.value > pillHeightPx * CYCLE_THRESHOLD || velocity > FLING_VELOCITY
-                            if (canCycle && past) {
+                            if (deckDragCycles(drag.value, velocity, canCycle, cardHeightPx)) {
                                 // Hand over on release: the card that rose becomes the front and the
-                                // swiped one drops behind to the back, each from where it was, while
-                                // the pill eases to the new front's width on the same spring.
+                                // swiped one drops behind to the back, each from where it was.
                                 releaseDrag = drag.value
-                                releaseProgress = (drag.value / pillHeightPx).coerceIn(0f, 1f)
+                                releaseProgress = (drag.value / cardHeightPx).coerceIn(0f, 1f)
                                 drag.snapTo(0f)
                                 arrive.snapTo(0f)
                                 onCycle()
@@ -506,35 +439,15 @@ private fun DeckStack(
 
 /** A peeking card's fill at [depth]: the front's surface one slot back, fading toward the next. */
 @Composable
-private fun peekColor(style: DeckPlacement, depth: Float): Color {
+private fun peekColor(depth: Float): Color {
     val back = (depth - 1f).coerceIn(0f, 1f)
-    return when (style) {
-        DeckPlacement.Pill, DeckPlacement.Expanded -> lerp(CodeTheme.colors.surfaceVariant, CodeTheme.colors.surface, back)
-        DeckPlacement.Strip -> lerp(CodeTheme.colors.surfaceVariant, Color.White.copy(alpha = 0.08f), back)
-    }
-}
-
-/** The front card's face in [style]. [bodyModifier] goes on everything but the strip's Pay button. */
-@Composable
-private fun DeckCardFront(
-    request: PaymentRequest,
-    now: Instant,
-    viewerId: ID?,
-    style: DeckPlacement,
-    visibility: AnimatedVisibilityScope?,
-    onPay: () -> Unit,
-    modifier: Modifier = Modifier,
-    bodyModifier: Modifier = Modifier,
-) {
-    when (style) {
-        DeckPlacement.Pill, DeckPlacement.Expanded -> DeckFront(request = request, now = now, viewerId = viewerId, visibility = visibility, modifier = modifier)
-        DeckPlacement.Strip -> StripFront(request, now, viewerId, visibility, onPay, modifier, bodyModifier)
-    }
+    return lerp(CodeTheme.colors.surfaceVariant, Color.White.copy(alpha = 0.08f), back)
 }
 
 /**
- * The strip's front card (concept node 12670:1262): glyph, title, "You owe <share> · <time left>"
- * and Pay; or the viewer's status line and no Pay on a card the viewer doesn't owe on.
+ * The stack's front card (concept node 12670:1262): glyph, title, "You owe <share> · <time left>",
+ * Pay and a success outline while the viewer owes on it; otherwise the viewer's status line, no
+ * Pay and no outline. Paying the last owed share changes it in place.
  */
 @Composable
 private fun StripFront(
@@ -546,14 +459,14 @@ private fun StripFront(
     modifier: Modifier = Modifier,
     bodyModifier: Modifier = Modifier,
 ) {
-    val shape = DeckStyle.Strip.shape
+    val shape = STRIP_SHAPE
     val share = request.unpaidShareOf(viewerId, now)
     val standing = request.viewerStanding(viewerId, now)
     val ended = !request.isOpen(now)
     val alpha by animateFloatAsState(if (ended) ENDED_ALPHA else 1f, RequestMotion.change(), label = "ended fade")
     Row(
         modifier = modifier
-            .height(DeckStyle.Strip.height)
+            .height(STRIP_HEIGHT)
             .background(CodeTheme.colors.background, shape)
             .alpha(alpha)
             .background(CodeTheme.colors.surfaceVariant, shape)
@@ -643,106 +556,6 @@ private fun StatusLine.timeLeftText(): String = when (this) {
     else -> text()
 }
 
-@Composable
-private fun DeckFront(
-    request: PaymentRequest,
-    now: Instant,
-    viewerId: ID?,
-    visibility: AnimatedVisibilityScope?,
-    modifier: Modifier = Modifier,
-) {
-    val ended = !request.isOpen(now)
-    val split = request.split
-    val standing = request.viewerStanding(viewerId, now)
-    val alpha by animateFloatAsState(if (ended) ENDED_ALPHA else 1f, RequestMotion.change(), label = "ended fade")
-    Row(
-        modifier = modifier
-            .background(CodeTheme.colors.background, PILL_SHAPE)
-            .alpha(alpha)
-            .background(CodeTheme.colors.surfaceVariant, PILL_SHAPE)
-            .border(1.dp, CodeTheme.colors.border, PILL_SHAPE)
-            .padding(
-                start = CodeTheme.dimens.grid.x1,
-                end = CodeTheme.dimens.grid.x2,
-                top = CodeTheme.dimens.grid.x1,
-                bottom = CodeTheme.dimens.grid.x1,
-            )
-            .widthIn(max = PILL_MAX_WIDTH),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-    ) {
-        RequestRing(
-            request = request,
-            now = now,
-            size = RING_SIZE,
-            paid = standing is ViewerStanding.Paid,
-            modifier = Modifier
-                .deckShared(request.id, "glyph", visibility, CircleShape),
-        )
-        // The text room the widest pill leaves, so a title ellipsizes only at that width and not
-        // while the pill eases open around it.
-        val textMax = PILL_MAX_WIDTH - RING_SIZE - CodeTheme.dimens.grid.x2
-        Column {
-            Text(
-                text = request.deckTitle.orEmpty(),
-                style = CodeTheme.typography.caption,
-                color = CodeTheme.colors.textMain,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .measuredUpTo(textMax)
-                    .deckShared(request.id, "title", visibility),
-            )
-            if (split != null) {
-                ViewerStatusLine(
-                    request = request,
-                    standing = standing,
-                    style = CodeTheme.typography.caption,
-                    color = CodeTheme.colors.textSecondary,
-                    modifier = Modifier
-                        .measuredUpTo(textMax)
-                        .deckShared(request.id, "amounts", visibility),
-                )
-            }
-        }
-    }
-}
-
-/**
- * The deck's width, sprung to each new front's natural width on the spring the cards move on, so
- * the pill and every card stretched to it ease together from the moment a swipe is let go. The
- * front surface draws at the eased width and its content clips inside it.
- */
-private class PillWidth(private val scope: CoroutineScope) {
-    private val width = Animatable(0f)
-    private var target = 0
-
-    val modifier: Modifier = Modifier.layout { measurable, constraints ->
-        val natural = constraints.constrainWidth(measurable.maxIntrinsicWidth(constraints.maxHeight))
-        if (natural != target) {
-            val first = target == 0
-            target = natural
-            scope.launch {
-                if (first) width.snapTo(natural.toFloat()) else width.animateTo(natural.toFloat(), DECK_SPRING)
-            }
-        }
-        val current = if (width.value == 0f) natural else width.value.roundToInt()
-        val placeable = measurable.measure(constraints.copy(minWidth = current, maxWidth = current))
-        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
-    }
-}
-
-/**
- * Measures the content as if [max] wide were free, then reports no more than the room it has, so
- * a container easing open clips the content rather than re-wrapping or ellipsizing it each frame.
- */
-private fun Modifier.measuredUpTo(max: Dp): Modifier = layout { measurable, constraints ->
-    val placeable = measurable.measure(constraints.copy(maxWidth = max.roundToPx()))
-    layout(placeable.width.coerceAtMost(constraints.maxWidth), placeable.height) {
-        placeable.placeRelative(0, 0)
-    }
-}
-
 /**
  * The paid fraction as a ring around a "$" glyph, filled clockwise from 12 o'clock. Grey once
  * the request has ended; full once it completed; a closed request shows "✓".
@@ -790,14 +603,14 @@ internal fun RequestRing(
 
 /**
  * "<N> requests, <title>, <viewer status>, <paid> of <requested> paid, <status line>", the viewer
- * status left out with no share; or in the [strip], on a share still owed, "You owe <share> for
- * <title>, <status line>".
+ * status left out with no share; or, on a share still owed, "You owe <share> for <title>, <status
+ * line>".
  */
 @Composable
-private fun deckLabel(deck: List<PaymentRequest>, now: Instant, viewerId: ID?, strip: Boolean): String {
+private fun deckLabel(deck: List<PaymentRequest>, now: Instant, viewerId: ID?): String {
     val front = deck.first()
     val split = front.split
-    val share = front.unpaidShareOf(viewerId, now)?.takeIf { strip }
+    val share = front.unpaidShareOf(viewerId, now)
     val standing = front.viewerStanding(viewerId, now).description()
     val main = if (share != null) stringResource(
         R.string.cd_requestOwed,
@@ -825,7 +638,7 @@ private fun deckLabel(deck: List<PaymentRequest>, now: Instant, viewerId: ID?, s
 /**
  * The deck expanded over the transcript (concept node 12625:1318): every request as its timeline
  * card at full width, in deck order, over a dimmed chat. The first card is the front card moved
- * down from the app bar. Collapses on a tap on the dimmed chat, a drag up, or back.
+ * down from the stack. Collapses on a tap on the dimmed chat, a drag up, or back.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -836,7 +649,7 @@ internal fun ExpandedRequests(
     expanded: Boolean,
     transition: Transition<DeckPlacement>,
     top: Dp,
-    pill: Rect?,
+    closeAnchor: Rect?,
     onCollapse: () -> Unit,
     onOpen: (PaymentRequest) -> Unit,
 ) {
@@ -926,21 +739,19 @@ internal fun ExpandedRequests(
             }
         }
     }
-    // Where the pill sat: a way out at the spot the card came from. Above the backdrop, in with it,
-    // and out first on collapse so it is gone before the pill lands back there. Remove this call to
-    // drop it.
-    DeckCloseButton(expanded = expanded, pill = pill, onCollapse = onCollapse)
+    // In the app bar's trailing slot, above the backdrop: in with it, and out first on collapse.
+    // Remove this call to drop it.
+    DeckCloseButton(expanded = expanded, anchor = closeAnchor, onCollapse = onCollapse)
 }
 
 /**
- * The expanded deck's close button, placed over [pill] (the collapsed pill's last bounds in the
- * window), its end on the pill's end and centred on the front card.
+ * The expanded deck's close button, placed at [anchor] (the app bar's trailing slot, in the
+ * window): its end on the anchor's end, centred on it vertically.
  */
 @Composable
-private fun DeckCloseButton(expanded: Boolean, pill: Rect?, onCollapse: () -> Unit) {
-    pill ?: return
+private fun DeckCloseButton(expanded: Boolean, anchor: Rect?, onCollapse: () -> Unit) {
+    anchor ?: return
     var origin by remember { mutableStateOf(Offset.Zero) }
-    val cardCenter = with(LocalDensity.current) { PILL_HEIGHT.toPx() / 2 }
     Box(modifier = Modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInWindow() }) {
         AnimatedVisibility(
             visible = expanded,
@@ -950,8 +761,8 @@ private fun DeckCloseButton(expanded: Boolean, pill: Rect?, onCollapse: () -> Un
                 val placeable = measurable.measure(constraints.copy(minWidth = 0, minHeight = 0))
                 layout(constraints.maxWidth, constraints.maxHeight) {
                     placeable.place(
-                        x = (pill.right - origin.x).roundToInt() - placeable.width,
-                        y = (pill.top + cardCenter - origin.y).roundToInt() - placeable.height / 2,
+                        x = (anchor.right - origin.x).roundToInt() - placeable.width,
+                        y = (anchor.center.y - origin.y).roundToInt() - placeable.height / 2,
                     )
                 }
             },
@@ -971,7 +782,7 @@ private fun DeckCloseButton(expanded: Boolean, pill: Rect?, onCollapse: () -> Un
 
 /**
  * For the pieces only the expanded deck shows: they come in once the card is most of the way
- * open, and go first on collapse, so none of them is drawn squeezed into the pill's bounds.
+ * open, and go first on collapse, so none of them is drawn squeezed into the stack's bounds.
  */
 private fun Modifier.expandedOnly(scope: AnimatedVisibilityScope): Modifier = with(scope) {
     this@expandedOnly.animateEnterExit(
@@ -980,26 +791,33 @@ private fun Modifier.expandedOnly(scope: AnimatedVisibilityScope): Modifier = wi
     )
 }
 
-private val PILL_SHAPE = RoundedCornerShape(18.dp)
 private val CARD_SHAPE = RoundedCornerShape(12.dp)
-private val PILL_HEIGHT = 43.dp
-private val PILL_MAX_WIDTH = 150.dp
-private val RING_SIZE = 26.dp
+private val STRIP_SHAPE = RoundedCornerShape(20.dp)
+private val STRIP_HEIGHT = 64.dp
+// Each card behind steps in this far on both sides, and shows this far below the one in front.
+private val STRIP_INSET = 8.dp
+private val STRIP_STEP = 6.dp
 private val STRIP_RING_SIZE = 40.dp
 private val PAY_SHAPE = RoundedCornerShape(50)
 private const val APPEAR_MILLIS = 250
-
-/** The strip's move to and from the pill, which a scroll seeks through. */
-private const val STRIP_MILLIS = 300
 private const val APPEAR_SCALE = 0.95f
-private val PEEK_STEP = 5.dp
-private val PEEK_INSET = 7.dp
+
+/** The stack's fade as the front card moves to and from the expanded list. */
+private const val STRIP_MILLIS = 300
 private const val ENDED_ALPHA = 0.4f
 private const val CYCLE_THRESHOLD = 0.4f
 private const val FLING_VELOCITY = 1_000f
 private const val DROP_SCALE = 0.06f
-// How far past one pill height the front card can be pulled, as a fraction of it.
+// How far past one card height the front card can be pulled, as a fraction of it.
 private const val RUBBER_BAND = 0.25f
+// The elastic pull upward, or with one request: how far it gives, as a fraction of the card's
+// height, and how much of the finger's travel it follows.
+internal const val ELASTIC_PULL = 0.25f
+private const val ELASTIC_RESISTANCE = 0.3f
+internal const val DECK_TAG = "request_deck"
+
+/** The deck's settle motion; a reorder after a request ends slides on it too. */
+private const val SETTLE_STIFFNESS = Spring.StiffnessMediumLow
 private val SETTLE_SPRING_OFFSET = spring<androidx.compose.ui.unit.IntOffset>(stiffness = SETTLE_STIFFNESS)
 private val DECK_SPRING = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)
 
