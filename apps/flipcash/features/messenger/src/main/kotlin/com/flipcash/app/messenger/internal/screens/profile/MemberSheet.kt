@@ -32,7 +32,7 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.ChoiceRow
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.util.resources.icons.SpeakerSlash
+import androidx.compose.material.icons.outlined.MicOff
 import kotlin.time.Instant
 
 /**
@@ -138,7 +138,7 @@ internal fun MemberSheetContent(
             if (actions.restrict) {
                 ChoiceRow(
                     label = stringResource(R.string.action_silenceMemberShort),
-                    icon = rememberVectorPainter(SpeakerSlash),
+                    icon = rememberVectorPainter(Icons.Outlined.MicOff),
                     contentColor = CodeTheme.colors.warningText,
                     onClick = onRestrict,
                 )

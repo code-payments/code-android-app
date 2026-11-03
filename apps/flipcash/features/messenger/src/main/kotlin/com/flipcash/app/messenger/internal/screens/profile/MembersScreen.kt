@@ -61,7 +61,7 @@ import com.getcode.ui.components.SwipeActionRow
 import com.getcode.ui.components.SwipeRevealGroup
 import com.getcode.ui.components.rememberSwipeRevealGroup
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.util.resources.icons.SpeakerSlash
+import androidx.compose.material.icons.outlined.MicOff
 
 /**
  * Node 11210:70 — every member of a private group: the creator pinned first with a Host tag, then
@@ -287,7 +287,7 @@ internal fun MemberSwipeRow(
                     resetOnDismiss = true,
                     label = restrictTitle,
                 ) {
-                    SwipeIcon(SpeakerSlash, restrictLabel, CodeTheme.colors.warning)
+                    SwipeIcon(Icons.Outlined.MicOff, restrictLabel, CodeTheme.colors.warning)
                 }
             )
         }
