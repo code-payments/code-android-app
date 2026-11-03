@@ -29,10 +29,13 @@ import javax.inject.Singleton
         FlipcashDesktopChannelModule::class,
         DesktopModule::class,
         com.flipcash.app.blob.JvmBlobModule::class,
+        com.flipcash.shared.chat.inject.ChatModule::class,
+        com.flipcash.shared.chat.inject.RecentReactionsOwnerModule::class,
     ],
 )
 interface DesktopGraph {
     val walletViewModel: WalletViewModel
+    val chatsViewModel: com.flipcash.app.tipping.internal.ChatsViewModel
     val selectTokenViewModel: SelectTokenViewModel
     val exchange: Exchange
     val resources: ResourceHelper
