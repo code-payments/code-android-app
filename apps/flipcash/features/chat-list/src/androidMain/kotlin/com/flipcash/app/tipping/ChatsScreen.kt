@@ -1,10 +1,27 @@
 package com.flipcash.app.tipping
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.action_undo
+import com.flipcash.core.resources.content_description_archiveChat
+import com.flipcash.core.resources.content_description_archivedUnread
+import com.flipcash.core.resources.content_description_changeMute
+import com.flipcash.core.resources.content_description_muteChat
+import com.flipcash.core.resources.description_noChatsYet
+import com.flipcash.core.resources.ic_bubble_outline
+import com.flipcash.core.resources.message_chatArchived
+import com.flipcash.core.resources.title_allChatsArchived
+import com.flipcash.core.resources.title_archived
+import com.flipcash.core.resources.title_filterAll
+import com.flipcash.core.resources.title_filterGroups
+import com.flipcash.core.resources.title_filterUnread
+import com.flipcash.core.resources.title_noChatsYet
+import com.flipcash.core.resources.title_noGroupChats
+import com.flipcash.core.resources.title_noUnreadChats
+import com.flipcash.core.resources.title_tabChat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
-import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.ScrollableDefaults
@@ -62,8 +79,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -76,7 +94,6 @@ import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.tipping.internal.ChatsViewModel
 import com.flipcash.app.tipping.internal.components.TipChatRow
-import com.flipcash.features.tipping.R
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.chat.ui.rememberIsMuted
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -149,8 +166,8 @@ fun ChatsScreen() {
     val toasts = LocalFloatingToastHost.current
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
-    val archivedMessage = stringResource(R.string.message_chatArchived)
-    val undoLabel = stringResource(R.string.action_undo)
+    val archivedMessage = stringResource(Res.string.message_chatArchived)
+    val undoLabel = stringResource(Res.string.action_undo)
     val tabBarPadding = LocalTabBarPadding.current.calculateBottomPadding()
 
     val hazeState = rememberHazeState()
@@ -161,7 +178,7 @@ fun ChatsScreen() {
         barPlacement = ScaffoldBarPlacement.Overlay,
         topBar = {
             AppBarWithTitle(
-                title = stringResource(R.string.title_tabChat),
+                title = stringResource(Res.string.title_tabChat),
                 // Centred rather than flush-start: an empty leading slot reserves no width, so a
                 // Start title sits at the inset and reads as off-centre against the Add button.
                 titleAlignment = Alignment.CenterHorizontally,
@@ -264,9 +281,9 @@ fun ChatsScreen() {
                                 .then(parkFiller.tracked("empty_filter"))
                                 .fillParentMaxSize(),
                             message = when (state.filter) {
-                                ChatListFilter.Unread -> R.string.title_noUnreadChats
-                                ChatListFilter.Groups -> R.string.title_noGroupChats
-                                ChatListFilter.All -> R.string.title_allChatsArchived
+                                ChatListFilter.Unread -> Res.string.title_noUnreadChats
+                                ChatListFilter.Groups -> Res.string.title_noGroupChats
+                                ChatListFilter.All -> Res.string.title_allChatsArchived
                             },
                         )
                     }
@@ -332,13 +349,13 @@ private fun NoChatsYet(modifier: Modifier = Modifier) {
         ) {
             Image(
                 modifier = Modifier.size(CodeTheme.dimens.grid.x16),
-                painter = painterResource(R.drawable.ic_bubble_outline),
+                painter = painterResource(Res.drawable.ic_bubble_outline),
                 contentDescription = null,
                 colorFilter = ColorFilter.tint(CodeTheme.colors.textMain),
             )
 
             Text(
-                text = stringResource(R.string.title_noChatsYet),
+                text = stringResource(Res.string.title_noChatsYet),
                 style = CodeTheme.typography.textLarge,
                 color = CodeTheme.colors.textMain,
                 textAlign = TextAlign.Center,
@@ -346,7 +363,7 @@ private fun NoChatsYet(modifier: Modifier = Modifier) {
 
             Text(
                 modifier = Modifier.fillMaxWidth(0.6f),
-                text = stringResource(R.string.description_noChatsYet),
+                text = stringResource(Res.string.description_noChatsYet),
                 style = CodeTheme.typography.textSmall,
                 color = CodeTheme.colors.textSecondary,
                 textAlign = TextAlign.Center,
@@ -409,10 +426,10 @@ private fun ChatSwipeRow(
     content: @Composable () -> Unit,
 ) {
     val muteLabel = stringResource(
-        if (isMuted) R.string.content_description_changeMute
-        else R.string.content_description_muteChat
+        if (isMuted) Res.string.content_description_changeMute
+        else Res.string.content_description_muteChat
     )
-    val archiveLabel = stringResource(R.string.content_description_archiveChat)
+    val archiveLabel = stringResource(Res.string.content_description_archiveChat)
     SwipeActionRow(
         actions = listOf(
             SwipeAction(
@@ -478,18 +495,18 @@ private fun ChatFilterRow(
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
         FilterChip(
-            label = stringResource(R.string.title_filterAll),
+            label = stringResource(Res.string.title_filterAll),
             selected = selected == ChatListFilter.All,
             onClick = { onSelect(ChatListFilter.All) },
         )
         FilterChip(
-            label = stringResource(R.string.title_filterUnread),
+            label = stringResource(Res.string.title_filterUnread),
             selected = selected == ChatListFilter.Unread,
             onClick = { onSelect(ChatListFilter.Unread) },
             count = unreadCount,
         )
         FilterChip(
-            label = stringResource(R.string.title_filterGroups),
+            label = stringResource(Res.string.title_filterGroups),
             selected = selected == ChatListFilter.Groups,
             onClick = { onSelect(ChatListFilter.Groups) },
             count = groupsCount,
@@ -504,9 +521,9 @@ private fun ChatFilterRow(
 @Composable
 private fun ArchivedRow(count: Int, onClick: () -> Unit) {
     val description = if (count > 0) {
-        stringResource(R.string.content_description_archivedUnread, count)
+        stringResource(Res.string.content_description_archivedUnread, count)
     } else {
-        stringResource(R.string.title_archived)
+        stringResource(Res.string.title_archived)
     }
     val color = CodeTheme.colors.textSecondary
     Row(
@@ -538,7 +555,7 @@ private fun ArchivedRow(count: Int, onClick: () -> Unit) {
         }
         Text(
             modifier = Modifier.weight(1f),
-            text = stringResource(R.string.title_archived),
+            text = stringResource(Res.string.title_archived),
             style = CodeTheme.typography.textMedium,
             color = color,
         )
@@ -559,7 +576,7 @@ private fun ArchivedRow(count: Int, onClick: () -> Unit) {
 
 /** A filter with nothing under it, centred in the space it is given (the list viewport). */
 @Composable
-private fun EmptyFilterState(@StringRes message: Int, modifier: Modifier = Modifier) {
+private fun EmptyFilterState(message: StringResource, modifier: Modifier = Modifier) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Text(
             modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),

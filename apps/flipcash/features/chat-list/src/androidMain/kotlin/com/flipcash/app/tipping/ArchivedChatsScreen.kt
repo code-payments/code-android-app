@@ -1,5 +1,9 @@
 package com.flipcash.app.tipping
 
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.content_description_unarchiveChat
+import com.flipcash.core.resources.title_archived
+import com.flipcash.core.resources.title_noArchivedChats
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -28,7 +32,6 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.tipping.internal.ArchivedChatsViewModel
 import com.flipcash.app.tipping.internal.components.TipChatRow
-import com.flipcash.features.tipping.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -73,7 +76,7 @@ private fun ArchivedChatsContent(
     CodeScaffold(
         topBar = {
             AppBarWithTitle(
-                title = stringResource(R.string.title_archived),
+                title = stringResource(Res.string.title_archived),
                 titleAlignment = Alignment.CenterHorizontally,
                 onBackIconClicked = onBack,
             )
@@ -96,7 +99,7 @@ private fun ArchivedChatsContent(
                     ) {
                         Text(
                             modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-                            text = stringResource(R.string.title_noArchivedChats),
+                            text = stringResource(Res.string.title_noArchivedChats),
                             style = CodeTheme.typography.textMedium,
                             color = CodeTheme.colors.textSecondary,
                             textAlign = TextAlign.Center,
@@ -131,7 +134,7 @@ private fun UnarchiveSwipeRow(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val label = stringResource(R.string.content_description_unarchiveChat)
+    val label = stringResource(Res.string.content_description_unarchiveChat)
     SwipeActionRow(
         actions = listOf(
             SwipeAction(

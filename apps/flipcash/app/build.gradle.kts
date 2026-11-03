@@ -323,6 +323,7 @@ dependencies {
     implementation(project(":apps:flipcash:features:search"))
     implementation(project(":apps:flipcash:features:user-profile"))
     implementation(project(":apps:flipcash:features:userflags"))
+    implementation(project(":apps:flipcash:features:chat-list"))
     implementation(project(":apps:flipcash:features:tipping"))
 
     implementation(project(":libs:crypto:solana"))

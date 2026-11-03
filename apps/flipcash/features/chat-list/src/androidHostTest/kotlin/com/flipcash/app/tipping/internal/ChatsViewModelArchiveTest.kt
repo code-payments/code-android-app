@@ -3,7 +3,6 @@ package com.flipcash.app.tipping.internal
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.tokens.TokenCoordinator
-import com.flipcash.features.tipping.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
@@ -75,7 +74,7 @@ class ChatsViewModelArchiveTest {
                 chatCoordinator = chatCoordinator,
                 userManager = mockk<UserManager>(relaxed = true),
                 tokenCoordinator = tokenCoordinator,
-                resources = FakeResourceHelper(R::class.java),
+                resources = FakeResourceHelper(),
                 dispatchers = TestDispatchers(testScheduler),
                 archiveStore = ChatArchiveStore.None,
                 lobbyRequests = mockk(relaxed = true),
