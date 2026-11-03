@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.layout
 import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Arrangement
@@ -50,6 +51,10 @@ import com.getcode.theme.CodeTheme
 import kotlin.time.Clock
 
 
+/** Test tags for select mode's circle and the avatar it pushes right. */
+internal const val SELECT_CIRCLE_TAG = "chat_row_select_circle"
+internal const val AVATAR_TAG = "chat_row_avatar"
+
 @Composable
 internal fun TipChatRow(
     chat: ConversationReference,
@@ -77,12 +82,13 @@ internal fun TipChatRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SelectCircleSlot(circleReveal, circleChecked)
                 ContactAvatar(
+                    modifier = Modifier
+                        .testTag(AVATAR_TAG)
+                        .requiredSize(CodeTheme.dimens.staticGrid.x9)
+                        .clip(CircleShape),
                     image = chat.image,
                     displayName = chat.name.orEmpty(),
                     access = chat.avatarAccess,
-                    modifier = Modifier
-                        .requiredSize(CodeTheme.dimens.staticGrid.x9)
-                        .clip(CircleShape),
                 )
             }
         },
@@ -147,9 +153,11 @@ internal fun TipChatRow(
 }
 
 /**
- * Select mode's leading circle. It slides in, pushing the row content right, only as select mode
- * starts ([reveal] going 0 to 1), and back out as it ends; toggling a row changes the circle in
- * place. Reads [reveal] in layout and draw only, so the slide doesn't recompose the row.
+ * Select mode's leading circle. As select mode starts ([reveal] going 0 to 1) the slot widens and
+ * pushes the row content right, while the circle stays at its final position and fades in; as it
+ * ends, the reverse. The slot clips the circle, so the content sliding off uncovers it rather than
+ * overlapping it. Toggling a row changes the circle in place. Reads [reveal] in layout and draw
+ * only, so the slide doesn't recompose the row.
  */
 @Composable
 private fun SelectCircleSlot(reveal: () -> Float, checked: Boolean) {
@@ -159,12 +167,16 @@ private fun SelectCircleSlot(reveal: () -> Float, checked: Boolean) {
             .layout { measurable, constraints ->
                 val placeable = measurable.measure(constraints)
                 val width = (placeable.width * reveal()).roundToInt()
-                layout(width, placeable.height) { placeable.placeRelative(width - placeable.width, 0) }
+                // Placed at its final position for every width, so only the content moves.
+                layout(width, placeable.height) { placeable.placeRelative(0, 0) }
             }
             .graphicsLayer { alpha = reveal() }
     ) {
-        // The gap to the avatar slides with the circle rather than popping in ahead of it.
-        Box(Modifier.padding(end = CodeTheme.dimens.staticGrid.x3)) { SelectCircle(checked) }
+        Box(
+            Modifier
+                .testTag(SELECT_CIRCLE_TAG)
+                .padding(end = CodeTheme.dimens.staticGrid.x3)
+        ) { SelectCircle(checked) }
     }
 }
 
