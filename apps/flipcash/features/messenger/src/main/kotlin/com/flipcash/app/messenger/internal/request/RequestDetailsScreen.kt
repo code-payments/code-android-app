@@ -49,7 +49,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.TokenSelectionPill
-import com.flipcash.app.messenger.internal.screens.boost.CurrencyPickerContent
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember

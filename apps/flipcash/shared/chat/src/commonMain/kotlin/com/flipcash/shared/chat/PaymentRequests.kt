@@ -19,6 +19,8 @@ import com.flipcash.services.models.paymentrequest.PaymentRequestUpdate
 import com.flipcash.services.models.paymentrequest.newerOf
 import com.getcode.opencode.model.core.ID
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -77,11 +79,20 @@ class PaymentRequests @Inject constructor(
 
     /** Refetches [chatId]'s open requests (first 100) and recently resolved ones (first 20). */
     suspend fun loadChat(chatId: ChatId): Result<Unit> = runCatching {
+        // Stored copies first, so none of them lands after, and over, a fresher fetched one.
         hydrate(chatId)
-        val open = controller.getChatPaymentRequests(chatId, PaymentRequestSection.OPEN, QueryOptions(limit = OPEN_PAGE))
-            .getOrThrow()
-        val resolved = controller.getChatPaymentRequests(chatId, PaymentRequestSection.RESOLVED, QueryOptions(limit = RESOLVED_PAGE))
-            .getOrThrow()
+        // The two sections are separate first pages; either failing cancels the other.
+        val (open, resolved) = coroutineScope {
+            val open = async {
+                controller.getChatPaymentRequests(chatId, PaymentRequestSection.OPEN, QueryOptions(limit = OPEN_PAGE))
+                    .getOrThrow()
+            }
+            val resolved = async {
+                controller.getChatPaymentRequests(chatId, PaymentRequestSection.RESOLVED, QueryOptions(limit = RESOLVED_PAGE))
+                    .getOrThrow()
+            }
+            open.await() to resolved.await()
+        }
         ingest(open.paymentRequests + resolved.paymentRequests)
     }
 

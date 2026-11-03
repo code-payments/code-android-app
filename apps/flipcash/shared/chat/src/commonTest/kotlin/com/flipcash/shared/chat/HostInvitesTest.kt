@@ -28,6 +28,9 @@ import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runCurrent
@@ -63,7 +66,7 @@ class HostInvitesTest {
     private val groupKeys = GroupKeySource { Result.success(ByteArray(32) { 9 }) }
     private val cipher = RecordingInviteCipher()
     private val chatController = mockk<ChatController>()
-    private val subject = HostInvites(chatController, groupKeys, keys, cipher, clock)
+    private val subject = HostInvites(chatController, groupKeys, keys, cipher, clock, CoroutineScope(UnconfinedTestDispatcher() + SupervisorJob()))
 
     /** An invite as the server would list it, with a secret envelope this device can open. */
     private fun invite(
@@ -469,6 +472,77 @@ class HostInvitesTest {
 
         assertTrue(subject.refreshAccess(chatId).isFailure)
         assertEquals(false, subject.canInvite.value[chatId])
+    }
+
+    @Test
+    fun `the first invite never expires and has no use limit`() = runTest {
+        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), any()) } coAnswers {
+            Result.success(invite(cipher.last))
+        }
+
+        subject.startFirstInvite(chatId)
+
+        coVerify(exactly = 1) { chatController.createInvite(chatId, any(), any(), any(), 0, null) }
+        assertEquals(1, subject.state.value[chatId]?.size)
+    }
+
+    @Test
+    fun `the first invite starts once per chat`() = runTest {
+        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), any()) } coAnswers {
+            Result.success(invite(cipher.last))
+        }
+
+        subject.startFirstInvite(chatId)
+        subject.startFirstInvite(chatId)
+
+        coVerify(exactly = 1) { chatController.createInvite(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a failed first invite is swallowed and the lazy create still runs`() = runTest {
+        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), any()) } returns
+            Result.failure(IOException("offline")) andThen Result.success(invite(secret(4)))
+
+        subject.startFirstInvite(chatId)
+        assertNull(subject.current(chatId))
+
+        val result = assertIs<InviteCreation.Created>(subject.currentOrCreate(chatId))
+        coVerify { chatController.createInvite(chatId, any(), any(), any(), 0, null) }
+        assertEquals(1, subject.state.value[chatId]?.size)
+        assertEquals(result.invite.invite.id, subject.current(chatId)?.invite?.id)
+    }
+
+    @Test
+    fun `a share while the first invite is in flight waits for it and makes no second`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), any()) } coAnswers {
+            gate.await()
+            Result.success(invite(cipher.last))
+        }
+        coEvery { chatController.getChatInvites(chatId, any()) } coAnswers {
+            Result.success(InvitesPage(subject.state.value[chatId].orEmpty().map { it.invite }, null, false))
+        }
+
+        subject.startFirstInvite(chatId)
+        // What the share sheet does on open: load, then take the current link or make one.
+        val share = async { subject.load(chatId); subject.currentOrCreate(chatId) }
+        runCurrent()
+        gate.complete(Unit)
+
+        assertIs<InviteCreation.Created>(share.await())
+        coVerify(exactly = 1) { chatController.createInvite(any(), any(), any(), any(), any(), any()) }
+        assertEquals(1, subject.state.value[chatId]?.size)
+    }
+
+    @Test
+    fun `a lazily made current link never expires`() = runTest {
+        coEvery { chatController.createInvite(chatId, any(), any(), any(), any(), any()) } coAnswers {
+            Result.success(invite(cipher.last))
+        }
+
+        subject.currentOrCreate(chatId)
+
+        coVerify { chatController.createInvite(chatId, any(), any(), any(), 0, null) }
     }
 
     @Test

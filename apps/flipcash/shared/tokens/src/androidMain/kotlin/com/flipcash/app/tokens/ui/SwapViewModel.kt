@@ -3,6 +3,7 @@ package com.flipcash.app.tokens.ui
 import androidx.lifecycle.viewModelScope
 import com.flipcash.analytics.AddMoneyMethod
 import com.flipcash.analytics.AddMoneySource
+import com.flipcash.analytics.Amount as AnalyticsAmount
 import com.flipcash.analytics.PurchaseMethod as AnalyticsPurchaseMethod
 import com.flipcash.analytics.State as AnalyticsState
 import com.flipcash.analytics.events.AddMoneyEvents
@@ -18,6 +19,8 @@ import com.getcode.opencode.internal.extensions.fractionDigits
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.flipcash.app.core.extensions.to
 import com.flipcash.app.core.onramp.ui.buildPhantomButtonLabel
+import com.flipcash.app.tokens.AddMoneyTimer
+import com.flipcash.app.tokens.UsdcSweepMilestone
 import com.flipcash.app.tokens.BalancePollError
 import com.flipcash.app.tokens.BalancePoller
 import com.flipcash.app.tokens.InlineCompletion
@@ -25,6 +28,7 @@ import com.flipcash.app.core.tokens.FundingSource
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.ui.forViewer
 import com.flipcash.app.onramp.CoinbaseOnRampController
+import com.flipcash.app.onramp.CoinbaseOnRampMilestone
 import com.flipcash.app.onramp.CoinbaseOnRampState
 import com.flipcash.app.onramp.DeeplinkError
 import com.flipcash.app.onramp.DeeplinkOnRampError
@@ -139,6 +143,7 @@ class SwapViewModel @Inject constructor(
     private val userFlags: UserFlagsCoordinator,
     private val usdcDepositSweep: UsdcDepositSweep,
     private val balancePoller: BalancePoller,
+    private val addMoneyTimer: AddMoneyTimer,
     dispatchers: DispatcherProvider,
 ) : BaseViewModel<SwapViewModel.State, SwapViewModel.Event>(
     initialState = State(),
@@ -1016,6 +1021,7 @@ class SwapViewModel @Inject constructor(
             .onEach { (delegateState, purpose) ->
                 val isAddingMoney = stateFlow.value.isAddingMoney
                 addMoneyMethod?.let { method ->
+                    if (method == AddMoneyMethod.COINBASE) addMoneyTimer.start()
                     analytics.track(
                         AddMoneyEvents.amountConfirmed(
                             method = method,
@@ -1226,32 +1232,22 @@ class SwapViewModel @Inject constructor(
                         is OrderDeliveryResult.Delivered -> true
                         OrderDeliveryResult.Failed -> {
                             dispatchEvent(Event.UpdateProcessingState(loading = false, error = true))
-                            addMoneyMethod?.let { method ->
-                                analytics.track(
-                                    AddMoneyEvents.result(
-                                        method = method,
-                                        state = AnalyticsState.FAILURE,
-                                        amount = netTransferAmount.analytics,
-                                        error = IllegalStateException("Order delivery failed").analytics,
-                                    )
-                                )
-                            }
+                            trackAddMoneyResult(
+                                state = AnalyticsState.FAILURE,
+                                amount = netTransferAmount.analytics,
+                                error = IllegalStateException("Order delivery failed").analytics,
+                            )
                             false
                         }
                         // The deposit may still land later; the session's foreground sweep
                         // will reconcile it. Don't claim success we can't confirm.
                         OrderDeliveryResult.TimedOut -> {
                             dispatchEvent(Event.UpdateProcessingState(loading = false, error = true))
-                            addMoneyMethod?.let { method ->
-                                analytics.track(
-                                    AddMoneyEvents.result(
-                                        method = method,
-                                        state = AnalyticsState.FAILURE,
-                                        amount = netTransferAmount.analytics,
-                                        error = IllegalStateException("Order delivery timed out").analytics,
-                                    )
-                                )
-                            }
+                            trackAddMoneyResult(
+                                state = AnalyticsState.FAILURE,
+                                amount = netTransferAmount.analytics,
+                                error = IllegalStateException("Order delivery timed out").analytics,
+                            )
                             false
                         }
                     }
@@ -1654,11 +1650,7 @@ class SwapViewModel @Inject constructor(
             .onEach { s ->
                 when (s) {
                     is CoinbaseOnRampState.Failed -> {
-                        addMoneyMethod?.let { method ->
-                            analytics.track(
-                                AddMoneyEvents.result(method, AnalyticsState.FAILURE, null, s.error.analytics)
-                            )
-                        }
+                        trackAddMoneyResult(AnalyticsState.FAILURE, null, s.error.analytics)
                         dispatchEvent(Event.UpdateBuyState())
                     }
 
@@ -1667,6 +1659,28 @@ class SwapViewModel @Inject constructor(
                     is CoinbaseOnRampState.Completed,
                     is CoinbaseOnRampState.Paying -> Unit
                 }
+            }.launchIn(viewModelScope)
+
+        // The session's foreground sweep may already be running when the deposit lands, so
+        // listen to whichever sweep runs rather than only the one started here.
+        usdcDepositSweep.milestones
+            .onEach { milestone ->
+                addMoneyTimer.mark(
+                    when (milestone) {
+                        UsdcSweepMilestone.UsdcSeen -> AddMoneyTimer.Moment.USDC_SEEN
+                        UsdcSweepMilestone.Swapped -> AddMoneyTimer.Moment.SWAPPED
+                    }
+                )
+            }.launchIn(viewModelScope)
+
+        coinbaseOnRampController.milestones
+            .onEach { milestone ->
+                addMoneyTimer.mark(
+                    when (milestone) {
+                        CoinbaseOnRampMilestone.PaymentAuthorized -> AddMoneyTimer.Moment.PAYMENT_AUTHORIZED
+                        CoinbaseOnRampMilestone.PaymentCompleted -> AddMoneyTimer.Moment.PAYMENT_COMPLETED
+                    }
+                )
             }.launchIn(viewModelScope)
 
         purchaseMethodController.selections
@@ -1845,6 +1859,7 @@ class SwapViewModel @Inject constructor(
             token = token,
             verifiedFiat = amountFiat,
         ).onSuccess {
+            addMoneyTimer.mark(AddMoneyTimer.Moment.ORDER_PLACED)
             trackTransaction(token)
             addMoneyMethod?.let { method ->
                 analytics.track(
@@ -1862,16 +1877,11 @@ class SwapViewModel @Inject constructor(
 
                 else -> {
                     trackTransaction(token, error = error)
-                    addMoneyMethod?.let { method ->
-                        analytics.track(
-                            AddMoneyEvents.result(
-                                method = method,
-                                state = AnalyticsState.FAILURE,
-                                amount = amountFiat.localFiat.nativeAmount.analytics,
-                                error = error.analytics,
-                            )
-                        )
-                    }
+                    trackAddMoneyResult(
+                        state = AnalyticsState.FAILURE,
+                        amount = amountFiat.localFiat.nativeAmount.analytics,
+                        error = error.analytics,
+                    )
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_buySellFailed),
                         message = resources.getString(R.string.error_description_buySellFailed),
@@ -2122,11 +2132,32 @@ class SwapViewModel @Inject constructor(
         if (markProcessingSuccess) {
             dispatchEvent(Event.UpdateProcessingState(loading = false, success = true))
         }
-        addMoneyMethod?.let { method ->
-            analytics.track(
-                AddMoneyEvents.result(method, AnalyticsState.SUCCESS, netTransferAmount.analytics, null)
+        addMoneyTimer.mark(AddMoneyTimer.Moment.CREDITED)
+        trackAddMoneyResult(AnalyticsState.SUCCESS, netTransferAmount.analytics, null)
+    }
+
+    /**
+     * Sends `Add Money` for the current add-money flow, if there is one. A Coinbase purchase also
+     * carries the phase times from [addMoneyTimer], which this closes.
+     */
+    private fun trackAddMoneyResult(state: AnalyticsState, amount: AnalyticsAmount?, error: String?) {
+        val method = addMoneyMethod ?: return
+        val phases = if (method == AddMoneyMethod.COINBASE) addMoneyTimer.finish() else null
+        analytics.track(
+            AddMoneyEvents.result(
+                method = method,
+                state = state,
+                amount = amount,
+                error = error,
+                orderTimeMillis = phases?.orderTimeMillis,
+                paymentTimeMillis = phases?.paymentTimeMillis,
+                coinbaseTimeMillis = phases?.coinbaseTimeMillis,
+                depositTimeMillis = phases?.depositTimeMillis,
+                swapTimeMillis = phases?.swapTimeMillis,
+                creditTimeMillis = phases?.creditTimeMillis,
+                totalTimeMillis = phases?.totalTimeMillis,
             )
-        }
+        )
     }
 
     private fun handlePhantomError(error: Throwable) {
@@ -2139,11 +2170,7 @@ class SwapViewModel @Inject constructor(
             if (deeplinkError is DeeplinkOnRampError.FailedToSendTransaction) {
                 analytics.track(WalletEvents.transactionsFailed(OnRampProvider.Phantom.analytics))
             }
-            addMoneyMethod?.let { method ->
-                analytics.track(
-                    AddMoneyEvents.result(method, AnalyticsState.FAILURE, null, deeplinkError.analytics)
-                )
-            }
+            trackAddMoneyResult(AnalyticsState.FAILURE, null, deeplinkError.analytics)
         }
 
         trace(

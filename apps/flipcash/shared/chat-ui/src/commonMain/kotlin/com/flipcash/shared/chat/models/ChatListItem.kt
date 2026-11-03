@@ -4,6 +4,7 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.reactions.ReactionPill
 import com.flipcash.shared.chat.reactions.SelfReaction
+import com.flipcash.shared.chat.ui.CashBubblePeople
 import com.flipcash.shared.chat.ui.DetectedMention
 import com.flipcash.shared.chat.ui.UndecryptableHint
 import com.flipcash.shared.chat.ui.linkableText
@@ -208,11 +209,11 @@ sealed interface ChatListItem {
          */
         val receivedPart: MessageContent.Cash.Payment? = null,
         /**
-         * Who a cash message in a group paid, as the bubble's foot reads it: "to Alex Morgan and
-         * 2 Others", or "to Alex Morgan" for one member. Null outside a group, and for a payment to
-         * the viewer alone, which keeps the plain "You received" card.
+         * The names a cash bubble's caption and foot line need: the other member of a DM, or a
+         * group send's sender and first recipient. Null for anything but cash, and wherever nobody
+         * resolved them, which leaves the bubble its caption alone.
          */
-        val groupSendRecipients: String? = null,
+        val cashPeople: CashBubblePeople? = null,
     ) : TranscriptMessage {
         /**
          * Who this bubble is attributed to, for grouping. [senderId] is the answer whenever the

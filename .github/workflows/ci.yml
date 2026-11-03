@@ -49,10 +49,15 @@ jobs:
           distribution: 'corretto'
 
       # Restores ~/.gradle including the local build cache. Writes only from code/cash.
+      # With an encryption key, setup-gradle also saves and restores the configuration cache,
+      # which otherwise starts empty on every run ("no cached configuration is available").
+      # The entry holds the provisioned API keys, hence the encryption. Without the secret
+      # (forks, Dependabot) setup-gradle skips the configuration cache and carries on.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: ${{ github.event_name != 'push' && github.event_name != 'workflow_dispatch' }}
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Provision config
         uses: ./.github/actions/provision-config
@@ -88,6 +93,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: ${{ github.event_name != 'push' && github.event_name != 'workflow_dispatch' }}
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Provision config
         uses: ./.github/actions/provision-config

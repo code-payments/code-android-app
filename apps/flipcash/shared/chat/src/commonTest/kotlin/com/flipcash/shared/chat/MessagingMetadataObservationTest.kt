@@ -12,6 +12,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.RosterSummary
+import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -168,6 +169,79 @@ class MessagingMetadataObservationTest {
 
             assertEquals(ChatHydration.Stored, subject.hydrateChat(chatId))
             coVerify(exactly = 0) { chatController.getChat(any()) }
+        }
+
+    /**
+     * Hydrating a stored group costs no round trip either: its grants refresh is a separate call
+     * the screen runs alongside the transcript fetch, so opening the chat does not wait on it.
+     */
+    @Test
+    fun `hydrateChat does not refresh a stored group's grants`() =
+        runTest(dispatchers.dispatcher) {
+            val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true) {
+                coEvery { exists(chatId) } returns true
+                coEvery { getChatType(chatId) } returns ChatType.GROUP
+            }
+            val chatController = mockk<ChatController>(relaxed = true)
+
+            val subject = delegate(
+                metadataDataSource = metadataDataSource,
+                memberDataSource = mockk(relaxed = true),
+                messageDataSource = mockk(relaxed = true),
+                chatController = chatController,
+            )
+
+            assertEquals(ChatHydration.Stored, subject.hydrateChat(chatId))
+            coVerify(exactly = 0) { chatController.getChat(any()) }
+            coVerify(exactly = 0) { metadataDataSource.updateModerationGrants(any(), any(), any()) }
+        }
+
+    @Test
+    fun `refreshViewerState writes a group's grants from the server`() =
+        runTest(dispatchers.dispatcher) {
+            val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true) {
+                coEvery { getChatType(chatId) } returns ChatType.GROUP
+            }
+            val grants = ViewerState(
+                permissions = ViewerState.Permissions(
+                    moderation = ViewerState.ModerationPermissions(canSilence = true, canBan = false),
+                ),
+            )
+            val chatController = mockk<ChatController>(relaxed = true) {
+                coEvery { getChat(chatId) } returns Result.success(metadata(memberCount = 3).copy(viewerState = grants))
+            }
+
+            val subject = delegate(
+                metadataDataSource = metadataDataSource,
+                memberDataSource = mockk(relaxed = true),
+                messageDataSource = mockk(relaxed = true),
+                chatController = chatController,
+            )
+
+            subject.refreshViewerState(chatId)
+
+            coVerify(exactly = 1) { metadataDataSource.updateModerationGrants(chatId, canSilence = true, canBan = false) }
+        }
+
+    @Test
+    fun `refreshViewerState leaves a chat that is not a group alone`() =
+        runTest(dispatchers.dispatcher) {
+            val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true) {
+                coEvery { getChatType(chatId) } returns ChatType.TIP_DM
+            }
+            val chatController = mockk<ChatController>(relaxed = true)
+
+            val subject = delegate(
+                metadataDataSource = metadataDataSource,
+                memberDataSource = mockk(relaxed = true),
+                messageDataSource = mockk(relaxed = true),
+                chatController = chatController,
+            )
+
+            subject.refreshViewerState(chatId)
+
+            coVerify(exactly = 0) { chatController.getChat(any()) }
+            coVerify(exactly = 0) { metadataDataSource.updateModerationGrants(any(), any(), any()) }
         }
 
     /**

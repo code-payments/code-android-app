@@ -33,6 +33,15 @@ import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.bytes
 import com.getcode.util.resources.ResourceHelper
+import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.shared.chat.ChatMembership
+import com.flipcash.shared.chat.ui.CashBubblePeople
+import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
+import com.getcode.solana.keys.Mint
+import com.getcode.utils.hexEncodedString
+import kotlinx.coroutines.test.advanceUntilIdle
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -184,4 +193,119 @@ class ChatPinnedRowsTest {
 
         assertNull(vm.pinnedRows(pinsOf(plain)).single().bubble.quote)
     }
+
+    // A pinned cash message draws the transcript's bubble, so it gets the same names.
+
+    private fun profile(name: String) = UserProfile(
+        displayName = name,
+        socialAccounts = emptyList(),
+        phoneNumber = null,
+        email = null,
+    )
+
+    private fun cash(receiver: ID? = null, multiReceiver: List<ID> = emptyList()) = MessageContent.Cash(
+        intentId = listOf(0),
+        amount = Fiat(fiat = 3.0, currencyCode = CurrencyCode.USD),
+        mint = Mint.usdf,
+        receiver = receiver,
+        multiReceiver = multiReceiver.map { MessageContent.Cash.Payment(it, 1.0, 1_000_000L) },
+    )
+
+    private fun ChatViewModel.openGroup() {
+        open()
+        dispatchEvent(
+            ChatViewModel.Event.OnGroupResolved(
+                ChatMembership(
+                    metadata = mockk<ChatMetadata>(relaxed = true) {
+                        every { this@mockk.chatId } returns this@ChatPinnedRowsTest.chatId
+                        every { rules } returns null
+                    },
+                    isMember = true,
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `a DM's cash names the other member`() = runTest(mainCoroutineRule.dispatcher) {
+        val vm = createViewModel().also { it.open() }
+        vm.dispatchEvent(ChatViewModel.Event.OnTipUserResolved(UUID.randomUUID().bytes, profile("Noah Parker")))
+        advanceUntilIdle()
+
+        val received = message(9, cash(), fromSelf = false)
+        assertEquals(
+            CashBubblePeople.Direct("Noah Parker"),
+            vm.pinnedRows(pinsOf(received)).single().bubble.cashPeople,
+        )
+    }
+
+    @Test
+    fun `a group send names its sender and its first recipient in selection order`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val alex: ID = UUID.randomUUID().bytes
+            val sent = message(9, cash(multiReceiver = listOf(alex, viewerId)), fromSelf = false)
+            val senderId = sent.senderId!!
+            coEvery { chatCoordinator.currentSenderProfiles() } returns mapOf(
+                senderId.hexEncodedString() to profile("Fred Wilson"),
+                alex.hexEncodedString() to profile("Alex Morgan"),
+            )
+            val vm = createViewModel().also { it.openGroup() }
+            advanceUntilIdle()
+
+            val bubble = vm.pinnedRows(pinsOf(sent)).single().bubble
+            // The viewer is a recipient too, but the lead is whoever was picked first.
+            assertEquals(CashBubblePeople.Group(sender = "Fred Wilson", leadRecipient = "Alex Morgan"), bubble.cashPeople)
+            assertNotNull(bubble.receivedPart)
+        }
+
+    @Test
+    fun `a group send to someone with no profile yet leaves their name for the bubble to fill`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val noah: ID = UUID.randomUUID().bytes
+            val vm = createViewModel().also { it.openGroup() }
+            advanceUntilIdle()
+
+            val sent = message(9, cash(receiver = noah), fromSelf = true)
+            assertEquals(
+                CashBubblePeople.Group(sender = null, leadRecipient = null),
+                vm.pinnedRows(pinsOf(sent)).single().bubble.cashPeople,
+            )
+        }
+
+    // A person whose profile resolved with neither a name nor a handle: other rows call them
+    // "Flipcash User", but a cash bubble reads "Someone" (docs/specs/cash-bubbles.md), which it
+    // draws for a null name.
+
+    @Test
+    fun `a group send from a sender with no name leaves it null, not Flipcash User`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val alex: ID = UUID.randomUUID().bytes
+            val sent = message(9, cash(multiReceiver = listOf(alex, viewerId)), fromSelf = false)
+            coEvery { chatCoordinator.currentSenderProfiles() } returns mapOf(
+                sent.senderId!!.hexEncodedString() to profile(""),
+                alex.hexEncodedString() to profile("Alex Morgan"),
+            )
+            every { resources.getString(com.flipcash.features.messenger.R.string.title_unnamedUser) } returns "Flipcash User"
+            val vm = createViewModel().also { it.openGroup() }
+            advanceUntilIdle()
+
+            assertEquals(
+                CashBubblePeople.Group(sender = null, leadRecipient = "Alex Morgan"),
+                vm.pinnedRows(pinsOf(sent)).single().bubble.cashPeople,
+            )
+        }
+
+    @Test
+    fun `a DM with a member who has no name leaves it null, not Flipcash User`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            every { resources.getString(com.flipcash.features.messenger.R.string.title_unnamedUser) } returns "Flipcash User"
+            val vm = createViewModel().also { it.open() }
+            vm.dispatchEvent(ChatViewModel.Event.OnTipUserResolved(UUID.randomUUID().bytes, profile("")))
+            advanceUntilIdle()
+
+            assertEquals(
+                CashBubblePeople.Direct(null),
+                vm.pinnedRows(pinsOf(message(9, cash(), fromSelf = false))).single().bubble.cashPeople,
+            )
+        }
 }

@@ -155,6 +155,18 @@ class ChatOpenTranscriptTest {
     }
 
     @Test
+    fun `a stored chat's transcript fetch does not wait on its grants refresh`() = runTest {
+        coEvery { chatCoordinator.hydrateChat(chatId) } returns ChatHydration.Stored
+        coEvery { chatCoordinator.refreshViewerState(chatId) } coAnswers { awaitCancellation() }
+
+        createViewModel().dispatchEvent(openChat)
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) { chatCoordinator.refreshViewerState(chatId) }
+        coVerify(exactly = 1) { chatCoordinator.loadMessages(chatId) }
+    }
+
+    @Test
     fun `a failed lookup still fetches, since it says nothing about the chat`() = runTest {
         coEvery { chatCoordinator.hydrateChat(chatId) } returns ChatHydration.Unavailable
 

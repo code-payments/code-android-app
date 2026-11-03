@@ -400,6 +400,14 @@ interface MessagingOperations {
     suspend fun hydrateChat(chatId: ChatId): ChatHydration
 
     /**
+     * Rereads a stored group's moderation grants from the server; does nothing for any other chat.
+     * A chat stored before the moderation columns existed holds no grant until something else
+     * moves, which hides the host's Silence and Remove, so the screen calls this on open. It writes
+     * only the grant columns, so it can run alongside [loadMessages].
+     */
+    suspend fun refreshViewerState(chatId: ChatId)
+
+    /**
      * Every profile this device holds, keyed by user-id hex.
      *
      * The group transcript indexes into this by a bubble's `senderId` to draw a name and avatar.

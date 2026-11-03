@@ -12,6 +12,11 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.PublicKey
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 
 /**
  * Pays several people in one intent, each their own fiat amount. Shared by reaction boosts and
@@ -63,7 +68,7 @@ internal class SharedStatePayment(
         intentId: PublicKey? = null,
     ): Result<Unit> = runCatching {
         require(payees.size == priced.size) { "${payees.size} payees for ${priced.size} amounts" }
-        val destinations = payees.map { resolverController.resolve(it).getOrThrow() }
+        val destinations = resolveAll(payees)
 
         if (priced.size == 1) {
             transactionController.directTransfer(
@@ -85,5 +90,22 @@ internal class SharedStatePayment(
             ).getOrThrow()
         }
         priced.forEach { tokenCoordinator.subtract(token, it.localFiat) }
+    }
+
+    /**
+     * Each payee's owner key, in the order given. The lookups are read-only and independent, so
+     * they run concurrently, at most [RESOLVE_CONCURRENCY] at once; the first failure cancels the
+     * rest and is thrown, before any intent is built.
+     */
+    private suspend fun resolveAll(payees: List<ID>): List<PublicKey> = coroutineScope {
+        val gate = Semaphore(RESOLVE_CONCURRENCY)
+        payees.map { payee ->
+            async { gate.withPermit { resolverController.resolve(payee).getOrThrow() } }
+        }.awaitAll()
+    }
+
+    private companion object {
+        // Caps the burst of resolver calls a send to a large group opens.
+        const val RESOLVE_CONCURRENCY = 8
     }
 }

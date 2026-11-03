@@ -81,8 +81,8 @@ class RequestMoneyAnalyticsTest {
         vm.requestConfirm()
     }
 
-    // $5 between the creator and two others: Created reports the $5 total, not a $1.67 share.
-    private val total = Fiat(quarks = 5_000_000L, currencyCode = CurrencyCode.USD)
+    // $5 each for the creator and two others: Created reports the $15 total, not a $5 share.
+    private val total = Fiat(quarks = 15_000_000L, currencyCode = CurrencyCode.USD)
 
     @Test
     fun `a created request sends Created once, counting the people asked and not the creator`() {
