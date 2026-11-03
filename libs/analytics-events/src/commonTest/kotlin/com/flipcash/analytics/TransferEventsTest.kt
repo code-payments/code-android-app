@@ -130,6 +130,19 @@ class TransferEventsTest {
         assertEquals(PropertyValue.Text("Direct"), context(SendContext.DIRECT))
         assertEquals(PropertyValue.Text("Group Send"), context(SendContext.GROUP_SEND))
         assertEquals(PropertyValue.Text("Payment Request"), context(SendContext.PAYMENT_REQUEST))
+        assertEquals(PropertyValue.Text("Send Back"), context(SendContext.SEND_BACK))
+    }
+
+    @Test
+    fun sendBackTappedCarriesHasBalance() {
+        assertEquals(
+            AnalyticsEvent("Send Back: Tapped", mapOf("Has Balance" to PropertyValue.Flag(true))),
+            TransferEvents.sendBackTapped(true),
+        )
+        assertEquals(
+            AnalyticsEvent("Send Back: Tapped", mapOf("Has Balance" to PropertyValue.Flag(false))),
+            TransferEvents.sendBackTapped(false),
+        )
     }
 
     @Test

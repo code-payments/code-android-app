@@ -327,7 +327,7 @@ No properties.
 
 ### Sent Cash
 
-Cash was sent to a person or to several people, or a share of a payment request was paid. `Context` says which: Direct for a send to one person, Group Send for a send to several members of a group, Payment Request for paying a share. `Recipient Count` is the number of members paid and is sent for a Group Send only.
+Cash was sent to a person or to several people, or a share of a payment request was paid. `Context` says which: Direct for a send to one person, Group Send for a send to several members of a group, Payment Request for paying a share, Send Back for returning a DM's opening payment. `Recipient Count` is the number of members paid and is sent for a Group Send only.
 
 | Property | Type | Optional | Values |
 |---|---|---|---|
@@ -338,6 +338,14 @@ Cash was sent to a person or to several people, or a share of a payment request 
 | Recipient Count | count | yes | |
 
 > **Drift:** iOS sends Exchange Rate and no USDC (see Amount).
+
+### Send Back: Tapped
+
+The receiver of a DM's opening payment tapped Send Back. `Has Balance` is false when their balance of the payment's token is too low, so the insufficient-balance modal showed instead of the confirm sheet.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| Has Balance | yes/no | no | |
 
 ### Sent Tip
 
@@ -832,6 +840,7 @@ The `Context` property on Sent Cash: which send the payment came from.
 | Direct | `DIRECT` | |
 | Group Send | `GROUP_SEND` | |
 | Payment Request | `PAYMENT_REQUEST` | |
+| Send Back | `SEND_BACK` | |
 
 ### AddMoneySource
 
