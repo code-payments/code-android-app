@@ -134,24 +134,20 @@ sealed interface CashAmountLine {
      * amount nobody fell short of.
      */
     data class Each(val part: MessageContent.Cash.Payment, val approx: Boolean) : CashAmountLine
-
-    /** The viewer's own part of a send whose parts differ, with no "each". */
-    data class Own(val part: MessageContent.Cash.Payment) : CashAmountLine
 }
 
 /**
  * The large line of a cash bubble. A send to two or more whose parts are all equal reads "$X each".
- * When they differ, as in sends from before every recipient got the same amount, a recipient reads
- * their own part ([viewerPart]) and everyone else "~$X each" for the smallest. The parts decide it,
- * not the message's date, so a later send that splits reads the same way.
+ * When they differ, as in sends from before every recipient got the same amount, every viewer reads
+ * "~$X each" for the smallest part, a recipient included. The parts decide it, not the message's
+ * date, so a later send that splits reads the same way.
  */
-fun MessageContent.Cash.amountLine(viewerPart: MessageContent.Cash.Payment?): CashAmountLine {
+fun MessageContent.Cash.amountLine(): CashAmountLine {
     val parts = multiReceiver
     if (parts.size < 2) return CashAmountLine.Whole
     val first = parts.first()
     return when {
         parts.all { it.nativeAmount == first.nativeAmount } -> CashAmountLine.Each(first, approx = false)
-        viewerPart != null -> CashAmountLine.Own(viewerPart)
         else -> CashAmountLine.Each(parts.minBy { it.nativeAmount }, approx = true)
     }
 }

@@ -247,38 +247,35 @@ class CashBubbleLinesTest {
     )
 
     /** The large line as text. */
-    private fun MessageContent.Cash.amountText(viewerPart: MessageContent.Cash.Payment?): String {
+    private fun MessageContent.Cash.amountText(): String {
         fun usd(value: Double) = Fiat(fiat = value, currencyCode = CurrencyCode.USD).formatted()
-        return when (val line = amountLine(viewerPart)) {
+        return when (val line = amountLine()) {
             CashAmountLine.Whole -> usd(amount.decimalValue)
-            is CashAmountLine.Own -> usd(line.part.nativeAmount)
             is CashAmountLine.Each -> line.text(resources, usd(line.part.nativeAmount))
         }
     }
 
     @Test
     fun `equal parts read each without a tilde, for every viewer`() {
-        assertEquals("$1.00 each", threeWay.amountText(viewerPart = null))
-        assertEquals("$1.00 each", threeWay.amountText(viewerPart = threeWay.multiReceiver[1]))
+        assertEquals("$1.00 each", threeWay.amountText())
     }
 
     @Test
     fun `uneven parts - the sender reads the smallest part with a tilde`() {
-        assertEquals("~$0.33 each", uneven.amountText(viewerPart = null))
+        assertEquals("~$0.33 each", uneven.amountText())
         assertEquals("You sent", uneven.read(isFromSelf = true, people = group.copy(sender = null)).first)
     }
 
     @Test
     fun `uneven parts - a member who was not paid reads the smallest part with a tilde`() {
-        assertEquals("~$0.33 each", uneven.amountText(viewerPart = null))
+        assertEquals("~$0.33 each", uneven.amountText())
         assertEquals("Fred Wilson sent", uneven.read(isFromSelf = false, people = group).first)
     }
 
     @Test
-    fun `uneven parts - a recipient reads their own part, with no each`() {
-        val own = uneven.multiReceiver[1]
-        assertEquals(CashAmountLine.Own(own), uneven.amountLine(viewerPart = own))
-        assertEquals("$0.34", uneven.amountText(viewerPart = own))
+    fun `uneven parts - a recipient reads the smallest part with a tilde, not their own`() {
+        // The viewer's own part here is $0.34; the line still reads the smallest.
+        assertEquals("~$0.33 each", uneven.amountText())
         assertEquals(
             "You and 2 others received" to "from Fred Wilson",
             uneven.read(isFromSelf = false, viewerPaid = true, people = group),
@@ -287,7 +284,7 @@ class CashBubbleLinesTest {
 
     @Test
     fun `a payment to one person reads the whole amount`() {
-        assertEquals(CashAmountLine.Whole, cash(receiver = alex).amountLine(viewerPart = null))
-        assertEquals(CashAmountLine.Whole, cash(multiReceiver = listOf(alex)).amountLine(viewerPart = null))
+        assertEquals(CashAmountLine.Whole, cash(receiver = alex).amountLine())
+        assertEquals(CashAmountLine.Whole, cash(multiReceiver = listOf(alex)).amountLine())
     }
 }
