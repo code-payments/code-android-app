@@ -3,7 +3,8 @@ package com.getcode.util.resources
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.compose.resources.getPluralString
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.getString
+// Aliased: inside this class a bare getString(...) resolves to the member overloads and recurses.
+import org.jetbrains.compose.resources.getString as composeString
 
 /**
  * Desktop [ResourceHelper] over the Compose resources generated from `ui:resources`' Android
@@ -11,13 +12,13 @@ import org.jetbrains.compose.resources.getString
  */
 class ComposeResourceHelper : ResourceHelper {
     override fun getString(resourceId: Int): String =
-        runBlocking { getString(ComposeResourceIds.string(resourceId)) }
+        runBlocking { composeString(ComposeResourceIds.string(resourceId)) }
 
     override fun getString(resourceId: Int, vararg formatArgs: Any): String =
-        runBlocking { getString(ComposeResourceIds.string(resourceId), *formatArgs) }
+        runBlocking { composeString(ComposeResourceIds.string(resourceId), *formatArgs) }
 
     override fun getString(resource: StringResource, vararg formatArgs: Any): String =
-        runBlocking { getString(resource, *formatArgs) }
+        runBlocking { composeString(resource, *formatArgs) }
 
     override fun getRawResource(resourceId: Int): String = ""
 
