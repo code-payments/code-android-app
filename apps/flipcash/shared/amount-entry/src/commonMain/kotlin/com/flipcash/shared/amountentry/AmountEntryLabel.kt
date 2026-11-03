@@ -1,8 +1,14 @@
 package com.flipcash.shared.amountentry
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.ui.text.AnnotatedString
-import com.flipcash.app.core.onramp.ui.AnnotatedButtonLabel
+
+/**
+ * Same type as `com.flipcash.app.core.onramp.ui.AnnotatedButtonLabel`, which is declared in
+ * `:apps:flipcash:core`'s androidMain and so can't be named from commonMain.
+ */
+internal typealias AnnotatedButtonLabel = Pair<AnnotatedString, Map<String, InlineTextContent>>
 
 /**
  * Label for the amount-entry confirm action.
