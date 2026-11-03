@@ -233,4 +233,61 @@ class CashBubbleLinesTest {
         assertEquals(CashCaption.YouSent, lines.caption)
         assertNull(lines.counterpart)
     }
+
+    // The amount line of a group send to two or more.
+
+    /** $1.00 split three ways, from before every recipient got the same amount. */
+    private val uneven = cash(multiReceiver = listOf(alex, viewer, third)).copy(
+        amount = Fiat(fiat = 1.0, currencyCode = CurrencyCode.USD),
+        multiReceiver = listOf(
+            MessageContent.Cash.Payment(alex, 0.33, 330_000L),
+            MessageContent.Cash.Payment(viewer, 0.34, 340_000L),
+            MessageContent.Cash.Payment(third, 0.33, 330_000L),
+        ),
+    )
+
+    /** The large line as text. */
+    private fun MessageContent.Cash.amountText(viewerPart: MessageContent.Cash.Payment?): String {
+        fun usd(value: Double) = Fiat(fiat = value, currencyCode = CurrencyCode.USD).formatted()
+        return when (val line = amountLine(viewerPart)) {
+            CashAmountLine.Whole -> usd(amount.decimalValue)
+            is CashAmountLine.Own -> usd(line.part.nativeAmount)
+            is CashAmountLine.Each -> line.text(resources, usd(line.part.nativeAmount))
+        }
+    }
+
+    @Test
+    fun `equal parts read each without a tilde, for every viewer`() {
+        assertEquals("$1.00 each", threeWay.amountText(viewerPart = null))
+        assertEquals("$1.00 each", threeWay.amountText(viewerPart = threeWay.multiReceiver[1]))
+    }
+
+    @Test
+    fun `uneven parts - the sender reads the smallest part with a tilde`() {
+        assertEquals("~$0.33 each", uneven.amountText(viewerPart = null))
+        assertEquals("You sent", uneven.read(isFromSelf = true, people = group.copy(sender = null)).first)
+    }
+
+    @Test
+    fun `uneven parts - a member who was not paid reads the smallest part with a tilde`() {
+        assertEquals("~$0.33 each", uneven.amountText(viewerPart = null))
+        assertEquals("Fred Wilson sent", uneven.read(isFromSelf = false, people = group).first)
+    }
+
+    @Test
+    fun `uneven parts - a recipient reads their own part, with no each`() {
+        val own = uneven.multiReceiver[1]
+        assertEquals(CashAmountLine.Own(own), uneven.amountLine(viewerPart = own))
+        assertEquals("$0.34", uneven.amountText(viewerPart = own))
+        assertEquals(
+            "You and 2 others received" to "from Fred Wilson",
+            uneven.read(isFromSelf = false, viewerPaid = true, people = group),
+        )
+    }
+
+    @Test
+    fun `a payment to one person reads the whole amount`() {
+        assertEquals(CashAmountLine.Whole, cash(receiver = alex).amountLine(viewerPart = null))
+        assertEquals(CashAmountLine.Whole, cash(multiReceiver = listOf(alex)).amountLine(viewerPart = null))
+    }
 }

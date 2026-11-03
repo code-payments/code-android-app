@@ -271,4 +271,41 @@ class ChatPinnedRowsTest {
                 vm.pinnedRows(pinsOf(sent)).single().bubble.cashPeople,
             )
         }
+
+    // A person whose profile resolved with neither a name nor a handle: other rows call them
+    // "Flipcash User", but a cash bubble reads "Someone" (docs/specs/cash-bubbles.md), which it
+    // draws for a null name.
+
+    @Test
+    fun `a group send from a sender with no name leaves it null, not Flipcash User`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val alex: ID = UUID.randomUUID().bytes
+            val sent = message(9, cash(multiReceiver = listOf(alex, viewerId)), fromSelf = false)
+            coEvery { chatCoordinator.currentSenderProfiles() } returns mapOf(
+                sent.senderId!!.hexEncodedString() to profile(""),
+                alex.hexEncodedString() to profile("Alex Morgan"),
+            )
+            every { resources.getString(com.flipcash.features.messenger.R.string.title_unnamedUser) } returns "Flipcash User"
+            val vm = createViewModel().also { it.openGroup() }
+            advanceUntilIdle()
+
+            assertEquals(
+                CashBubblePeople.Group(sender = null, leadRecipient = "Alex Morgan"),
+                vm.pinnedRows(pinsOf(sent)).single().bubble.cashPeople,
+            )
+        }
+
+    @Test
+    fun `a DM with a member who has no name leaves it null, not Flipcash User`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            every { resources.getString(com.flipcash.features.messenger.R.string.title_unnamedUser) } returns "Flipcash User"
+            val vm = createViewModel().also { it.open() }
+            vm.dispatchEvent(ChatViewModel.Event.OnTipUserResolved(UUID.randomUUID().bytes, profile("")))
+            advanceUntilIdle()
+
+            assertEquals(
+                CashBubblePeople.Direct(null),
+                vm.pinnedRows(pinsOf(message(9, cash(), fromSelf = false))).single().bubble.cashPeople,
+            )
+        }
 }

@@ -2034,6 +2034,8 @@
     </plurals>
     <string name="label_groupSendEach">%1$s each</string>
     <string name="label_groupSendTotal">%1$s total</string>
+    <!-- A group send whose parts differ: the smallest part, for the sender and members not paid. -->
+    <string name="label_groupSendEachApprox">~%1$s each</string>
     <string name="subtitle_senderSent">%1$s sent</string>
     <!-- A group send's cash bubble, read by someone it paid. -->
     <plurals name="subtitle_youAndOthersReceived">

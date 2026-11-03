@@ -31,13 +31,14 @@ import kotlin.time.Instant
 
 /**
  * Renders the cash bubble of every frame in the cash-bubbles design (section node 13266:348), with
- * the frames' amounts and names, in one PNG, for side-by-side comparison. A device reaches
- * only the roles its account plays, so this is the one place all ten are drawn. Not an assertion
- * test — it writes to `build/screenshots/cash_bubbles.png`.
+ * the frames' amounts and names, plus a send whose parts differ as each group viewer reads it, in
+ * one PNG for side-by-side comparison. A device reaches only the roles its account plays, so this
+ * is the one place all of them are drawn. Not an assertion test — it writes to
+ * `build/screenshots/cash_bubbles.png`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w402dp-h2600dp-xhdpi")
+@Config(sdk = [34], qualifiers = "w402dp-h3400dp-xhdpi")
 class CashBubbleScreenshotTest {
 
     @get:Rule
@@ -77,6 +78,14 @@ class CashBubbleScreenshotTest {
     private val toNoah = cash(5.0, listOf(viewer)).copy(
         multiReceiver = listOf(MessageContent.Cash.Payment(viewer, 5.0, 5_000_000L)),
     )
+    /** $1.00 split unevenly three ways, as sends from before equal parts were. */
+    private val uneven = cash(1.0, listOf(alex, viewer, third)).copy(
+        multiReceiver = listOf(
+            MessageContent.Cash.Payment(alex, 0.33, 330_000L),
+            MessageContent.Cash.Payment(viewer, 0.34, 340_000L),
+            MessageContent.Cash.Payment(third, 0.33, 330_000L),
+        ),
+    )
     private val group = CashBubblePeople.Group(sender = "Fred Wilson", leadRecipient = "Alex Morgan")
     private val groupOne = CashBubblePeople.Group(sender = "Fred Wilson", leadRecipient = "Noah Parker")
     private val dm = CashBubblePeople.Direct(other = "Noah Parker")
@@ -92,6 +101,9 @@ class CashBubbleScreenshotTest {
         "G1" to bubble(toNoah, isFromSelf = true, people = groupOne.copy(sender = null)),
         "G2" to bubble(toNoah, isFromSelf = false, people = groupOne.copy(leadRecipient = null), paid = true),
         "G3" to bubble(toNoah, isFromSelf = false, people = groupOne),
+        "A uneven" to bubble(uneven, isFromSelf = true, people = group.copy(sender = null)),
+        "B uneven" to bubble(uneven, isFromSelf = false, people = group, paid = true),
+        "E uneven" to bubble(uneven, isFromSelf = false, people = group),
     )
 
     @Test

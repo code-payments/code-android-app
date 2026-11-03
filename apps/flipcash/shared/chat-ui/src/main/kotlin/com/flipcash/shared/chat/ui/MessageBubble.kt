@@ -42,6 +42,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -266,6 +267,7 @@ fun ContentBubble(
                         viewerPaid = item.receivedPart != null,
                         people = item.cashPeople,
                     ),
+                    amount = content.amountLine(viewerPart = item.receivedPart),
                     isFromSelf = item.isFromSelf,
                     position = position,
                     maxWidth = bubbleMaxWidth,
@@ -1039,6 +1041,7 @@ private fun rememberLinkCardClick(): (LinkCard) -> Unit {
 private fun CashBubble(
     content: MessageContent.Cash,
     lines: CashBubbleLines,
+    amount: CashAmountLine,
     isFromSelf: Boolean,
     position: BubblePosition,
     maxWidth: Dp,
@@ -1086,39 +1089,55 @@ private fun CashBubble(
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
             ) {
                 if (parts.size >= 2) {
-                    // Every recipient gets the same amount; a vector from before that rule may
-                    // differ by a minor unit, and the smallest part is the one nobody fell short of.
-                    val each = content.partInDisplayCurrency(parts.minBy { it.nativeAmount }).formatted()
-                    val eachLine = stringResource(R.string.label_groupSendEach, each)
-                    val secondaryColor = CodeTheme.colors.textSecondary
-                    Text(
-                        // " each" in em, so the auto-size that shrinks the amount shrinks it too
-                        // and the line never wraps.
-                        text = remember(eachLine, each, secondaryColor) {
-                            buildAnnotatedString {
-                                append(eachLine)
-                                val start = eachLine.indexOf(each)
-                                val styled = SpanStyle(
-                                    fontSize = 0.5.em,
-                                    fontWeight = FontWeight.Normal,
-                                    color = secondaryColor,
-                                )
-                                if (start < 0) {
-                                    addStyle(styled, 0, eachLine.length)
-                                } else {
-                                    addStyle(styled, 0, start)
-                                    addStyle(styled, start + each.length, eachLine.length)
-                                }
-                            }
-                        },
-                        style = amountStyle,
-                        color = CodeTheme.colors.textMain,
-                        autoSize = TextAutoSize.StepBased(
-                            minFontSize = 20.sp,
-                            maxFontSize = amountStyle.fontSize,
-                        ),
-                        maxLines = 1,
-                    )
+                    when (amount) {
+                        is CashAmountLine.Each -> {
+                            val each = content.partInDisplayCurrency(amount.part).formatted()
+                            val eachLine = amount.text(LocalResources.current, each)
+                            val secondaryColor = CodeTheme.colors.textSecondary
+                            Text(
+                                // Only what follows the amount is lighter: a "~" before it keeps the
+                                // amount's style. In em, so the auto-size that shrinks the amount
+                                // shrinks " each" too and the line never wraps.
+                                text = remember(eachLine, each, secondaryColor) {
+                                    buildAnnotatedString {
+                                        append(eachLine)
+                                        val start = eachLine.indexOf(each)
+                                        val suffix = if (start < 0) 0 else start + each.length
+                                        addStyle(
+                                            SpanStyle(
+                                                fontSize = 0.5.em,
+                                                fontWeight = FontWeight.Normal,
+                                                color = secondaryColor,
+                                            ),
+                                            suffix,
+                                            eachLine.length,
+                                        )
+                                    }
+                                },
+                                style = amountStyle,
+                                color = CodeTheme.colors.textMain,
+                                autoSize = TextAutoSize.StepBased(
+                                    minFontSize = 20.sp,
+                                    maxFontSize = amountStyle.fontSize,
+                                ),
+                                maxLines = 1,
+                            )
+                        }
+
+                        is CashAmountLine.Own, CashAmountLine.Whole -> Text(
+                            text = when (amount) {
+                                is CashAmountLine.Own -> content.partInDisplayCurrency(amount.part)
+                                else -> whole
+                            }.formatted(),
+                            style = amountStyle,
+                            color = CodeTheme.colors.textMain,
+                            autoSize = TextAutoSize.StepBased(
+                                minFontSize = 20.sp,
+                                maxFontSize = amountStyle.fontSize,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
                     Text(
                         text = stringResource(R.string.label_groupSendTotal, whole.formatted()),
                         style = secondary,
@@ -1703,6 +1722,7 @@ private fun PreviewCashBubble(
         CashBubble(
             content = content,
             lines = content.bubbleLines(isFromSelf = isFromSelf, viewerPaid = viewerPaid, people = people),
+            amount = content.amountLine(viewerPart = content.multiReceiver.firstOrNull()?.takeIf { viewerPaid }),
             isFromSelf = isFromSelf,
             position = BubblePosition.Solo,
             maxWidth = 250.dp,

@@ -123,6 +123,43 @@ fun MessageContent.Cash.bubbleLines(
     }
 }
 
+/** The large line of a cash bubble. */
+@Immutable
+sealed interface CashAmountLine {
+    /** The whole amount: a DM, or a payment to one person. */
+    data object Whole : CashAmountLine
+
+    /**
+     * What each recipient got. [approx] when the parts differ, and [part] is then the smallest, the
+     * amount nobody fell short of.
+     */
+    data class Each(val part: MessageContent.Cash.Payment, val approx: Boolean) : CashAmountLine
+
+    /** The viewer's own part of a send whose parts differ, with no "each". */
+    data class Own(val part: MessageContent.Cash.Payment) : CashAmountLine
+}
+
+/**
+ * The large line of a cash bubble. A send to two or more whose parts are all equal reads "$X each".
+ * When they differ, as in sends from before every recipient got the same amount, a recipient reads
+ * their own part ([viewerPart]) and everyone else "~$X each" for the smallest. The parts decide it,
+ * not the message's date, so a later send that splits reads the same way.
+ */
+fun MessageContent.Cash.amountLine(viewerPart: MessageContent.Cash.Payment?): CashAmountLine {
+    val parts = multiReceiver
+    if (parts.size < 2) return CashAmountLine.Whole
+    val first = parts.first()
+    return when {
+        parts.all { it.nativeAmount == first.nativeAmount } -> CashAmountLine.Each(first, approx = false)
+        viewerPart != null -> CashAmountLine.Own(viewerPart)
+        else -> CashAmountLine.Each(parts.minBy { it.nativeAmount }, approx = true)
+    }
+}
+
+/** "$X each", or "~$X each" for [CashAmountLine.Each.approx], with [amount] already formatted. */
+fun CashAmountLine.Each.text(resources: Resources, amount: String): String =
+    resources.getString(if (approx) R.string.label_groupSendEachApprox else R.string.label_groupSendEach, amount)
+
 @Composable
 fun CashCaption.text(): String = text(LocalResources.current)
 
