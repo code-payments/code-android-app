@@ -90,6 +90,8 @@ The feature plugin automatically includes `:libs:logging`, `:ui:core`, `:ui:comp
 
 A code change is done when the touched modules' unit tests pass and `./gradlew :apps:flipcash:app:compileDebugKotlin` succeeds.
 
+For a layout or motion change in `apps/desktop`, also render `./gradlew :apps:desktop:snapshot -Pmotion=…` and step the frames before calling it done; stills can't show a transition.
+
 Tests for gestures and pointer input replay the sequence a finger makes on the device, such as a partial reveal followed by a full swipe. A semantics action or a single fling can pass while the real gesture fails: the leading swipe's reset and the desktop peek toggle both did.
 
 ## Namespaces

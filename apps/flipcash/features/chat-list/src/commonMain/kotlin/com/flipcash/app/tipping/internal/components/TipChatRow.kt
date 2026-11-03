@@ -1,9 +1,5 @@
 package com.flipcash.app.tipping.internal.components
 
-import com.flipcash.core.resources.Res
-import com.flipcash.core.resources.subtitle_peopleWantToJoin
-import com.flipcash.core.resources.subtitle_wantsToJoin
-import com.flipcash.core.resources.title_unnamedUser
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,14 +10,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.chat.LobbyMember
 import com.flipcash.shared.chat.ui.ChatListRow
 import com.flipcash.shared.chat.ui.ChatRowSubtitle
 import com.flipcash.shared.chat.ui.ChatRowTrailing
@@ -29,8 +22,8 @@ import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.chat.ui.JoinRequestSubtitle
 import com.flipcash.shared.chat.ui.MutedIndicator
 import com.flipcash.shared.chat.ui.SubtitleText
+import com.flipcash.shared.chat.ui.joinRequestText
 import com.flipcash.shared.common.ui.ContactAvatar
-import com.flipcash.shared.common.ui.profile.chatterName
 import com.getcode.theme.CodeTheme
 import kotlin.time.Clock
 
@@ -111,27 +104,6 @@ internal fun TipChatRow(
         showDivider = showDivider,
         onClick = onClick,
     )
-}
-
-/**
- * "Jasper wants to join" for one requester, "3 people want to join" for several, or null with
- * nobody waiting. Named the way the in-chat Join Requests anchor names them.
- */
-@Composable
-private fun joinRequestText(waiting: List<LobbyMember>): String? {
-    val only = waiting.singleOrNull()
-    return when {
-        waiting.isEmpty() -> null
-        only != null -> stringResource(
-            Res.string.subtitle_wantsToJoin,
-            chatterName(
-                only.userProfile.displayName,
-                only.userProfile.username,
-                stringResource(Res.string.title_unnamedUser),
-            ),
-        )
-        else -> pluralStringResource(Res.plurals.subtitle_peopleWantToJoin, waiting.size, waiting.size)
-    }
 }
 
 @Composable

@@ -110,6 +110,7 @@ desugaring = "2.1.5"
 kotlincrypto-hash = "0.8.0"
 kotlincrypto-macs = "0.8.0"
 event-bus = "0.1.0"
+jbr-api = "1.12.0"
 bignum = "0.3.10"
 
 bugsnag = "6.28.0"
@@ -313,6 +314,7 @@ compose-unstyled-bottom-sheet = { module = "com.composables:composeunstyled-bott
 rinku = { module = "dev.theolm:rinku", version.ref = "rinku" }
 rinku-compose = { module = "dev.theolm:rinku-compose-ext", version.ref = "rinku" }
 event-bus = { module = "io.github.hoc081098:channel-event-bus", version.ref = "event-bus" }
+jbr-api = { module = "org.jetbrains.runtime:jbr-api", version.ref = "jbr-api" }
 
 # Baseline Profile / Benchmark
 androidx-benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "androidx-benchmark-macro" }
