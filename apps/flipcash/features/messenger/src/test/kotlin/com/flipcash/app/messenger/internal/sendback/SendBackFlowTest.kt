@@ -8,6 +8,7 @@ import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.CashMessageReturnStatus
 import com.flipcash.services.models.chat.CashMessageReturnStatus.Status
 import com.flipcash.services.models.chat.ChatId
@@ -18,7 +19,6 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.models.SendBackRow
 import com.flipcash.shared.payments.sendback.SendBackPaymentDelegate
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
@@ -58,7 +58,6 @@ class SendBackFlowTest {
     private val payments = mockk<SendBackPaymentDelegate>(relaxed = true)
     private val payer = mockk<StartChattingPayer>(relaxed = true)
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true)
-    private val exchange = mockk<Exchange>(relaxed = true)
     private val userManager = mockk<UserManager>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
     private val token = mockk<Token>(relaxed = true)
@@ -97,6 +96,8 @@ class SendBackFlowTest {
         every { tokenCoordinator.cachedToken(any()) } returns token
         every { tokenCoordinator.heldQuarksForToken(any()) } answers { flowOf(held) }
         coEvery { payments.price(any(), any()) } returns Result.success(priced)
+        every { resources.getString(R.string.error_title_staleRates) } returns RATE_UNAVAILABLE
+        every { resources.getString(R.string.error_title_couldntSendBack) } returns COULDNT_SEND_BACK
         coEvery { payments.pay(any(), any(), any(), any(), any(), any(), any()) } returns Result.success(Unit)
     }
 
@@ -121,7 +122,6 @@ class SendBackFlowTest {
         },
         payer = payer,
         tokenCoordinator = tokenCoordinator,
-        exchange = exchange,
         userManager = userManager,
         resources = resources,
         analytics = analytics,
@@ -279,6 +279,52 @@ class SendBackFlowTest {
         assertEquals(listOf(TransferEvents.sendBackTapped(hasBalance = false)), analytics.events)
     }
 
+    // --- Balance that can't be determined ---
+
+    private fun noFreshRate() {
+        coEvery { payments.price(any(), any()) } returns Result.failure(IllegalStateException("stale"))
+    }
+
+    @Test
+    fun `a tap with no fresh rate shows Rate Unavailable and sends no Tapped event`() {
+        noFreshRate()
+        val f = flow().available()
+
+        f.tap(offeredId)
+
+        assertNull(f.sheet.value)
+        assertEquals(listOf(RATE_UNAVAILABLE), BottomBarManager.messages.value.map { it.title })
+        verify(exactly = 0) { payer.presentInsufficientBalance(any(), any()) }
+        assertEquals(emptyList(), analytics.events)
+    }
+
+    @Test
+    fun `a tap before the balance has loaded shows Rate Unavailable and sends no Tapped event`() {
+        held = null
+        val f = flow().available()
+
+        f.tap(offeredId)
+
+        assertNull(f.sheet.value)
+        assertEquals(listOf(RATE_UNAVAILABLE), BottomBarManager.messages.value.map { it.title })
+        verify(exactly = 0) { payer.presentInsufficientBalance(any(), any()) }
+        assertEquals(emptyList(), analytics.events)
+    }
+
+    @Test
+    fun `a swipe with no fresh rate closes the sheet with Rate Unavailable and pays nothing`() {
+        val f = flow().available()
+        f.tap(offeredId)
+        noFreshRate()
+
+        f.confirm()
+
+        assertNull(f.sheet.value)
+        assertEquals(SendBackRow.Available, f.rows.value[offeredId])
+        assertEquals(listOf(RATE_UNAVAILABLE), BottomBarManager.messages.value.map { it.title })
+        coVerify(exactly = 0) { payments.pay(any(), any(), any(), any(), any(), any(), any()) }
+    }
+
     // --- Submit (13–15, 19) ---
 
     private fun SendBackFlow.swipe(): SendBackFlow = apply {
@@ -338,7 +384,7 @@ class SendBackFlowTest {
         f.swipe()
 
         assertEquals(SendBackRow.Available, f.rows.value[offeredId])
-        assertEquals(1, BottomBarManager.messages.value.size)
+        assertEquals(listOf(COULDNT_SEND_BACK), BottomBarManager.messages.value.map { it.title })
         assertEquals(listOf(sentCash(AnalyticsState.FAILURE, "boom")), analytics.events)
     }
 
@@ -386,5 +432,10 @@ class SendBackFlowTest {
         val forms = listOf(base58, intentBytes.toList().toString())
         val exposed = analytics.events.map { it.toString() } + sheet + f.rows.value.toString()
         for (text in exposed) for (form in forms) assertFalse(form in text, "intent id in: $text")
+    }
+
+    private companion object {
+        const val RATE_UNAVAILABLE = "Rate Unavailable"
+        const val COULDNT_SEND_BACK = "Couldn't Send Back"
     }
 }

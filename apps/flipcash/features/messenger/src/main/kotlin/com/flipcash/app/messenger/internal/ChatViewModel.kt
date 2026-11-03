@@ -1419,7 +1419,6 @@ internal class ChatViewModel @AssistedInject constructor(
                 returnStatus = chatMessagingController::getCashMessageReturnStatus,
                 payer = startChattingPayer,
                 tokenCoordinator = tokenCoordinator,
-                exchange = exchange,
                 userManager = userManager,
                 resources = resources,
                 analytics = analytics,

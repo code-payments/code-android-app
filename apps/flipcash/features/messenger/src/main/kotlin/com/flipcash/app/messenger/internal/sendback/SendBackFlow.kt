@@ -17,7 +17,6 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.models.SendBackRow
 import com.flipcash.shared.payments.sendback.SendBackPaymentDelegate
 import com.getcode.manager.BottomBarManager
-import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
@@ -56,7 +55,6 @@ internal class SendBackFlow(
     private val returnStatus: suspend (ChatId, Long) -> Result<CashMessageReturnStatus>,
     private val payer: StartChattingPayer,
     private val tokenCoordinator: TokenCoordinator,
-    private val exchange: Exchange,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalytics,
@@ -145,7 +143,8 @@ internal class SendBackFlow(
                 val token = tokenFor(offer.mint)
                 val hasBalance = token?.let { checkBalance(offer, it) }?.hasBalance
                 if (token == null || hasBalance == null) {
-                    presentFailed()
+                    // Not a tap the funnel counts: it reached neither the sheet nor the modal.
+                    presentRateUnavailable()
                     return@launch
                 }
                 analytics.track(TransferEvents.sendBackTapped(hasBalance = hasBalance))
@@ -173,7 +172,7 @@ internal class SendBackFlow(
             _sheet.value = null
             if (check?.hasBalance != true) {
                 busy = false
-                if (check != null) presentInsufficientBalance() else presentFailed()
+                if (check != null) presentInsufficientBalance() else presentRateUnavailable()
                 return@launch
             }
             setRow(offer.messageId, SendBackRow.Sending)
@@ -251,18 +250,15 @@ internal class SendBackFlow(
     private class BalanceCheck(val priced: VerifiedFiat, val hasBalance: Boolean)
 
     /**
-     * Prices [offer] and checks the viewer holds the token quarks it needs, or null when it can't
-     * be priced. While only a USD value of the holding is known (restored from Room, before the
-     * first balance fetch), the value is compared instead.
+     * Prices [offer] and compares the token quarks it needs with the quarks the viewer holds,
+     * exactly. Null when that can't be decided: no fresh rate to price it, or no quark balance
+     * loaded yet. A fiat comparison is no stand-in, since rounding passes a balance just short.
      */
     private suspend fun checkBalance(offer: Offer, token: Token): BalanceCheck? {
         val priced = payments.price(offer.amount, token).getOrNull() ?: return null
         val needed = priced.localFiat.underlyingTokenAmount.quarks
-        val held = tokenCoordinator.heldQuarksForToken(offer.mint).first()
-        if (held != null) return BalanceCheck(priced, held >= needed)
-        val rate = exchange.rateFor(offer.amount.currencyCode) ?: return null
-        val hasBalance = !offer.amount.valueGreaterThan(tokenCoordinator.balanceForToken(token).convertingTo(rate))
-        return BalanceCheck(priced, hasBalance)
+        val held = tokenCoordinator.heldQuarksForToken(offer.mint).first() ?: return null
+        return BalanceCheck(priced, held >= needed)
     }
 
     private suspend fun tokenFor(mint: Mint): Token? =
@@ -293,6 +289,14 @@ internal class SendBackFlow(
         scope.launch { payer.depositRoute()?.let(openScreen) }
     }
 
+    private fun presentRateUnavailable() {
+        BottomBarManager.showError(
+            title = resources.getString(R.string.error_title_staleRates),
+            message = resources.getString(R.string.error_description_staleRates),
+        )
+    }
+
+    /** A submit that failed, the return still not made (test case 15). */
     private fun presentFailed() {
         BottomBarManager.showError(
             title = resources.getString(R.string.error_title_couldntSendBack),
