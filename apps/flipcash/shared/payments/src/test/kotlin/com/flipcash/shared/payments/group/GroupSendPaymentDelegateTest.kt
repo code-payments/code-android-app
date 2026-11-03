@@ -23,6 +23,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -98,6 +99,41 @@ class GroupSendPaymentDelegateTest {
         assertEquals(members.map { keys.getValue(it) }, payments.captured.map { it.first })
         assertContentEquals(buildGroupPaymentMetadata(chatId), metadata.captured)
         coVerify(exactly = 6) { tokenCoordinator.subtract(token, any<LocalFiat>()) }
+    }
+
+    /** Resolving is a round trip per recipient; a send to the group must not pay for them in turn. */
+    @Test
+    fun `recipients resolve concurrently and keep selection order when they finish out of order`() = runTest {
+        pricesAt()
+        members.forEachIndexed { i, member ->
+            coEvery { resolverController.resolve(userId = member) } coAnswers {
+                delay((members.size - i) * 100L)
+                Result.success(keys.getValue(member))
+            }
+        }
+        val payments = slot<List<Pair<PublicKey, LocalFiat>>>()
+        coEvery {
+            transactionController.directMultiTransfer(capture(payments), state, token, source, any(), any())
+        } returns Result.success(mockk())
+
+        assertTrue(send(members, "1.00").isSuccess)
+
+        assertEquals(members.map { keys.getValue(it) }, payments.captured.map { it.first })
+        // Sequential would take 600 + 500 + ... + 100 = 2100ms; concurrent takes the slowest.
+        assertEquals(members.size * 100L, testScheduler.currentTime)
+    }
+
+    @Test
+    fun `a recipient that does not resolve sends nothing`() = runTest {
+        pricesAt()
+        coEvery { resolverController.resolve(userId = members[3]) } returns
+            Result.failure(IllegalStateException("unresolved"))
+
+        // Coroutine stack-trace recovery can rethrow a copy, so compare type and message.
+        val error = assertIs<IllegalStateException>(send(members, "1.00").exceptionOrNull())
+        assertEquals("unresolved", error.message)
+        coVerify(exactly = 0) { transactionController.directMultiTransfer(any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { tokenCoordinator.subtract(any(), any<LocalFiat>()) }
     }
 
     @Test

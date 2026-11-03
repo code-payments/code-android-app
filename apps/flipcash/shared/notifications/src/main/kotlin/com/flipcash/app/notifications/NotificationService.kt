@@ -65,6 +65,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.security.SecureRandom
@@ -255,10 +258,14 @@ class NotificationService : FirebaseMessagingService(),
                     if (syncContacts) launch { contactCoordinator.sync() }
                     val decided = post?.let { applyArchiveOrPost(it) }
                     if (decided != null && channel != null) {
-                        val resolvedTitle =
-                            applySubstitutions(decided.title, decided.payload?.titleSubstitutions.orEmpty())
-                        val resolvedBody = decided.body?.let {
-                            applySubstitutions(it, decided.payload?.bodySubstitutions.orEmpty())
+                        val (resolvedTitle, resolvedBody) = coroutineScope {
+                            val body = async {
+                                decided.body?.let {
+                                    applySubstitutions(it, decided.payload?.bodySubstitutions.orEmpty())
+                                }
+                            }
+                            applySubstitutions(decided.title, decided.payload?.titleSubstitutions.orEmpty()) to
+                                body.await()
                         }
                         postNotification(resolvedTitle, resolvedBody, decided.payload, channel, decided.silent)
                     }
@@ -658,11 +665,17 @@ class NotificationService : FirebaseMessagingService(),
             ?: profileController.getProfileForUser(userId).getOrNull()
                 ?.displayName?.takeIf { it.isNotBlank() }
 
+    /**
+     * Each substitution resolves on its own (a cache miss is a profile fetch), so they resolve
+     * concurrently; the placeholders are then replaced in index order, as before.
+     */
     private suspend fun applySubstitutions(text: String, substitutions: List<Substitution>): String {
+        val resolved = coroutineScope {
+            substitutions.map { async { resolveSubstitution(it) } }.awaitAll()
+        }
         var result = text
-        for ((index, substitution) in substitutions.withIndex()) {
-            val resolved = resolveSubstitution(substitution)
-            result = result.replace("{$index}", resolved)
+        for ((index, value) in resolved.withIndex()) {
+            result = result.replace("{$index}", value)
         }
         return result
     }

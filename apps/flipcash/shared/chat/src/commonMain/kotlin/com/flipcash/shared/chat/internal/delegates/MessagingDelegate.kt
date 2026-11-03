@@ -161,10 +161,7 @@ class MessagingDelegate @Inject constructor(
     }
 
     override suspend fun hydrateChat(chatId: ChatId): ChatHydration {
-        if (metadataDataSource.exists(chatId)) {
-            refreshGroupViewerState(chatId)
-            return ChatHydration.Stored
-        }
+        if (metadataDataSource.exists(chatId)) return ChatHydration.Stored
         val metadata = chatController.getChat(chatId).getOrElse { cause ->
             if (cause is GetChatError.NotFound) return ChatHydration.Absent
             trace(tag = TAG, message = "Hydrate failed for $chatId", type = TraceType.Error)
@@ -180,7 +177,7 @@ class MessagingDelegate @Inject constructor(
      * Silence and Remove. Reading the chat again on open fills them. They are written outside the
      * version gate, which would drop a read whose version the row already holds.
      */
-    private suspend fun refreshGroupViewerState(chatId: ChatId) {
+    override suspend fun refreshViewerState(chatId: ChatId) {
         if (metadataDataSource.getChatType(chatId) != ChatType.GROUP) return
         val moderation = chatController.getChat(chatId).getOrNull()?.viewerState?.permissions?.moderation ?: return
         metadataDataSource.updateModerationGrants(chatId, moderation.canSilence, moderation.canBan)
