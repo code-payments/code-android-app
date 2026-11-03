@@ -277,7 +277,7 @@ internal fun MemberSwipeRow(
     // shortened since the row is already in the group.
     val restrictTitle = stringResource(R.string.action_silenceMemberShort)
     val liftTitle = stringResource(R.string.action_liftRestriction)
-    val removeTitle = stringResource(R.string.action_removeMemberShort)
+    val removeTitle = stringResource(R.string.action_remove)
     val swipeActions = buildList {
         if (actions.restrict) {
             add(
