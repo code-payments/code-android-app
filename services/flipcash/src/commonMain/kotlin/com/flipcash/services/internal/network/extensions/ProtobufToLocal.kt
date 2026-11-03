@@ -227,6 +227,18 @@ internal fun MessagingModel.Content.toMessageContent(): MessageContent {
                 emptyList()
             },
             paymentRequestId = if (cash.hasPaymentRequestId()) cash.paymentRequestId.value.toByteArray().toList() else null,
+            paymentReturn = if (cash.hasPaymentReturn()) {
+                MessageContent.Cash.PaymentReturn(
+                    offer = if (cash.paymentReturn.hasOffer()) MessageContent.Cash.PaymentReturn.Offer else null,
+                    returnOf = if (cash.paymentReturn.hasReturnOf()) {
+                        MessageContent.Cash.PaymentReturn.ReturnOf(cash.paymentReturn.returnOf.messageId.value)
+                    } else {
+                        null
+                    },
+                )
+            } else {
+                null
+            },
         )
         MessagingModel.Content.TypeCase.REPLY -> MessageContent.Reply(
             repliedMessageId = reply.repliedMessageId.value,

@@ -43,7 +43,29 @@ sealed interface MessageContent {
          * null for any other cash message.
          */
         val paymentRequestId: ID? = null,
+        /**
+         * What the server attached to this payment about returning it (`CashContent.payment_return`),
+         * set when the message was sent and never changed. Null for a payment with no return
+         * involvement, and for rows stored before this was kept.
+         */
+        val paymentReturn: PaymentReturn? = null,
     ) : MessageContent {
+        /**
+         * `CashContent.Return`. [offer] and [returnOf] are independent: the first says the payer
+         * offers the receiver a return of this payment, the second says this payment is itself a
+         * return of an earlier message's payment.
+         */
+        data class PaymentReturn(
+            val offer: Offer? = null,
+            val returnOf: ReturnOf? = null,
+        ) {
+            /** `Return.Offer`; carries nothing, its presence is the offer. */
+            data object Offer
+
+            /** `Return.ReturnOf`: this payment returns the payment in [messageId]'s cash message. */
+            data class ReturnOf(val messageId: Long)
+        }
+
         /** One receiver's part of a multi-receiver payment (`CashContent.Payment`). */
         data class Payment(
             val receiver: ID,
