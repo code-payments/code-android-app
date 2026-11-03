@@ -64,6 +64,24 @@ internal class ChatMessagingApi @Inject constructor(
         }
     }
 
+    suspend fun getCashMessageReturnStatus(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageId: Long,
+    ): RpcMessagingService.GetCashMessageReturnStatusResponse {
+        val request = RpcMessagingService.GetCashMessageReturnStatusRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .setMessageId(MessagingModel.MessageId.newBuilder().setValue(messageId))
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getCashMessageReturnStatus(request)
+        }
+    }
+
     suspend fun getMessages(
         owner: KeyPair,
         chatId: ChatId,

@@ -15,7 +15,10 @@ import com.flipcash.services.models.GetReactionSummariesError
 import com.flipcash.services.models.GetReactionSummaryError
 import com.flipcash.services.models.GetReactorsError
 import com.flipcash.services.models.SendMessageError
+import com.flipcash.services.models.GetCashMessageReturnStatusError
 import com.flipcash.services.models.GetMessageError
+import com.flipcash.services.models.chat.CashMessageReturnStatus
+import com.flipcash.services.models.paymentrequest.PaymentIntentId
 import com.flipcash.services.models.GetMessagesError
 import com.flipcash.services.models.NotifyIsTypingError
 import com.flipcash.services.models.PagingToken
@@ -62,6 +65,44 @@ internal class ChatMessagingService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { GetMessageError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun getCashMessageReturnStatus(
+        owner: KeyPair,
+        chatId: ChatId,
+        messageId: Long,
+    ): Result<CashMessageReturnStatus> {
+        return runCatching {
+            api.getCashMessageReturnStatus(owner, chatId, messageId)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcMessagingService.GetCashMessageReturnStatusResponse.Result.OK -> Result.success(
+                        CashMessageReturnStatus(
+                            status = when (response.status) {
+                                RpcMessagingService.GetCashMessageReturnStatusResponse.Status.AVAILABLE ->
+                                    CashMessageReturnStatus.Status.AVAILABLE
+                                RpcMessagingService.GetCashMessageReturnStatusResponse.Status.RETURNED ->
+                                    CashMessageReturnStatus.Status.RETURNED
+                                else -> CashMessageReturnStatus.Status.UNKNOWN
+                            },
+                            paymentIntentId = if (response.hasPaymentIntentId()) {
+                                PaymentIntentId(response.paymentIntentId.value.toByteArray())
+                            } else {
+                                null
+                            },
+                        )
+                    )
+                    RpcMessagingService.GetCashMessageReturnStatusResponse.Result.DENIED -> Result.failure(GetCashMessageReturnStatusError.Denied())
+                    RpcMessagingService.GetCashMessageReturnStatusResponse.Result.NOT_FOUND -> Result.failure(GetCashMessageReturnStatusError.NotFound())
+                    RpcMessagingService.GetCashMessageReturnStatusResponse.Result.UNRECOGNIZED -> Result.failure(GetCashMessageReturnStatusError.Unrecognized())
+                    else -> Result.failure(GetCashMessageReturnStatusError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { GetCashMessageReturnStatusError.Other(cause = it) })
             }
         )
     }

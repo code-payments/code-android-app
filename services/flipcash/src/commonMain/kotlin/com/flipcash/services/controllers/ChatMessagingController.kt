@@ -1,6 +1,7 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.chat.CashMessageReturnStatus
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ClientMessageId
@@ -34,6 +35,18 @@ class ChatMessagingController @Inject constructor(
     ): Result<ChatMessage> {
         val owner = runCatching { requireOwner() }.getOrElse { return Result.failure(it) }
         return repository.getMessage(owner, chatId, messageId, viewMode)
+    }
+
+    /**
+     * Whether [messageId]'s payment, in the DM [chatId], can still be returned. A
+     * [CashMessageReturnStatus.Status.RETURNED] answer is terminal, so callers can stop asking.
+     */
+    suspend fun getCashMessageReturnStatus(
+        chatId: ChatId,
+        messageId: Long,
+    ): Result<CashMessageReturnStatus> {
+        val owner = runCatching { requireOwner() }.getOrElse { return Result.failure(it) }
+        return repository.getCashMessageReturnStatus(owner, chatId, messageId)
     }
 
     suspend fun getMessages(
