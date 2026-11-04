@@ -20,7 +20,7 @@ import kotlin.time.Instant
  * confirm sheet. Frames 04–06 of the group requests spec.
  *
  * @param amount what each share asks for.
- * @param members who Split Between lists: the creator first, then the rest of the roster in its
+ * @param members who Request From lists: the creator first, then the rest of the roster in its
  *   order. Shares are sent in this order, whatever order the boxes were checked in.
  * @param selected who is asked, the creator included when [viewerId] is in it.
  * @param idempotencyKey minted when the confirm sheet first opens, and reused by every retry of
@@ -43,7 +43,7 @@ internal data class NewRequestDraft(
 
     val includesCreator: Boolean get() = viewerId in selected
 
-    /** Split Between's button: at least one member other than the creator. */
+    /** Request From's button: at least one member other than the creator. */
     val canContinue: Boolean get() = requestedCount > 0
 
     val canSend: Boolean get() = canContinue && split != null && title.isNotBlank()
