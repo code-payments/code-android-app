@@ -1,6 +1,8 @@
-<!-- Mark as Read on the chat list. Reads like iOS's `message`: an outlined speech bubble with its
-     tail at the lower left. Drawn here, not traced from the SF Symbol, which is licensed for Apple
-     platforms only. One closed stroke: the body is an elliptical arc and the tail two lines. -->
+<!-- Mark as Read on the chat list. Reads like iOS's `message` with a check: an outlined speech
+     bubble with its tail at the lower left, and a checkmark in the middle of its body. Drawn here,
+     not traced from the SF Symbol, which is licensed for Apple platforms only. The bubble is one
+     closed stroke: the body is a 9x7 elliptical arc centred on (12, 11) and the tail two lines.
+     The check is centred on that same point, so it sits in the body rather than the viewport. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -12,4 +14,10 @@
       android:strokeLineJoin="round"
       android:strokeLineCap="round"
       android:pathData="M8.92,17.58A9,7 0,1 0,4.63 15.01L4,20.5L8.92,17.58Z"/>
+  <path
+      android:strokeColor="#ffffff"
+      android:strokeWidth="1.8"
+      android:strokeLineJoin="round"
+      android:strokeLineCap="round"
+      android:pathData="M7.8,10.8L10.7,13.7L16.1,8.1"/>
 </vector>
