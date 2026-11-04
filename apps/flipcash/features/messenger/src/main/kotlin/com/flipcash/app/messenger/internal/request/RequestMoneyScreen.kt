@@ -173,7 +173,7 @@ internal fun RequestMoneyScreen(
                         onBack = back,
                         onToggle = { viewModel.toggle(it.userId) },
                         onSend = back,
-                        title = stringResource(R.string.title_splitBetween),
+                        title = stringResource(R.string.title_requestFrom),
                         buttonText = stringResource(R.string.action_done),
                         buttonEnabled = draft.canContinue,
                         viewerId = viewModel.viewerId,
