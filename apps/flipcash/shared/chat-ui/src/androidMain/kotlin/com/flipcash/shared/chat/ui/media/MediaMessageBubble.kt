@@ -205,6 +205,8 @@ internal fun MediaMessageBubble(
             localModel = localUri,
             sentPreview = sentPreview,
             caption = body.caption?.text,
+            // Only the caption is ever edited, so the caption bubble carries the marker.
+            captionEdited = item.isEdited && item.isLastRow,
             mentions = item.mentions,
             onMentionClick = onMentionClick,
             linkCard = linkCard,

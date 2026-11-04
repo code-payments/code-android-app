@@ -17,10 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
-import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
@@ -46,11 +44,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -65,7 +60,6 @@ import androidx.compose.ui.unit.sp
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.action_sendBack
 import com.flipcash.core.resources.label_sentBack
-import com.flipcash.core.resources.label_edited
 import com.flipcash.core.resources.label_groupSendTotal
 import com.flipcash.core.resources.label_messageDeleted
 import com.flipcash.core.resources.label_messageDeletedByYou
@@ -105,7 +99,6 @@ import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 
-private val EDITED_MARKER_GAP = 6.dp
 
 /**
  * @param onLongClick what a long-press on this bubble reports, or `null` where the row behind it
@@ -449,8 +442,6 @@ private fun ChatListItem.ContentBubble.linkOnlyWebCard(): LinkCard.Web? {
     return web.takeIf { plainText?.let(it::isAloneIn) == true }
 }
 
-private const val EDITED_MARKER_SLOT = "edited-marker"
-
 internal const val REPLY_QUOTE_TAG = "bubble_reply_quote"
 
 /** The hairline across the top of a cash bubble's Sent Back footer. */
@@ -621,43 +612,14 @@ private fun TextBubble(
             CodeTheme.colors.textMain
         }
 
-        val markerLabel = stringResource(Res.string.label_edited)
-        val markerStyle = CodeTheme.typography.caption
-
-        // The marker is pinned to the bubble's bottom-trailing corner rather than laid out after
-        // the text, so the body has to leave a hole of exactly the marker's width. An empty
-        // placeholder in the text flow does that: it sits on the last line where there is room and
-        // wraps onto its own line where there isn't, without dragging the last word along with it.
-        // It draws nothing and holds no text, so selection and the accessibility tree see only the
-        // real marker below.
+        val marker = rememberEditedMarker()
         val measurer = rememberTextMeasurer()
         val density = LocalDensity.current
-        val reservation = remember(markerLabel, markerStyle, density) {
-            with(density) {
-                (measurer.measure(markerLabel, markerStyle).size.width.toDp() + EDITED_MARKER_GAP).toSp()
-            }
-        }
-
-        val laidOut = if (isEdited) {
-            buildAnnotatedString {
-                append(body)
-                appendInlineContent(EDITED_MARKER_SLOT, "\u2007")
-            }
-        } else {
-            body
-        }
+        val laidOut = if (isEdited) marker.reserveSpace(body) else body
         val inlineContent = buildMap {
             if (isEdited) {
-                put(
-                    EDITED_MARKER_SLOT,
-                    InlineTextContent(
-                        Placeholder(
-                            width = reservation,
-                            height = 1.sp,
-                            placeholderVerticalAlign = PlaceholderVerticalAlign.TextBottom,
-                        ),
-                    ) { },
-                )
+                val (slot, placeholder) = marker.inlineContent()
+                put(slot, placeholder)
             }
             if (handles.isNotEmpty()) {
                 val (slot, spacing) = mentionSpacingContent(density)
@@ -717,14 +679,7 @@ private fun TextBubble(
                 }
 
                 if (isEdited) {
-                    Text(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = bodyInset),
-                        text = markerLabel,
-                        style = markerStyle,
-                        color = CodeTheme.colors.textSecondary,
-                    )
+                    with(marker) { Label(endPadding = bodyInset) }
                 }
             }
             if (web != null) {

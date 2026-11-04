@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat
 
 import com.flipcash.services.models.chat.ChatMessage
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.MessageContent
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -64,6 +65,25 @@ class PendingMutationTest {
             listOf(MessageContent.Reply(repliedMessageId = 7, content = listOf(MessageContent.Text("after")))),
             overlaid.content,
         )
+    }
+
+    private val items = listOf(MediaItem(renditions = emptyList()))
+
+    @Test
+    fun `editing a photo swaps its caption and keeps the photo`() {
+        val photo = message(listOf(MessageContent.Media(items, caption = MessageContent.Text("before"))))
+
+        val overlaid = photo.applying(edit())
+
+        assertEquals(listOf(MessageContent.Media(items, caption = MessageContent.Text("after"))), overlaid.content)
+        assertEquals(mutatedAt, overlaid.lastEditedTs)
+    }
+
+    @Test
+    fun `an edit never adds a caption to a photo sent without one`() {
+        val photo = message(listOf(MessageContent.Media(items, caption = null)))
+
+        assertEquals(listOf(MessageContent.Media(items, caption = null)), photo.applying(edit()).content)
     }
 
     @Test

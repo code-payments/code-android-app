@@ -135,7 +135,8 @@ data class MessagePolicy(
  * | Own text, confirmed, past both windows | Copy, Reply, Link |
  * | Own text, unconfirmed (`eventSequence == 0`) | none |
  * | Another participant's text | Copy, Reply, Report, Link |
- * | Own photo, confirmed, inside the delete window | Reply, Delete, Link, SavePhoto |
+ * | Own captioned photo, confirmed, inside both windows | Copy, Reply, Edit, Delete, Link, SavePhoto |
+ * | Own photo without a caption, inside the delete window | Reply, Delete, Link, SavePhoto |
  * | Another participant's photo | Reply, Report, Link, SavePhoto |
  * | A redacted photo | as above, without SavePhoto |
  * | Own cash or tip message | Reply, Link |
@@ -258,9 +259,9 @@ private fun resolveForParticipant(
         return if (canSpeak) setOf(MessageCapability.Reply) else emptySet()
     }
 
-    // A photo, bare or quoted in a reply, is never edited: its caption rides with the image, and
-    // an edit would have to re-seal or replace the picture. Its caption can be copied, as a text
-    // message's body can, and a photo with none has nothing to copy.
+    // A photo's caption can be copied and edited, as a text message's body can. The photo itself
+    // is fixed once sent, and a photo with no caption has nothing to copy and nothing to edit:
+    // an edit never adds a caption.
     val isPhoto = contents.any { it.isPhoto() }
     val hasText = if (isPhoto) {
         contents.any { !it.linkableText().isNullOrEmpty() }
@@ -272,7 +273,7 @@ private fun resolveForParticipant(
         if (hasText) add(MessageCapability.Copy)
         if (canSpeak) add(MessageCapability.Reply)
         if (message.isFromSelf) {
-            if (hasText && !isPhoto) add(MessageCapability.Edit)
+            if (hasText) add(MessageCapability.Edit)
             add(MessageCapability.Delete)
         } else {
             add(MessageCapability.Report)

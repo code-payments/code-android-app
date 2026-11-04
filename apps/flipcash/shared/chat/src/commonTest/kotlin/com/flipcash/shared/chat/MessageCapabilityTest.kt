@@ -522,10 +522,11 @@ class MessageCapabilityTest {
     }
 
     @Test
-    fun `own confirmed captioned photo can be copied, replied to and deleted but not edited`() {
+    fun `own confirmed captioned photo can be copied, replied to, edited and deleted`() {
         val expected = setOf(
             MessageCapability.Copy,
             MessageCapability.Reply,
+            MessageCapability.Edit,
             MessageCapability.Delete,
             MessageCapability.Link,
             MessageCapability.SavePhoto,
@@ -596,6 +597,24 @@ class MessageCapabilityTest {
         assertEquals(
             true,
             MessageCapability.SavePhoto in resolveCapabilities(photo(isFromSelf = false), now = sentAt, canPost = false),
+        )
+    }
+
+    @Test
+    fun `edit is offered on own captioned photos only`() {
+        assertEquals(true, MessageCapability.Edit in resolveCapabilities(photo(), now = sentAt))
+        assertEquals(true, MessageCapability.Edit in resolveCapabilities(photo(reply = true), now = sentAt))
+        // An edit never adds a caption, so a photo sent without one has nothing to edit.
+        assertEquals(false, MessageCapability.Edit in resolveCapabilities(photo(caption = null), now = sentAt))
+        assertEquals(false, MessageCapability.Edit in resolveCapabilities(photo(isFromSelf = false), now = sentAt))
+    }
+
+    @Test
+    fun `a captioned photo loses Edit once the edit window lapses`() {
+        val policy = MessagePolicy(editWindow = 15.minutes, deleteWindow = null)
+        assertEquals(
+            false,
+            MessageCapability.Edit in resolveCapabilities(photo(), policy = policy, now = sentAt + 16.minutes),
         )
     }
 

@@ -35,6 +35,7 @@ import com.flipcash.shared.chat.ui.redactedText
 import com.flipcash.shared.chat.ui.redactedTextColor
 import com.flipcash.shared.chat.ui.buildMentionedText
 import com.flipcash.shared.chat.ui.drawMentionPills
+import com.flipcash.shared.chat.ui.rememberEditedMarker
 import com.flipcash.shared.chat.ui.mentionSpacingContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -108,6 +109,7 @@ fun ChatPhotoBubble(
     localModel: Any? = null,
     sentPreview: ImageBitmap? = null,
     caption: String? = null,
+    captionEdited: Boolean = false,
     mentions: List<DetectedMention> = emptyList(),
     onMentionClick: ((String) -> Unit)? = null,
     linkCard: LinkCard? = null,
@@ -221,6 +223,7 @@ fun ChatPhotoBubble(
                     position = position.withPhotoAbove(),
                     maxWidth = maxWidth,
                     redacted = redacted,
+                    isEdited = captionEdited,
                     onLongClick = onLongClick,
                     onDoubleClick = onDoubleClick,
                 )
@@ -240,6 +243,8 @@ fun ChatPhotoBubble(
                     position = position.withPhotoAbove(),
                     maxWidth = maxWidth,
                     redacted = redacted,
+                    // With no words after the card, this is the caption's last bubble.
+                    isEdited = captionEdited && trailing == null,
                     onLongClick = onLongClick,
                     onDoubleClick = onDoubleClick,
                 )
@@ -262,6 +267,8 @@ fun ChatPhotoBubble(
                     position = position,
                     maxWidth = maxWidth,
                     redacted = redacted,
+                    // The last caption bubble carries the marker.
+                    isEdited = captionEdited,
                     onLongClick = onLongClick,
                     onDoubleClick = onDoubleClick,
                 )
@@ -282,6 +289,7 @@ private fun CaptionBubble(
     redacted: Boolean,
     onLongClick: (() -> Unit)?,
     onDoubleClick: (() -> Unit)?,
+    isEdited: Boolean = false,
 ) {
     Bubble(
         isFromSelf = isFromSelf,
@@ -317,36 +325,47 @@ private fun CaptionBubble(
         }
         val handles = mentioned.handles
         val density = LocalDensity.current
-        val inlineContent = remember(handles.isNotEmpty(), density) {
-            if (handles.isEmpty()) {
-                emptyMap()
-            } else {
-                val (slot, spacing) = mentionSpacingContent(density)
-                mapOf(slot to spacing)
+        val marker = rememberEditedMarker()
+        val laidOut = if (isEdited) marker.reserveSpace(mentioned.text) else mentioned.text
+        val inlineContent = remember(handles.isNotEmpty(), isEdited, marker, density) {
+            buildMap {
+                if (isEdited) {
+                    val (slot, placeholder) = marker.inlineContent()
+                    put(slot, placeholder)
+                }
+                if (handles.isNotEmpty()) {
+                    val (slot, spacing) = mentionSpacingContent(density)
+                    put(slot, spacing)
+                }
             }
         }
         var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-        Text(
-            text = mentioned.text,
-            inlineContent = inlineContent,
-            style = CodeTheme.typography.textMessage,
-            color = if (redacted) {
-                redactedTextColor(CodeTheme.colors.textMain)
-            } else {
-                CodeTheme.colors.textMain
-            },
-            onTextLayout = { layout = it },
-            modifier = Modifier
-                .testTag(PHOTO_CAPTION_TAG)
-                .then(if (redacted) Modifier.redactedText() else Modifier)
-                .then(
-                    if (handles.isEmpty()) {
-                        Modifier
-                    } else {
-                        Modifier.drawBehind { layout?.let { drawMentionPills(it, handles) } }
-                    },
-                ),
-        )
+        Box {
+            Text(
+                text = laidOut,
+                inlineContent = inlineContent,
+                style = CodeTheme.typography.textMessage,
+                color = if (redacted) {
+                    redactedTextColor(CodeTheme.colors.textMain)
+                } else {
+                    CodeTheme.colors.textMain
+                },
+                onTextLayout = { layout = it },
+                modifier = Modifier
+                    .testTag(PHOTO_CAPTION_TAG)
+                    .then(if (redacted) Modifier.redactedText() else Modifier)
+                    .then(
+                        if (handles.isEmpty()) {
+                            Modifier
+                        } else {
+                            Modifier.drawBehind { layout?.let { drawMentionPills(it, handles) } }
+                        },
+                    ),
+            )
+            if (isEdited) {
+                with(marker) { Label() }
+            }
+        }
     }
 }
 

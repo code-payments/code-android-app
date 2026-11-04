@@ -7,6 +7,7 @@ import com.flipcash.services.models.EditMessageError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ClientMessageId
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.internal.delegates.MessagingDelegate
@@ -125,6 +126,27 @@ class MessagingMutationTest {
                 chatId,
                 1,
                 listOf(MessageContent.Reply(repliedMessageId = 7, content = listOf(MessageContent.Text("after")))),
+                4,
+            )
+        }
+    }
+
+    @Test
+    fun `a caption edit sends the stored photo unchanged with the new caption`() = runTest {
+        val items = listOf(MediaItem(renditions = emptyList()))
+        val photo = stored.copy(content = listOf(MessageContent.Media(items, caption = MessageContent.Text("before"))))
+        val controller = mockk<ChatMessagingController>(relaxed = true)
+        coEvery { controller.editMessage(any(), any(), any(), any()) } returns Result.success(confirmed)
+        val source = mockk<ChatMessageDataSource>(relaxed = true)
+        coEvery { source.getMessage(chatId, 1) } returns photo
+
+        delegateWith(controller, source).editMessage(chatId, messageId = 1, text = "after")
+
+        coVerify(exactly = 1) {
+            controller.editMessage(
+                chatId,
+                1,
+                listOf(MessageContent.Media(items, caption = MessageContent.Text("after"))),
                 4,
             )
         }

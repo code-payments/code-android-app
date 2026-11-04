@@ -70,6 +70,16 @@ internal fun List<MessageContent>.replacingText(text: String): List<MessageConte
                 linkPreview = content.linkPreview?.takeIf { LinkPreviewChecks.wholeLink(text, it.url) },
             )
             is MessageContent.Reply -> content.copy(content = content.content.replacingText(text))
+            // Only the caption changes: the photo is fixed once sent, and a photo sent without a
+            // caption never gains one, so a null caption stays null.
+            is MessageContent.Media -> content.copy(
+                caption = content.caption?.let { caption ->
+                    MessageContent.Text(
+                        text = text,
+                        linkPreview = caption.linkPreview?.takeIf { LinkPreviewChecks.wholeLink(text, it.url) },
+                    )
+                },
+            )
             else -> content
         }
     }
