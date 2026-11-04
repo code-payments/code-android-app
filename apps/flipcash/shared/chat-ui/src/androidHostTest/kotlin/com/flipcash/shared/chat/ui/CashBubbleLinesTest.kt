@@ -239,7 +239,7 @@ class CashBubbleLinesTest {
 
     @Test
     fun `9 - the receiver of a return reads who sent it back, to them`() {
-        assertEquals("Noah Parker sent back" to "to you", returnOf().read(isFromSelf = false, people = dm))
+        assertEquals("Noah Parker sent back" to "to You", returnOf().read(isFromSelf = false, people = dm))
     }
 
     @Test

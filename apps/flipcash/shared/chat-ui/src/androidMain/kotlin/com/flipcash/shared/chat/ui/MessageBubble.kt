@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
@@ -446,6 +447,9 @@ private fun ChatListItem.ContentBubble.linkOnlyWebCard(): LinkCard.Web? {
 private const val EDITED_MARKER_SLOT = "edited-marker"
 
 internal const val REPLY_QUOTE_TAG = "bubble_reply_quote"
+
+/** The hairline across the top of a cash bubble's Sent Back footer. */
+internal const val SENT_BACK_DIVIDER_TAG = "bubble_sent_back_divider"
 
 /**
  * The citation over the body, with the narrower of the two stretched to the width of the wider.
@@ -1101,6 +1105,13 @@ private fun CashBubble(
         }
 
         if (sentBack) {
+            // The divider every sheet and card in the app draws between sections, edge to edge:
+            // the bubble drops its horizontal inset for this footer.
+            HorizontalDivider(
+                modifier = Modifier.testTag(SENT_BACK_DIVIDER_TAG),
+                thickness = CodeTheme.dimens.border,
+                color = CodeTheme.colors.divider,
+            )
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

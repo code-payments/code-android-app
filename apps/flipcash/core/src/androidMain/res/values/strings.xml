@@ -2068,8 +2068,8 @@
     <string name="subtitle_youSentBack">You sent back</string>
     <!-- The return's bubble, read by the person it was returned to; also their activity row title. -->
     <string name="subtitle_senderSentBack">%1$s sent back</string>
-    <!-- The return's foot line, read by the person it was returned to. -->
-    <string name="label_cashToYou">to you</string>
+    <!-- The return's foot line, read by the person it was returned to. Capital Y on return bubbles only. -->
+    <string name="label_cashReturnToYou">to You</string>
     <!-- The action row under an opening payment its receiver can return. -->
     <string name="action_sendBack">Send Back</string>
     <!-- The footer under an opening payment once it has been returned. -->

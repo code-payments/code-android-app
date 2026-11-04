@@ -5,7 +5,7 @@ import androidx.compose.runtime.Immutable
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.label_cashFrom
 import com.flipcash.core.resources.label_cashSomeone
-import com.flipcash.core.resources.label_cashToYou
+import com.flipcash.core.resources.label_cashReturnToYou
 import com.flipcash.core.resources.label_groupSendEach
 import com.flipcash.core.resources.label_groupSendEachApprox
 import com.flipcash.core.resources.label_groupSendRecipients
@@ -109,7 +109,7 @@ fun MessageContent.Cash.bubbleLines(
         MessageContent.Cash.Action.TIPPED -> CashCaption.YouTipped
         MessageContent.Cash.Action.SENT -> CashCaption.YouSent
     }
-    // A return names itself on both sides, and reads "to you" rather than "from" for its receiver:
+    // A return names itself on both sides, and reads "to You" rather than "from" for its receiver:
     // the money is going back, not arriving (Send Back spec, "The return message").
     if (paymentReturn?.returnOf != null && people !is CashBubblePeople.Group) {
         val other = (people as? CashBubblePeople.Direct)?.other
@@ -251,7 +251,7 @@ internal inline fun CashCounterpart.resolve(
     )
     is CashCounterpart.ToPeople -> plural(Res.plurals.label_groupSendToPeople, count, arrayOf<Any>(count))
     is CashCounterpart.From -> string(Res.string.label_cashFrom, arrayOf<Any>(name.orSomeone(string)))
-    CashCounterpart.ToYou -> string(Res.string.label_cashToYou, emptyArray<Any>())
+    CashCounterpart.ToYou -> string(Res.string.label_cashReturnToYou, emptyArray<Any>())
 }
 
 private inline fun String?.orSomeone(string: (StringResource, Array<out Any>) -> String): String =
