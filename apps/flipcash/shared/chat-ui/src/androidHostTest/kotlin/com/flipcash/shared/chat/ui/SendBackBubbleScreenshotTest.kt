@@ -83,8 +83,8 @@ class SendBackBubbleScreenshotTest {
 
     private val frames = listOf(
         "S1 Available, receiver" to bubble(offered, isFromSelf = false, sendBack = SendBackRow.Available),
-        "S5 Sent Back, sender" to bubble(offered, isFromSelf = true, sendBack = SendBackRow.SentBack),
-        "S6 Sent Back, receiver" to bubble(offered, isFromSelf = false, sendBack = SendBackRow.SentBack),
+        "S5 Sent Back, receiver" to bubble(offered, isFromSelf = false, sendBack = SendBackRow.SentBack),
+        "S6 Sent Back, sender" to bubble(offered, isFromSelf = true, sendBack = SendBackRow.SentBack),
         "8 Return, its sender" to bubble(returned, isFromSelf = true),
         "9 Return, its receiver" to bubble(returned, isFromSelf = false),
     )
@@ -134,7 +134,7 @@ class SendBackBubbleScreenshotTest {
 
     @Test
     fun `the last line has the same gap above the Sent Back divider as above the Send Back row`() {
-        show(frames.filter { it.first.startsWith("S1") || it.first.startsWith("S6") })
+        show(frames.filter { it.first.startsWith("S1") || it.first.startsWith("S5") })
         val lines = composeRule.onAllNodesWithText("from Alex Morgan", useUnmergedTree = true)
         val aboveRow = composeRule.onNodeWithTag(SEND_BACK_ROW_TAG, useUnmergedTree = true)
             .getUnclippedBoundsInRoot().top - lines[0].getUnclippedBoundsInRoot().bottom
@@ -146,15 +146,15 @@ class SendBackBubbleScreenshotTest {
     @Test
     fun `the Sent Back footer sits below the bottom padding`() {
         val bare = "offered, no row" to bubble(offered, isFromSelf = false)
-        show(listOf(bare) + frames.filter { it.first.startsWith("S1") || it.first.startsWith("S6") })
+        show(listOf(bare) + frames.filter { it.first.startsWith("S1") || it.first.startsWith("S5") })
         assertDp(footerHeight, height(SENT_BACK_FOOTER_TAG), "footer band")
         // The bare bubble already ends in its bottom padding; the footer adds its hairline and band.
-        assertDp(height(bare.first) + hairline + footerHeight, height("S6 Sent Back, receiver"), "S6 over bare")
+        assertDp(height(bare.first) + hairline + footerHeight, height("S5 Sent Back, receiver"), "S5 over bare")
         // Same body as S1, with the band in place of the white row.
         assertDp(
             height("S1 Available, receiver") - rowHeight + hairline + footerHeight,
-            height("S6 Sent Back, receiver"),
-            "S6 against S1",
+            height("S5 Sent Back, receiver"),
+            "S5 against S1",
         )
     }
 
@@ -170,9 +170,9 @@ class SendBackBubbleScreenshotTest {
     @Test
     fun `the Send Back row and the Sent Back footer never change the bubble's width`() {
         val bare = "offered, no row" to bubble(offered, isFromSelf = false)
-        show(listOf(bare) + frames.filter { it.first.startsWith("S1") || it.first.startsWith("S6") })
+        show(listOf(bare) + frames.filter { it.first.startsWith("S1") || it.first.startsWith("S5") })
         assertDp(width(bare.first), width("S1 Available, receiver"), "S1 width")
-        assertDp(width(bare.first), width("S6 Sent Back, receiver"), "S6 width")
+        assertDp(width(bare.first), width("S5 Sent Back, receiver"), "S5 width")
     }
 
     /**
