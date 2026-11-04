@@ -54,6 +54,7 @@ import com.flipcash.app.tipping.internal.ChipRevealConnection
 import com.flipcash.app.tipping.internal.ParkFiller
 import com.flipcash.app.tipping.internal.blockTouchesWhile
 import com.flipcash.app.tipping.internal.rememberParkFiller
+import com.flipcash.app.tipping.internal.selectModeTabBarInset
 import com.flipcash.app.tipping.internal.chipReveal
 import com.flipcash.app.tipping.internal.chipVisibleFraction
 import com.flipcash.shared.chat.ChatListFilter
@@ -93,7 +94,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
 import com.flipcash.app.core.data.isLoaded
-import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.app.tipping.internal.ChatsViewModel
 import com.flipcash.app.tipping.internal.components.TipChatRow
@@ -174,7 +174,8 @@ fun ChatsScreenContent(
     val revealGroup = rememberSwipeRevealGroup()
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
-    val tabBarPadding = LocalTabBarPadding.current.calculateBottomPadding()
+    // Select mode hides the tab bar; the inset follows it out and back.
+    val tabBarPadding by selectModeTabBarInset(state.isSelecting)
 
     val hazeState = rememberHazeState()
 
@@ -204,9 +205,9 @@ fun ChatsScreenContent(
                     // runs the full height and rows scroll under the bar, but at rest the first row
                     // still sits clear of it.
                     top = barPadding.calculateTopPadding(),
-                    // Clears the hoisted tab bar: keeps the last row reachable. Both paddings are
-                    // measured out of `fillParentMaxSize`, so the empty states stay centered in the
-                    // space the two bars leave visible.
+                    // Clears the hoisted tab bar (zero in select mode, which hides it): keeps the
+                    // last row reachable. Both paddings are measured out of `fillParentMaxSize`, so
+                    // the empty states stay centered in the space the two bars leave visible.
                     bottom = tabBarPadding,
                 ),
             ) {
