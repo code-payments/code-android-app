@@ -9,8 +9,16 @@ import com.getcode.solana.keys.Mint
 sealed interface ChatAction {
     data class RetryMessage(val bubble: ChatListItem.ContentBubble) : ChatAction
 
-    /** Opens the full-screen viewer for the photo [bubble] carries. */
-    data class OpenPhoto(val bubble: ChatListItem.ContentBubble) : ChatAction
+    /**
+     * Opens the full-screen viewer for the photo [bubble] carries.
+     *
+     * [set] is the photos of the card stack [bubble] fronts, oldest first, for the viewer to page
+     * through; a photo that stands alone is its own set of one and shows no counter.
+     */
+    data class OpenPhoto(
+        val bubble: ChatListItem.ContentBubble,
+        val set: List<ChatListItem.ContentBubble> = listOf(bubble),
+    ) : ChatAction
     data class AdvanceReadPointer(val messageId: Long) : ChatAction
     /** Opens a currency's info screen. */
     data class ViewToken(val mint: Mint) : ChatAction

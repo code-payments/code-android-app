@@ -60,6 +60,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,6 +81,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlin.math.roundToInt
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
@@ -98,6 +100,11 @@ import kotlin.math.abs
 
 internal const val VIEWER_IMAGE_TAG = "chat_media_viewer_image"
 internal const val VIEWER_CLOSE_TAG = "chat_media_viewer_close"
+internal const val VIEWER_TOP_SCRIM_TAG = "chat_media_viewer_top_scrim"
+internal const val VIEWER_BOTTOM_SCRIM_TAG = "chat_media_viewer_bottom_scrim"
+
+/** How dark the chrome shades are at the screen's edge. */
+private const val VIEWER_SCRIM_ALPHA = 0.55f
 internal const val VIEWER_REACT_TAG = "chat_media_viewer_react"
 internal const val VIEWER_REACT_GLYPH_TAG = "chat_media_viewer_react_glyph"
 internal const val VIEWER_REACT_MORE_TAG = "chat_media_viewer_react_more"
@@ -145,6 +152,8 @@ private const val MIN_BACKGROUND_ALPHA = 0.2f
  * host can animate them without recomposing. Null fills the container.
  * @param interactive false while the host is closing the viewer: touches and buttons do nothing.
  * @param onPainter receives the painter the photo is drawn with, for a host that draws a copy of it.
+ * @param chromeVisible whether the close button and action pills show. A host paging through several
+ * photos passes one state to every page so the chrome stays as the viewer left it.
  */
 @Composable
 fun ChatMediaViewer(
@@ -168,6 +177,7 @@ fun ChatMediaViewer(
     onPullEnd: ((Offset) -> Unit)? = null,
     interactive: Boolean = true,
     onPainter: ((Painter) -> Unit)? = null,
+    chromeVisible: MutableState<Boolean> = remember { mutableStateOf(false) },
 ) {
     val scope = rememberCoroutineScope()
     val dragY = remember { Animatable(0f) }
@@ -177,7 +187,7 @@ fun ChatMediaViewer(
     val currentOnPull by rememberUpdatedState(onPull)
     val currentOnPullEnd by rememberUpdatedState(onPullEnd)
     val touchSlop = LocalViewConfiguration.current.touchSlop
-    var chromeVisible by remember { mutableStateOf(false) }
+    var chromeVisible by chromeVisible
     var stripOpen by remember { mutableStateOf(false) }
     LaunchedEffect(chromeVisible) { if (!chromeVisible) stripOpen = false }
     val chromeShown by animateFloatAsState(
@@ -357,6 +367,26 @@ fun ChatMediaViewer(
         }
 
         val chrome = Modifier.graphicsLayer { alpha = (frame?.invoke()?.chromeAlpha ?: 1f) * chromeShown }
+        // Shades behind the top and bottom chrome, so the buttons and the counter read over any photo,
+        // a white screenshot included. They fade with the chrome and take no touches.
+        Box(
+            modifier = chrome
+                .align(Alignment.TopStart)
+                .fillMaxWidth()
+                .background(Brush.verticalGradient(*viewerScrimStops(fromTop = true)))
+                .statusBarsPadding()
+                .height(CodeTheme.dimens.staticGrid.x8 + CodeTheme.dimens.staticGrid.x10)
+                .testTag(VIEWER_TOP_SCRIM_TAG),
+        )
+        Box(
+            modifier = chrome
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .background(Brush.verticalGradient(*viewerScrimStops(fromTop = false)))
+                .navigationBarsPadding()
+                .height(CodeTheme.dimens.staticGrid.x10 + CodeTheme.dimens.staticGrid.x12)
+                .testTag(VIEWER_BOTTOM_SCRIM_TAG),
+        )
         ViewerButton(
             icon = Icons.Filled.Close,
             description = stringResource(Res.string.description_chatMediaClose),
@@ -449,6 +479,20 @@ fun ChatMediaViewer(
     }
 
     LaunchedEffect(model) { zoomState.reset() }
+}
+
+/**
+ * The stops of a chrome shade: [VIEWER_SCRIM_ALPHA] black at the screen's edge, eased out to clear
+ * so the shade has no visible bottom line. [fromTop] runs it down from the top edge, else up from
+ * the bottom one.
+ */
+private fun viewerScrimStops(fromTop: Boolean): Array<Pair<Float, Color>> {
+    val samples = floatArrayOf(0f, 0.25f, 0.5f, 0.75f, 1f)
+    val stops = samples.map { t ->
+        val eased = t * t * (3f - 2f * t)
+        t to Color.Black.copy(alpha = VIEWER_SCRIM_ALPHA * (1f - eased))
+    }
+    return (if (fromTop) stops else stops.map { (t, c) -> (1f - t) to c }.reversed()).toTypedArray()
 }
 
 /** Sends a pull to the host's [external] handler when it has one, else to the viewer's own [own]. */

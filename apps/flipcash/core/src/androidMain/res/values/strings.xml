@@ -1064,6 +1064,15 @@
     <string name="label_chat_preview_receivedTip">Someone tipped you %1$s</string>
     <string name="label_chat_media_photo">Photo</string>
     <string name="label_chat_media_unavailable">This photo can’t be displayed</string>
+    <plurals name="label_chat_media_stackCount">
+        <item quantity="one">%1$s photo</item>
+        <item quantity="other">%1$s photos</item>
+    </plurals>
+    <plurals name="description_chat_media_stack">
+        <item quantity="one">Stack of %1$s photo</item>
+        <item quantity="other">Stack of %1$s photos</item>
+    </plurals>
+    <string name="label_chat_media_position">%1$s of %2$s</string>
     <string name="label_chat_preview_sentMessage">You: %1$s</string>
     <string name="label_chat_preview_senderMessage">%1$s: %2$s</string>
     <string name="label_chat_system_joined">%1$s joined the group</string>

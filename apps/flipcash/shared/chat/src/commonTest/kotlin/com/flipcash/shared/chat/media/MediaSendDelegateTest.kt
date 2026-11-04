@@ -190,6 +190,34 @@ class MediaSendDelegateTest {
     }
 
     @Test
+    fun `nothing posts until every upload in the send has settled`() = runTest {
+        val (delegate, uploads) = delegate()
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        storeBehavior["c"] = { gate.await(); Result.success(BlobId("c".toByteArray())) }
+        val chips = listOf("a", "b", "c").map { stage(uploads, it) }
+        runCurrent()
+        val ids = delegate.sendMedia(chatId, chips, "", null).getOrThrow()
+        runCurrent()
+        assertEquals(0, sent.size) // a and b are uploaded, but c, the slowest, holds the set back
+        gate.complete(Unit)
+        runCurrent()
+
+        assertEquals(ids, sent.map { hex(it.first) })
+    }
+
+    @Test
+    fun `a failed upload does not hold back the rest of the send`() = runTest {
+        val (delegate, uploads) = delegate()
+        storeBehavior["a"] = { Result.failure(IOException("offline")) }
+        val chips = listOf("a", "b").map { stage(uploads, it) }
+        val ids = delegate.sendMedia(chatId, chips, "", null).getOrThrow()
+        runCurrent()
+
+        assertEquals(listOf(ids[1]), sent.map { hex(it.first) })
+        coVerify(exactly = 1) { messageDataSource.failPending(chatId, match { hex(it) == ids[0] }) }
+    }
+
+    @Test
     fun `a send that confirms at once holds its progress until the row has been seen`() = runTest {
         val (delegate, uploads) = delegate()
         val chip = stage(uploads, "a")

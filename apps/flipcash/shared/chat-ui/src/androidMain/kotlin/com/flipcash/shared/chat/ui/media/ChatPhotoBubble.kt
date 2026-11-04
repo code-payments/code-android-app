@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.ui.media
 // kmp-audit: needs a bubble or link card that renders CodeButton, which lives in :ui:components androidMain (RuntimeShader frosted glass)
 
 import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.description_chat_media_stack
 import com.flipcash.core.resources.label_chat_media_photo
 import com.flipcash.core.resources.label_chat_media_unavailable
 import androidx.compose.animation.core.animateFloatAsState
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -127,6 +129,8 @@ fun ChatPhotoBubble(
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
     onLoadError: ((Throwable) -> Unit)? = null,
+    stack: PhotoStackLook? = null,
+    drawsPhoto: Boolean = true,
 ) {
     val size = ChatMediaBubbleSizing.size(imageWidth, imageHeight, maxWidth.value)
     val hasCaption = !caption.isNullOrEmpty()
@@ -135,15 +139,19 @@ fun ChatPhotoBubble(
     val jumbo = hasCaption && EmojiOnlyText.clusterCountOrNull(caption.orEmpty()) != null
     val captionBubbled = hasCaption && !jumbo
     val tappable = !blurhashOnly && !unavailable && onClick != null
+    // Where a caption sits: against the photo above it, or on its own when the photo it belongs to
+    // is drawn as part of a card stack in the row above.
+    fun BubblePosition.forCaption() = if (drawsPhoto) withPhotoAbove() else this
 
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
         horizontalAlignment = if (isFromSelf) Alignment.End else Alignment.Start,
     ) {
+        val photo = @Composable { photoWidth: Float, photoHeight: Float ->
         Bubble(
             isFromSelf = isFromSelf,
-            position = if (captionBubbled) position.withCaptionBelow() else position,
+            position = if (captionBubbled && drawsPhoto) position.withCaptionBelow() else position,
             maxWidth = maxWidth,
             horizontalPadding = CodeTheme.dimens.none,
             verticalPadding = CodeTheme.dimens.none,
@@ -152,10 +160,14 @@ fun ChatPhotoBubble(
             onLongClick = onLongClick,
             onDoubleClick = onDoubleClick,
         ) {
-            val photoDescription = stringResource(Res.string.label_chat_media_photo)
+            val photoDescription = if (stack != null) {
+                pluralStringResource(Res.plurals.description_chat_media_stack, stack.count, stack.count)
+            } else {
+                stringResource(Res.string.label_chat_media_photo)
+            }
             Box(
                 modifier = Modifier
-                    .size(size.width.dp, size.height.dp)
+                    .size(photoWidth.dp, photoHeight.dp)
                     .then(photoModifier)
                     .testTag(PHOTO_BUBBLE_TAG)
                     .semantics { contentDescription = photoDescription },
@@ -182,6 +194,23 @@ fun ChatPhotoBubble(
                 } else if (progress != null) {
                     progress()
                 }
+                if (stack != null) {
+                    PhotoStackPill(
+                        count = stack.count,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(CodeTheme.dimens.staticGrid.x2),
+                    )
+                }
+            }
+        }
+        }
+        if (drawsPhoto) {
+            if (stack != null) {
+                // The same box a single photo takes; the front card shrinks to leave the fan room.
+                PhotoStackFrame(stack, size.width, size.height) { w, h -> photo(w, h) }
+            } else {
+                photo(size.width, size.height)
             }
         }
 
@@ -199,7 +228,7 @@ fun ChatPhotoBubble(
                 BareLinkCard(
                     card = linkCard,
                     isFromSelf = isFromSelf,
-                    position = position.withPhotoAbove(),
+                    position = position.forCaption(),
                     maxWidth = if (linkCard is LinkCard.Message) {
                         maxWidth * CASH_CARD_WIDTH_FRACTION
                     } else {
@@ -220,7 +249,7 @@ fun ChatPhotoBubble(
                     mentions = mentions,
                     onMentionClick = onMentionClick,
                     isFromSelf = isFromSelf,
-                    position = position.withPhotoAbove(),
+                    position = position.forCaption(),
                     maxWidth = maxWidth,
                     redacted = redacted,
                     isEdited = captionEdited,
@@ -240,7 +269,7 @@ fun ChatPhotoBubble(
                     mentions = leading.second,
                     onMentionClick = onMentionClick,
                     isFromSelf = isFromSelf,
-                    position = position.withPhotoAbove(),
+                    position = position.forCaption(),
                     maxWidth = maxWidth,
                     redacted = redacted,
                     // With no words after the card, this is the caption's last bubble.
@@ -252,7 +281,7 @@ fun ChatPhotoBubble(
             BareLinkCard(
                 card = linkCard,
                 isFromSelf = isFromSelf,
-                position = if (leading == null) position.withPhotoAbove() else position,
+                position = if (leading == null) position.forCaption() else position,
                 maxWidth = if (linkCard is LinkCard.Message) maxWidth * CASH_CARD_WIDTH_FRACTION else maxWidth,
                 onLongClick = onCardLongClick,
                 onDoubleClick = onCardDoubleClick,
@@ -264,7 +293,7 @@ fun ChatPhotoBubble(
                     mentions = trailing.second,
                     onMentionClick = onMentionClick,
                     isFromSelf = isFromSelf,
-                    position = position,
+                    position = position.forCaption(),
                     maxWidth = maxWidth,
                     redacted = redacted,
                     // The last caption bubble carries the marker.
@@ -293,7 +322,7 @@ private fun CaptionBubble(
 ) {
     Bubble(
         isFromSelf = isFromSelf,
-        position = position.withPhotoAbove(),
+        position = position,
         maxWidth = maxWidth,
         onLongClick = onLongClick,
         onDoubleClick = onDoubleClick,
@@ -388,7 +417,7 @@ internal fun BubblePosition.withPhotoAbove(): BubblePosition = when (this) {
 }
 
 @Composable
-private fun PhotoLayers(
+internal fun PhotoLayers(
     blurHash: String?,
     model: Any?,
     localModel: Any?,

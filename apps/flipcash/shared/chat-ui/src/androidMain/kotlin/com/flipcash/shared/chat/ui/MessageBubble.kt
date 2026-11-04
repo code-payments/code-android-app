@@ -84,6 +84,7 @@ import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.SendBackRow
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import androidx.compose.foundation.clickable
+import com.flipcash.shared.chat.models.PhotoStack
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.ui.media.MediaMessageBubble
 import com.flipcash.shared.chat.ui.media.photoBody
@@ -110,6 +111,8 @@ import com.getcode.ui.core.addIf
  * running through it repaints the bubble without recomposing it or the list carrying it.
  * @param leading whether the bubble sits at the leading edge whoever sent it, as in a list of
  * messages lifted out of the transcript; it keeps its own style either way.
+ * @param stack the card stack this photo row belongs to, when it was sent together with the rows
+ * around it; the row draws its share of the stack, which may be nothing.
  */
 @Composable
 fun ContentBubble(
@@ -121,6 +124,7 @@ fun ContentBubble(
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
     attention: () -> Float = { 0f },
+    stack: PhotoStack? = null,
 ) {
     val actionHandler = LocalChatActionHandler.current
     val updateAction = LocalUpdateAppAction.current
@@ -288,6 +292,7 @@ fun ContentBubble(
                         interactive = interactive,
                         onLongClick = onLongClick?.takeIf { interactive },
                         onDoubleClick = onDoubleClick?.takeIf { interactive },
+                        stack = stack,
                     )
                 } ?: TextBubble(
                     modifier = modifier,
@@ -335,6 +340,7 @@ fun ContentBubble(
                     interactive = interactive,
                     onLongClick = onLongClick?.takeIf { interactive },
                     onDoubleClick = onDoubleClick?.takeIf { interactive },
+                    stack = stack,
                 )
                 // Unreachable: the transcript emits System content as ChatListItem.SystemMessage.
                 is MessageContent.System -> Unit
