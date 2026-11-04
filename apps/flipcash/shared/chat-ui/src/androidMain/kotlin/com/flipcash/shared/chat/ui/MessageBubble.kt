@@ -451,6 +451,12 @@ internal const val REPLY_QUOTE_TAG = "bubble_reply_quote"
 /** The hairline across the top of a cash bubble's Sent Back footer. */
 internal const val SENT_BACK_DIVIDER_TAG = "bubble_sent_back_divider"
 
+/** The Sent Back footer's band, under its divider. */
+internal const val SENT_BACK_FOOTER_TAG = "bubble_sent_back_footer"
+
+/** The white Send Back row along a cash bubble's bottom edge. */
+internal const val SEND_BACK_ROW_TAG = "bubble_send_back_row"
+
 /**
  * The citation over the body, with the narrower of the two stretched to the width of the wider.
  *
@@ -947,9 +953,9 @@ private fun CashBubble(
     sendBack: SendBackRow? = null,
     onSendBack: (() -> Unit)? = null,
 ) {
-    // A filled Send Back row spans the bubble edge to edge along its bottom, so the bubble drops its
-    // own inset and the lines above the row put it back. The Sent Back footer takes the place of the
-    // bottom padding, so the lines above it put back every side but the bottom.
+    // A Send Back row or Sent Back footer spans the bubble edge to edge along its bottom, so the
+    // bubble drops its own inset and the lines above put it back on every side. Both sit below the
+    // bottom padding, so the last line has the same gap above either.
     val filledRow = sendBack == SendBackRow.Available || sendBack == SendBackRow.Sending
     val sentBack = sendBack == SendBackRow.SentBack
     val insetH = BubbleDefaults.paddingHorizontal
@@ -982,12 +988,9 @@ private fun CashBubble(
                 .fillMaxWidth()
                 .then(
                     when {
-                        filledRow -> Modifier
+                        filledRow || sentBack -> Modifier
                             .padding(horizontal = insetH, vertical = insetV)
                             .padding(vertical = CodeTheme.dimens.staticGrid.x1)
-                        sentBack -> Modifier
-                            .padding(start = insetH, end = insetH, top = insetV)
-                            .padding(top = CodeTheme.dimens.staticGrid.x1)
                         else -> Modifier.padding(vertical = CodeTheme.dimens.staticGrid.x1)
                     }
                 ),
@@ -1114,6 +1117,7 @@ private fun CashBubble(
             )
             Box(
                 modifier = Modifier
+                    .testTag(SENT_BACK_FOOTER_TAG)
                     .fillMaxWidth()
                     .height(CodeTheme.dimens.grid.x9),
                 contentAlignment = Alignment.Center,
@@ -1148,6 +1152,7 @@ private fun SendBackActionRow(
 ) {
     Box(
         modifier = Modifier
+            .testTag(SEND_BACK_ROW_TAG)
             .fillMaxWidth()
             .height(CodeTheme.dimens.grid.x11)
             .background(CodeTheme.colors.textMain)

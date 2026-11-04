@@ -11,7 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.Dp
+import org.junit.Assert.assertEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -36,7 +43,7 @@ import kotlin.time.Instant
 /**
  * The Send Back frames of a DM's opening payment and its return (`docs/specs/send-back.md` in the
  * orchestrator): the offered payment with each row, and the return as each side reads it. Checks the
- * Sent Back footer's divider, and writes every frame to `build/screenshots/send_back_bubbles.png`.
+ * Sent Back footer's divider and spacing, and writes every frame to `build/screenshots/send_back_bubbles.png`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -79,10 +86,17 @@ class SendBackBubbleScreenshotTest {
         "9 Return, its receiver" to bubble(returned, isFromSelf = false),
     )
 
+    private var footerHeight = Dp.Unspecified
+    private var rowHeight = Dp.Unspecified
+    private var hairline = Dp.Unspecified
+
     private fun show(items: List<Pair<String, ChatListItem.ContentBubble>>) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             FlipcashTheme {
+                footerHeight = CodeTheme.dimens.grid.x9
+                rowHeight = CodeTheme.dimens.grid.x11
+                hairline = CodeTheme.dimens.border
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -92,7 +106,9 @@ class SendBackBubbleScreenshotTest {
                 ) {
                     items.forEach { (name, item) ->
                         Text(text = name, style = CodeTheme.typography.caption, color = CodeTheme.colors.textSecondary)
-                        ContentBubble(item = item, position = BubblePosition.Solo, interactive = false)
+                        Box(modifier = Modifier.testTag(name)) {
+                            ContentBubble(item = item, position = BubblePosition.Solo, interactive = false)
+                        }
                     }
                 }
             }
@@ -105,6 +121,38 @@ class SendBackBubbleScreenshotTest {
         show(frames)
         // S5 and S6; not the Send Back row and not either return bubble.
         composeRule.onAllNodesWithTag(SENT_BACK_DIVIDER_TAG, useUnmergedTree = true).assertCountEquals(2)
+    }
+
+    private fun height(tag: String) = composeRule.onNodeWithTag(tag, useUnmergedTree = true)
+        .getUnclippedBoundsInRoot().let { it.bottom - it.top }
+
+    private fun assertDp(expected: Dp, actual: Dp, what: String) =
+        assertEquals(what, expected.value, actual.value, 0.5f)
+
+    @Test
+    fun `the last line has the same gap above the Sent Back divider as above the Send Back row`() {
+        show(frames.filter { it.first.startsWith("S1") || it.first.startsWith("S6") })
+        val lines = composeRule.onAllNodesWithText("from Alex Morgan", useUnmergedTree = true)
+        val aboveRow = composeRule.onNodeWithTag(SEND_BACK_ROW_TAG, useUnmergedTree = true)
+            .getUnclippedBoundsInRoot().top - lines[0].getUnclippedBoundsInRoot().bottom
+        val aboveDivider = composeRule.onNodeWithTag(SENT_BACK_DIVIDER_TAG, useUnmergedTree = true)
+            .getUnclippedBoundsInRoot().top - lines[1].getUnclippedBoundsInRoot().bottom
+        assertDp(aboveRow, aboveDivider, "gap above the divider")
+    }
+
+    @Test
+    fun `the Sent Back footer sits below the bottom padding`() {
+        val bare = "offered, no row" to bubble(offered, isFromSelf = false)
+        show(listOf(bare) + frames.filter { it.first.startsWith("S1") || it.first.startsWith("S6") })
+        assertDp(footerHeight, height(SENT_BACK_FOOTER_TAG), "footer band")
+        // The bare bubble already ends in its bottom padding; the footer adds its hairline and band.
+        assertDp(height(bare.first) + hairline + footerHeight, height("S6 Sent Back, receiver"), "S6 over bare")
+        // Same body as S1, with the band in place of the white row.
+        assertDp(
+            height("S1 Available, receiver") - rowHeight + hairline + footerHeight,
+            height("S6 Sent Back, receiver"),
+            "S6 against S1",
+        )
     }
 
     @Test
