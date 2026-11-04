@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.platform.testTag
@@ -19,6 +21,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Dp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -159,6 +162,78 @@ class SendBackBubbleScreenshotTest {
     fun `the return's receiver reads to You`() {
         show(listOf(frames.last()))
         composeRule.onNodeWithText("to You", useUnmergedTree = true).assertExists()
+    }
+
+    private fun width(tag: String) = composeRule.onNodeWithTag(tag, useUnmergedTree = true)
+        .getUnclippedBoundsInRoot().let { it.right - it.left }
+
+    @Test
+    fun `the Send Back row and the Sent Back footer never change the bubble's width`() {
+        val bare = "offered, no row" to bubble(offered, isFromSelf = false)
+        show(listOf(bare) + frames.filter { it.first.startsWith("S1") || it.first.startsWith("S6") })
+        assertDp(width(bare.first), width("S1 Available, receiver"), "S1 width")
+        assertDp(width(bare.first), width("S6 Sent Back, receiver"), "S6 width")
+    }
+
+    /**
+     * A bare offered bubble tagged `bare` beside one tagged `live` whose Send Back state the test
+     * changes after it has drawn, the way the transcript gets it when the return state loads late.
+     */
+    private fun showLive(initial: SendBackRow?): MutableState<SendBackRow?> {
+        val state = mutableStateOf(initial)
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            FlipcashTheme {
+                footerHeight = CodeTheme.dimens.grid.x9
+                rowHeight = CodeTheme.dimens.grid.x11
+                hairline = CodeTheme.dimens.border
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(modifier = Modifier.testTag("bare")) {
+                        ContentBubble(item = bubble(offered, isFromSelf = false), position = BubblePosition.Solo, interactive = false)
+                    }
+                    Box(modifier = Modifier.testTag("live")) {
+                        ContentBubble(
+                            item = bubble(offered, isFromSelf = false, sendBack = state.value),
+                            position = BubblePosition.Solo,
+                            interactive = false,
+                        )
+                    }
+                }
+            }
+        }
+        composeRule.mainClock.advanceTimeByFrame()
+        return state
+    }
+
+    private fun assertGrowsIn(arriving: SendBackRow, added: () -> Dp) {
+        val state = showLive(initial = null)
+        repeat(5) { composeRule.mainClock.advanceTimeByFrame() }
+        val bare = height("bare")
+        assertDp(bare, height("live"), "before it arrives")
+
+        composeRule.runOnUiThread { state.value = arriving }
+        // Applies the write so the next frames recompose with it; the clock does not move.
+        composeRule.waitForIdle()
+        repeat(3) { composeRule.mainClock.advanceTimeByFrame() }
+        val mid = height("live")
+        assertTrue("mid-animation height $mid should be between $bare and ${bare + added()}", mid.value > bare.value + 0.5f && mid.value < (bare + added()).value - 0.5f)
+        assertDp(width("bare"), width("live"), "width while it grows")
+
+        composeRule.mainClock.advanceTimeBy(3_000)
+        assertDp(bare + added(), height("live"), "settled")
+        assertDp(width("bare"), width("live"), "width once settled")
+    }
+
+    @Test
+    fun `a Sent Back footer that arrives late grows in`() = assertGrowsIn(SendBackRow.SentBack) { hairline + footerHeight }
+
+    @Test
+    fun `a Send Back row that arrives late grows in`() = assertGrowsIn(SendBackRow.Available) { rowHeight }
+
+    @Test
+    fun `a footer known when the bubble first draws is there at full height`() {
+        showLive(initial = SendBackRow.SentBack)
+        assertDp(height("bare") + hairline + footerHeight, height("live"), "first frame")
     }
 
     @Test

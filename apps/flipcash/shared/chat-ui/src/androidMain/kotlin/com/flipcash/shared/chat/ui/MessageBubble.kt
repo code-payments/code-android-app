@@ -21,6 +21,9 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
@@ -1107,39 +1110,71 @@ private fun CashBubble(
 
         }
 
-        if (sentBack) {
-            // The divider every sheet and card in the app draws between sections, edge to edge:
-            // the bubble drops its horizontal inset for this footer.
-            HorizontalDivider(
-                modifier = Modifier.testTag(SENT_BACK_DIVIDER_TAG),
-                thickness = CodeTheme.dimens.border,
-                color = CodeTheme.colors.divider,
-            )
-            Box(
-                modifier = Modifier
-                    .testTag(SENT_BACK_FOOTER_TAG)
-                    .fillMaxWidth()
-                    .height(CodeTheme.dimens.grid.x9),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(Res.string.label_sentBack),
-                    style = CodeTheme.typography.caption,
-                    color = CodeTheme.colors.textSecondary,
-                    maxLines = 1,
-                )
-            }
-        }
-
-        if (filledRow) {
-            SendBackActionRow(
-                sending = sendBack == SendBackRow.Sending,
-                onClick = onSendBack,
-            )
-        }
+        SendBackFooter(sendBack = sendBack, onSendBack = onSendBack)
         }
     }
 }
+
+/**
+ * The Send Back row or Sent Back footer along a cash bubble's bottom edge, or nothing.
+ *
+ * Present when the bubble first draws, it is drawn in place. Arriving after the bubble has drawn
+ * (the return state loads after the transcript does), it grows in on [ChatAnimations.receiptEnter],
+ * the transcript's reflow spring, rather than popping the bubble taller in one frame.
+ */
+@Composable
+private fun ColumnScope.SendBackFooter(
+    sendBack: SendBackRow?,
+    onSendBack: (() -> Unit)?,
+) {
+    val visible = remember { MutableTransitionState(sendBack != null) }
+    visible.targetState = sendBack != null
+    // What it last showed, so it still has something to draw while it leaves.
+    val shown = remember { SendBackHolder(sendBack) }
+    if (sendBack != null) shown.row = sendBack
+
+    AnimatedVisibility(
+        visibleState = visible,
+        enter = ChatAnimations.receiptEnter,
+        exit = ChatAnimations.receiptExit,
+    ) {
+        Column {
+            when (shown.row) {
+                SendBackRow.SentBack -> {
+                    // The divider every sheet and card in the app draws between sections, edge to
+                    // edge: the bubble drops its horizontal inset for this footer.
+                    HorizontalDivider(
+                        modifier = Modifier.testTag(SENT_BACK_DIVIDER_TAG),
+                        thickness = CodeTheme.dimens.border,
+                        color = CodeTheme.colors.divider,
+                    )
+                    Box(
+                        modifier = Modifier
+                            .testTag(SENT_BACK_FOOTER_TAG)
+                            .fillMaxWidth()
+                            .height(CodeTheme.dimens.grid.x9),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.label_sentBack),
+                            style = CodeTheme.typography.caption,
+                            color = CodeTheme.colors.textSecondary,
+                            maxLines = 1,
+                        )
+                    }
+                }
+                SendBackRow.Available, SendBackRow.Sending -> SendBackActionRow(
+                    sending = shown.row == SendBackRow.Sending,
+                    onClick = onSendBack,
+                )
+                null -> Unit
+            }
+        }
+    }
+}
+
+/** Not state: [SendBackFooter] writes it while composing, only when its Send Back state changed and it is recomposing anyway. */
+private class SendBackHolder(var row: SendBackRow?)
 
 /**
  * The white row along a cash bubble's bottom edge that offers Send Back, or holds a spinner while
