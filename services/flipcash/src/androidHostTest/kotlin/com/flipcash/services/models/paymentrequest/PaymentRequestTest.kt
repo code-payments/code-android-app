@@ -129,6 +129,30 @@ class PaymentRequestTest {
         assertEquals(StatusLine.MinutesLeft(1), request(endsIn = 30.seconds).statusLine(now))
 
     @Test
+    fun `52 - 7 days 59 seconds left reads 7 days`() =
+        assertEquals(StatusLine.DaysLeft(7), request(endsIn = 7.days + 59.seconds).statusLine(now))
+
+    @Test
+    fun `53 - 7 days 4 minutes left reads 7 days`() =
+        assertEquals(StatusLine.DaysLeft(7), request(endsIn = 7.days + 4.minutes).statusLine(now))
+
+    @Test
+    fun `54 - 7 days 6 minutes left reads 8 days`() =
+        assertEquals(StatusLine.DaysLeft(8), request(endsIn = 7.days + 6.minutes).statusLine(now))
+
+    @Test
+    fun `55 - 24 hours 30 seconds left reads 24 hours`() =
+        assertEquals(StatusLine.HoursLeft(24), request(endsIn = 24.hours + 30.seconds).statusLine(now))
+
+    @Test
+    fun `56 - 24 hours 6 minutes left reads 2 days`() =
+        assertEquals(StatusLine.DaysLeft(2), request(endsIn = 24.hours + 6.minutes).statusLine(now))
+
+    @Test
+    fun `57 - 1 hour 2 minutes left reads 1 hour`() =
+        assertEquals(StatusLine.HoursLeft(1), request(endsIn = 1.hours + 2.minutes).statusLine(now))
+
+    @Test
     fun `9 - open past its deadline reads expired, closed at the deadline`() {
         val r = request(endsIn = (-1).seconds)
         assertEquals(PaymentRequestStatus.Expired, r.resolvedStatus(now))

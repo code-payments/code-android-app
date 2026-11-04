@@ -168,6 +168,10 @@ class PaymentIntentId(val bytes: ByteArray) {
  *
  * The bands are uneven on purpose: [HoursLeft] runs from 1 hour to 24 hours inclusive, so
  * [DaysLeft] is never 1 and a 1-week request reads 7 days.
+ *
+ * The days and hours bands give 5 minutes of grace before rounding up, so a fresh 7-day request
+ * does not read 8 days. The grace covers the transcript's one-minute clock, which can lag the real
+ * time, and skew between the creator's device clock and this one. The minutes band has no grace.
  */
 sealed interface StatusLine {
     data class DaysLeft(val days: Int) : StatusLine
@@ -187,10 +191,11 @@ fun PaymentRequest.statusLine(now: Instant): StatusLine = when (resolvedStatus(n
         val minute = 60_000L
         val hour = 60 * minute
         val ms = left.inWholeMilliseconds
+        val grace = 5 * minute
         fun ceilDiv(a: Long, b: Long) = ((a + b - 1) / b).toInt()
         when {
-            ms > 24 * hour -> StatusLine.DaysLeft(ceilDiv(ms, 24 * hour))
-            ms >= hour -> StatusLine.HoursLeft(ceilDiv(ms, hour))
+            ms > 24 * hour + grace -> StatusLine.DaysLeft(ceilDiv(ms - grace, 24 * hour))
+            ms >= hour -> StatusLine.HoursLeft(ceilDiv(ms - grace, hour).coerceIn(1, 24))
             else -> StatusLine.MinutesLeft(maxOf(1, ceilDiv(ms, minute)))
         }
     }
