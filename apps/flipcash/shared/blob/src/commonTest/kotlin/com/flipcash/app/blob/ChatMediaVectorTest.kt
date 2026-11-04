@@ -17,7 +17,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * `test-vectors/chat_media.json` (git blob 54f976f2737e37811af0d9bba5a849e7ba3f7ade). The canonical
+ * `test-vectors/chat_media.json` (git blob 5dfadf4596ea9359608e3995c30a633943b8cacd). The canonical
  * copy lives in the orchestrator repo and is byte-identical to iOS's; this one is synced. A failure
  * here is a real regression or a cross-platform decision to make in the canonical fixture, never a
  * local edit.

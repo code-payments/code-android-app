@@ -14,22 +14,25 @@ data class ChatMediaBubbleSize(
  */
 object ChatMediaBubbleSizing {
     /** The widest a photo may be relative to its height: height is never under half the width. */
-    const val MIN_ASPECT = 0.5f
-
-    /** The tallest a photo may be relative to its width: height is never over twice the width. */
-    const val MAX_ASPECT = 2.0f
+    const val MIN_ASPECT = 0.5
 
     /**
-     * The bubble is always [maxWidth] wide. Its height is `maxWidth × clamp(h / w, 0.5, 2.0)`; a
+     * The tallest a photo may be relative to its width: 4:3. A 3:4 portrait camera photo draws
+     * uncropped; a phone screenshot clips and is whole in the viewer.
+     */
+    const val MAX_ASPECT = 4.0 / 3.0
+
+    /**
+     * The bubble is always [maxWidth] wide. Its height is `maxWidth × clamp(h / w, 0.5, 4/3)`; a
      * missing or zero dimension gives a square. [ChatMediaBubbleSize.cropped] says the clamp moved
-     * the ratio.
+     * the ratio. The ratio is compared in double, so an exact 3:4 photo is not cropped.
      */
     fun size(imageWidth: Int?, imageHeight: Int?, maxWidth: Float): ChatMediaBubbleSize {
         val w = imageWidth ?: 0
         val h = imageHeight ?: 0
         if (w <= 0 || h <= 0) return ChatMediaBubbleSize(maxWidth, maxWidth, cropped = false)
-        val ratio = h.toFloat() / w.toFloat()
+        val ratio = h.toDouble() / w.toDouble()
         val clamped = ratio.coerceIn(MIN_ASPECT, MAX_ASPECT)
-        return ChatMediaBubbleSize(maxWidth, maxWidth * clamped, cropped = clamped != ratio)
+        return ChatMediaBubbleSize(maxWidth, (maxWidth * clamped).toFloat(), cropped = clamped != ratio)
     }
 }

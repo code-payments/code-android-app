@@ -25,8 +25,8 @@ class ChatMediaBubbleSizingTest {
 
     @Test
     fun `aspect limits match the fixture`() {
-        assertEquals(root.getDouble("minAspect").toFloat(), ChatMediaBubbleSizing.MIN_ASPECT)
-        assertEquals(root.getDouble("maxAspect").toFloat(), ChatMediaBubbleSizing.MAX_ASPECT)
+        assertEquals(root.getDouble("minAspect"), ChatMediaBubbleSizing.MIN_ASPECT)
+        assertEquals(root.getDouble("maxAspect"), ChatMediaBubbleSizing.MAX_ASPECT)
     }
 
     @Test
@@ -46,6 +46,12 @@ class ChatMediaBubbleSizingTest {
             assertEquals(expected.getDouble("height").toFloat(), actual.height, 0.001f, "$name height")
             assertEquals(expected.getBoolean("cropped"), actual.cropped, "$name cropped")
         }
+    }
+
+    @Test
+    fun `a 3 by 4 portrait photo is not cropped`() {
+        val size = ChatMediaBubbleSizing.size(imageWidth = 3000, imageHeight = 4000, maxWidth = 290f)
+        assertEquals(false, size.cropped)
     }
 
     @Test

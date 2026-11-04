@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 /**
  * The send-plan and string halves of `chat_media.json` (git blob
- * 54f976f2737e37811af0d9bba5a849e7ba3f7ade). The canonical copy is the orchestrator repo's
+ * 5dfadf4596ea9359608e3995c30a633943b8cacd). The canonical copy is the orchestrator repo's
  * `test-vectors/`; this one is synced, so a failure is a regression here or a decision to make in
  * the canonical fixture, never a local edit. The blob/encoding half is asserted in `:shared:blob`.
  */
