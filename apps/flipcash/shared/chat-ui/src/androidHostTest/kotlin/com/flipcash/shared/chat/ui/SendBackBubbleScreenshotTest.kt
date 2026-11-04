@@ -176,11 +176,15 @@ class SendBackBubbleScreenshotTest {
     }
 
     /**
-     * A bare offered bubble tagged `bare` beside one tagged `live` whose Send Back state the test
-     * changes after it has drawn, the way the transcript gets it when the return state loads late.
+     * A bare offered bubble tagged `bare` beside one tagged `live` whose Send Back state and names
+     * the test changes after it has drawn, the way the transcript gets them when they load late.
      */
-    private fun showLive(initial: SendBackRow?): MutableState<SendBackRow?> {
+    private fun showLive(
+        initial: SendBackRow?,
+        people: CashBubblePeople? = dm,
+    ): Pair<MutableState<SendBackRow?>, MutableState<CashBubblePeople?>> {
         val state = mutableStateOf(initial)
+        val names = mutableStateOf(people)
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             FlipcashTheme {
@@ -193,7 +197,8 @@ class SendBackBubbleScreenshotTest {
                     }
                     Box(modifier = Modifier.testTag("live")) {
                         ContentBubble(
-                            item = bubble(offered, isFromSelf = false, sendBack = state.value),
+                            item = bubble(offered, isFromSelf = false, sendBack = state.value)
+                                .copy(cashPeople = names.value),
                             position = BubblePosition.Solo,
                             interactive = false,
                         )
@@ -202,26 +207,42 @@ class SendBackBubbleScreenshotTest {
             }
         }
         composeRule.mainClock.advanceTimeByFrame()
-        return state
+        return state to names
+    }
+
+    /**
+     * Makes [change] once the live bubble has drawn and settled, and checks its height eases from
+     * where it stood to [settled] on a spring, never jumping there in a frame, at the bare width.
+     */
+    private fun assertEases(change: () -> Unit, settled: () -> Dp) {
+        repeat(5) { composeRule.mainClock.advanceTimeByFrame() }
+        val before = height("live")
+
+        composeRule.runOnUiThread(change)
+        // Applies the write so the next frames recompose with it; the clock does not move.
+        composeRule.waitForIdle()
+        // Long enough for the spring to have moved a few dp even on the smallest change, the row
+        // giving way to Sent Back, and short of it settling.
+        repeat(6) { composeRule.mainClock.advanceTimeByFrame() }
+        val mid = height("live")
+        val low = minOf(before.value, settled().value)
+        val high = maxOf(before.value, settled().value)
+        assertTrue(
+            "mid-animation height $mid should be between $before and ${settled()}",
+            mid.value > low + 0.5f && mid.value < high - 0.5f,
+        )
+        assertDp(width("bare"), width("live"), "width while it moves")
+
+        composeRule.mainClock.advanceTimeBy(3_000)
+        assertDp(settled(), height("live"), "settled")
+        assertDp(width("bare"), width("live"), "width once settled")
     }
 
     private fun assertGrowsIn(arriving: SendBackRow, added: () -> Dp) {
-        val state = showLive(initial = null)
+        val (state, _) = showLive(initial = null)
         repeat(5) { composeRule.mainClock.advanceTimeByFrame() }
-        val bare = height("bare")
-        assertDp(bare, height("live"), "before it arrives")
-
-        composeRule.runOnUiThread { state.value = arriving }
-        // Applies the write so the next frames recompose with it; the clock does not move.
-        composeRule.waitForIdle()
-        repeat(3) { composeRule.mainClock.advanceTimeByFrame() }
-        val mid = height("live")
-        assertTrue("mid-animation height $mid should be between $bare and ${bare + added()}", mid.value > bare.value + 0.5f && mid.value < (bare + added()).value - 0.5f)
-        assertDp(width("bare"), width("live"), "width while it grows")
-
-        composeRule.mainClock.advanceTimeBy(3_000)
-        assertDp(bare + added(), height("live"), "settled")
-        assertDp(width("bare"), width("live"), "width once settled")
+        assertDp(height("bare"), height("live"), "before it arrives")
+        assertEases(change = { state.value = arriving }, settled = { height("bare") + added() })
     }
 
     @Test
@@ -229,6 +250,25 @@ class SendBackBubbleScreenshotTest {
 
     @Test
     fun `a Send Back row that arrives late grows in`() = assertGrowsIn(SendBackRow.Available) { rowHeight }
+
+    @Test
+    fun `a counterpart line that arrives late grows in`() {
+        val (_, names) = showLive(initial = null, people = null)
+        repeat(5) { composeRule.mainClock.advanceTimeByFrame() }
+        assertTrue("no counterpart yet, so shorter than the named bubble", height("live") < height("bare"))
+        assertEases(change = { names.value = dm }, settled = { height("bare") })
+    }
+
+    @Test
+    fun `the Send Back row giving way to Sent Back eases`() {
+        val (state, _) = showLive(initial = SendBackRow.Available)
+        repeat(5) { composeRule.mainClock.advanceTimeByFrame() }
+        assertDp(height("bare") + rowHeight, height("live"), "row drawn")
+        assertEases(
+            change = { state.value = SendBackRow.SentBack },
+            settled = { height("bare") + hairline + footerHeight },
+        )
+    }
 
     @Test
     fun `a footer known when the bubble first draws is there at full height`() {

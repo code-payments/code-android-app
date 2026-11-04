@@ -21,9 +21,11 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.key
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.animateContentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
@@ -957,10 +959,9 @@ private fun CashBubble(
     onSendBack: (() -> Unit)? = null,
 ) {
     // A Send Back row or Sent Back footer spans the bubble edge to edge along its bottom, so the
-    // bubble drops its own inset and the lines above put it back on every side. Both sit below the
-    // bottom padding, so the last line has the same gap above either.
-    val filledRow = sendBack == SendBackRow.Available || sendBack == SendBackRow.Sending
-    val sentBack = sendBack == SendBackRow.SentBack
+    // bubble draws no inset of its own and the lines above carry it on every side, row or no row.
+    // Both sit below the bottom padding, so the last line has the same gap above either. Keeping the
+    // inset inside the animated column means a row arriving only adds its own height.
     val insetH = BubbleDefaults.paddingHorizontal
     val insetV = BubbleDefaults.paddingVertical
     Bubble(
@@ -973,8 +974,8 @@ private fun CashBubble(
         onDoubleClick = onDoubleClick,
         modifier = modifier,
         attention = attention,
-        horizontalPadding = if (filledRow || sentBack) Dp.Hairline else insetH,
-        verticalPadding = if (filledRow || sentBack) Dp.Hairline else insetV,
+        horizontalPadding = Dp.Hairline,
+        verticalPadding = Dp.Hairline,
     ) {
         // The same number the bill's "You received" sheet reads: a USDF payment converts from the
         // USD it settled at, anything else from today's rates.
@@ -983,20 +984,19 @@ private fun CashBubble(
         val secondary = CodeTheme.typography.caption.copy(fontWeight = FontWeight.Medium)
         val amountStyle = CodeTheme.typography.displayMedium
 
-        Column(modifier = Modifier.fillMaxWidth()) {
+        // Any line that lands after the bubble has drawn (the counterpart once names resolve, the
+        // token, the Send Back row or footer, the row giving way to Sent Back) moves the bubble's
+        // height on the transcript's reflow spring. The first measure is taken as is, so what is
+        // known when the bubble first draws is there at full height. The bubble's width is fixed,
+        // so only the height moves.
+        Column(modifier = Modifier.fillMaxWidth().animateContentSize(ChatAnimations.reflowIntSize)) {
         // The gaps use the static grid, like the bubble's own padding, so each spec value maps
         // down to the same 5dp step at every screen width.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(
-                    when {
-                        filledRow || sentBack -> Modifier
-                            .padding(horizontal = insetH, vertical = insetV)
-                            .padding(vertical = CodeTheme.dimens.staticGrid.x1)
-                        else -> Modifier.padding(vertical = CodeTheme.dimens.staticGrid.x1)
-                    }
-                ),
+                .padding(horizontal = insetH, vertical = insetV)
+                .padding(vertical = CodeTheme.dimens.staticGrid.x1),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -1118,28 +1118,23 @@ private fun CashBubble(
 /**
  * The Send Back row or Sent Back footer along a cash bubble's bottom edge, or nothing.
  *
- * Present when the bubble first draws, it is drawn in place. Arriving after the bubble has drawn
- * (the return state loads after the transcript does), it grows in on [ChatAnimations.receiptEnter],
- * the transcript's reflow spring, rather than popping the bubble taller in one frame.
+ * Present when the bubble first draws, it is drawn as is. Arriving or changing after that (the
+ * return state loads after the transcript does, or a return lands), it fades in on the reflow
+ * spring while the bubble's [animateContentSize] grows or shrinks the room for it, so the size is
+ * animated once, by the bubble.
  */
 @Composable
-private fun ColumnScope.SendBackFooter(
+private fun SendBackFooter(
     sendBack: SendBackRow?,
     onSendBack: (() -> Unit)?,
 ) {
-    val visible = remember { MutableTransitionState(sendBack != null) }
-    visible.targetState = sendBack != null
-    // What it last showed, so it still has something to draw while it leaves.
-    val shown = remember { SendBackHolder(sendBack) }
-    if (sendBack != null) shown.row = sendBack
-
-    AnimatedVisibility(
-        visibleState = visible,
-        enter = ChatAnimations.receiptEnter,
-        exit = ChatAnimations.receiptExit,
-    ) {
-        Column {
-            when (shown.row) {
+    val drawn = remember { SendBackDrawn(first = sendBack) }
+    if (sendBack != drawn.first) drawn.changed = true
+    key(sendBack) {
+        val alpha = remember { Animatable(if (drawn.changed) 0f else 1f) }
+        LaunchedEffect(Unit) { alpha.animateTo(1f, ChatAnimations.reflowFloat) }
+        Column(modifier = Modifier.graphicsLayer { this.alpha = alpha.value }) {
+            when (sendBack) {
                 SendBackRow.SentBack -> {
                     // The divider every sheet and card in the app draws between sections, edge to
                     // edge: the bubble drops its horizontal inset for this footer.
@@ -1164,7 +1159,7 @@ private fun ColumnScope.SendBackFooter(
                     }
                 }
                 SendBackRow.Available, SendBackRow.Sending -> SendBackActionRow(
-                    sending = shown.row == SendBackRow.Sending,
+                    sending = sendBack == SendBackRow.Sending,
                     onClick = onSendBack,
                 )
                 null -> Unit
@@ -1173,8 +1168,10 @@ private fun ColumnScope.SendBackFooter(
     }
 }
 
-/** Not state: [SendBackFooter] writes it while composing, only when its Send Back state changed and it is recomposing anyway. */
-private class SendBackHolder(var row: SendBackRow?)
+/** Not state: [SendBackFooter] writes [changed] while composing, only when its Send Back state moved off [first]. */
+private class SendBackDrawn(val first: SendBackRow?) {
+    var changed = false
+}
 
 /**
  * The white row along a cash bubble's bottom edge that offers Send Back, or holds a spinner while
