@@ -158,8 +158,9 @@ class ChatMessageDataSource @Inject constructor(
     suspend fun hasMessages(chatId: ChatId): Boolean =
         db?.chatMessageDao()?.getLatest(mapper.chatIdHex(chatId)) != null
 
+    /** The highest stored server message id in [chatId]; see [ChatMessageDao.getNewestMessageId]. */
     suspend fun getLatestMessageId(chatId: ChatId): Long? =
-        db?.chatMessageDao()?.getLatest(mapper.chatIdHex(chatId))?.messageId
+        db?.chatMessageDao()?.getNewestMessageId(mapper.chatIdHex(chatId))
 
     /** The locally-stored copy of a single message, or `null` if this device has never seen it. */
     suspend fun getMessage(chatId: ChatId, messageId: Long): ChatMessage? =

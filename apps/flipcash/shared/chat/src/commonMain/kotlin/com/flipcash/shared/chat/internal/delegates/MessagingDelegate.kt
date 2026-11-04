@@ -675,9 +675,10 @@ class MessagingDelegate @Inject constructor(
     }
 
     override suspend fun markAsRead(chatId: ChatId): Result<Unit> {
-        // The stored newest id, tombstones included — the feed's own `lastMessage` skips them so
+        // The highest stored id, tombstones included — the feed's own `lastMessage` skips them so
         // the list can preview the last message with content, and reading it here would park the
-        // pointer below a deleted message and leave the chat permanently unread.
+        // pointer below a deleted message and leave the chat permanently unread. Highest by id, not
+        // newest by timestamp: the unread count compares ids, so a timestamp pick lands short.
         val messageId = messageDataSource.getLatestMessageId(chatId)
             ?: stateHolder.current.feed
                 ?.firstOrNull { it.chatId == chatId }

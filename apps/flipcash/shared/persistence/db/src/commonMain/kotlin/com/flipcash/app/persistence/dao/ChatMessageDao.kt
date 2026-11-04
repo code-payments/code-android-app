@@ -59,6 +59,18 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex ORDER BY timestamp_epoch_ms DESC LIMIT 1")
     suspend fun getLatest(chatIdHex: String): ChatMessageEntity?
 
+    /**
+     * The highest server-assigned message id stored for [chatIdHex], tombstones and empty rows
+     * included, or `null` when there is none. Mark as Read moves READ here.
+     *
+     * By id, not by timestamp: the unread count compares the READ pointer by id against the newest
+     * visible message, so an anchor picked by timestamp lands short whenever the two orders disagree
+     * (two messages in one millisecond, or an unsent placeholder stamped with a device clock that
+     * runs ahead). Placeholders carry negative ids and are excluded; the server never saw them.
+     */
+    @Query("SELECT MAX(message_id) FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id > 0")
+    suspend fun getNewestMessageId(chatIdHex: String): Long?
+
     /** The lowest message id stored for [chatIdHex], where paging back toward older history resumes. */
     @Query("SELECT MIN(message_id) FROM chat_messages WHERE chat_id_hex = :chatIdHex")
     suspend fun getOldestMessageId(chatIdHex: String): Long?
@@ -70,9 +82,9 @@ interface ChatMessageDao {
      *
      * This is what the conversation list previews and what its unread check reads, so deleting the
      * newest message falls the row back to the one before it instead of reading "Message deleted".
-     * Deliberately separate from [getLatest]: identity-keyed anchors (mark-read, receive buzz) need
-     * the newest id including tombstones, or a delete would regress the read pointer and leave the
-     * chat unread forever.
+     * Deliberately separate from the identity-keyed anchors ([getNewestMessageId] for mark-read,
+     * [getLatest] for the receive buzz): they need the newest id including tombstones, or a delete
+     * would regress the read pointer and leave the chat unread forever.
      */
     @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 AND content_json IS NOT NULL AND content_json != '[]' AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') " + NOT_REQUEST_SHARE + "ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT 1")
     suspend fun getLatestVisible(chatIdHex: String): ChatMessageEntity?
