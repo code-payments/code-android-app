@@ -528,6 +528,7 @@ class MessageCapabilityTest {
             MessageCapability.Reply,
             MessageCapability.Delete,
             MessageCapability.Link,
+            MessageCapability.SavePhoto,
         )
         assertEquals(expected, resolveCapabilities(photo(), now = sentAt))
         assertEquals(expected, resolveCapabilities(photo(reply = true), now = sentAt))
@@ -535,7 +536,12 @@ class MessageCapabilityTest {
 
     @Test
     fun `a photo with no caption has nothing to copy`() {
-        val expected = setOf(MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link)
+        val expected = setOf(
+            MessageCapability.Reply,
+            MessageCapability.Delete,
+            MessageCapability.Link,
+            MessageCapability.SavePhoto,
+        )
         assertEquals(expected, resolveCapabilities(photo(caption = null), now = sentAt))
         assertEquals(expected, resolveCapabilities(photo(caption = null, reply = true), now = sentAt))
     }
@@ -543,7 +549,12 @@ class MessageCapabilityTest {
     @Test
     fun `own photo past the delete window can only be copied and replied to`() {
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Link),
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Link,
+                MessageCapability.SavePhoto,
+            ),
             resolveCapabilities(photo(), now = sentAt + 49.hours),
         )
     }
@@ -556,8 +567,35 @@ class MessageCapabilityTest {
                 MessageCapability.Reply,
                 MessageCapability.Report,
                 MessageCapability.Link,
+                MessageCapability.SavePhoto,
             ),
             resolveCapabilities(photo(isFromSelf = false), now = sentAt),
+        )
+    }
+
+    @Test
+    fun `save photo is offered on photos only`() {
+        assertEquals(true, MessageCapability.SavePhoto in resolveCapabilities(photo(), now = sentAt))
+        assertEquals(true, MessageCapability.SavePhoto in resolveCapabilities(photo(isFromSelf = false), now = sentAt))
+        assertEquals(true, MessageCapability.SavePhoto in resolveCapabilities(photo(reply = true), now = sentAt))
+        assertEquals(false, MessageCapability.SavePhoto in resolveCapabilities(text(), now = sentAt))
+        assertEquals(false, MessageCapability.SavePhoto in resolveCapabilities(text(isFromSelf = false), now = sentAt))
+        assertEquals(false, MessageCapability.SavePhoto in resolveCapabilities(cash(), now = sentAt))
+    }
+
+    @Test
+    fun `a redacted photo cannot be saved`() {
+        assertEquals(
+            false,
+            MessageCapability.SavePhoto in resolveCapabilities(photo(isFromSelf = false, redacted = true), now = sentAt),
+        )
+    }
+
+    @Test
+    fun `a viewer who cannot post can still save a photo`() {
+        assertEquals(
+            true,
+            MessageCapability.SavePhoto in resolveCapabilities(photo(isFromSelf = false), now = sentAt, canPost = false),
         )
     }
 

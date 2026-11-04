@@ -47,7 +47,9 @@ internal fun reduceMessageAction(event: Event): (State) -> State =
         Event.ShareMessageRequested -> { state ->
             state.copy(selection = null, confirmingDelete = false)
         }
-        is Event.PhotoSaveResult -> { state -> state }
+        // A save started from the selection bar ends the selection once it lands, as Copy does
+        // straight away; the viewer's save has no selection to end.
+        is Event.PhotoSaveResult -> { state -> state.copy(selection = null, confirmingDelete = false) }
         is Event.EditMessage -> { state ->
             state.copy(
                 selection = null,

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.PushPin
@@ -68,6 +69,8 @@ import com.flipcash.shared.chat.models.ChatActionHandler
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.ui.MutedIndicator
 import com.flipcash.shared.chat.ui.media.ForwardArrow
+import com.flipcash.shared.chat.ui.media.rememberSavePhoto
+import com.flipcash.shared.chat.ui.media.savablePhoto
 import com.flipcash.shared.chat.ui.messageFullTime
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
@@ -333,9 +336,15 @@ private fun MessageSelectionBar(
 ) {
     val capabilities = selection.capabilities
     val body = selection.plainText
+    val savable = remember(selection) {
+        savablePhoto(selection).takeIf { MessageCapability.SavePhoto in capabilities }
+    }
+    val savePhoto = rememberSavePhoto(savable) { saved ->
+        dispatch(ChatViewModel.Event.PhotoSaveResult(saved))
+    }
 
     // Order is priority: the first actions keep their icons when the bar runs out of room, and it
-    // matches iOS's menu: Copy, Reply, Forward, Edit, Delete, Report. Report goes last: it is the
+    // matches iOS's menu: Copy, Save Photo, Reply, Forward, Edit, Delete, Report. Report goes last: it is the
     // rarest and the only one that is never about your own message, so it is the right one to
     // collapse into the overflow on a narrow screen. Forward hands out the message's link; the
     // sheet it opens has the Copy Link tile, so the bar has no copy-link row of its own.
@@ -348,6 +357,17 @@ private fun MessageSelectionBar(
                     icon = Icons.Filled.ContentCopy,
                     testTag = "action_copy_message",
                     onClick = { dispatch(ChatViewModel.Event.CopyMessage(body)) },
+                )
+            )
+        }
+        if (savable != null) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_savePhoto),
+                    icon = Icons.Outlined.Download,
+                    testTag = "action_save_photo",
+                    // The bar stays up until the result lands: the save runs in its scope.
+                    onClick = savePhoto,
                 )
             )
         }

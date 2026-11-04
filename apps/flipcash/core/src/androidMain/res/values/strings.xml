@@ -1875,6 +1875,7 @@
     <string name="title_shareProfileToChats">Share Profile</string>
     <string name="title_shareMessageToChats">Share Message</string>
     <string name="action_forwardMessage">Forward</string>
+    <string name="action_savePhoto">Save Photo</string>
     <string name="action_pinMessage">Pin</string>
     <string name="action_unpinMessage">Unpin</string>
     <string name="action_jumpToMessage">Jump to message</string>

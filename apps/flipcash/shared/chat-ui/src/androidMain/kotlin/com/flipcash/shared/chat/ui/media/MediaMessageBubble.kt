@@ -74,6 +74,19 @@ fun ChatMessage.photoContext(chatId: ChatId, previewing: Boolean): PhotoMessageC
 
 fun MessageContent.photoBody(): MessageContent.Media? = mediaBody()
 
+/**
+ * The full-size photo a selected [bubble] saves to the gallery, built the way the bubble builds the
+ * viewer's model, or null when there is nothing to save: no photo, a photo drawn only as its BlurHash,
+ * or a pending send whose blob is not on the server yet.
+ */
+fun savablePhoto(bubble: ChatListItem.ContentBubble): ChatPhoto? {
+    val info = bubble.photo?.takeUnless { it.blurhashOnly } ?: return null
+    val item = bubble.content.photoBody()?.items?.firstOrNull() ?: return null
+    val rendition = item.rendition(MediaItemRendition.Role.ORIGINAL) ?: item.renditions.firstOrNull() ?: return null
+    if (rendition.blobId.bytes.isEmpty()) return null
+    return ChatPhoto(info.chatId, rendition, info.senderId, info.sealed, info.redacted)
+}
+
 /** Whether a tap on a photo opens the viewer: only one that is showing, delivered, and loaded. */
 internal fun canOpenPhoto(blurhashOnly: Boolean, failed: Boolean, unavailable: Boolean): Boolean =
     !blurhashOnly && !failed && !unavailable
