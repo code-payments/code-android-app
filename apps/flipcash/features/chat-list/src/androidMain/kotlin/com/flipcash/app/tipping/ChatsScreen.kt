@@ -60,7 +60,7 @@ fun ChatsScreen() {
         }
     }
 
-    // Close, system back, or deselecting the last row leaves select mode.
+    // Close or system back leaves select mode; deselecting the last row does not.
     BackHandler(enabled = state.isSelecting) { viewModel.endSelection() }
 
     ChatsScreenContent(

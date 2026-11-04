@@ -123,10 +123,12 @@ class ChatListSelectionTest {
     }
 
     @Test
-    fun `deselecting the last row leaves select mode`() {
+    fun `deselecting the last row stays in select mode with nothing selected`() {
         val selecting = reduce(loaded, ChatsViewModel.Event.SelectionStarted(readC.chatId))
-        val left = reduce(selecting, ChatsViewModel.Event.SelectionToggled(readC.chatId))
-        assertFalse(left.isSelecting)
+        val emptied = reduce(selecting, ChatsViewModel.Event.SelectionToggled(readC.chatId))
+        assertTrue(emptied.isSelecting)
+        assertEquals(0, emptied.selectionActions.count)
+        assertFalse(reduce(emptied, ChatsViewModel.Event.SelectionEnded).isSelecting)
     }
 
     // Spec case 12.

@@ -29,7 +29,7 @@ fun ArchivedChatsScreen() {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
 
-    // Close, system back, or deselecting the last row leaves select mode.
+    // Close or system back leaves select mode; deselecting the last row does not.
     BackHandler(enabled = state.isSelecting) { viewModel.endSelection() }
 
     ArchivedChatsContent(
