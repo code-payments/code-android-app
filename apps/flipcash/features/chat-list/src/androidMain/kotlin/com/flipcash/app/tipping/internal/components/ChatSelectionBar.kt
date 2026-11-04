@@ -61,8 +61,7 @@ internal enum class SelectionArchiveAction { Archive, Unarchive }
 
 /**
  * The list's title bar, or select mode's [ChatSelectionBar] in its place. Keyed on select mode
- * only, so the bar fading out keeps the selection it showed rather than the emptied one that ended
- * select mode.
+ * only, so the count changing inside select mode does not cross-fade the whole bar.
  */
 @Composable
 internal fun ChatSelectionTopBar(
