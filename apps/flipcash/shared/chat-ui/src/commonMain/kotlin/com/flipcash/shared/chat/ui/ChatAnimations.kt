@@ -36,9 +36,9 @@ object ChatAnimations {
     // Rows resizing in place (a receipt moving on, a reaction): glides to the new layout and never
     // bounces. Matches iOS reflow: .spring(duration: 0.35, bounce: 0).
     private const val ReflowStiffness = 322f
-    private val reflowIntSize: SpringSpec<IntSize> =
+    internal val reflowIntSize: SpringSpec<IntSize> =
         spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = ReflowStiffness)
-    private val reflowFloat: SpringSpec<Float> =
+    internal val reflowFloat: SpringSpec<Float> =
         spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = ReflowStiffness)
     val reflowDp: SpringSpec<Dp> =
         spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = ReflowStiffness)

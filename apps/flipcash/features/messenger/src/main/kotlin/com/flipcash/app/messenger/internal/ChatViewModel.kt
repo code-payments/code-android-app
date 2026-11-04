@@ -178,6 +178,9 @@ import com.flipcash.shared.payments.ContactPaymentDelegate
 import com.flipcash.shared.payments.group.GroupSendInsufficientBalance
 import com.flipcash.shared.payments.group.GroupSendPaymentDelegate
 import com.flipcash.shared.payments.TipPaymentDelegate
+import com.flipcash.shared.payments.sendback.SendBackPaymentDelegate
+import com.flipcash.services.controllers.ChatMessagingController
+import com.flipcash.app.messenger.internal.sendback.SendBackFlow
 import com.getcode.libs.emojis.reactions.EmojiCatalogLoader
 import com.getcode.libs.emojis.reactions.EmojiDrawability
 import com.getcode.libs.emojis.reactions.RecentReactions
@@ -327,6 +330,9 @@ internal class ChatViewModel @AssistedInject constructor(
     // Last and defaulted so the transcript tests, which hold no saved previews, need not supply one.
     linkCardMemory: LinkCardMemory? = null,
     private val composerLinkPreview: ComposerLinkPreview? = null,
+    // Defaulted for the same reason: only the Send Back tests supply them.
+    sendBackPayments: SendBackPaymentDelegate? = null,
+    chatMessagingController: ChatMessagingController? = null,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(
         openingAtMessage = openAtMessageId != null,
@@ -1401,6 +1407,46 @@ internal class ChatViewModel @AssistedInject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     /**
+     * Send Back: returning a DM's opening payment. The transcript notes each cash message to it as
+     * it maps them, and its rows join the built pages as an overlay, like [reactionOverlay]. Null
+     * where its collaborators are not supplied (tests that don't exercise it).
+     */
+    private val sendBack: SendBackFlow? =
+        if (sendBackPayments != null && chatMessagingController != null) {
+            SendBackFlow(
+                scope = viewModelScope,
+                payments = sendBackPayments,
+                returnStatus = chatMessagingController::getCashMessageReturnStatus,
+                payer = startChattingPayer,
+                tokenCoordinator = tokenCoordinator,
+                userManager = userManager,
+                resources = resources,
+                analytics = analytics,
+                chatId = { stateFlow.value.chatId },
+                peerName = { stateFlow.value.participant?.name },
+                openScreen = { route -> dispatchEvent(Event.OpenScreen(route)) },
+            )
+        } else {
+            null
+        }
+
+    /** The Send Back confirm sheet, or null when it is not up. */
+    val sendBackSheet: StateFlow<SendBackFlow.Sheet?> =
+        sendBack?.sheet ?: MutableStateFlow(null)
+
+    fun onSendBack(messageId: Long) {
+        sendBack?.tap(messageId)
+    }
+
+    fun confirmSendBack() {
+        sendBack?.confirm()
+    }
+
+    fun dismissSendBack() {
+        sendBack?.dismiss()
+    }
+
+    /**
      * Null for a DM, a map for a group — the distinction the transcript needs, because a DM's
      * counterparty is already named in the title bar and attributing each of their bubbles would be
      * noise. `null` rather than an empty map so the difference survives: an empty map in a group is
@@ -1708,6 +1754,10 @@ internal class ChatViewModel @AssistedInject constructor(
                         }
                     }
 
+                    (enriched as? MessageContent.Cash)?.let { cash ->
+                        sendBack?.note(message.messageId, cash, message.senderId, message.isFromSelf)
+                    }
+
                     ChatListItem.ContentBubble(
                         messageId = message.messageId,
                         contentIndex = index,
@@ -1804,7 +1854,22 @@ internal class ChatViewModel @AssistedInject constructor(
                     )
                 }
             }
-        }.cachedIn(pagingScope)
+        }
+        // Send Back's rows, the same way: an overlay on the built pages keyed by message id, so a
+        // status answer or a tap re-maps one field without re-running the pass above.
+        .let { pages ->
+            val rows = sendBack?.rows ?: return@let pages
+            combine(pages, rows) { data, overlay ->
+                if (overlay.isEmpty()) return@combine data
+                data.map { item ->
+                    if (item !is ChatListItem.ContentBubble || item.content !is MessageContent.Cash) {
+                        return@map item
+                    }
+                    overlay[item.messageId]?.let { item.copy(sendBack = it) } ?: item
+                }
+            }
+        }
+        .cachedIn(pagingScope)
 
     /**
      * The transcript as the list draws it: [mappedMessages] with date separators and the unread

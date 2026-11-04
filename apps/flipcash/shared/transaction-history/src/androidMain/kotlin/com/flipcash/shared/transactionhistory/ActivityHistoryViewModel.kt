@@ -1,5 +1,6 @@
 package com.flipcash.shared.transactionhistory
 
+import com.flipcash.app.core.AppRoute
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
@@ -16,7 +17,10 @@ import javax.inject.Inject
 @HiltViewModel
 class ActivityHistoryViewModel @Inject constructor(
     feedCoordinator: ActivityFeedCoordinator,
+    private val router: TransactionRouter,
 ) : ViewModel() {
+    suspend fun routeFor(item: TransactionListItem): AppRoute = router.routeFor(item)
+
     val transactions: Flow<PagingData<TransactionListItem>> =
         feedCoordinator.recentTransactions().cachedIn(viewModelScope)
 }

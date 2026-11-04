@@ -71,6 +71,7 @@ import com.flipcash.app.core.links.LocalTrustedWebsites
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.screens.cash.SendBackSheetHost
 import com.flipcash.app.messenger.internal.MemberModerationViewModel
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.messenger.internal.screens.profile.memberTapStep
@@ -464,6 +465,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             is ChatAction.RefreshReactionIds -> {
                 viewModel.dispatchEvent(ChatViewModel.Event.RefreshReactionIds(action.messageIds))
             }
+
+            // Keyboard first, so the confirm sheet or the balance modal rises over a settled chat.
+            is ChatAction.SendBack -> keyboard.hideIfVisible { viewModel.onSendBack(action.messageId) }
         }
 
         Unit
@@ -795,6 +799,13 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             }
         }
     }
+
+    val sendBackSheet by viewModel.sendBackSheet.collectAsStateWithLifecycle()
+    SendBackSheetHost(
+        sheet = sendBackSheet,
+        onConfirm = viewModel::confirmSendBack,
+        onDismiss = viewModel::dismissSendBack,
+    )
 
     // In-window, over the conversation and the deck, so the bottom bar draws above it.
     RequestPaySheet(

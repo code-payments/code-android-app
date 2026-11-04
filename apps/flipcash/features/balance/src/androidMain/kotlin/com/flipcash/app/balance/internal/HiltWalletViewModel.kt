@@ -8,6 +8,7 @@ import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.transactionhistory.ActivityFeedCoordinator
+import com.flipcash.shared.transactionhistory.TransactionRouter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
@@ -22,6 +23,7 @@ internal class HiltWalletViewModel @Inject constructor(
     feedCoordinator: ActivityFeedCoordinator,
     tokenCoordinator: TokenCoordinator,
     walletReveal: WalletRevealCoordinator,
+    transactionRouter: TransactionRouter,
 ) : WalletViewModel(
     userManager = userManager,
     userFlags = userFlags,
@@ -31,4 +33,5 @@ internal class HiltWalletViewModel @Inject constructor(
     feedCoordinator = feedCoordinator,
     tokenCoordinator = tokenCoordinator,
     walletReveal = walletReveal,
+    transactionRouter = transactionRouter,
 )

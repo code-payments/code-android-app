@@ -11,6 +11,7 @@ import com.flipcash.app.core.feed.SwapState
 import com.flipcash.app.core.feed.SwappedCryptoMetadata
 import com.flipcash.services.models.BoostedReaction
 import com.flipcash.services.models.RequestedPayment
+import com.flipcash.services.models.ReturnedPayment
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Emoji
@@ -121,6 +122,20 @@ class TransactionDetailsMapperTest {
         socialLinks = emptyList(),
         holderMetrics = HolderMetrics.None,
     )
+
+    @Test
+    fun `a send-back is a send or receive whatever the verb says`() {
+        val returned = ReturnedPayment(chatId = ChatId(ByteArray(32) { 4 }), messageId = 11L)
+
+        assertEquals(
+            TransactionKind.Sent,
+            map(MessageMetadata.DirectlySentCrypto(userId = knownUserId, returnedPayment = returned), text = "Tipped").kind,
+        )
+        assertEquals(
+            TransactionKind.Received,
+            map(MessageMetadata.ReceivedCrypto(userId = knownUserId, returnedPayment = returned), text = "Tip").kind,
+        )
+    }
 
     @Test
     fun `the verb separates a tip from a plain send`() {
