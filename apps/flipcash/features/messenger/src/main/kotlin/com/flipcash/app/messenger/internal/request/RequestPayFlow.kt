@@ -85,13 +85,23 @@ internal class RequestPayFlow(
         if (_state.value.preparing || _state.value.open) return
         _state.update { it.copy(requestId = requestId, preparing = true) }
         scope.launch {
+            // The same gate as Send: with nothing to give, say so before the sheet opens, since the
+            // sheet would have no token to show or swipe with.
+            if (!payer.mayProceed(
+                    onAddMoney = { scope.launch { payer.depositRoute()?.let(openScreen) } },
+                    onDiscoverCurrencies = { openScreen(AppRoute.Token.Discovery) },
+                )
+            ) {
+                _state.update { it.copy(preparing = false) }
+                return@launch
+            }
             payments.prepare(requestId, viewer)
                 .onSuccess { found ->
                     _state.update { it.copy(preparing = false) }
                     when (found) {
                         is ShareToPay.Ready -> {
-                            // No balance check here: the payer picks the token in the sheet, and the
-                            // check runs against that pick when they swipe.
+                            // No per-share balance check here: the payer picks the token in the sheet,
+                            // and the check runs against that pick when they swipe.
                             ready = found
                             _state.update { it.copy(open = true, progress = LoadingSuccessState()) }
                         }
@@ -109,7 +119,11 @@ internal class RequestPayFlow(
     /** The swipe. A second swipe after a failure pays under the same intent id. */
     fun confirm() {
         val pending = ready ?: return
-        val token = token.value ?: return
+        val token = token.value ?: run {
+            // No token to pay from means nothing to give; never a silent swipe.
+            if (_state.value.progress.isIdle) present(PayBlock.OverBalance)
+            return
+        }
         val owner = userManager.accountCluster ?: return
         if (!_state.value.progress.isIdle) return
         // The token or the balance can change while the sheet is up; the modal shows over it.

@@ -4197,7 +4197,12 @@ internal class ChatViewModel @AssistedInject constructor(
         val total = groupSend.total ?: return@launch
         if (groupSend.selected.isEmpty()) return@launch
         val chatId = stateFlow.value.chatId ?: return@launch
-        val token = stateFlow.value.token ?: return@launch
+        val token = stateFlow.value.token ?: run {
+            startChattingPayer.presentInsufficientBalance(
+                onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
+            )
+            return@launch
+        }
         val owner = userManager.accountCluster ?: return@launch
         // The sender pays the amount for each person checked. The confirm sheet can change the
         // token, so this is the only balance check.
@@ -4255,7 +4260,12 @@ internal class ChatViewModel @AssistedInject constructor(
     }
 
     private fun checkBalanceLimit(amount: Fiat): Boolean {
-        val token = stateFlow.value.token ?: return false
+        val token = stateFlow.value.token ?: run {
+            startChattingPayer.presentInsufficientBalance(
+                onAddMoney = { dispatchEvent(Event.PresentDepositOptions) },
+            )
+            return true
+        }
         val rate = exchange.preferredRate
         val balance = tokenCoordinator.balanceForToken(token)
         val balanceInLocal = balance.convertingTo(rate)

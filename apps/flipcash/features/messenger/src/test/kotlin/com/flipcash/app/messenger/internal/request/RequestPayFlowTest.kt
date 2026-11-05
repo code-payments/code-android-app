@@ -75,6 +75,7 @@ class RequestPayFlowTest {
         every { userManager.accountCluster } returns owner
         every { owner.withTimelockForToken(any()) } returns owner
         every { payer.observeSelectedToken() } returns flowOf(token)
+        coEvery { payer.mayProceed(any(), any()) } returns true
         every { exchange.rateFor(any()) } returns Rate.oneToOne
         every { tokenCoordinator.balanceForToken(any<Token>()) } answers { balance }
         every { transactionController.limits } returns MutableStateFlow(null)
@@ -179,5 +180,29 @@ class RequestPayFlowTest {
         assertEquals(false, f.state.value.open)
         assertEquals(1, nothingToPay)
         assertEquals(0, BottomBarManager.messages.value.size)
+    }
+
+    @Test
+    fun `no giveable balance stops Pay at the gate and never opens the sheet`() {
+        coEvery { payer.mayProceed(any(), any()) } returns false
+        val f = flow()
+
+        f.start(listOf<Byte>(2))
+
+        assertEquals(false, f.state.value.open)
+        assertEquals(false, f.state.value.preparing)
+        coVerify(exactly = 0) { payments.prepare(any(), any()) }
+    }
+
+    @Test
+    fun `the swipe with no selected token presents the insufficient balance modal instead of returning silently`() {
+        every { payer.observeSelectedToken() } returns flowOf()
+        val f = flow()
+        f.start(listOf<Byte>(2))
+
+        f.confirm()
+
+        verify(exactly = 1) { payer.presentInsufficientBalance(any(), any()) }
+        coVerify(exactly = 0) { payments.pay(any(), any(), any()) }
     }
 }
