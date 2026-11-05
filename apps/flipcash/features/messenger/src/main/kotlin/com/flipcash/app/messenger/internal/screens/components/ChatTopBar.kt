@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.PushPin
@@ -70,6 +71,9 @@ import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.ui.MutedIndicator
 import com.flipcash.shared.chat.ui.media.ForwardArrow
 import com.flipcash.shared.chat.ui.media.rememberSavePhoto
+import com.flipcash.shared.chat.ui.media.rememberSavePhotos
+import com.flipcash.shared.chat.ui.media.savableStack
+import com.flipcash.shared.chat.models.PhotoStack
 import com.flipcash.shared.chat.ui.media.savablePhoto
 import com.flipcash.shared.chat.ui.messageFullTime
 import com.getcode.navigation.core.CodeNavigator
@@ -94,6 +98,8 @@ internal fun ChatTopBar(
     dispatch: (ChatViewModel.Event) -> Unit,
     /** Asks the host to confirm a removal: chat, member, first name, group title. Supplied by the screen so the bar needs no Hilt. */
     onConfirmRemove: (ChatId, ID, String, String) -> Unit = { _, _, _, _ -> },
+    /** The card stack the selected message's row is part of, or null when it draws alone. */
+    selectionStack: PhotoStack? = null,
     trailing: @Composable () -> Unit = {},
     /** Controls in the bar's end slot, which sit the same distance from the edge as back does. */
     actions: @Composable RowScope.() -> Unit = {},
@@ -137,6 +143,7 @@ internal fun ChatTopBar(
                     }
                     MessageSelectionBar(
                     selection = target.selection,
+                    stack = selectionStack,
                     pinned = target.selection.messageId in state.pins.pinnedIds,
                     keyboard = keyboard,
                     dispatch = dispatch,
@@ -323,6 +330,8 @@ private fun ConversationTitleBar(
 @Composable
 private fun MessageSelectionBar(
     selection: ChatListItem.ContentBubble,
+    /** The card stack the selection's row is part of; its front offers Save All. */
+    stack: PhotoStack?,
     /** Whether the selected message is pinned, so the pin action unpins it instead. */
     pinned: Boolean,
     keyboard: KeyboardController,
@@ -342,9 +351,14 @@ private fun MessageSelectionBar(
     val savePhoto = rememberSavePhoto(savable) { saved ->
         dispatch(ChatViewModel.Event.PhotoSaveResult(saved))
     }
+    // Offered beside Save Photo, so a stack whose front can't be saved offers neither.
+    val stackSave = remember(stack, savable) { savableStack(stack).takeIf { savable != null } }
+    val saveAll = rememberSavePhotos(stackSave?.photos.orEmpty(), stackSave?.total ?: 0) { saved, total ->
+        dispatch(ChatViewModel.Event.PhotosSaveResult(saved, total))
+    }
 
     // Order is priority: the first actions keep their icons when the bar runs out of room, and it
-    // matches iOS's menu: Copy, Save Photo, Reply, Forward, Edit, Delete, Report. Report goes last: it is the
+    // matches iOS's menu: Copy, Save Photo, Save All, Reply, Forward, Edit, Delete, Report. Report goes last: it is the
     // rarest and the only one that is never about your own message, so it is the right one to
     // collapse into the overflow on a narrow screen. Forward hands out the message's link; the
     // sheet it opens has the Copy Link tile, so the bar has no copy-link row of its own.
@@ -368,6 +382,16 @@ private fun MessageSelectionBar(
                     testTag = "action_save_photo",
                     // The bar stays up until the result lands: the save runs in its scope.
                     onClick = savePhoto,
+                )
+            )
+        }
+        if (stackSave != null) {
+            add(
+                MessageAction(
+                    label = stringResource(R.string.action_saveAllPhotos),
+                    icon = Icons.Outlined.PhotoLibrary,
+                    testTag = "action_save_all_photos",
+                    onClick = saveAll,
                 )
             )
         }

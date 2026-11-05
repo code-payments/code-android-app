@@ -1885,6 +1885,7 @@
     <string name="title_shareMessageToChats">Share Message</string>
     <string name="action_forwardMessage">Forward</string>
     <string name="action_savePhoto">Save Photo</string>
+    <string name="action_saveAllPhotos">Save All</string>
     <string name="action_pinMessage">Pin</string>
     <string name="action_unpinMessage">Unpin</string>
     <string name="action_jumpToMessage">Jump to message</string>
@@ -1979,6 +1980,7 @@
     <string name="description_chatMediaSave">Save</string>
     <string name="title_chatPhotoSaved">Saved to Photos</string>
     <string name="error_chatPhotoSaveFailed">Couldn\'t save the photo</string>
+    <string name="error_chatPhotosSavePartial">Saved %1$d of %2$d photos</string>
     <string name="description_chatPhotoRemove">Remove photo</string>
     <string name="description_chatLinkPreviewRemove">Remove link preview</string>
     <string name="description_chatLinkPreviewLoading">Loading preview for %1$s</string>

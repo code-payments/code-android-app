@@ -101,6 +101,7 @@ import com.getcode.ui.components.BlurredContent
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.photoStackOf
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.Shareable
@@ -571,9 +572,21 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             // inset grows by its height and the oldest message clears it. barHeight stays the bar's
             // own: the soft top edge belongs to the bar, and the anchor is glass over the scroll.
             Column {
+                // The card stack the selected row draws in, walked from its neighbours as the row
+                // itself walks them, so the bar can offer Save All on a stack's front.
+                val selected = state.selection
+                val selectionStack = remember(selected, messages.itemCount) {
+                    selected ?: return@remember null
+                    val rows = messages.itemSnapshotList
+                    val index = rows.indexOfFirst { it?.itemKey == selected.itemKey }
+                    rows.getOrNull(index)?.let { row ->
+                        photoStackOf(index, row, messages.itemCount) { messages.peek(it) }
+                    }
+                }
                 ChatTopBar(
                     navigator = navigator,
                     state = state,
+                    selectionStack = selectionStack,
                     onBarHeightChange = { barHeight = it },
                     chatActionHandler = chatActionHandler,
                     dispatch = viewModel::dispatchEvent,

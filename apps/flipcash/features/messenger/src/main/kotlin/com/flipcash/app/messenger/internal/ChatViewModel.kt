@@ -1166,6 +1166,9 @@ internal class ChatViewModel @AssistedInject constructor(
         /** A photo the viewer was asked to save has, or has not, reached the gallery. */
         data class PhotoSaveResult(val saved: Boolean) : Event
 
+        /** Save All on a card stack has finished: [saved] of its [total] photos reached the gallery. */
+        data class PhotosSaveResult(val saved: Int, val total: Int) : Event
+
         data object SubmitEdit : Event
         data object CancelEdit : Event
         data object EditingEnded : Event
@@ -3140,6 +3143,21 @@ internal class ChatViewModel @AssistedInject constructor(
             }
             .launchIn(viewModelScope)
 
+        eventFlow.filterIsInstance<Event.PhotosSaveResult>()
+            .onEach { event ->
+                if (event.saved == event.total) {
+                    toastController.showToast(R.string.title_chatPhotoSaved, replacePrevious = true)
+                } else {
+                    toastController.showToast(
+                        R.string.error_chatPhotosSavePartial,
+                        event.saved,
+                        event.total,
+                        replacePrevious = true,
+                    )
+                }
+            }
+            .launchIn(viewModelScope)
+
         eventFlow.filterIsInstance<Event.CopyMessage>()
             .onEach { event ->
                 clipboardManager.setText(
@@ -4715,6 +4733,7 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.CopyMessageLink,
                 Event.ShareMessageRequested,
                 is Event.PhotoSaveResult,
+                is Event.PhotosSaveResult,
                 is Event.EditMessage,
                 is Event.DeleteMessage,
                 Event.SubmitEdit,

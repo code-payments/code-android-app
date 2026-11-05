@@ -91,6 +91,22 @@ fun savablePhoto(bubble: ChatListItem.ContentBubble): ChatPhoto? {
 }
 
 /**
+ * What Save All on a card stack saves: the [photos] of its members that can be saved, oldest first,
+ * and the [total] that should have been, which leaves out redacted photos as Save Photo does.
+ */
+data class StackSave(val photos: List<ChatPhoto>, val total: Int)
+
+/**
+ * What Save All saves for the row [stack] resolved, or null when it offers no Save All: only a
+ * stack's front row does, as on iOS, so a long press on the caption below offers Save Photo alone.
+ */
+fun savableStack(stack: PhotoStack?): StackSave? {
+    if (stack?.role != PhotoStack.Role.Front) return null
+    val shown = stack.members.filter { it.photo?.redacted != true }
+    return StackSave(photos = shown.mapNotNull(::savablePhoto), total = shown.size)
+}
+
+/**
  * What a tap on [item]'s photo asks for: its viewer, with the photos of its card stack to page
  * through when it fronts one, or just itself.
  */
