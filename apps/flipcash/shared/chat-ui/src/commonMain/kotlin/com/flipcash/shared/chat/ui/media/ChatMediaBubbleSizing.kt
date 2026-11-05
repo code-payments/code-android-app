@@ -17,15 +17,16 @@ object ChatMediaBubbleSizing {
     const val MIN_ASPECT = 0.5
 
     /**
-     * The tallest a photo may be relative to its width: 4:3. A 3:4 portrait camera photo draws
-     * uncropped; a phone screenshot clips and is whole in the viewer.
+     * The tallest a photo may be relative to its width: 5:4, as iMessage draws photos. A 3:4
+     * portrait camera photo crops a little at the top and bottom, and a phone screenshot more; both
+     * are whole in the viewer.
      */
-    const val MAX_ASPECT = 4.0 / 3.0
+    const val MAX_ASPECT = 1.25
 
     /**
-     * The bubble is always [maxWidth] wide. Its height is `maxWidth × clamp(h / w, 0.5, 4/3)`; a
+     * The bubble is always [maxWidth] wide. Its height is `maxWidth × clamp(h / w, 0.5, 5/4)`; a
      * missing or zero dimension gives a square. [ChatMediaBubbleSize.cropped] says the clamp moved
-     * the ratio. The ratio is compared in double, so an exact 3:4 photo is not cropped.
+     * the ratio. The ratio is compared in double, so a photo exactly 5:4 tall is not cropped.
      */
     fun size(imageWidth: Int?, imageHeight: Int?, maxWidth: Float): ChatMediaBubbleSize {
         val w = imageWidth ?: 0

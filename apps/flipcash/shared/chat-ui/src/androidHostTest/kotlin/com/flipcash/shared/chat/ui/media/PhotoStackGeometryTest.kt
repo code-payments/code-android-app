@@ -21,8 +21,8 @@ class PhotoStackGeometryTest {
 
     @Test
     fun `every tilted card stays inside the box, wide or tall`() {
-        // A landscape photo, a square one and one clipped tall at 3:4.
-        for ((width, height) in listOf(260f to 195f, 260f to 260f, 260f to 346.7f)) {
+        // A landscape photo, a square one and one clipped at the 5:4 tall cap.
+        for ((width, height) in listOf(260f to 195f, 260f to 260f, 260f to 325f)) {
             for (behind in 1..2) {
                 val poses = PhotoStackGeometry.poses(behind, nearNudge = 4f, farNudge = 8f)
                 val scale = PhotoStackGeometry.cardScale(width, height, poses)
@@ -49,7 +49,7 @@ class PhotoStackGeometryTest {
     fun `the stack is no taller than the photo, and a tall photo's stack is shorter`() {
         // The width binds for a tall photo, so its cards shrink further than its height needs and the
         // box drops to the fan's height: no empty band above or below for the next message to clear.
-        for ((width, height) in listOf(260f to 195f, 260f to 260f, 260f to 346.7f)) {
+        for ((width, height) in listOf(260f to 195f, 260f to 260f, 260f to 325f)) {
             for (behind in 1..2) {
                 val poses = PhotoStackGeometry.poses(behind, nearNudge = 4f, farNudge = 8f)
                 val scale = PhotoStackGeometry.cardScale(width, height, poses)

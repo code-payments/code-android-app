@@ -49,8 +49,14 @@ class ChatMediaBubbleSizingTest {
     }
 
     @Test
-    fun `a 3 by 4 portrait photo is not cropped`() {
+    fun `a 3 by 4 portrait photo crops to 5 by 4`() {
         val size = ChatMediaBubbleSizing.size(imageWidth = 3000, imageHeight = 4000, maxWidth = 290f)
+        assertEquals(ChatMediaBubbleSize(290f, 362.5f, cropped = true), size)
+    }
+
+    @Test
+    fun `a photo exactly 5 by 4 tall is not cropped`() {
+        val size = ChatMediaBubbleSizing.size(imageWidth = 4000, imageHeight = 5000, maxWidth = 290f)
         assertEquals(false, size.cropped)
     }
 
