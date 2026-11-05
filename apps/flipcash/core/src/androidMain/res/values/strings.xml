@@ -298,6 +298,7 @@
     <string name="description_noBalanceYetForBalance">Add money to get started</string>
     <string name="description_noBalanceYetToCreate">Add money to create a currency</string>
     <string name="description_noBalanceYetToTip">Add money to send tips</string>
+    <string name="description_noBalanceYetToPayRequest">Add money to pay this request</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="title_success">Success</string>
 
