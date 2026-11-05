@@ -88,6 +88,8 @@ internal fun ProfileMenu(
     anchorHeight: Dp,
     onDismiss: () -> Unit,
     onItem: (ChatProfileAction) -> Unit,
+    /** Items drawn but not tappable. */
+    disabled: Set<ChatProfileAction> = emptySet(),
 ) {
     DropdownMenu(
         expanded = expanded,
@@ -126,6 +128,7 @@ internal fun ProfileMenu(
                 else -> CodeTheme.colors.textMain
             }
             DropdownMenuItem(
+                enabled = item !in disabled,
                 leadingIcon = {
                     Icon(imageVector = item.icon(), contentDescription = null, tint = tint)
                 },

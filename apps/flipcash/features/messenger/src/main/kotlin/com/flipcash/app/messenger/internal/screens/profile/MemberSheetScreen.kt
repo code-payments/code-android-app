@@ -20,6 +20,7 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.MemberModerationViewModel
 import com.flipcash.app.messenger.internal.memberActions
+import com.flipcash.app.messenger.internal.membershipCheck
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ViewerState
@@ -66,20 +67,8 @@ internal fun mentionStep(
 }
 
 /**
- * Whether the host section may show for [userId]. A public group has no check: its roster can be
- * long and paged. A private group needs the roster to list them; a roster that is null (not
- * loaded, or its read failed) confirms no one.
- */
-internal fun isConfirmedMember(subject: ChatSubject?, roster: List<ChatMember>?, userId: ID): Boolean {
-    val group = subject as? ChatSubject.Group ?: return true
-    if (!group.isPrivate) return true
-    return roster?.any { it.userId == userId } == true
-}
-
-/**
- * Opens a member step, reading a private group's roster first when none is held so the sheet's
- * contents are settled before it appears. A cached roster, the usual case since the chat loads it
- * on open, pushes at once with no wait. A repeat tap while the read is out is dropped.
+ * Opens a member step at once. In a private group with no roster held it also starts the read, so
+ * the sheet's host rows enable when the roster confirms the person; the sheet never waits on it.
  */
 @Composable
 internal fun rememberMemberStepOpener(
@@ -89,7 +78,6 @@ internal fun rememberMemberStepOpener(
     val moderation = flowSharedViewModel<MemberModerationViewModel>()
     val scope = rememberCoroutineScope()
     val currentPush by rememberUpdatedState(push)
-    val pending = remember { booleanArrayOf(false) }
     return remember(viewModel, moderation, scope) {
         { step ->
             val state = viewModel.stateFlow.value
@@ -98,20 +86,9 @@ internal fun rememberMemberStepOpener(
             if (step is ChatStep.MemberSheet && group?.isPrivate == true && chatId != null &&
                 moderation.cachedRoster(chatId) == null
             ) {
-                if (!pending[0]) {
-                    pending[0] = true
-                    scope.launch {
-                        try {
-                            moderation.ensureRoster(chatId)
-                        } finally {
-                            pending[0] = false
-                        }
-                        currentPush(step)
-                    }
-                }
-            } else {
-                currentPush(step)
+                scope.launch { moderation.ensureRoster(chatId) }
             }
+            currentPush(step)
         }
     }
 }
@@ -154,6 +131,7 @@ internal fun MemberSheetScreen(contact: ChatParticipant, origin: ProfileOrigin) 
     val state by chatViewModel.stateFlow.collectAsStateWithLifecycle()
     val restrictions by moderation.restrictions.collectAsStateWithLifecycle()
     val rosters by moderation.rosters.collectAsStateWithLifecycle()
+    val rosterFailed by moderation.rosterFailed.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val viewerId = LocalUserManager.current?.accountId
@@ -173,7 +151,12 @@ internal fun MemberSheetScreen(contact: ChatParticipant, origin: ProfileOrigin) 
         memberId = participant.userId,
         creatorId = group?.creator,
         isMember = group?.isMember == true,
-        targetIsMember = isConfirmedMember(state.subject, chatId?.let { rosters[it] }, participant.userId),
+        check = membershipCheck(
+            isPrivate = group?.isPrivate == true,
+            roster = chatId?.let { rosters[it] },
+            readFailed = chatId in rosterFailed,
+            userId = participant.userId,
+        ),
         canSilence = grants?.canSilence == true,
         canBan = grants?.canBan == true,
         silence = silence,

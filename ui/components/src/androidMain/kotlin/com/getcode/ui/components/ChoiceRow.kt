@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
@@ -59,14 +60,17 @@ fun ChoiceRow(
     modifier: Modifier = Modifier,
     /** Icon and label colour; a destructive choice passes the error text colour. */
     contentColor: Color = CodeTheme.colors.textMain,
+    /** A disabled row keeps its place and size, dimmed, and ignores taps. */
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = modifier
+            .alpha(if (enabled) 1f else 0.38f)
             .fillMaxWidth()
             .clip(CodeTheme.shapes.extraSmall)
             .background(White05)
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),

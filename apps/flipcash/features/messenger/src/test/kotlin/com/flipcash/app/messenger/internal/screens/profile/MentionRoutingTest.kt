@@ -5,7 +5,9 @@ import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.MemberActions
+import com.flipcash.app.messenger.internal.MembershipCheck
 import com.flipcash.app.messenger.internal.MentionDestination
+import com.flipcash.app.messenger.internal.membershipCheck
 import com.flipcash.app.messenger.internal.link.UserLinkLookup
 import com.flipcash.app.messenger.internal.memberActions
 import com.flipcash.app.messenger.internal.mentionDestination
@@ -81,45 +83,80 @@ class MentionRoutingTest {
         )
     }
 
+    private fun check(
+        roster: List<ChatMember>?,
+        failed: Boolean = false,
+        isPrivate: Boolean = true,
+        user: ID = member,
+    ) = membershipCheck(isPrivate, roster, failed, user)
+
+    private fun actionsFor(check: MembershipCheck) =
+        memberActions(viewer, member, creator, true, true, true, null, now, check)
+
     @Test
-    fun `a former member opens the sheet without a host section`() {
-        val step = route(found(former))
-        assertIs<ChatStep.MemberSheet>(step)
-        val stillIn = isConfirmedMember(group(), roster(creator, viewer, member), former)
-        assertEquals(false, stillIn)
-        val actions = memberActions(viewer, former, creator, true, true, true, null, now, targetIsMember = stillIn)
-        assertEquals(MemberActions.None, actions)
-        assertTrue(actions.report)
+    fun `a former member's sheet is a mention of someone off the roster`() {
+        assertIs<ChatStep.MemberSheet>(route(found(former)))
+        assertEquals(MembershipCheck.NotMember, check(roster(creator, viewer, member), user = former))
     }
 
     @Test
-    fun `a current member keeps the host section`() {
-        val stillIn = isConfirmedMember(group(), roster(creator, viewer, member), member)
-        assertTrue(stillIn)
-        val actions = memberActions(viewer, member, creator, true, true, true, null, now, targetIsMember = stillIn)
-        assertEquals(MemberActions(restrict = true, remove = true), actions)
+    fun `pending becomes confirmed when the roster lands`() {
+        assertEquals(MembershipCheck.Pending, check(null))
+        assertEquals(MembershipCheck.Confirmed, check(roster(creator, viewer, member)))
     }
 
     @Test
-    fun `an unloaded or failed roster confirms no one in a private group`() {
-        assertEquals(false, isConfirmedMember(group(), null, member))
+    fun `pending becomes not a member when the roster omits the person`() {
+        assertEquals(MembershipCheck.Pending, check(null))
+        assertEquals(MembershipCheck.NotMember, check(roster(creator, viewer)))
+    }
+
+    @Test
+    fun `pending becomes failed when the read fails`() {
+        assertEquals(MembershipCheck.Pending, check(null))
+        assertEquals(MembershipCheck.Failed, check(null, failed = true))
     }
 
     @Test
     fun `a public group has no check`() {
-        assertTrue(isConfirmedMember(group(isPrivate = false), null, former))
-        assertTrue(isConfirmedMember(group(isPrivate = false), roster(member), former))
+        assertEquals(MembershipCheck.Confirmed, check(null, isPrivate = false))
+        assertEquals(MembershipCheck.Confirmed, check(null, failed = true, isPrivate = false))
     }
 
     @Test
-    fun `the profile menu shows the group section only for a confirmed member`() {
-        fun items(roster: List<ChatMember>?, isPrivate: Boolean = true, user: ID = member) = profileMenuItems(
-            isBlocked = false, hasDm = false, userId = user,
-            group = ProfileGroup(ChatId(listOf(9)), "Test", creator, canSilence = true, canBan = true, roster = roster, isPrivate = isPrivate),
+    fun `the sheet keeps the same rows in every state and enables them only once confirmed`() {
+        val confirmed = actionsFor(MembershipCheck.Confirmed)
+        assertEquals(MemberActions(restrict = true, remove = true), confirmed)
+        assertTrue(confirmed.groupEnabled)
+        for (state in listOf(MembershipCheck.Pending, MembershipCheck.NotMember, MembershipCheck.Failed)) {
+            val actions = actionsFor(state)
+            assertEquals(confirmed.restrict, actions.restrict)
+            assertEquals(confirmed.remove, actions.remove)
+            assertEquals(false, actions.groupEnabled)
+        }
+    }
+
+    @Test
+    fun `the profile menu states`() {
+        fun group(roster: List<ChatMember>?, failed: Boolean = false, isPrivate: Boolean = true) = ProfileGroup(
+            ChatId(listOf(9)), "Test", creator, canSilence = true, canBan = true,
+            roster = roster, isPrivate = isPrivate, rosterFailed = failed,
         )
-        assertTrue(ChatProfileAction.Remove in items(roster(creator, member)))
-        assertTrue(ChatProfileAction.Remove !in items(roster(creator)))
-        assertTrue(ChatProfileAction.Remove !in items(null))
-        assertTrue(ChatProfileAction.Remove in items(null, isPrivate = false))
+        fun items(g: ProfileGroup) = profileMenuItems(isBlocked = false, hasDm = false, userId = member, group = g)
+        val both = setOf(ChatProfileAction.Silence, ChatProfileAction.Remove)
+
+        // Confirmed: enabled.
+        assertTrue(items(group(roster(creator, member))).containsAll(both))
+        assertEquals(emptySet(), disabledProfileItems(group(roster(creator, member)), member))
+        // Pending and failed: shown, disabled.
+        for (g in listOf(group(null), group(null, failed = true))) {
+            assertTrue(items(g).containsAll(both))
+            assertEquals(both, disabledProfileItems(g, member))
+        }
+        // Not a member: none.
+        assertTrue(items(group(roster(creator))).none { it in both })
+        // Public: unchanged.
+        assertTrue(items(group(null, isPrivate = false)).containsAll(both))
+        assertEquals(emptySet(), disabledProfileItems(group(null, isPrivate = false), member))
     }
 }

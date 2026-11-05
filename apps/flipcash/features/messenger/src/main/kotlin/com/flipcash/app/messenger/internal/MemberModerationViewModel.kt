@@ -60,8 +60,18 @@ internal class MemberModerationViewModel @Inject constructor(
      * [chatId]'s roster, read first when none is held. Null when the read fails, which callers
      * treat as "membership unconfirmed".
      */
-    suspend fun ensureRoster(chatId: ChatId): List<ChatMember>? =
-        cachedRoster(chatId) ?: groupRosters.load(chatId).getOrNull()
+    suspend fun ensureRoster(chatId: ChatId): List<ChatMember>? {
+        cachedRoster(chatId)?.let { return it }
+        _rosterFailed.update { it - chatId }
+        return groupRosters.load(chatId).getOrNull().also { roster ->
+            if (roster == null) _rosterFailed.update { it + chatId }
+        }
+    }
+
+    private val _rosterFailed = MutableStateFlow<Set<ChatId>>(emptySet())
+
+    /** Chats whose last roster read failed, so the check reads "couldn't check" rather than pending. */
+    val rosterFailed: StateFlow<Set<ChatId>> = _rosterFailed.asStateFlow()
 
     private var restrictionsFor: ChatId? = null
 

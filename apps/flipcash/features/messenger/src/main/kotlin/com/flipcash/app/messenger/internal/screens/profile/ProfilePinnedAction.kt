@@ -2,6 +2,8 @@ package com.flipcash.app.messenger.internal.screens.profile
 
 import androidx.annotation.StringRes
 import com.flipcash.features.messenger.R
+import com.flipcash.app.messenger.internal.MembershipCheck
+import com.flipcash.app.messenger.internal.membershipCheck
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.getcode.opencode.model.core.ID
@@ -66,7 +68,7 @@ internal fun profileMenuItems(
         add(ChatProfileAction.Report)
         add(ChatProfileAction.Block)
     }
-    if (group != null && userId != null && userId != group.creatorId && group.confirmsMember(userId)) {
+    if (group != null && userId != null && userId != group.creatorId && group.check(userId) != MembershipCheck.NotMember) {
         if (group.canSilence) add(ChatProfileAction.Silence)
         if (group.canBan) add(ChatProfileAction.Remove)
     }
@@ -82,10 +84,19 @@ internal data class ProfileGroup(
     /** A private group's roster, or null until it is read or when the read failed. */
     val roster: List<ChatMember>? = null,
     val isPrivate: Boolean = false,
+    /** The roster read failed, so membership could not be confirmed. */
+    val rosterFailed: Boolean = false,
 ) {
-    /** A private group lists the person on its roster; a public group has no check. */
-    fun confirmsMember(userId: ID): Boolean = !isPrivate || roster?.any { it.userId == userId } == true
+    fun check(userId: ID): MembershipCheck = membershipCheck(isPrivate, roster, rosterFailed, userId)
 }
+
+/** The group items shown but not tappable: a private group's, until the roster confirms the person. */
+internal fun disabledProfileItems(group: ProfileGroup?, userId: ID?): Set<ChatProfileAction> =
+    if (group != null && userId != null && group.check(userId) in setOf(MembershipCheck.Pending, MembershipCheck.Failed)) {
+        setOf(ChatProfileAction.Silence, ChatProfileAction.Remove)
+    } else {
+        emptySet()
+    }
 
 /**
  * The string behind the pinned button. Only [ProfilePinnedAction.StartChatting] takes an argument,

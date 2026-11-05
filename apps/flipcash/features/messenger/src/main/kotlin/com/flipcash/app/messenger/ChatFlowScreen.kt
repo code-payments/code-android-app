@@ -801,6 +801,7 @@ private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileO
     // so the menu is complete whenever it opens.
     val memberModeration = flowSharedViewModel<MemberModerationViewModel>()
     val rosters by memberModeration.rosters.collectAsStateWithLifecycle()
+    val rosterFailed by memberModeration.rosterFailed.collectAsStateWithLifecycle()
     val groupChatId = chatState.chatId
     val groupIsPrivate = (chatState.subject as? ChatSubject.Group)?.isPrivate == true
     LaunchedEffect(groupChatId, groupIsPrivate) {
@@ -825,6 +826,7 @@ private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileO
                 canBan = moderation?.canBan == true,
                 roster = rosters[chatId],
                 isPrivate = subject.isPrivate,
+                rosterFailed = chatId in rosterFailed,
             )
         } else {
             null
