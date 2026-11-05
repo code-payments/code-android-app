@@ -43,8 +43,8 @@ data class ChatListEntry(
  * @property archived the chats under the Archived row, muted ones included.
  * @property archivedRowVisible whether any chat is archived; the row is shown whenever it is, even
  *   when [main] is empty.
- * @property archivedRowCount unread archived chats that are not muted. Muted archived chats count
- *   toward nothing, as muted chats count toward nothing there today.
+ * @property archivedRowCount unread archived chats, muted ones included. It counts chats, not
+ *   messages.
  * @property tabBadge unread chats in [main], muted ones included, as the Chats tab badge counts
  *   today. No Android screen reads it: the badge comes from
  *   [observeUnreadChatListCount], which counts the same chats, requests included. It stays because the shared
@@ -103,7 +103,7 @@ fun projectChatList(entries: List<ChatListEntry>): ChatListProjection {
         unreadChipCount = unread.size,
         groupsChipCount = groups.count { it.isUnread },
         archivedRowVisible = archivedSorted.isNotEmpty(),
-        archivedRowCount = archivedSorted.count { it.isUnread && !it.muted },
+        archivedRowCount = archivedSorted.count { it.isUnread },
         tabBadge = unread.size,
     )
 }
