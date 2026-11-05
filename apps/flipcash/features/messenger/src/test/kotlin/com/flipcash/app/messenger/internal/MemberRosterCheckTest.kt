@@ -36,7 +36,7 @@ class MemberRosterCheckTest {
     }
 
     @Test
-    fun `no roster held is read before the answer`() = runTest {
+    fun `no roster held is read once`() = runTest {
         coEvery { groupRosters.load(chatId) } returns Result.success(held)
         assertNull(viewModel().cachedRoster(chatId))
         assertEquals(held, viewModel().ensureRoster(chatId))
@@ -44,8 +44,10 @@ class MemberRosterCheckTest {
     }
 
     @Test
-    fun `a failed read leaves membership unconfirmed`() = runTest {
+    fun `a failed read returns null and is recorded`() = runTest {
         coEvery { groupRosters.load(chatId) } returns Result.failure(IllegalStateException("denied"))
-        assertNull(viewModel().ensureRoster(chatId))
+        val vm = viewModel()
+        assertNull(vm.ensureRoster(chatId))
+        assertEquals(setOf(chatId), vm.rosterFailed.value)
     }
 }

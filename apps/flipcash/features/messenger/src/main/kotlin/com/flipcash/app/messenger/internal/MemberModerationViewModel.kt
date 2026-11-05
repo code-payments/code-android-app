@@ -53,12 +53,12 @@ internal class MemberModerationViewModel @Inject constructor(
     /** Each full roster the app holds, by chat. A chat never loaded is absent. */
     val rosters: StateFlow<Map<ChatId, List<ChatMember>>> get() = groupRosters.state
 
-    /** [chatId]'s roster if one is already held, so a caller can skip waiting on a read. */
+    /** [chatId]'s roster if one is already held, so a caller can skip starting a read. */
     fun cachedRoster(chatId: ChatId): List<ChatMember>? = groupRosters.state.value[chatId]
 
     /**
-     * [chatId]'s roster, read first when none is held. Null when the read fails, which callers
-     * treat as "membership unconfirmed".
+     * [chatId]'s roster, read when none is held. A failed read is recorded in [rosterFailed] and
+     * returns null.
      */
     suspend fun ensureRoster(chatId: ChatId): List<ChatMember>? {
         cachedRoster(chatId)?.let { return it }
