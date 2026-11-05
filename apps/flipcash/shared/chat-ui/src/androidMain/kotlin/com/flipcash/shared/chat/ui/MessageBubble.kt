@@ -149,7 +149,13 @@ fun ContentBubble(
             rowWidth = maxWidth,
             rowInset = CodeTheme.dimens.inset,
         )
-        val messageCardWidth = maxWidth * CASH_CARD_WIDTH_FRACTION
+        val messageCardWidth = cashCardWidth(rowWidth = maxWidth, rowInset = CodeTheme.dimens.inset)
+        // A link card fills its width, so it takes the capped width even on a text message's row.
+        val cardMaxWidth = transcriptBubbleMaxWidth(
+            rowWidth = maxWidth,
+            rowInset = CodeTheme.dimens.inset,
+            fillsWidth = true,
+        )
 
         // A split message's citation goes on its first row and its marker on its last, so the
         // pieces read as one message stacked rather than as three.
@@ -184,7 +190,7 @@ fun ContentBubble(
                     position = position,
                     // A message card takes the cash card's width rather than a bubble's, so its
                     // states read as one fixed card against the prose either side (iOS matches).
-                    maxWidth = if (card is LinkCard.Message) messageCardWidth else bubbleMaxWidth,
+                    maxWidth = if (card is LinkCard.Message) messageCardWidth else cardMaxWidth,
                     quote = quote,
                     onQuoteClick = onQuoteClick,
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
@@ -209,6 +215,7 @@ fun ContentBubble(
                     jumbo = jumbo,
                     webCard = webCard,
                     webCardAlone = webCardAlone,
+                    cardMaxWidth = cardMaxWidth,
                     onCardLongClick = onLongClick?.takeIf { interactive },
                     onCardDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
@@ -312,6 +319,7 @@ fun ContentBubble(
                     jumbo = jumbo,
                     webCard = webCard,
                     webCardAlone = webCardAlone,
+                    cardMaxWidth = cardMaxWidth,
                     onCardLongClick = onLongClick?.takeIf { interactive },
                     onCardDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
@@ -515,6 +523,8 @@ private fun TextBubble(
     jumbo: Boolean = false,
     webCard: LinkCard.Web? = null,
     webCardAlone: Boolean = false,
+    /** The bubble's width once [webCard] draws: a card fills its width, so this is capped. */
+    cardMaxWidth: Dp = maxWidth,
     onCardLongClick: (() -> Unit)? = null,
     onCardDoubleClick: (() -> Unit)? = null,
     interactive: Boolean = true,
@@ -553,7 +563,7 @@ private fun TextBubble(
             web = web,
             isFromSelf = isFromSelf,
             position = position,
-            maxWidth = maxWidth,
+            maxWidth = cardMaxWidth,
             modifier = modifier,
             quote = quote,
             onQuoteClick = onQuoteClick,
@@ -569,9 +579,9 @@ private fun TextBubble(
     Bubble(
         isFromSelf,
         position,
-        maxWidth,
+        if (cardDrawn) cardMaxWidth else maxWidth,
         modifier,
-        minWidth = if (cardDrawn) maxWidth else 0.dp,
+        minWidth = if (cardDrawn) cardMaxWidth else 0.dp,
         horizontalPadding = surround,
         attention = attention,
     ) {

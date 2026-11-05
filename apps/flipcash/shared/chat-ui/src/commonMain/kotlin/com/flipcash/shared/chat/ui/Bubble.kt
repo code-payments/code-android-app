@@ -42,26 +42,55 @@ private const val BUBBLE_MAX_WIDTH_FRACTION = 0.78f
 internal const val CASH_CARD_WIDTH_FRACTION = 0.64f
 
 /**
+ * The widest transcript a width-filling row sizes against: 440dp, the widest phone. On a foldable or
+ * tablet a photo, cash card or link card would otherwise stretch to about 600dp and a tall photo run
+ * past the screen. iOS caps the same rows at 440pt.
+ */
+val WidthFillingTranscriptCap: Dp = 440.dp
+
+/**
  * The widest a bubble or link card grows in a transcript whose rows are inset by [rowInset] on each
  * side.
  *
  * A fraction of the transcript's full width rather than of the inset row, which is how iOS sizes
  * its bubbles, link cards, and group head card (`ChatViewController.maxBubbleWidthFraction`). Taken
  * of the inset row, they came out about 30dp narrower than iOS's on the same screen.
+ *
+ * [fillsWidth] caps the transcript at [WidthFillingTranscriptCap] first, for a row that is always as
+ * wide as this. A text bubble sizes to its text and stays uncapped.
  */
-fun transcriptBubbleMaxWidth(rowWidth: Dp, rowInset: Dp): Dp =
-    (rowWidth + rowInset * 2) * BUBBLE_MAX_WIDTH_FRACTION
+fun transcriptBubbleMaxWidth(rowWidth: Dp, rowInset: Dp, fillsWidth: Boolean = false): Dp =
+    transcriptWidth(rowWidth, rowInset, fillsWidth) * BUBBLE_MAX_WIDTH_FRACTION
+
+/**
+ * A cash card's width, and a message link card's: a fraction of the inset row, capped as
+ * [transcriptBubbleMaxWidth] caps a width-filling row (iOS's `ChatViewController.cashCardWidthFraction`
+ * matches the fraction).
+ */
+fun cashCardWidth(rowWidth: Dp, rowInset: Dp): Dp =
+    (transcriptWidth(rowWidth, rowInset, fillsWidth = true) - rowInset * 2) * CASH_CARD_WIDTH_FRACTION
+
+private fun transcriptWidth(rowWidth: Dp, rowInset: Dp, fillsWidth: Boolean): Dp {
+    val full = rowWidth + rowInset * 2
+    return if (fillsWidth) minOf(full, WidthFillingTranscriptCap) else full
+}
 
 /**
  * The widest a bubble carrying [content] grows in a row [rowWidth] wide, inset by [rowInset] on each
- * side. A cash card keeps its own narrower fraction of the inset
- * row (iOS's `ChatViewController.cashCardWidthFraction` matches it); everything else takes
- * [transcriptBubbleMaxWidth].
+ * side. A cash card takes [cashCardWidth]; a photo or a widget fills its width and takes the capped
+ * [transcriptBubbleMaxWidth]; anything that sizes to its text takes the uncapped one.
  */
 fun bubbleMaxWidth(content: MessageContent, rowWidth: Dp, rowInset: Dp): Dp = when (content) {
-    is MessageContent.Cash -> rowWidth * CASH_CARD_WIDTH_FRACTION
-    else -> transcriptBubbleMaxWidth(rowWidth = rowWidth, rowInset = rowInset)
+    is MessageContent.Cash -> cashCardWidth(rowWidth = rowWidth, rowInset = rowInset)
+    else -> transcriptBubbleMaxWidth(
+        rowWidth = rowWidth,
+        rowInset = rowInset,
+        fillsWidth = content.fillsBubbleWidth(),
+    )
 }
+
+private fun MessageContent.fillsBubbleWidth(): Boolean =
+    this is MessageContent.Widget || mediaBody() != null
 
 /**
  * A message that is only emoji: no bubble, and the emoji drawn at something like its own size.
