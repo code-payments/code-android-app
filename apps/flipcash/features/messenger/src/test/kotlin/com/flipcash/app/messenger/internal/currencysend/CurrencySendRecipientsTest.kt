@@ -54,6 +54,12 @@ class CurrencySendRecipientsTest {
     }
 
     @Test
+    fun `a user named Flipcash with an ordinary id still appears`() {
+        val result = listOf(chat("Flipcash", handle = "flipcash")).currencySendRecipients()
+        assertEquals(listOf("Flipcash"), result.map { it.displayName })
+    }
+
+    @Test
     fun `newest activity first and ties keep input order`() {
         val result = listOf(
             chat("Old", activity = 1),
