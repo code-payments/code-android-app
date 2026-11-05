@@ -21,6 +21,14 @@ data class PhotoStack(val role: Role, val members: List<ChatListItem.ContentBubb
 
     val front: ChatListItem.ContentBubble get() = members.first()
     val count: Int get() = members.size
+
+    /**
+     * The newest member the server has confirmed, which is the id the read pointer moves to when the
+     * stack is on screen: the photos behind the front have no row of their own to report. Members
+     * still sending have no server id yet, so they are skipped. A stack never holds a failed photo.
+     */
+    val newestConfirmedId: Long?
+        get() = members.lastOrNull { it.receiptStatus != ReceiptStatus.SENDING }?.messageId
 }
 
 /**

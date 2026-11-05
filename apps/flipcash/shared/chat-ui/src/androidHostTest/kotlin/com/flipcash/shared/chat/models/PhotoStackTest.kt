@@ -198,4 +198,31 @@ class PhotoStackTest {
         val rows = listOf<ChatListItem>(bubble(1))
         assertNull(photoStackOf(0, rows[0], 1) { error("no neighbour to peek at") })
     }
+
+    @Test
+    fun `a stack reads as its newest photo`() {
+        val rows = listOf(bubble(1), bubble(2), bubble(3))
+        assertEquals(3L, stackOf(rows, 1)?.newestConfirmedId)
+    }
+
+    @Test
+    fun `a stack reads as its newest confirmed photo, skipping ones still sending`() {
+        val rows = listOf(
+            bubble(1, receipt = ReceiptStatus.SENT),
+            bubble(2, receipt = ReceiptStatus.SENT),
+            bubble(-9, pending = "ab", seconds = 3, receipt = ReceiptStatus.SENDING),
+        )
+        assertEquals(3, stackOf(rows, 1)?.count)
+        assertEquals(2L, stackOf(rows, 1)?.newestConfirmedId)
+    }
+
+    @Test
+    fun `a stack still sending in full has no confirmed photo`() {
+        val rows = listOf(
+            bubble(-8, pending = "aa", seconds = 1, receipt = ReceiptStatus.SENDING),
+            bubble(-9, pending = "ab", seconds = 2, receipt = ReceiptStatus.SENDING),
+        )
+        assertEquals(2, stackOf(rows, -8)?.count)
+        assertNull(stackOf(rows, -8)?.newestConfirmedId)
+    }
 }
