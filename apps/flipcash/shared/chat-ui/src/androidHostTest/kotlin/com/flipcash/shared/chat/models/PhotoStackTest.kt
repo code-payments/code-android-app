@@ -113,17 +113,39 @@ class PhotoStackTest {
     }
 
     @Test
-    fun `a row still sending does not stack and splits the set`() {
-        val self = ReceiptStatus.SENT
+    fun `a send still going up stacks, though its placeholder ids run backwards`() {
+        // Placeholder ids are the negated creation time, so they fall as the send goes on.
         val rows = listOf(
-            bubble(1, receipt = self),
-            bubble(2, pending = "ab", receipt = ReceiptStatus.SENDING),
-            bubble(3, receipt = self),
+            bubble(-5_000, pending = "aa", receipt = ReceiptStatus.SENDING, seconds = 10),
+            bubble(-5_001, pending = "bb", receipt = ReceiptStatus.SENDING, seconds = 10),
+            bubble(-5_002, pending = "cc", receipt = ReceiptStatus.SENDING, seconds = 10),
+        )
+
+        assertEquals(listOf(-5_000L, -5_001L, -5_002L), stackOf(rows, -5_001)?.members?.map { it.messageId })
+    }
+
+    @Test
+    fun `a send half posted stays one stack`() {
+        val rows = listOf(
+            bubble(7, pending = "aa", receipt = ReceiptStatus.SENT, seconds = 10),
+            bubble(-5_001, pending = "bb", receipt = ReceiptStatus.SENDING, seconds = 10),
+            bubble(-5_002, pending = "cc", receipt = ReceiptStatus.SENDING, seconds = 10),
+        )
+
+        assertEquals(listOf(7L, -5_001L, -5_002L), stackOf(rows, 7)?.members?.map { it.messageId })
+    }
+
+    @Test
+    fun `a failed photo leaves the stack and splits the send`() {
+        val rows = listOf(
+            bubble(1, pending = "aa", receipt = ReceiptStatus.SENT),
+            bubble(-5_001, pending = "bb", receipt = ReceiptStatus.FAILED, seconds = 1),
+            bubble(2, pending = "cc", receipt = ReceiptStatus.SENT),
         )
 
         assertNull(stackOf(rows, 1))
+        assertNull(stackOf(rows, -5_001))
         assertNull(stackOf(rows, 2))
-        assertNull(stackOf(rows, 3))
     }
 
     @Test

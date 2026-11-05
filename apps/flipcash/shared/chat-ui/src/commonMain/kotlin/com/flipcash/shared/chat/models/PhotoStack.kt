@@ -25,14 +25,14 @@ data class PhotoStack(val role: Role, val members: List<ChatListItem.ContentBubb
 
 /**
  * What [ChatMediaGroups] reads of this row, or null when the row cannot be part of a stack: not a
- * photo, still sending or failed, a tombstone, or from a sender we cannot tell from anyone else.
+ * photo, failed, a tombstone, or from a sender we cannot tell from anyone else.
  *
- * A row the server hasn't confirmed is excluded outright. Its `messageId` is not a server id, and a
- * stack drawn from it would split the moment the send is confirmed. A confirmed row keeps its
+ * A row still sending joins with a placeholder id, which the rule leaves out of its id check, so a
+ * send draws as its stack from the moment it is sent. A confirmed row keeps its
  * [pendingClientIdHex] as its list key, so the receipt says whether it is confirmed, not that id.
  */
 internal fun ChatListItem.ContentBubble.stackCandidate(): ChatMediaGroups.Candidate? {
-    if (receiptStatus.isUnconfirmed() || part != null) return null
+    if (receiptStatus.isFailed() || part != null) return null
     val body = content.mediaBody() ?: return null
     // Every outgoing message is the viewer's. An incoming one the backend did not attribute could
     // be anyone, so it never joins.
@@ -44,13 +44,14 @@ internal fun ChatListItem.ContentBubble.stackCandidate(): ChatMediaGroups.Candid
         timestamp = timestamp,
         hasCaption = !body.caption?.text.isNullOrEmpty(),
         isReply = content is MessageContent.Reply,
+        confirmed = receiptStatus != ReceiptStatus.SENDING,
     )
 }
 
 private object SELF_SENDER
 
-private fun ReceiptStatus?.isUnconfirmed(): Boolean =
-    this == ReceiptStatus.SENDING || this == ReceiptStatus.FAILED || this == ReceiptStatus.DENIED
+private fun ReceiptStatus?.isFailed(): Boolean =
+    this == ReceiptStatus.FAILED || this == ReceiptStatus.DENIED
 
 /**
  * The stack the row [item] at [index] is in, or null when it stands alone.

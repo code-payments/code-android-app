@@ -181,7 +181,12 @@ class MediaSendDelegate internal constructor(
                 // what draws it as one card stack. A photo that fails still fails on its own row;
                 // join waits for it without rethrowing, and its post reports the failure.
                 settling.forEach { it.join() }
-                records.zip(settling).forEach { (record, settled) -> post(chatId, record) { settled.await() } }
+                records.zip(settling).forEachIndexed { i, (record, settled) ->
+                    // The photos after this one move to just after it when it confirms, so a
+                    // half-posted send keeps its order and its stack.
+                    val following = records.drop(i + 1).map { it.clientIdHex }
+                    post(chatId, record, following) { settled.await() }
+                }
             }
         }
         return Result.success(hexes)
@@ -297,6 +302,7 @@ class MediaSendDelegate internal constructor(
     private suspend fun post(
         chatId: ChatId,
         record: PendingMediaRecord,
+        following: List<String> = emptyList(),
         settled: suspend () -> ChatMediaUploadState? = { settle(record) },
     ) {
         val hex = record.clientIdHex
@@ -308,7 +314,7 @@ class MediaSendDelegate internal constructor(
                 null -> fail(chatId, clientMessageId, hex, retryable = false, discard = record)
                 is ChatMediaUploadState.Failed ->
                     fail(chatId, clientMessageId, hex, settled.retryable, discard = record.takeUnless { settled.retryable })
-                is ChatMediaUploadState.Uploaded -> postMessage(chatId, record, clientMessageId, settled.photo)
+                is ChatMediaUploadState.Uploaded -> postMessage(chatId, record, clientMessageId, settled.photo, following)
                 else -> Unit
             }
         } catch (e: CancellationException) {
@@ -326,6 +332,7 @@ class MediaSendDelegate internal constructor(
         record: PendingMediaRecord,
         clientMessageId: ClientMessageId,
         photo: UploadedPhoto,
+        following: List<String>,
     ) {
         val hex = record.clientIdHex
         stages.update { it + (hex to Stage.Sending) }
@@ -340,7 +347,9 @@ class MediaSendDelegate internal constructor(
         messagingController.sendMessage(chatId, prepared.wire, clientMessageId)
             .map(prepared::echo)
             .onSuccess { serverMessage ->
-                messageDataSource.confirmPending(chatId, clientMessageId, serverMessage, replaceContent = true)
+                messageDataSource.confirmPending(
+                    chatId, clientMessageId, serverMessage, replaceContent = true, followingClientIdHexes = following,
+                )
                 messaging.advanceReadPointer(chatId, serverMessage.messageId)
                 metadataDataSource.updateLastMessageId(chatId, serverMessage.messageId)
                 metadataDataSource.updateLastActivity(chatId, serverMessage.timestamp.toEpochMilliseconds())

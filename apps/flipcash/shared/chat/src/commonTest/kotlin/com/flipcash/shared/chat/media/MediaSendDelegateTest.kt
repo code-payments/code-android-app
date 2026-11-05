@@ -186,7 +186,22 @@ class MediaSendDelegateTest {
 
         assertEquals(ids, sent.map { hex(it.first) })
         assertTrue(records.isEmpty())
-        coVerify(exactly = 3) { messageDataSource.confirmPending(any(), any(), any(), true) }
+        coVerify(exactly = 3) { messageDataSource.confirmPending(any(), any(), any(), true, any()) }
+    }
+
+    @Test
+    fun `each confirmation carries the photos of the send still to post`() = runTest {
+        val (delegate, uploads) = delegate()
+        val chips = listOf("a", "b", "c").map { stage(uploads, it) }
+        runCurrent()
+        val ids = delegate.sendMedia(chatId, chips, "", null).getOrThrow()
+        runCurrent()
+
+        coVerifyOrder {
+            messageDataSource.confirmPending(chatId, any(), any(), true, ids.drop(1))
+            messageDataSource.confirmPending(chatId, any(), any(), true, ids.drop(2))
+            messageDataSource.confirmPending(chatId, any(), any(), true, emptyList())
+        }
     }
 
     @Test
@@ -417,7 +432,7 @@ class MediaSendDelegateTest {
         assertEquals(0, sent.size)
         assertTrue(records.isEmpty())
         assertFalse(File(root, "pending-media/old.jpg").exists())
-        coVerify { messageDataSource.confirmPending(chatId, any(), arrived, true) }
+        coVerify { messageDataSource.confirmPending(chatId, any(), arrived, true, any()) }
     }
 
     @Test

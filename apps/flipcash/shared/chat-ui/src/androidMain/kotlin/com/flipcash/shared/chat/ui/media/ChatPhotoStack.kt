@@ -32,8 +32,11 @@ import kotlin.math.sin
 internal const val PHOTO_STACK_PILL_TAG = "chat_photo_stack_pill"
 internal const val PHOTO_STACK_CARD_TAG = "chat_photo_stack_card"
 
-/** What a card behind the front one draws: the photo of another message in the stack. */
-class StackCardPhoto(val blurHash: String?, val model: Any?)
+/**
+ * What a card behind the front one draws: the photo of another message in the stack. [localModel]
+ * is the staged file of a photo still sending, which has no stored blob for [model] yet.
+ */
+class StackCardPhoto(val blurHash: String?, val model: Any?, val localModel: String? = null)
 
 /**
  * The look of a card stack: [count] photos sent together, with [behind] the cards fanned behind the
@@ -161,9 +164,9 @@ internal fun PhotoStackFrame(
                 PhotoLayers(
                     blurHash = card.blurHash,
                     model = card.model,
-                    localModel = null,
+                    localModel = card.localModel,
                     sentPreview = null,
-                    blurhashOnly = card.model == null,
+                    blurhashOnly = card.model == null && card.localModel == null,
                     onLoadError = null,
                 )
                 // Dimmed so the front card reads as the one in the light.

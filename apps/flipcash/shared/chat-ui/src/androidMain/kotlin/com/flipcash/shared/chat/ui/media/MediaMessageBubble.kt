@@ -193,6 +193,16 @@ internal fun MediaMessageBubble(
     val progress by remember(item.pendingClientIdHex) {
         derivedStateOf { item.pendingClientIdHex?.let { progressOf()[it] } }
     }
+    // A stack's front photo shows how the whole send is going, not only its own photo.
+    val memberHexes = remember(stack) { stack?.members?.map { it.pendingClientIdHex } }
+    val overlayProgress by remember(memberHexes) {
+        derivedStateOf {
+            if (memberHexes == null) progress
+            else MediaSendProgress.ofSend(memberHexes.map { hex -> hex?.let { progressOf()[it] } })
+        }
+    }
+    // The viewer draws stored photos only, so a stack opens once every photo in it is confirmed.
+    val stackSending = stack?.members?.any { it.receiptStatus == ReceiptStatus.SENDING } == true
     val denied = item.receiptStatus == ReceiptStatus.DENIED
     val failed = denied || item.receiptStatus == ReceiptStatus.FAILED || progress is MediaSendProgress.Failed
     // A denied or terminal failure still renders as failed, but a tap can't fix it.
@@ -205,7 +215,7 @@ internal fun MediaMessageBubble(
     val onClick: (() -> Unit)? = when {
         !interactive -> null
         failed -> if (retryable) ({ actionHandler(ChatAction.RetryMessage(item)) }) else null
-        canOpenPhoto(blurhashOnly, failed = false, unavailable = unavailable) && localUri == null ->
+        canOpenPhoto(blurhashOnly, failed = false, unavailable = unavailable) && localUri == null && !stackSending ->
             ({ actionHandler(openPhotoAction(item, stack)) })
         else -> null
     }
@@ -243,7 +253,7 @@ internal fun MediaMessageBubble(
             position = position,
             blurhashOnly = blurhashOnly,
             unavailable = unavailable,
-            progress = progress?.let { p ->
+            progress = overlayProgress?.let { p ->
                 { ChatPhotoProgressOverlay(p.toPhase()) }
             },
             photoModifier = Modifier.chatPhotoSource(
@@ -370,13 +380,16 @@ private fun stackCardOf(bubble: ChatListItem.ContentBubble, bubblePx: Int): Stac
     val info = bubble.photo
     val rendition = item?.let { bubbleRendition(it, bubblePx) ?: it.renditions.firstOrNull() }
     val blurHash = item?.rendition(MediaItemRendition.Role.ORIGINAL)?.blob?.image?.blurhash?.takeIf { it.isNotEmpty() }
-    // A photo drawn only as its BlurHash, or still without a stored blob, draws as the BlurHash.
-    val model = if (info == null || info.blurhashOnly || rendition == null || rendition.blobId.bytes.isEmpty()) {
+    // A photo still sending has no blob yet and the staged file as its URL, which the card draws.
+    val localUri = rendition?.takeIf { it.blobId.bytes.isEmpty() }?.blob?.downloadUrl?.takeIf { it.isNotEmpty() }
+    // A photo drawn only as its BlurHash, or with neither a stored blob nor a staged file, draws as
+    // the BlurHash.
+    val model = if (localUri != null || info == null || info.blurhashOnly || rendition == null || rendition.blobId.bytes.isEmpty()) {
         null
     } else {
         ChatPhoto(info.chatId, rendition, info.senderId, info.sealed, info.redacted)
     }
-    return StackCardPhoto(blurHash, model)
+    return StackCardPhoto(blurHash, model, localUri)
 }
 
 /** The quote a photo reply carries, drawn over the photo's top corner. */

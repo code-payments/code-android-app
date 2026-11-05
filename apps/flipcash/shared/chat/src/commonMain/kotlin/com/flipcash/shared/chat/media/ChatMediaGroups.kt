@@ -23,6 +23,11 @@ object ChatMediaGroups {
         val timestamp: Instant,
         val hasCaption: Boolean,
         val isReply: Boolean,
+        /**
+         * Whether [messageId] is the server's. A photo still sending has a placeholder id, so it
+         * joins on the other terms alone: the rows of one send are created back to back.
+         */
+        val confirmed: Boolean = true,
     )
 
     /**
@@ -33,7 +38,7 @@ object ChatMediaGroups {
     fun joins(older: Candidate, newer: Candidate): Boolean =
         older.isPhoto && newer.isPhoto &&
             older.senderKey == newer.senderKey &&
-            newer.messageId == older.messageId + 1 &&
+            (!older.confirmed || !newer.confirmed || newer.messageId == older.messageId + 1) &&
             newer.timestamp - older.timestamp in Duration.ZERO..WINDOW &&
             // A caption ends a set and a reply starts one.
             !older.hasCaption && !newer.isReply

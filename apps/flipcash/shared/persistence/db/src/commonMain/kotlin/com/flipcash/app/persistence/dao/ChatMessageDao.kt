@@ -513,6 +513,12 @@ interface ChatMessageDao {
      * copy. Matching that `SENT` row here would renumber the photo into the text's message, or
      * delete it, and an encrypted send would pair the photo's plaintext with the text's
      * ciphertext.
+     *
+     * [followingClientIdHexes] are the rows posted after this one in the same send, in order. They
+     * still carry the time the send was tapped, which is earlier than the server's time for this
+     * row by the length of the upload, so confirming this row alone would move it below them. They
+     * take the server's time plus their place in the send instead, in the same transaction, so the
+     * send keeps its order and its stack on every frame.
      */
     @Transaction
     suspend fun confirmPendingMessage(
@@ -520,7 +526,11 @@ interface ChatMessageDao {
         clientIdHex: String,
         serverMessage: ChatMessageEntity,
         replaceContent: Boolean = false,
+        followingClientIdHexes: List<String> = emptyList(),
     ) {
+        followingClientIdHexes.forEachIndexed { i, following ->
+            restampUnsent(chatIdHex, following, serverMessage.timestampEpochMs + i + 1)
+        }
         if (exists(chatIdHex, serverMessage.messageId)) {
             // The stream's copy can carry the same client id, so only the pending row goes.
             deletePendingExcept(chatIdHex, clientIdHex, serverMessage.messageId)
@@ -550,6 +560,13 @@ interface ChatMessageDao {
             )
         }
     }
+
+    /** Moves the unsent row of [clientIdHex] to [timestampMs]; a confirmed row keeps the server's time. */
+    @Query(
+        "UPDATE chat_messages SET timestamp_epoch_ms = :timestampMs " +
+            "WHERE chat_id_hex = :chatIdHex AND pending_client_id_hex = :clientIdHex AND status IN ('SENDING', 'FAILED')"
+    )
+    suspend fun restampUnsent(chatIdHex: String, clientIdHex: String, timestampMs: Long)
 
     @Transaction
     suspend fun upsertAndClearPending(chatIdHex: String, entities: List<ChatMessageEntity>) {
