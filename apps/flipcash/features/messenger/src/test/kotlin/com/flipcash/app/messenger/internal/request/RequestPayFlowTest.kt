@@ -7,6 +7,7 @@ import com.flipcash.app.analytics.analytics
 import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
+import com.flipcash.features.messenger.R
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
@@ -75,7 +76,7 @@ class RequestPayFlowTest {
         every { userManager.accountCluster } returns owner
         every { owner.withTimelockForToken(any()) } returns owner
         every { payer.observeSelectedToken() } returns flowOf(token)
-        coEvery { payer.mayProceed(any(), any()) } returns true
+        coEvery { payer.mayProceed(any(), any(), any()) } returns true
         every { exchange.rateFor(any()) } returns Rate.oneToOne
         every { tokenCoordinator.balanceForToken(any<Token>()) } answers { balance }
         every { transactionController.limits } returns MutableStateFlow(null)
@@ -184,18 +185,19 @@ class RequestPayFlowTest {
 
     @Test
     fun `no giveable balance stops Pay at the gate and never opens the sheet`() {
-        coEvery { payer.mayProceed(any(), any()) } returns false
+        coEvery { payer.mayProceed(any(), any(), any()) } returns false
         val f = flow()
 
         f.start(listOf<Byte>(2))
 
         assertEquals(false, f.state.value.open)
         assertEquals(false, f.state.value.preparing)
+        coVerify { payer.mayProceed(any(), any(), R.string.description_noBalanceYetToPayRequest) }
     }
 
     @Test
     fun `a closed request with no giveable balance shows Request Closed, not the gate`() {
-        coEvery { payer.mayProceed(any(), any()) } returns false
+        coEvery { payer.mayProceed(any(), any(), any()) } returns false
         coEvery { payments.prepare(any(), any()) } returns Result.success(ShareToPay.Closed(mockk(relaxed = true)))
         val f = flow()
 
@@ -203,7 +205,7 @@ class RequestPayFlowTest {
 
         assertEquals(false, f.state.value.open)
         assertEquals(1, BottomBarManager.messages.value.size)
-        coVerify(exactly = 0) { payer.mayProceed(any(), any()) }
+        coVerify(exactly = 0) { payer.mayProceed(any(), any(), any()) }
     }
 
     @Test

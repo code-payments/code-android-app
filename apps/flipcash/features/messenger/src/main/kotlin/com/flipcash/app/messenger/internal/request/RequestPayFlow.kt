@@ -96,6 +96,7 @@ internal class RequestPayFlow(
                             if (!payer.mayProceed(
                                     onAddMoney = { scope.launch { payer.depositRoute()?.let(openScreen) } },
                                     onDiscoverCurrencies = { openScreen(AppRoute.Token.Discovery) },
+                                    noBalanceMessage = R.string.description_noBalanceYetToPayRequest,
                                 )
                             ) return@onSuccess
                             // No per-share balance check here: the payer picks the token in the sheet,
