@@ -24,6 +24,8 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.scenes.LocalBottomSheetDismissDispatcher
 import com.getcode.opencode.model.core.ID
+import com.flipcash.app.messenger.internal.MentionDestination
+import com.flipcash.services.models.chat.ChatMember
 import kotlinx.coroutines.delay
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
@@ -41,6 +43,34 @@ internal fun memberTapStep(
     ChatStep.Profile(contact = participant, origin = origin)
 } else {
     ChatStep.MemberSheet(contact = participant, origin = origin)
+}
+
+/**
+ * Where a tapped @mention lands. In a group transcript a mention of someone else opens their
+ * sheet, with the avatar tap's origin so View Profile leads where the avatar's does; a DM's
+ * mention keeps the full profile. A mention of the viewer never gets here: it resolves to
+ * [MentionDestination.OwnTipCard].
+ */
+internal fun mentionStep(
+    destination: MentionDestination.Profile,
+    inGroup: Boolean,
+    viewerId: ID?,
+): ChatStep = if (inGroup) {
+    memberTapStep(destination.participant, ProfileOrigin.Chat, viewerId)
+} else {
+    ChatStep.Profile(destination.participant, destination.origin)
+}
+
+/**
+ * Whether [userId] is still in the group, as far as this device can tell. A private group's roster
+ * answers; until it has loaded, and for a public group, which has none, they count as in, since
+ * nothing says otherwise. A mention can name someone who has since left or been removed, and the
+ * sheet gives the host nothing to do to them.
+ */
+internal fun isCurrentMember(subject: ChatSubject?, roster: List<ChatMember>, userId: ID): Boolean {
+    val group = subject as? ChatSubject.Group ?: return true
+    if (!group.isPrivate || roster.isEmpty()) return true
+    return userId == group.creator || roster.any { it.userId == userId }
 }
 
 /**
@@ -99,6 +129,7 @@ internal fun MemberSheetScreen(contact: ChatParticipant, origin: ProfileOrigin) 
         memberId = participant.userId,
         creatorId = group?.creator,
         isMember = group?.isMember == true,
+        targetIsMember = isCurrentMember(state.subject, state.members, participant.userId),
         canSilence = grants?.canSilence == true,
         canBan = grants?.canBan == true,
         silence = silence,

@@ -75,6 +75,7 @@ import com.flipcash.app.messenger.internal.screens.cash.SendBackSheetHost
 import com.flipcash.app.messenger.internal.MemberModerationViewModel
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.messenger.internal.screens.profile.memberTapStep
+import com.flipcash.app.messenger.internal.screens.profile.mentionStep
 import com.flipcash.app.messenger.internal.ownReactionEmoji
 import com.flipcash.app.messenger.internal.reactionStripFor
 import com.flipcash.app.messenger.internal.withLiveSelfReactions
@@ -198,7 +199,13 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                         MentionDestination.OwnTipCard ->
                             navigator.rootNavigator.navigateAll(listOf(AppRoute.Tabs.Menu))
                         is MentionDestination.Profile ->
-                            navigator.push(ChatStep.Profile(destination.participant, destination.origin))
+                            navigator.push(
+                                mentionStep(
+                                    destination = destination,
+                                    inGroup = state.subject is ChatSubject.Group,
+                                    viewerId = userManager?.accountId,
+                                )
+                            )
                         // Raised as dialogs by the view model; they never reach here.
                         is MentionDestination.NoSuchAccount,
                         MentionDestination.LookupFailed -> Unit

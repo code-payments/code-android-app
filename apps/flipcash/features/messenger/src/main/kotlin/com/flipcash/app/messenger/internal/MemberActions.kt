@@ -33,6 +33,8 @@ internal data class MemberActions(
  * (`profileMenuItems`): nothing on the group's creator or on the viewer themselves, and each
  * action only with its grant. A viewer who has left the group holds no grants worth showing.
  *
+ * @param targetIsMember the person is still in the group; a mention can name someone who left or
+ * was removed, who gets no host actions.
  * @param silence the member's silence as the host's restricted-users read has it, or null.
  */
 internal fun memberActions(
@@ -44,8 +46,9 @@ internal fun memberActions(
     canBan: Boolean,
     silence: SilenceState?,
     now: Instant,
+    targetIsMember: Boolean = true,
 ): MemberActions {
-    if (!isMember || memberId == viewerId || memberId == creatorId) return MemberActions.None
+    if (!isMember || !targetIsMember || memberId == viewerId || memberId == creatorId) return MemberActions.None
     val restricted = canSilence && silence.isActiveAt(now)
     return MemberActions(
         restrict = canSilence && !restricted,
