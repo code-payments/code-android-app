@@ -85,7 +85,7 @@ class MentionRoutingTest {
     fun `a former member opens the sheet without a host section`() {
         val step = route(found(former))
         assertIs<ChatStep.MemberSheet>(step)
-        val stillIn = isCurrentMember(group(), roster(creator, viewer, member), former)
+        val stillIn = isConfirmedMember(group(), roster(creator, viewer, member), former)
         assertEquals(false, stillIn)
         val actions = memberActions(viewer, former, creator, true, true, true, null, now, targetIsMember = stillIn)
         assertEquals(MemberActions.None, actions)
@@ -94,15 +94,32 @@ class MentionRoutingTest {
 
     @Test
     fun `a current member keeps the host section`() {
-        val stillIn = isCurrentMember(group(), roster(creator, viewer, member), member)
+        val stillIn = isConfirmedMember(group(), roster(creator, viewer, member), member)
         assertTrue(stillIn)
         val actions = memberActions(viewer, member, creator, true, true, true, null, now, targetIsMember = stillIn)
         assertEquals(MemberActions(restrict = true, remove = true), actions)
     }
 
     @Test
-    fun `membership is assumed when no roster is held`() {
-        assertTrue(isCurrentMember(group(), emptyList(), former))
-        assertTrue(isCurrentMember(group(isPrivate = false), roster(member), former))
+    fun `an unloaded or failed roster confirms no one in a private group`() {
+        assertEquals(false, isConfirmedMember(group(), null, member))
+    }
+
+    @Test
+    fun `a public group has no check`() {
+        assertTrue(isConfirmedMember(group(isPrivate = false), null, former))
+        assertTrue(isConfirmedMember(group(isPrivate = false), roster(member), former))
+    }
+
+    @Test
+    fun `the profile menu shows the group section only for a confirmed member`() {
+        fun items(roster: List<ChatMember>?, isPrivate: Boolean = true, user: ID = member) = profileMenuItems(
+            isBlocked = false, hasDm = false, userId = user,
+            group = ProfileGroup(ChatId(listOf(9)), "Test", creator, canSilence = true, canBan = true, roster = roster, isPrivate = isPrivate),
+        )
+        assertTrue(ChatProfileAction.Remove in items(roster(creator, member)))
+        assertTrue(ChatProfileAction.Remove !in items(roster(creator)))
+        assertTrue(ChatProfileAction.Remove !in items(null))
+        assertTrue(ChatProfileAction.Remove in items(null, isPrivate = false))
     }
 }

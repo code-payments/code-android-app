@@ -5,6 +5,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
@@ -27,6 +30,7 @@ import com.getcode.opencode.model.core.ID
 import com.flipcash.app.messenger.internal.MentionDestination
 import com.flipcash.services.models.chat.ChatMember
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
@@ -62,15 +66,54 @@ internal fun mentionStep(
 }
 
 /**
- * Whether [userId] is still in the group, as far as this device can tell. A private group's roster
- * answers; until it has loaded, and for a public group, which has none, they count as in, since
- * nothing says otherwise. A mention can name someone who has since left or been removed, and the
- * sheet gives the host nothing to do to them.
+ * Whether the host section may show for [userId]. A public group has no check: its roster can be
+ * long and paged. A private group needs the roster to list them; a roster that is null (not
+ * loaded, or its read failed) confirms no one.
  */
-internal fun isCurrentMember(subject: ChatSubject?, roster: List<ChatMember>, userId: ID): Boolean {
+internal fun isConfirmedMember(subject: ChatSubject?, roster: List<ChatMember>?, userId: ID): Boolean {
     val group = subject as? ChatSubject.Group ?: return true
-    if (!group.isPrivate || roster.isEmpty()) return true
-    return userId == group.creator || roster.any { it.userId == userId }
+    if (!group.isPrivate) return true
+    return roster?.any { it.userId == userId } == true
+}
+
+/**
+ * Opens a member step, reading a private group's roster first when none is held so the sheet's
+ * contents are settled before it appears. A cached roster, the usual case since the chat loads it
+ * on open, pushes at once with no wait. A repeat tap while the read is out is dropped.
+ */
+@Composable
+internal fun rememberMemberStepOpener(
+    viewModel: ChatViewModel,
+    push: (ChatStep) -> Unit,
+): (ChatStep) -> Unit {
+    val moderation = flowSharedViewModel<MemberModerationViewModel>()
+    val scope = rememberCoroutineScope()
+    val currentPush by rememberUpdatedState(push)
+    val pending = remember { booleanArrayOf(false) }
+    return remember(viewModel, moderation, scope) {
+        { step ->
+            val state = viewModel.stateFlow.value
+            val group = state.subject as? ChatSubject.Group
+            val chatId = state.chatId
+            if (step is ChatStep.MemberSheet && group?.isPrivate == true && chatId != null &&
+                moderation.cachedRoster(chatId) == null
+            ) {
+                if (!pending[0]) {
+                    pending[0] = true
+                    scope.launch {
+                        try {
+                            moderation.ensureRoster(chatId)
+                        } finally {
+                            pending[0] = false
+                        }
+                        currentPush(step)
+                    }
+                }
+            } else {
+                currentPush(step)
+            }
+        }
+    }
 }
 
 /**
@@ -110,6 +153,7 @@ internal fun MemberSheetScreen(contact: ChatParticipant, origin: ProfileOrigin) 
     val moderation = flowSharedViewModel<MemberModerationViewModel>()
     val state by chatViewModel.stateFlow.collectAsStateWithLifecycle()
     val restrictions by moderation.restrictions.collectAsStateWithLifecycle()
+    val rosters by moderation.rosters.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val viewerId = LocalUserManager.current?.accountId
@@ -129,7 +173,7 @@ internal fun MemberSheetScreen(contact: ChatParticipant, origin: ProfileOrigin) 
         memberId = participant.userId,
         creatorId = group?.creator,
         isMember = group?.isMember == true,
-        targetIsMember = isCurrentMember(state.subject, state.members, participant.userId),
+        targetIsMember = isConfirmedMember(state.subject, chatId?.let { rosters[it] }, participant.userId),
         canSilence = grants?.canSilence == true,
         canBan = grants?.canBan == true,
         silence = silence,

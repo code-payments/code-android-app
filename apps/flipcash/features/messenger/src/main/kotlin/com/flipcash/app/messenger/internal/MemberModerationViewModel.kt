@@ -9,6 +9,7 @@ import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.SilenceState
 import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
@@ -48,6 +49,19 @@ internal class MemberModerationViewModel @Inject constructor(
 
     /** Each restricted member of the chat last passed to [loadRestrictions], by user id. */
     val restrictions: StateFlow<Map<ID, SilenceState>> = _restrictions.asStateFlow()
+
+    /** Each full roster the app holds, by chat. A chat never loaded is absent. */
+    val rosters: StateFlow<Map<ChatId, List<ChatMember>>> get() = groupRosters.state
+
+    /** [chatId]'s roster if one is already held, so a caller can skip waiting on a read. */
+    fun cachedRoster(chatId: ChatId): List<ChatMember>? = groupRosters.state.value[chatId]
+
+    /**
+     * [chatId]'s roster, read first when none is held. Null when the read fails, which callers
+     * treat as "membership unconfirmed".
+     */
+    suspend fun ensureRoster(chatId: ChatId): List<ChatMember>? =
+        cachedRoster(chatId) ?: groupRosters.load(chatId).getOrNull()
 
     private var restrictionsFor: ChatId? = null
 
