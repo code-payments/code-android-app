@@ -191,7 +191,19 @@ class RequestPayFlowTest {
 
         assertEquals(false, f.state.value.open)
         assertEquals(false, f.state.value.preparing)
-        coVerify(exactly = 0) { payments.prepare(any(), any()) }
+    }
+
+    @Test
+    fun `a closed request with no giveable balance shows Request Closed, not the gate`() {
+        coEvery { payer.mayProceed(any(), any()) } returns false
+        coEvery { payments.prepare(any(), any()) } returns Result.success(ShareToPay.Closed(mockk(relaxed = true)))
+        val f = flow()
+
+        f.start(listOf<Byte>(2))
+
+        assertEquals(false, f.state.value.open)
+        assertEquals(1, BottomBarManager.messages.value.size)
+        coVerify(exactly = 0) { payer.mayProceed(any(), any()) }
     }
 
     @Test

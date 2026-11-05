@@ -85,21 +85,19 @@ internal class RequestPayFlow(
         if (_state.value.preparing || _state.value.open) return
         _state.update { it.copy(requestId = requestId, preparing = true) }
         scope.launch {
-            // The same gate as Send: with nothing to give, say so before the sheet opens, since the
-            // sheet would have no token to show or swipe with.
-            if (!payer.mayProceed(
-                    onAddMoney = { scope.launch { payer.depositRoute()?.let(openScreen) } },
-                    onDiscoverCurrencies = { openScreen(AppRoute.Token.Discovery) },
-                )
-            ) {
-                _state.update { it.copy(preparing = false) }
-                return@launch
-            }
             payments.prepare(requestId, viewer)
                 .onSuccess { found ->
                     _state.update { it.copy(preparing = false) }
                     when (found) {
                         is ShareToPay.Ready -> {
+                            // The same gate as Send, after the refetch so a closed request still reads
+                            // "Request Closed": with nothing to give, say so before the sheet opens, since
+                            // it would have no token to show or swipe with.
+                            if (!payer.mayProceed(
+                                    onAddMoney = { scope.launch { payer.depositRoute()?.let(openScreen) } },
+                                    onDiscoverCurrencies = { openScreen(AppRoute.Token.Discovery) },
+                                )
+                            ) return@onSuccess
                             // No per-share balance check here: the payer picks the token in the sheet,
                             // and the check runs against that pick when they swipe.
                             ready = found
