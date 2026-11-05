@@ -3,6 +3,7 @@ package com.flipcash.shared.chat.ui.media
 // kmp-audit: draws through PhotoLayers and Coil's AsyncImage, which sit in androidMain with the photo bubble
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,8 +16,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.label_chat_media_stackCount
@@ -133,13 +139,15 @@ internal fun photoStackFrontPadding(look: PhotoStackLook, width: Float, height: 
 
 /**
  * Draws [look]'s cards behind [content], the front card, inside the width a single photo bubble of
- * this photo takes ([width] by [height]) and no taller than it. [content] receives the size to draw the front card at.
+ * this photo takes ([width] by [height]) and no taller than it. [content] receives the size to draw the front card at;
+ * [frontShape] is the shape it draws in, which its outline and shadow follow.
  */
 @Composable
 internal fun PhotoStackFrame(
     look: PhotoStackLook,
     width: Float,
     height: Float,
+    frontShape: Shape,
     modifier: Modifier = Modifier,
     content: @Composable (cardWidth: Float, cardHeight: Float) -> Unit,
 ) {
@@ -171,11 +179,36 @@ internal fun PhotoStackFrame(
                 )
                 // Dimmed so the front card reads as the one in the light.
                 Box(Modifier.fillMaxSize().background(CodeTheme.colors.scrim))
+                PhotoStackCardOutline(radius)
             }
         }
-        content(cardWidth, cardHeight)
+        // The front card's shadow falls on the cards behind it, and the outline is drawn inside its
+        // own shape, so cards of photos that look alike still read apart and the frame keeps its size.
+        Box(Modifier.size(cardWidth.dp, cardHeight.dp).dropShadow(frontShape, PhotoStackFrontShadow)) {
+            content(cardWidth, cardHeight)
+            PhotoStackCardOutline(frontShape)
+        }
     }
 }
+
+/** A line in the conversation's background colour around a stack card, inside its shape. */
+@Composable
+private fun PhotoStackCardOutline(shape: Shape) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .border(PHOTO_STACK_OUTLINE_WIDTH, CodeTheme.colors.background, shape),
+    )
+}
+
+private val PHOTO_STACK_OUTLINE_WIDTH = 3.dp
+
+private val PhotoStackFrontShadow = Shadow(
+    radius = 8.dp,
+    color = Color.Black,
+    offset = DpOffset(0.dp, 3.dp),
+    alpha = 0.7f,
+)
 
 /** The "N photos" pill drawn over the front card's top corner. */
 @Composable

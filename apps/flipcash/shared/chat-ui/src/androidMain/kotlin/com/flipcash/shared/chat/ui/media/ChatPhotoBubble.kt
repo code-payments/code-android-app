@@ -65,6 +65,7 @@ import coil3.compose.AsyncImagePainter
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.shared.chat.ui.BubblePosition
 import com.flipcash.shared.chat.ui.Bubble
+import com.flipcash.shared.chat.ui.bubbleShape
 import com.flipcash.shared.common.ui.rememberBlurHashPainter
 import com.getcode.theme.CodeTheme
 
@@ -148,10 +149,11 @@ fun ChatPhotoBubble(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
         horizontalAlignment = if (isFromSelf) Alignment.End else Alignment.Start,
     ) {
+        val photoPosition = if (captionBubbled && drawsPhoto) position.withCaptionBelow() else position
         val photo = @Composable { photoWidth: Float, photoHeight: Float ->
         Bubble(
             isFromSelf = isFromSelf,
-            position = if (captionBubbled && drawsPhoto) position.withCaptionBelow() else position,
+            position = photoPosition,
             maxWidth = maxWidth,
             horizontalPadding = CodeTheme.dimens.none,
             verticalPadding = CodeTheme.dimens.none,
@@ -208,7 +210,12 @@ fun ChatPhotoBubble(
         if (drawsPhoto) {
             if (stack != null) {
                 // The same box a single photo takes; the front card shrinks to leave the fan room.
-                PhotoStackFrame(stack, size.width, size.height) { w, h -> photo(w, h) }
+                PhotoStackFrame(
+                    look = stack,
+                    width = size.width,
+                    height = size.height,
+                    frontShape = bubbleShape(photoPosition, isFromSelf),
+                ) { w, h -> photo(w, h) }
             } else {
                 photo(size.width, size.height)
             }
