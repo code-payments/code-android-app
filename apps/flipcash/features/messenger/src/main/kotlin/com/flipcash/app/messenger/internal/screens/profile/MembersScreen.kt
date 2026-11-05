@@ -78,6 +78,7 @@ import androidx.compose.material.icons.outlined.MicOff
 internal fun MembersScreen(viewModel: ChatViewModel) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val openMemberStep = rememberMemberStepOpener(viewModel) { flowNavigator.navigateTo(it) }
     val group = state.subject as? ChatSubject.Group
     val navigator = LocalCodeNavigator.current
     val moderation = flowSharedViewModel<MemberModerationViewModel>()
@@ -164,7 +165,7 @@ internal fun MembersScreen(viewModel: ChatViewModel) {
                         age = member.joinedAt?.let { JoinAge.of(it, now) },
                         restriction = if (actions.showsRestriction) restrictionLabel(silence, now) else null,
                         onOpen = {
-                            flowNavigator.navigateTo(
+                            openMemberStep(
                                 memberTapStep(
                                     participant = ChatParticipant.TipUser(member.userId, member.userProfile),
                                     origin = ProfileOrigin.GroupMember,

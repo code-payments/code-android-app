@@ -302,6 +302,7 @@ internal fun PersonProfileScreen(
                                     userId = person.userId,
                                 ),
                                 groupTitle = group?.title,
+                                disabled = disabledProfileItems(group, person.userId),
                                 anchorHeight = menuAnchorHeight,
                                 onDismiss = { menuOpen = false },
                                 onItem = { item ->

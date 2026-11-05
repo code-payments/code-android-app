@@ -1,9 +1,29 @@
 package com.flipcash.app.messenger.internal
 
+import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.isActiveAt
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
+
+/**
+ * Whether a private group's roster lists a person, which the host section waits on. A public group
+ * has no check, so it is [Confirmed].
+ */
+internal enum class MembershipCheck { Confirmed, Pending, NotMember, Failed }
+
+internal fun membershipCheck(
+    isPrivate: Boolean,
+    roster: List<ChatMember>?,
+    readFailed: Boolean,
+    userId: ID,
+): MembershipCheck = when {
+    !isPrivate -> MembershipCheck.Confirmed
+    roster != null ->
+        if (roster.any { it.userId == userId }) MembershipCheck.Confirmed else MembershipCheck.NotMember
+    readFailed -> MembershipCheck.Failed
+    else -> MembershipCheck.Pending
+}
 
 /**
  * What the viewer can do to one member of a group from the Members list swipe and the member
@@ -16,7 +36,11 @@ internal data class MemberActions(
     val remove: Boolean = false,
     /** Whether the member's restriction is shown: only to a viewer who can see and change it. */
     val showsRestriction: Boolean = false,
+    /** Where the membership check stands; the group rows are tappable only once [Confirmed]. */
+    val check: MembershipCheck = MembershipCheck.Confirmed,
 ) {
+    val groupEnabled: Boolean get() = check == MembershipCheck.Confirmed
+
     /** The sheet's "In <group>" section has at least one row. */
     val hasGroupSection: Boolean get() = restrict || lift || remove
 
@@ -33,6 +57,8 @@ internal data class MemberActions(
  * (`profileMenuItems`): nothing on the group's creator or on the viewer themselves, and each
  * action only with its grant. A viewer who has left the group holds no grants worth showing.
  *
+ * @param check the private-group membership check; the rows show whatever its answer, and are
+ * disabled until it is [MembershipCheck.Confirmed].
  * @param silence the member's silence as the host's restricted-users read has it, or null.
  */
 internal fun memberActions(
@@ -44,6 +70,7 @@ internal fun memberActions(
     canBan: Boolean,
     silence: SilenceState?,
     now: Instant,
+    check: MembershipCheck = MembershipCheck.Confirmed,
 ): MemberActions {
     if (!isMember || memberId == viewerId || memberId == creatorId) return MemberActions.None
     val restricted = canSilence && silence.isActiveAt(now)
@@ -52,6 +79,7 @@ internal fun memberActions(
         lift = restricted,
         remove = canBan,
         showsRestriction = restricted,
+        check = check,
     )
 }
 

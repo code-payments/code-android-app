@@ -126,6 +126,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
+    val openMemberStep = rememberMemberStepOpener(viewModel) { flowNavigator.navigateTo(it) }
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val group = state.subject as? ChatSubject.Group
@@ -356,7 +357,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                         onOpen = { item ->
                             val member = gridMembers.firstOrNull { it.userId == item.userId }
                                 ?: return@GroupChattingGrid
-                            flowNavigator.navigateTo(
+                            openMemberStep(
                                 memberTapStep(
                                     participant = ChatParticipant.TipUser(item.userId, member.userProfile),
                                     origin = ProfileOrigin.GroupMember,
@@ -384,7 +385,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                                 ?: return@GroupChattingGrid
                             // Straight to the person's sheet: resolving a DM destination first
                             // would send a tap on a portrait to a chat.
-                            flowNavigator.navigateTo(
+                            openMemberStep(
                                 memberTapStep(
                                     participant = ChatParticipant.TipUser(item.userId, chatter.userProfile),
                                     origin = ProfileOrigin.GroupMember,

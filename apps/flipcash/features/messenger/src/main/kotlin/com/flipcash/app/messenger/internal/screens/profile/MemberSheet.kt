@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.app.messenger.internal.MemberActions
 import com.flipcash.app.messenger.internal.TimeLeft
 import com.flipcash.app.messenger.internal.timeLeft
+import com.flipcash.app.messenger.internal.MembershipCheck
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.SilenceState
@@ -140,6 +141,7 @@ internal fun MemberSheetContent(
                     label = stringResource(R.string.action_silenceMemberShort),
                     icon = rememberVectorPainter(Icons.Outlined.MicOff),
                     contentColor = CodeTheme.colors.warningText,
+                    enabled = actions.groupEnabled,
                     onClick = onRestrict,
                 )
             }
@@ -147,6 +149,7 @@ internal fun MemberSheetContent(
                 ChoiceRow(
                     label = stringResource(R.string.action_liftRestriction),
                     icon = rememberVectorPainter(Icons.Outlined.LockOpen),
+                    enabled = actions.groupEnabled,
                     onClick = onLift,
                 )
             }
@@ -155,7 +158,20 @@ internal fun MemberSheetContent(
                     label = stringResource(R.string.action_removeFromGroup),
                     icon = rememberVectorPainter(Icons.Outlined.PersonRemove),
                     contentColor = CodeTheme.colors.errorText,
+                    enabled = actions.groupEnabled,
                     onClick = onRemove,
+                )
+            }
+            val why = when (actions.check) {
+                MembershipCheck.NotMember -> R.string.subtitle_notInGroup
+                MembershipCheck.Failed -> R.string.subtitle_membershipCheckFailed
+                else -> null
+            }
+            if (why != null) {
+                Text(
+                    text = stringResource(why, name),
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
                 )
             }
         }
