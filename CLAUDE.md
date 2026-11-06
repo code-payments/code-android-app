@@ -92,6 +92,10 @@ A code change is done when the touched modules' unit tests pass and `./gradlew :
 
 Tests for gestures and pointer input replay the sequence a finger makes on the device, such as a partial reveal followed by a full swipe. A semantics action or a single fling can pass while the real gesture fails: the leading swipe's reset and the desktop peek toggle both did.
 
+## Headless screens (puppet)
+
+`libs/puppet` and `apps/desktop/.../puppet/` are this repo's host for `puppet`, which drives real view models over seeded data with no device. The CLI, protocol and shared behavior tests live in the sibling `flipcash-puppet` repo; `/puppet` points to its skill. A change to a screen with a host (Chats today) also has to pass `puppet test android`.
+
 ## Namespaces
 
 - App: `com.flipcash.app.android` (no `applicationIdSuffix` — debug and release share the ID, so installing one replaces the other)
