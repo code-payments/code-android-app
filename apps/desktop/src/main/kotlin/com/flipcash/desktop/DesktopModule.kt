@@ -60,6 +60,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import com.flipcash.shared.transactionhistory.TransactionRouter
 
 /**
  * Desktop implementations of the seams Android binds in its Hilt modules. Funding, analytics and
@@ -94,6 +95,10 @@ object DesktopModule {
 
     @Provides
     fun analytics(): FlipcashAnalytics = FlipcashAnalytics.None
+
+    // The Kotlin default on WalletViewModel doesn't count under REQUIRE_OPTIONAL_BINDING.
+    @Provides
+    fun transactionRouter(): TransactionRouter = TransactionRouter.DetailsOnly
 
     @Provides
     @Singleton
