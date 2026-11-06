@@ -39,35 +39,62 @@ fun rememberSavePhoto(model: Any?, onResult: (Boolean) -> Unit): () -> Unit {
     val currentOnResult by rememberUpdatedState(onResult)
     return save@{
         val data = currentModel ?: return@save
+        scope.launch { currentOnResult(savePhotoToGallery(context, data)) }
+    }
+}
+
+/**
+ * Returns a function that saves each of [photos] to the gallery, oldest first, the way
+ * [rememberSavePhoto] saves one, and then reports through [onResult] how many of [total] made it.
+ * [total] counts the photos that should have been saved, so one that couldn't be resolved to a
+ * [ChatPhoto] still counts against it.
+ */
+@Composable
+fun rememberSavePhotos(
+    photos: List<ChatPhoto>,
+    total: Int,
+    onResult: (saved: Int, total: Int) -> Unit,
+): () -> Unit {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val currentPhotos by rememberUpdatedState(photos)
+    val currentTotal by rememberUpdatedState(total)
+    val currentOnResult by rememberUpdatedState(onResult)
+    return {
+        val batch = currentPhotos
+        val expected = currentTotal
         scope.launch {
-            val saved = try {
-                withContext(Dispatchers.IO) {
-                    val imageLoader = SingletonImageLoader.get(context)
-                    val result = imageLoader.execute(ImageRequest.Builder(context).data(data).size(Size.ORIGINAL).build())
-                    if (result !is SuccessResult) return@withContext false
-                    // The fetcher caches the opened original under the photo's key, so the file the
-                    // sender uploaded is on disk by now; saving it avoids a lossy re-encode.
-                    val original = (data as? ChatPhoto)?.let { photo ->
-                        imageLoader.diskCache?.openSnapshot(photo.cacheKey)?.use { snapshot ->
-                            imageLoader.diskCache?.fileSystem?.read(snapshot.data) { readByteArray() }
-                        }
-                    }
-                    val type = original?.let(::sniffImageType)
-                    if (original != null && type != null) {
-                        saveBytesToGallery(context, original, type)
-                    } else {
-                        val bitmap = result.image.toBitmap()
-                        saveToGallery(context, bitmap)
-                    }
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Throwable) {
-                false
-            }
-            currentOnResult(saved)
+            val saved = batch.count { savePhotoToGallery(context, it) }
+            currentOnResult(saved, expected)
         }
     }
+}
+
+/** Saves the photo [data] draws to the gallery, and whether it got there. */
+private suspend fun savePhotoToGallery(context: Context, data: Any): Boolean = try {
+    withContext(Dispatchers.IO) {
+        val imageLoader = SingletonImageLoader.get(context)
+        val result = imageLoader.execute(ImageRequest.Builder(context).data(data).size(Size.ORIGINAL).build())
+        if (result !is SuccessResult) return@withContext false
+        // The fetcher caches the opened original under the photo's key, so the file the
+        // sender uploaded is on disk by now; saving it avoids a lossy re-encode.
+        val original = (data as? ChatPhoto)?.let { photo ->
+            imageLoader.diskCache?.openSnapshot(photo.cacheKey)?.use { snapshot ->
+                imageLoader.diskCache?.fileSystem?.read(snapshot.data) { readByteArray() }
+            }
+        }
+        val type = original?.let(::sniffImageType)
+        if (original != null && type != null) {
+            saveBytesToGallery(context, original, type)
+        } else {
+            val bitmap = result.image.toBitmap()
+            saveToGallery(context, bitmap)
+        }
+    }
+} catch (e: CancellationException) {
+    throw e
+} catch (_: Throwable) {
+    false
 }
 
 /** An image type [saveBytesToGallery] can write as it is: its MIME type and file extension. */

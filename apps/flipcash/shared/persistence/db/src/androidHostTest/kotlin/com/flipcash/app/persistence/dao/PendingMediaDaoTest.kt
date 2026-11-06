@@ -168,6 +168,42 @@ class PendingMediaDaoTest {
         assertEquals(7L, messages.getMessage(CHAT_HEX, 7)?.messageId)
     }
 
+    @Test
+    fun `confirming a photo moves the rest of its send to just after it`() = runTest {
+        // Tapped at 10-12ms; the server's time for the first photo comes after the uploads.
+        messages.upsert(pendingRow("a", -10))
+        messages.upsert(pendingRow("b", -11))
+        messages.upsert(pendingRow("c", -12).copy(status = MessageStatus.FAILED))
+
+        messages.confirmPendingMessage(CHAT_HEX, "a", server(7), replaceContent = true, followingClientIdHexes = listOf("b", "c"))
+
+        assertEquals(7_000L, messages.getByClientId(CHAT_HEX, "a")?.timestampEpochMs)
+        assertEquals(7_001L, messages.getByClientId(CHAT_HEX, "b")?.timestampEpochMs)
+        assertEquals(7_002L, messages.getByClientId(CHAT_HEX, "c")?.timestampEpochMs)
+    }
+
+    @Test
+    fun `confirming a photo leaves a confirmed sibling at the server's time`() = runTest {
+        messages.upsert(pendingRow("a", -10))
+        // The stream confirmed b first; it keeps its client id and its own server time.
+        messages.upsert(server(8).copy(pendingClientIdHex = "b", status = MessageStatus.SENT))
+
+        messages.confirmPendingMessage(CHAT_HEX, "a", server(7), followingClientIdHexes = listOf("b"))
+
+        assertEquals(8_000L, messages.getMessage(CHAT_HEX, 8)?.timestampEpochMs)
+    }
+
+    @Test
+    fun `the rest of the send moves even when the stream delivered the photo first`() = runTest {
+        messages.upsert(server(7))
+        messages.upsert(pendingRow("a", -10))
+        messages.upsert(pendingRow("b", -11))
+
+        messages.confirmPendingMessage(CHAT_HEX, "a", server(7), followingClientIdHexes = listOf("b"))
+
+        assertEquals(7_001L, messages.getByClientId(CHAT_HEX, "b")?.timestampEpochMs)
+    }
+
     private companion object {
         const val CHAT_HEX = "c0ffee"
         const val SENDER_HEX = "5e1f"

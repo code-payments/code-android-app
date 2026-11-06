@@ -17,6 +17,41 @@ sealed interface MediaSendProgress {
 
     /** [retryable] is whether `retryMedia` can help; a moderation rejection can't be retried. */
     data class Failed(val retryable: Boolean) : MediaSendProgress
+
+    companion object {
+        /**
+         * The progress of a whole send, for the overlay on a stack's front photo, from the progress
+         * of each photo in it. A photo with no progress is one this process didn't send or already
+         * confirmed, and counts as sent; a failed photo has left the stack and is left out.
+         *
+         * The send reads as preparing only while every photo is, since uploads start one after
+         * another. Once any is uploading, the fraction is the average across the photos, where a
+         * photo still preparing counts 0 and one past its upload counts 1. Shared with iOS.
+         *
+         * Null when no photo has progress, so a stack sent earlier draws no overlay.
+         */
+        fun ofSend(members: List<MediaSendProgress?>): MediaSendProgress? {
+            if (members.all { it == null }) return null
+            val live = members.filter { it !is Failed }.map { it ?: Sent }
+            if (live.isEmpty()) return null
+            if (live.all { it == Preparing }) return Preparing
+            if (live.any { it == Preparing || it is Uploading }) {
+                val fraction = live.sumOf { p ->
+                    when (p) {
+                        Preparing -> 0.0
+                        is Uploading -> p.fraction.toDouble()
+                        else -> 1.0
+                    }
+                } / live.size
+                return Uploading(fraction.toFloat())
+            }
+            return when {
+                live.any { it == Processing } -> Processing
+                live.any { it == Sending } -> Sending
+                else -> Sent
+            }
+        }
+    }
 }
 
 /**

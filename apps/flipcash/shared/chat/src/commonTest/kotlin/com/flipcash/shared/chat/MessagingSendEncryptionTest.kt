@@ -453,6 +453,18 @@ class MessagingSendEncryptionTest {
     }
 
     @Test
+    fun `a sealed photo's caption edit goes out sealed with the same photo`() = runTest {
+        storedChat(chat())
+        val original = serverCopy(listOf(photo.copy(caption = MessageContent.Text("before"))))
+            .copy(encryption = MessageEncryption.Decrypted(MessageContent.Encrypted(1, ByteArray(24), ByteArray(8))))
+        val wires = answerEdits(original)
+
+        delegate.editMessage(chatId, original.messageId, "after").getOrThrow()
+
+        assertEquals(photo.copy(caption = MessageContent.Text("after")), openAsPeer(wires.single()))
+    }
+
+    @Test
     fun `an edit that can't be sealed is not sent and its overlay comes down`() = runTest {
         storedChat(chat())
         keys.peerFails = IOException("offline")

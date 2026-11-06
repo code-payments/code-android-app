@@ -389,12 +389,16 @@ class ChatMessageDataSource @Inject constructor(
     /**
      * [replaceContent] is for a photo, whose optimistic row holds the local file: the confirmed row
      * takes [serverMessage]'s content instead of keeping what was written locally.
+     *
+     * [followingClientIdHexes] are the rows of the same send still to post, in order; they move to
+     * just after this row so the send keeps its order (see `ChatMessageDao.confirmPendingMessage`).
      */
     suspend fun confirmPending(
         chatId: ChatId,
         clientMessageId: ClientMessageId,
         serverMessage: ChatMessage,
         replaceContent: Boolean = false,
+        followingClientIdHexes: List<String> = emptyList(),
     ) {
         val hex = mapper.chatIdHex(chatId)
         db?.chatMessageDao()?.confirmPendingMessage(
@@ -402,6 +406,7 @@ class ChatMessageDataSource @Inject constructor(
             mapper.clientMessageIdHex(clientMessageId),
             mapper.toEntity(hex, serverMessage),
             replaceContent,
+            followingClientIdHexes,
         )
     }
 

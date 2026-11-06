@@ -15,6 +15,7 @@ import androidx.paging.compose.LazyPagingItems
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.LocalChatActionHandler
+import com.flipcash.shared.chat.models.photoStackOf
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
@@ -47,10 +48,8 @@ internal fun HandleMessageReads(
             for (info in visibleRange) {
                 if (info.index !in 0 until count) continue
                 // A notice counts as read once seen, or the pointer would stall under a newest one.
-                val message = messages.peek(info.index) as? ChatListItem.TranscriptMessage ?: continue
-                if (!message.isFromSelf && message.messageId > highestId) {
-                    highestId = message.messageId
-                }
+                val id = readIdOf(info.index, count) { messages.peek(it) } ?: continue
+                if (id > highestId) highestId = id
             }
             if (highestId > 0L) highestId else null
         }
@@ -63,6 +62,20 @@ internal fun HandleMessageReads(
                 }
             }
     }
+}
+
+/**
+ * The message id the row at [index] marks read while it is on screen, or null when it marks none:
+ * not a message, or the viewer's own.
+ *
+ * The photos behind a stack's front have no row of their own, so a stack reads as its newest
+ * confirmed photo. Every member shares the row's sender, so the own-message rule covers them too.
+ */
+internal fun readIdOf(index: Int, itemCount: Int, peek: (Int) -> ChatListItem?): Long? {
+    val message = peek(index) as? ChatListItem.TranscriptMessage ?: return null
+    if (message.isFromSelf) return null
+    val stack = photoStackOf(index, message, itemCount, peek)
+    return maxOf(message.messageId, stack?.newestConfirmedId ?: 0L)
 }
 
 /**

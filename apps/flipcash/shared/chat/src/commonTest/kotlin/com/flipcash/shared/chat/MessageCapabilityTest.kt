@@ -522,12 +522,14 @@ class MessageCapabilityTest {
     }
 
     @Test
-    fun `own confirmed captioned photo can be copied, replied to and deleted but not edited`() {
+    fun `own confirmed captioned photo can be copied, replied to, edited and deleted`() {
         val expected = setOf(
             MessageCapability.Copy,
             MessageCapability.Reply,
+            MessageCapability.Edit,
             MessageCapability.Delete,
             MessageCapability.Link,
+            MessageCapability.SavePhoto,
         )
         assertEquals(expected, resolveCapabilities(photo(), now = sentAt))
         assertEquals(expected, resolveCapabilities(photo(reply = true), now = sentAt))
@@ -535,7 +537,12 @@ class MessageCapabilityTest {
 
     @Test
     fun `a photo with no caption has nothing to copy`() {
-        val expected = setOf(MessageCapability.Reply, MessageCapability.Delete, MessageCapability.Link)
+        val expected = setOf(
+            MessageCapability.Reply,
+            MessageCapability.Delete,
+            MessageCapability.Link,
+            MessageCapability.SavePhoto,
+        )
         assertEquals(expected, resolveCapabilities(photo(caption = null), now = sentAt))
         assertEquals(expected, resolveCapabilities(photo(caption = null, reply = true), now = sentAt))
     }
@@ -543,7 +550,12 @@ class MessageCapabilityTest {
     @Test
     fun `own photo past the delete window can only be copied and replied to`() {
         assertEquals(
-            setOf(MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Link),
+            setOf(
+                MessageCapability.Copy,
+                MessageCapability.Reply,
+                MessageCapability.Link,
+                MessageCapability.SavePhoto,
+            ),
             resolveCapabilities(photo(), now = sentAt + 49.hours),
         )
     }
@@ -556,8 +568,53 @@ class MessageCapabilityTest {
                 MessageCapability.Reply,
                 MessageCapability.Report,
                 MessageCapability.Link,
+                MessageCapability.SavePhoto,
             ),
             resolveCapabilities(photo(isFromSelf = false), now = sentAt),
+        )
+    }
+
+    @Test
+    fun `save photo is offered on photos only`() {
+        assertEquals(true, MessageCapability.SavePhoto in resolveCapabilities(photo(), now = sentAt))
+        assertEquals(true, MessageCapability.SavePhoto in resolveCapabilities(photo(isFromSelf = false), now = sentAt))
+        assertEquals(true, MessageCapability.SavePhoto in resolveCapabilities(photo(reply = true), now = sentAt))
+        assertEquals(false, MessageCapability.SavePhoto in resolveCapabilities(text(), now = sentAt))
+        assertEquals(false, MessageCapability.SavePhoto in resolveCapabilities(text(isFromSelf = false), now = sentAt))
+        assertEquals(false, MessageCapability.SavePhoto in resolveCapabilities(cash(), now = sentAt))
+    }
+
+    @Test
+    fun `a redacted photo cannot be saved`() {
+        assertEquals(
+            false,
+            MessageCapability.SavePhoto in resolveCapabilities(photo(isFromSelf = false, redacted = true), now = sentAt),
+        )
+    }
+
+    @Test
+    fun `a viewer who cannot post can still save a photo`() {
+        assertEquals(
+            true,
+            MessageCapability.SavePhoto in resolveCapabilities(photo(isFromSelf = false), now = sentAt, canPost = false),
+        )
+    }
+
+    @Test
+    fun `edit is offered on own captioned photos only`() {
+        assertEquals(true, MessageCapability.Edit in resolveCapabilities(photo(), now = sentAt))
+        assertEquals(true, MessageCapability.Edit in resolveCapabilities(photo(reply = true), now = sentAt))
+        // An edit never adds a caption, so a photo sent without one has nothing to edit.
+        assertEquals(false, MessageCapability.Edit in resolveCapabilities(photo(caption = null), now = sentAt))
+        assertEquals(false, MessageCapability.Edit in resolveCapabilities(photo(isFromSelf = false), now = sentAt))
+    }
+
+    @Test
+    fun `a captioned photo loses Edit once the edit window lapses`() {
+        val policy = MessagePolicy(editWindow = 15.minutes, deleteWindow = null)
+        assertEquals(
+            false,
+            MessageCapability.Edit in resolveCapabilities(photo(), policy = policy, now = sentAt + 16.minutes),
         )
     }
 

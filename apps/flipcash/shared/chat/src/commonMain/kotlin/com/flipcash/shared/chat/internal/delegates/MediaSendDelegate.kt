@@ -33,6 +33,7 @@ import com.getcode.utils.trace
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,6 +43,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import com.flipcash.shared.chat.media.ChatPhoto
 import com.flipcash.shared.chat.media.SentPhotoPreviews
 import javax.inject.Inject
@@ -49,8 +51,8 @@ import javax.inject.Singleton
 import kotlin.time.Clock
 
 /**
- * Sends photo messages: a pending row per photo up front, then a post per row, in chip order, as
- * each upload settles. See [ChatMediaSending].
+ * Sends photo messages: a pending row per photo up front, then, once every upload in the send has
+ * settled, a post per row in chip order. See [ChatMediaSending].
  *
  * What is queued is in `pending_media`, so a photo survives the process. The photo's own file and
  * state are [ChatMediaUploads]'; this decides what happens to the message around them.
@@ -171,9 +173,20 @@ class MediaSendDelegate internal constructor(
         synchronized(inFlight) { inFlight.addAll(hexes) }
 
         scope.launch {
-            for (q in queued) {
-                val record = pendingMedia.get(hex(q.clientMessageId)) ?: continue
-                post(chatId, record)
+            val records = queued.mapNotNull { q -> pendingMedia.get(hex(q.clientMessageId)) }
+            supervisorScope {
+                val settling = records.map { record -> async { settle(record) } }
+                // Every photo in the send finishes uploading before any of them posts, so the set
+                // posts back to back and lands as consecutive messages a moment apart, which is
+                // what draws it as one card stack. A photo that fails still fails on its own row;
+                // join waits for it without rethrowing, and its post reports the failure.
+                settling.forEach { it.join() }
+                records.zip(settling).forEachIndexed { i, (record, settled) ->
+                    // The photos after this one move to just after it when it confirms, so a
+                    // half-posted send keeps its order and its stack.
+                    val following = records.drop(i + 1).map { it.clientIdHex }
+                    post(chatId, record, following) { settled.await() }
+                }
             }
         }
         return Result.success(hexes)
@@ -264,31 +277,44 @@ class MediaSendDelegate internal constructor(
         val height: Int,
     )
 
-    /** Waits for the photo of [record], then posts its message and settles the row. */
-    private suspend fun post(chatId: ChatId, record: PendingMediaRecord) {
+    /**
+     * Waits for the photo of [record] to finish uploading or fail, noting where it was stored as
+     * soon as the server has it, so a send cut short by the process can tell it already went up.
+     * Null when the upload is no longer tracked.
+     */
+    private suspend fun settle(record: PendingMediaRecord): ChatMediaUploadState? {
+        var recorded = false
+        return uploads.state(chipId(record))
+            .onEach { state ->
+                if (recorded) return@onEach
+                val photo = (state as? ChatMediaUploadState.Processing)?.photo
+                    ?: (state as? ChatMediaUploadState.Uploaded)?.photo
+                    ?: (state as? ChatMediaUploadState.Failed)?.stored
+                if (photo != null) {
+                    recorded = true
+                    recordStored(record.clientIdHex, photo)
+                }
+            }
+            .first { it == null || it is ChatMediaUploadState.Uploaded || it is ChatMediaUploadState.Failed }
+    }
+
+    /** Waits for the photo of [record] through [settled], then posts its message and settles the row. */
+    private suspend fun post(
+        chatId: ChatId,
+        record: PendingMediaRecord,
+        following: List<String> = emptyList(),
+        settled: suspend () -> ChatMediaUploadState? = { settle(record) },
+    ) {
         val hex = record.clientIdHex
         val clientMessageId = mapper.clientMessageIdFromHex(hex)
         try {
-            val chip = chipId(record)
-            var recorded = false
-            val settled = uploads.state(chip)
-                .onEach { state ->
-                    if (recorded) return@onEach
-                    val photo = (state as? ChatMediaUploadState.Processing)?.photo
-                        ?: (state as? ChatMediaUploadState.Uploaded)?.photo
-                        ?: (state as? ChatMediaUploadState.Failed)?.stored
-                    if (photo != null) {
-                        recorded = true
-                        recordStored(hex, photo)
-                    }
-                }
-                .first { it == null || it is ChatMediaUploadState.Uploaded || it is ChatMediaUploadState.Failed }
+            val settled = settled()
 
             when (settled) {
                 null -> fail(chatId, clientMessageId, hex, retryable = false, discard = record)
                 is ChatMediaUploadState.Failed ->
                     fail(chatId, clientMessageId, hex, settled.retryable, discard = record.takeUnless { settled.retryable })
-                is ChatMediaUploadState.Uploaded -> postMessage(chatId, record, clientMessageId, settled.photo)
+                is ChatMediaUploadState.Uploaded -> postMessage(chatId, record, clientMessageId, settled.photo, following)
                 else -> Unit
             }
         } catch (e: CancellationException) {
@@ -306,6 +332,7 @@ class MediaSendDelegate internal constructor(
         record: PendingMediaRecord,
         clientMessageId: ClientMessageId,
         photo: UploadedPhoto,
+        following: List<String>,
     ) {
         val hex = record.clientIdHex
         stages.update { it + (hex to Stage.Sending) }
@@ -320,7 +347,9 @@ class MediaSendDelegate internal constructor(
         messagingController.sendMessage(chatId, prepared.wire, clientMessageId)
             .map(prepared::echo)
             .onSuccess { serverMessage ->
-                messageDataSource.confirmPending(chatId, clientMessageId, serverMessage, replaceContent = true)
+                messageDataSource.confirmPending(
+                    chatId, clientMessageId, serverMessage, replaceContent = true, followingClientIdHexes = following,
+                )
                 messaging.advanceReadPointer(chatId, serverMessage.messageId)
                 metadataDataSource.updateLastMessageId(chatId, serverMessage.messageId)
                 metadataDataSource.updateLastActivity(chatId, serverMessage.timestamp.toEpochMilliseconds())

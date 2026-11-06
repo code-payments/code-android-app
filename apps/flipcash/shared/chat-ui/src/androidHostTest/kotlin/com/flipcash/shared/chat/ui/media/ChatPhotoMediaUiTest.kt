@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.hasContentDescription
@@ -242,6 +243,35 @@ class ChatPhotoMediaUiTest {
             }
         }
         rule.onNodeWithTag(PHOTO_CAPTION_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun editedCaptionShowsTheMarker() {
+        rule.setContent {
+            DesignSystem {
+                ChatPhotoBubble(
+                    isFromSelf = true, maxWidth = 240.dp, imageWidth = 100, imageHeight = 100,
+                    blurHash = null, caption = "Lunch", captionEdited = true,
+                )
+            }
+        }
+        // The caption carries the marker's reservation as a trailing placeholder character.
+        rule.onNodeWithText("Lunch", substring = true).assertIsDisplayed()
+        rule.onNodeWithText("Edited").assertIsDisplayed()
+    }
+
+    @Test
+    fun uneditedCaptionHasNoMarker() {
+        rule.setContent {
+            DesignSystem {
+                ChatPhotoBubble(
+                    isFromSelf = true, maxWidth = 240.dp, imageWidth = 100, imageHeight = 100,
+                    blurHash = null, caption = "Lunch",
+                )
+            }
+        }
+        rule.onNodeWithText("Lunch").assertIsDisplayed()
+        rule.onAllNodesWithText("Edited").assertCountEquals(0)
     }
 
     // endregion

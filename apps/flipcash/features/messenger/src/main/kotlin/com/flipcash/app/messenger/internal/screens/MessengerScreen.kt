@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import com.flipcash.shared.chat.ui.media.ChatPhotoOverlay
+import com.flipcash.shared.chat.ui.media.ChatPhotoPage
+import com.flipcash.shared.chat.ui.media.savablePhoto
 import com.flipcash.shared.chat.ui.media.ChatPhotoSources
 import com.flipcash.shared.chat.ui.media.chatPhotoTranscript
 import com.flipcash.shared.chat.ui.media.LocalChatMediaProgress
@@ -101,6 +103,7 @@ import com.getcode.ui.components.BlurredContent
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.photoStackOf
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.Shareable
@@ -173,6 +176,9 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // screen rather than being a route, so it can grow out of and shrink back into its bubble.
     val photoSources = remember { ChatPhotoSources() }
     var openPhoto by remember { mutableStateOf<ChatListItem.ContentBubble?>(null) }
+    // The rest of the card stack the open photo fronts, and which of its photos is on screen.
+    var openPhotoSet by remember { mutableStateOf<List<ChatListItem.ContentBubble>>(emptyList()) }
+    var openPhotoPage by remember { mutableStateOf(0) }
 
     // A private group the viewer is not in has no transcript to show: no key envelope, so nothing
     // to decrypt. A share link or deep link only knows the chat id and lands here first, so once the
@@ -257,7 +263,11 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
             is ChatAction.OpenPhoto -> {
                 // After the keyboard is down, so the bubble the photo grows from has settled.
-                keyboard.hideIfVisible { openPhoto = action.bubble }
+                keyboard.hideIfVisible {
+                    openPhotoPage = 0
+                    openPhotoSet = action.set.takeIf { it.size > 1 }.orEmpty()
+                    openPhoto = action.bubble
+                }
             }
 
             is ChatAction.RetryMessage -> {
@@ -571,9 +581,21 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
             // inset grows by its height and the oldest message clears it. barHeight stays the bar's
             // own: the soft top edge belongs to the bar, and the anchor is glass over the scroll.
             Column {
+                // The card stack the selected row draws in, walked from its neighbours as the row
+                // itself walks them, so the bar can offer Save All on a stack's front.
+                val selected = state.selection
+                val selectionStack = remember(selected, messages.itemCount) {
+                    selected ?: return@remember null
+                    val rows = messages.itemSnapshotList
+                    val index = rows.indexOfFirst { it?.itemKey == selected.itemKey }
+                    rows.getOrNull(index)?.let { row ->
+                        photoStackOf(index, row, messages.itemCount) { messages.peek(it) }
+                    }
+                }
                 ChatTopBar(
                     navigator = navigator,
                     state = state,
+                    selectionStack = selectionStack,
                     onBarHeightChange = { barHeight = it },
                     chatActionHandler = chatActionHandler,
                     dispatch = viewModel::dispatchEvent,
@@ -840,13 +862,22 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
     openPhoto?.let { opened ->
         // The bubble the photo opened from is a snapshot; the strip highlights the live picks.
-        val live by remember(opened.messageId) { viewModel.selfReactionsOf(opened.messageId) }
+        // The actions below are for the photo on screen, which is the stack's page, not always the
+        // front photo the viewer opened on.
+        val shown = openPhotoSet.getOrNull(openPhotoPage) ?: opened
+        val live by remember(shown.messageId) { viewModel.selfReactionsOf(shown.messageId) }
             .collectAsStateWithLifecycle(initialValue = null)
-        val bubble = opened.withLiveSelfReactions(live)
+        val bubble = shown.withLiveSelfReactions(live)
         ChatPhotoOverlay(
-            messageId = bubble.messageId,
+            messageId = opened.messageId,
+            pages = openPhotoSet.map { ChatPhotoPage(it.messageId, savablePhoto(it)) },
+            onPageChange = { openPhotoPage = it },
             sources = photoSources,
-            onClosed = { openPhoto = null },
+            onClosed = {
+                openPhoto = null
+                openPhotoSet = emptyList()
+                openPhotoPage = 0
+            },
             onSaveResult = { saved -> viewModel.dispatchEvent(ChatViewModel.Event.PhotoSaveResult(saved)) },
             // The same actions the message's context menu offers, gated by the same capabilities.
             // React sends the event the menu's strip does, and the strip is built the same way.

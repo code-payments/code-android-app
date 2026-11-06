@@ -56,6 +56,13 @@ enum class MessageCapability {
      * holds the chat's pinned ids.
      */
     Pin,
+
+    /**
+     * Save the message's photo to the device's gallery. Offered on any photo message the server
+     * confirmed, own or another's, unless it is redacted. Saving is local to the device, so it
+     * needs no right to post and works the same in an encrypted chat.
+     */
+    SavePhoto,
 }
 
 /**
@@ -128,8 +135,10 @@ data class MessagePolicy(
  * | Own text, confirmed, past both windows | Copy, Reply, Link |
  * | Own text, unconfirmed (`eventSequence == 0`) | none |
  * | Another participant's text | Copy, Reply, Report, Link |
- * | Own photo, confirmed, inside the delete window | Reply, Delete, Link |
- * | Another participant's photo | Reply, Report, Link |
+ * | Own captioned photo, confirmed, inside both windows | Copy, Reply, Edit, Delete, Link, SavePhoto |
+ * | Own photo without a caption, inside the delete window | Reply, Delete, Link, SavePhoto |
+ * | Another participant's photo | Reply, Report, Link, SavePhoto |
+ * | A redacted photo | as above, without SavePhoto |
  * | Own cash or tip message | Reply, Link |
  * | Another participant's cash or tip message | Reply, Report, Link |
  * | A tombstone | none |
@@ -151,7 +160,7 @@ data class MessagePolicy(
  * not a thing anyone does, and a row that is always present is a row people stop reading.
  *
  * A viewer who cannot post in the chat — someone reading a group from outside it — keeps only Copy,
- * Report and Link. Reply, Edit and Delete all post into the chat, and the gate that stands where their
+ * Report, Link and SavePhoto. Reply, Edit and Delete all post into the chat, and the gate that stands where their
  * composer would is the only way in.
  *
  * @param canPost whether the viewer may post in this chat. False for a viewer outside a group,
@@ -194,7 +203,7 @@ fun resolveCapabilities(
  */
 fun Set<MessageCapability>.readOnly(): Set<MessageCapability> = filterTo(mutableSetOf()) {
     it == MessageCapability.Copy || it == MessageCapability.Report || it == MessageCapability.Link ||
-        it == MessageCapability.Pin
+        it == MessageCapability.Pin || it == MessageCapability.SavePhoto
 }
 
 /**
@@ -250,9 +259,9 @@ private fun resolveForParticipant(
         return if (canSpeak) setOf(MessageCapability.Reply) else emptySet()
     }
 
-    // A photo, bare or quoted in a reply, is never edited: its caption rides with the image, and
-    // an edit would have to re-seal or replace the picture. Its caption can be copied, as a text
-    // message's body can, and a photo with none has nothing to copy.
+    // A photo's caption can be copied and edited, as a text message's body can. The photo itself
+    // is fixed once sent, and a photo with no caption has nothing to copy and nothing to edit:
+    // an edit never adds a caption.
     val isPhoto = contents.any { it.isPhoto() }
     val hasText = if (isPhoto) {
         contents.any { !it.linkableText().isNullOrEmpty() }
@@ -264,12 +273,14 @@ private fun resolveForParticipant(
         if (hasText) add(MessageCapability.Copy)
         if (canSpeak) add(MessageCapability.Reply)
         if (message.isFromSelf) {
-            if (hasText && !isPhoto) add(MessageCapability.Edit)
+            if (hasText) add(MessageCapability.Edit)
             add(MessageCapability.Delete)
         } else {
             add(MessageCapability.Report)
         }
         add(MessageCapability.Link)
+        // A redacted photo is never fetched, so there is nothing to save.
+        if (isPhoto && !message.redacted) add(MessageCapability.SavePhoto)
     }.withinWindows(message.timestamp, policy, now)
 }
 
@@ -301,7 +312,7 @@ fun Set<MessageCapability>.withinWindows(
         // may be.
         MessageCapability.Copy, MessageCapability.Reply, MessageCapability.Report,
         MessageCapability.Link, MessageCapability.Silence, MessageCapability.Remove,
-        MessageCapability.Pin -> true
+        MessageCapability.Pin, MessageCapability.SavePhoto -> true
     }
 }
 

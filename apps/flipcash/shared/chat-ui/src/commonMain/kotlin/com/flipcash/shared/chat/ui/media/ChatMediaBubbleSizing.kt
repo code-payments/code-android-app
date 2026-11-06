@@ -14,22 +14,33 @@ data class ChatMediaBubbleSize(
  */
 object ChatMediaBubbleSizing {
     /** The widest a photo may be relative to its height: height is never under half the width. */
-    const val MIN_ASPECT = 0.5f
-
-    /** The tallest a photo may be relative to its width: height is never over twice the width. */
-    const val MAX_ASPECT = 2.0f
+    const val MIN_ASPECT = 0.5
 
     /**
-     * The bubble is always [maxWidth] wide. Its height is `maxWidth × clamp(h / w, 0.5, 2.0)`; a
+     * The tallest a photo may be relative to its width: 5:4, as iMessage draws photos. A 3:4
+     * portrait camera photo crops a little at the top and bottom, and a phone screenshot more; both
+     * are whole in the viewer.
+     */
+    const val MAX_ASPECT = 1.25
+
+    /**
+     * The bubble is always [maxWidth] wide. Its height is `maxWidth × clamp(h / w, 0.5, 5/4)`; a
      * missing or zero dimension gives a square. [ChatMediaBubbleSize.cropped] says the clamp moved
-     * the ratio.
+     * the ratio. The ratio is compared in double, so a photo exactly 5:4 tall is not cropped.
      */
     fun size(imageWidth: Int?, imageHeight: Int?, maxWidth: Float): ChatMediaBubbleSize {
         val w = imageWidth ?: 0
         val h = imageHeight ?: 0
         if (w <= 0 || h <= 0) return ChatMediaBubbleSize(maxWidth, maxWidth, cropped = false)
-        val ratio = h.toFloat() / w.toFloat()
+        val ratio = h.toDouble() / w.toDouble()
         val clamped = ratio.coerceIn(MIN_ASPECT, MAX_ASPECT)
-        return ChatMediaBubbleSize(maxWidth, maxWidth * clamped, cropped = clamped != ratio)
+        return ChatMediaBubbleSize(maxWidth, (maxWidth * clamped).toFloat(), cropped = clamped != ratio)
     }
+
+    /**
+     * The bubble for a stack of photos: a [maxWidth] square, whatever the photos' shape. Matches iOS's
+     * `ChatMediaBubbleSizing.stackSize`; a stack of portrait photos would otherwise stand as tall as a
+     * single one.
+     */
+    fun stackSize(maxWidth: Float): ChatMediaBubbleSize = ChatMediaBubbleSize(maxWidth, maxWidth, cropped = true)
 }

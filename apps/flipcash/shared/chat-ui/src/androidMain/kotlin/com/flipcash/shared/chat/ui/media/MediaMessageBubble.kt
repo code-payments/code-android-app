@@ -21,6 +21,7 @@ import com.flipcash.shared.chat.ui.bubbleCorners
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.Dp
@@ -49,6 +50,8 @@ import com.getcode.utils.TraceType
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.shared.chat.models.PhotoMessageContext
+import com.flipcash.shared.chat.models.PhotoStack
+import androidx.compose.ui.unit.dp
 import com.getcode.utils.trace
 
 /**
@@ -73,6 +76,42 @@ fun ChatMessage.photoContext(chatId: ChatId, previewing: Boolean): PhotoMessageC
     )
 
 fun MessageContent.photoBody(): MessageContent.Media? = mediaBody()
+
+/**
+ * The full-size photo a selected [bubble] saves to the gallery, built the way the bubble builds the
+ * viewer's model, or null when there is nothing to save: no photo, a photo drawn only as its BlurHash,
+ * or a pending send whose blob is not on the server yet.
+ */
+fun savablePhoto(bubble: ChatListItem.ContentBubble): ChatPhoto? {
+    val info = bubble.photo?.takeUnless { it.blurhashOnly } ?: return null
+    val item = bubble.content.photoBody()?.items?.firstOrNull() ?: return null
+    val rendition = item.rendition(MediaItemRendition.Role.ORIGINAL) ?: item.renditions.firstOrNull() ?: return null
+    if (rendition.blobId.bytes.isEmpty()) return null
+    return ChatPhoto(info.chatId, rendition, info.senderId, info.sealed, info.redacted)
+}
+
+/**
+ * What Save All on a card stack saves: the [photos] of its members that can be saved, oldest first,
+ * and the [total] that should have been, which leaves out redacted photos as Save Photo does.
+ */
+data class StackSave(val photos: List<ChatPhoto>, val total: Int)
+
+/**
+ * What Save All saves for the row [stack] resolved, or null when it offers no Save All: only a
+ * stack's front row does, as on iOS, so a long press on the caption below offers Save Photo alone.
+ */
+fun savableStack(stack: PhotoStack?): StackSave? {
+    if (stack?.role != PhotoStack.Role.Front) return null
+    val shown = stack.members.filter { it.photo?.redacted != true }
+    return StackSave(photos = shown.mapNotNull(::savablePhoto), total = shown.size)
+}
+
+/**
+ * What a tap on [item]'s photo asks for: its viewer, with the photos of its card stack to page
+ * through when it fronts one, or just itself.
+ */
+internal fun openPhotoAction(item: ChatListItem.ContentBubble, stack: PhotoStack?): ChatAction.OpenPhoto =
+    ChatAction.OpenPhoto(item, stack?.members ?: listOf(item))
 
 /** Whether a tap on a photo opens the viewer: only one that is showing, delivered, and loaded. */
 internal fun canOpenPhoto(blurhashOnly: Boolean, failed: Boolean, unavailable: Boolean): Boolean =
@@ -125,7 +164,18 @@ internal fun MediaMessageBubble(
     interactive: Boolean = true,
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
+    stack: PhotoStack? = null,
 ) {
+    // A photo in the middle of a stack is drawn by the card on top of it. It keeps its row, so the
+    // list's keys and paging are unchanged, but the row has nothing of its own to show.
+    if (stack?.role == PhotoStack.Role.Middle) return
+    // The last photo's row draws what is its own: the caption, which stays on the last message,
+    // and not the photo, which is on the card.
+    if (stack?.role == PhotoStack.Role.Last) {
+        StackCaption(item, body, maxWidth, modifier, onMentionClick, linkCard, interactive, onLongClick, onDoubleClick)
+        return
+    }
+    val position = if (stack != null) BubblePosition.Solo else position
     val actionHandler = LocalChatActionHandler.current
     val caption = body.caption?.text
     // Whether the caption is only the link, so the card stands in for it as it does in text.
@@ -159,6 +209,16 @@ internal fun MediaMessageBubble(
     val progress by remember(item.pendingClientIdHex) {
         derivedStateOf { item.pendingClientIdHex?.let { progressOf()[it] } }
     }
+    // A stack's front photo shows how the whole send is going, not only its own photo.
+    val memberHexes = remember(stack) { stack?.members?.map { it.pendingClientIdHex } }
+    val overlayProgress by remember(memberHexes) {
+        derivedStateOf {
+            if (memberHexes == null) progress
+            else MediaSendProgress.ofSend(memberHexes.map { hex -> hex?.let { progressOf()[it] } })
+        }
+    }
+    // The viewer draws stored photos only, so a stack opens once every photo in it is confirmed.
+    val stackSending = stack?.members?.any { it.receiptStatus == ReceiptStatus.SENDING } == true
     val denied = item.receiptStatus == ReceiptStatus.DENIED
     val failed = denied || item.receiptStatus == ReceiptStatus.FAILED || progress is MediaSendProgress.Failed
     // A denied or terminal failure still renders as failed, but a tap can't fix it.
@@ -171,10 +231,13 @@ internal fun MediaMessageBubble(
     val onClick: (() -> Unit)? = when {
         !interactive -> null
         failed -> if (retryable) ({ actionHandler(ChatAction.RetryMessage(item)) }) else null
-        canOpenPhoto(blurhashOnly, failed = false, unavailable = unavailable) && localUri == null ->
-            ({ actionHandler(ChatAction.OpenPhoto(item)) })
+        canOpenPhoto(blurhashOnly, failed = false, unavailable = unavailable) && localUri == null && !stackSending ->
+            ({ actionHandler(openPhotoAction(item, stack)) })
         else -> null
     }
+
+    // The cards behind the front one: the photos that follow it, up to two.
+    val look = remember(stack, bubblePx) { stack?.let { it.look(bubblePx) } }
 
     Column(
         modifier = modifier,
@@ -192,6 +255,8 @@ internal fun MediaMessageBubble(
             localModel = localUri,
             sentPreview = sentPreview,
             caption = body.caption?.text,
+            // Only the caption is ever edited, so the caption bubble carries the marker.
+            captionEdited = item.isEdited && item.isLastRow,
             mentions = item.mentions,
             onMentionClick = onMentionClick,
             linkCard = linkCard,
@@ -204,7 +269,7 @@ internal fun MediaMessageBubble(
             position = position,
             blurhashOnly = blurhashOnly,
             unavailable = unavailable,
-            progress = progress?.let { p ->
+            progress = overlayProgress?.let { p ->
                 { ChatPhotoProgressOverlay(p.toPhase()) }
             },
             photoModifier = Modifier.chatPhotoSource(
@@ -227,12 +292,20 @@ internal fun MediaMessageBubble(
                 trace(tag = "MediaMessageBubble", message = "Photo failed to load: ${it.message}", type = TraceType.Log)
                 loadError = it
             },
+            stack = look,
         )
             // The citation rides on the photo rather than in a bubble of its own above it, so the
             // reply reads as one message. Matched to the photo's box, not the row, so a long quote
             // wraps inside the photo instead of measuring against the row's full width.
             if (quote != null) {
-                Box(Modifier.matchParentSize()) {
+                // Inset to the front card, so on a stack the citation sits on it rather than the fan.
+                val frontPadding = if (look != null) {
+                    val box = ChatMediaBubbleSizing.stackSize(maxWidth.value)
+                    photoStackFrontPadding(look, box.width, box.height)
+                } else {
+                    PaddingValues(0.dp)
+                }
+                Box(Modifier.matchParentSize().padding(frontPadding)) {
                     // Tighter than a text reply's surround: at the bubble's 12dp corner an 8dp gap
                     // leaves the chip a 4dp corner, which reads as square rather than parallel.
                     val inset = CodeTheme.dimens.staticGrid.x1
@@ -262,6 +335,77 @@ internal fun MediaMessageBubble(
             }
         }
     }
+}
+
+/**
+ * The caption of the last photo in a card stack, drawn under the stack as a bubble of its own. The
+ * caption stays on the last message, so a long press here acts on that message and not on the
+ * front photo the stack's own press resolves to.
+ */
+@Composable
+private fun StackCaption(
+    item: ChatListItem.ContentBubble,
+    body: MessageContent.Media,
+    maxWidth: Dp,
+    modifier: Modifier,
+    onMentionClick: ((String) -> Unit)?,
+    linkCard: LinkCard?,
+    interactive: Boolean,
+    onLongClick: (() -> Unit)?,
+    onDoubleClick: (() -> Unit)?,
+) {
+    val caption = body.caption?.text
+    if (caption.isNullOrEmpty()) return
+    val cardAlone = remember(linkCard, caption) { linkCard != null && linkCard.isAloneIn(caption) }
+    ChatPhotoBubble(
+        isFromSelf = item.isFromSelf,
+        maxWidth = maxWidth,
+        imageWidth = null,
+        imageHeight = null,
+        blurHash = null,
+        modifier = modifier.padding(top = CodeTheme.dimens.staticGrid.x1),
+        caption = caption,
+        captionEdited = item.isEdited && item.isLastRow,
+        mentions = item.mentions,
+        onMentionClick = onMentionClick,
+        linkCard = linkCard,
+        cardAlone = cardAlone,
+        onCardLongClick = onLongClick,
+        onCardDoubleClick = onDoubleClick,
+        interactive = interactive,
+        redacted = item.redacted,
+        position = BubblePosition.Solo,
+        onLongClick = onLongClick,
+        onDoubleClick = onDoubleClick,
+        drawsPhoto = false,
+    )
+}
+
+/** What [stack] draws behind its front card, sized to load at [bubblePx]. */
+private fun PhotoStack.look(bubblePx: Int): PhotoStackLook {
+    val others = members.drop(1)
+    // One card behind per photo after the front one, up to two: a pair draws one.
+    return PhotoStackLook(
+        count = count,
+        behind = others.take(PhotoStackLook.behindCount(count)).map { stackCardOf(it, bubblePx) },
+    )
+}
+
+private fun stackCardOf(bubble: ChatListItem.ContentBubble, bubblePx: Int): StackCardPhoto {
+    val item = bubble.content.photoBody()?.items?.firstOrNull()
+    val info = bubble.photo
+    val rendition = item?.let { bubbleRendition(it, bubblePx) ?: it.renditions.firstOrNull() }
+    val blurHash = item?.rendition(MediaItemRendition.Role.ORIGINAL)?.blob?.image?.blurhash?.takeIf { it.isNotEmpty() }
+    // A photo still sending has no blob yet and the staged file as its URL, which the card draws.
+    val localUri = rendition?.takeIf { it.blobId.bytes.isEmpty() }?.blob?.downloadUrl?.takeIf { it.isNotEmpty() }
+    // A photo drawn only as its BlurHash, or with neither a stored blob nor a staged file, draws as
+    // the BlurHash.
+    val model = if (localUri != null || info == null || info.blurhashOnly || rendition == null || rendition.blobId.bytes.isEmpty()) {
+        null
+    } else {
+        ChatPhoto(info.chatId, rendition, info.senderId, info.sealed, info.redacted)
+    }
+    return StackCardPhoto(blurHash, model, localUri)
 }
 
 /** The quote a photo reply carries, drawn over the photo's top corner. */

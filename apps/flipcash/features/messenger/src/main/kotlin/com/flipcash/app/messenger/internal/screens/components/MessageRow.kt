@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -62,6 +63,8 @@ import com.flipcash.services.models.chat.MessagePointer
 import com.flipcash.shared.chat.MessageCapability
 import com.flipcash.shared.chat.models.ChatAction
 import com.flipcash.shared.chat.models.ChatListItem
+import com.flipcash.shared.chat.models.PhotoStack
+import com.flipcash.shared.chat.models.photoStackOf
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.models.ReceiptStatus
 import com.flipcash.shared.chat.models.SeparatorConfig
@@ -141,11 +144,26 @@ internal fun MessageRow(
         val bubble = messages.peek(at) as? ChatListItem.ContentBubble ?: return false
         return shouldShowReceiptLabel(at, bubble, messages, otherReadPointer, settlingKey)
     }
+    // Photos sent together are separate rows that draw as one card stack: the first row draws the
+    // cards, the rows between draw nothing, and the last draws the caption and receipt. Walked from
+    // the neighbours each time, as the receipt rule is, so a send that lands or settles re-resolves
+    // the stack without any state of its own.
+    val stack = photoStackOf(index, item, messages.itemCount) { messages.peek(it) }
+    // A stack's middle rows, and its last row when the set has no caption, draw nothing: the front
+    // row's cards stand for them. Such a row has nothing to swipe and must take no height beyond
+    // its gap, or consecutive stacks sit an empty row apart.
+    val drawsNothing = stack?.role == PhotoStack.Role.Middle ||
+        (stack?.role == PhotoStack.Role.Last && (item as? ChatListItem.ContentBubble)?.plainText.isNullOrEmpty())
     val showReceipt = item is ChatListItem.ContentBubble && carriesReceipt(index)
     val receiptAbove = index + 1 < messages.itemCount && carriesReceipt(index + 1)
     // Animated so the gap closes with the line leaving it, instead of snapping a frame ahead of it.
     val bottomSpacing by animateDpAsState(
-        targetValue = bottomSpacingFor(index, item, messages, separatorConfig, showReceipt),
+        targetValue = if (stack != null && stack.role != PhotoStack.Role.Last) {
+            // The members of a stack close up: the cards and the caption read as one message.
+            0.dp
+        } else {
+            bottomSpacingFor(index, item, messages, separatorConfig, showReceipt)
+        },
         animationSpec = ChatAnimations.reflowDp,
         label = "rowGap",
     )
@@ -228,6 +246,7 @@ internal fun MessageRow(
 
     val swipe = rememberSwipeToReply(
         enabled = bubble != null &&
+            !drawsNothing &&
             !selecting &&
             MessageCapability.Reply in bubble.capabilities,
         // A drag arms on the message, not beside it: on someone's avatar it is reaching for them,
@@ -296,7 +315,9 @@ internal fun MessageRow(
                 )
             }
 
-            is ChatListItem.ContentBubble -> {
+            // A photo in the middle of a stack has nothing of its own to draw: the front row's
+            // cards stand for it, and its row stays only so paging and keys are unchanged.
+            is ChatListItem.ContentBubble -> if (stack?.role != PhotoStack.Role.Middle) {
                 val effectiveStatus = effectiveReceiptStatus(item, otherReadPointer)
                 // Bound to a local: `sender` is a property of another module's public API, so
                 // Kotlin will not smart-cast it to non-null inside the branches below.
@@ -357,7 +378,15 @@ internal fun MessageRow(
                         // row that reserved no gutter would sit out at the inset and then jump inward
                         // when the name arrived.
                         if (showsSenderGutter && !item.isFromSelf) {
-                            Box(modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5)) {
+                            // The last photo of a stack with no caption draws nothing: its gutter
+                            // keeps the column's inset but no height, or the empty row would open
+                            // an avatar's height of space below the stack.
+                            val gutterSize = if (stack?.role == PhotoStack.Role.Last && item.plainText.isNullOrEmpty()) {
+                                Modifier.requiredWidth(CodeTheme.dimens.staticGrid.x5)
+                            } else {
+                                Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5)
+                            }
+                            Box(modifier = gutterSize) {
                                 if (sender != null && runStart) {
                                     ContactAvatar(
                                         image = sender.picture,
@@ -425,6 +454,7 @@ internal fun MessageRow(
                                         )
                                     },
                                     attention = attention,
+                                    stack = stack,
                                 )
 
                                 // What's left of the dots as the bubble grows out from under them.
@@ -488,7 +518,9 @@ internal fun MessageRow(
                             val pillsAtFirstComposition = remember(item.messageId) { item.reactionPills.isNotEmpty() }
                             val pillRowComposed = remember(item.messageId) { BooleanArray(1) }
                             if (item.reactionPills.isNotEmpty()) pillRowComposed[0] = true
-                            if (pillRowComposed[0]) {
+                            // Only the front photo's pills show under a stack; the other members'
+                            // stay on their messages and out of the transcript.
+                            if (pillRowComposed[0] && (stack == null || stack.role == PhotoStack.Role.Front)) {
                                 BoxWithConstraints(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -569,7 +601,9 @@ internal fun MessageRow(
             }
         }
 
-        if (reveal != null && bubble != null && bubble.isLastRow && bubble.content !is MessageContent.Deleted) {
+        // One time for a stack, on the row that draws its cards; the others would repeat it.
+        val showsTime = stack == null || stack.role == PhotoStack.Role.Front
+        if (showsTime && reveal != null && bubble != null && bubble.isLastRow && bubble.content !is MessageContent.Deleted) {
             RevealedTime(
                 sentAt = bubble.timestamp,
                 reveal = reveal,
@@ -577,11 +611,15 @@ internal fun MessageRow(
             )
         }
 
-        SwipeToReplyAffordance(
-            progress = swipe::progress,
-            pullBackPx = swipe::affordanceTranslationPx,
-            modifier = Modifier.align(Alignment.CenterStart),
-        )
+        // Measured with the row, at its own size: on a row that draws nothing it would be all the
+        // row's height, so it is left out there with the swipe it belongs to.
+        if (!drawsNothing) {
+            SwipeToReplyAffordance(
+                progress = swipe::progress,
+                pullBackPx = swipe::affordanceTranslationPx,
+                modifier = Modifier.align(Alignment.CenterStart),
+            )
+        }
     }
 }
 

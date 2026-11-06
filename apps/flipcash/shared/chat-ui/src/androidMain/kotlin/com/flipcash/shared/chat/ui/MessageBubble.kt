@@ -17,10 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
-import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
@@ -46,11 +44,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -65,7 +60,6 @@ import androidx.compose.ui.unit.sp
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.action_sendBack
 import com.flipcash.core.resources.label_sentBack
-import com.flipcash.core.resources.label_edited
 import com.flipcash.core.resources.label_groupSendTotal
 import com.flipcash.core.resources.label_messageDeleted
 import com.flipcash.core.resources.label_messageDeletedByYou
@@ -90,6 +84,7 @@ import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.SendBackRow
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import androidx.compose.foundation.clickable
+import com.flipcash.shared.chat.models.PhotoStack
 import com.flipcash.shared.chat.models.LocalChatActionHandler
 import com.flipcash.shared.chat.ui.media.MediaMessageBubble
 import com.flipcash.shared.chat.ui.media.photoBody
@@ -105,7 +100,6 @@ import com.getcode.opencode.model.financial.usdf
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 
-private val EDITED_MARKER_GAP = 6.dp
 
 /**
  * @param onLongClick what a long-press on this bubble reports, or `null` where the row behind it
@@ -117,6 +111,8 @@ private val EDITED_MARKER_GAP = 6.dp
  * running through it repaints the bubble without recomposing it or the list carrying it.
  * @param leading whether the bubble sits at the leading edge whoever sent it, as in a list of
  * messages lifted out of the transcript; it keeps its own style either way.
+ * @param stack the card stack this photo row belongs to, when it was sent together with the rows
+ * around it; the row draws its share of the stack, which may be nothing.
  */
 @Composable
 fun ContentBubble(
@@ -128,6 +124,7 @@ fun ContentBubble(
     onLongClick: (() -> Unit)? = null,
     onDoubleClick: (() -> Unit)? = null,
     attention: () -> Float = { 0f },
+    stack: PhotoStack? = null,
 ) {
     val actionHandler = LocalChatActionHandler.current
     val updateAction = LocalUpdateAppAction.current
@@ -152,7 +149,13 @@ fun ContentBubble(
             rowWidth = maxWidth,
             rowInset = CodeTheme.dimens.inset,
         )
-        val messageCardWidth = maxWidth * CASH_CARD_WIDTH_FRACTION
+        val messageCardWidth = cashCardWidth(rowWidth = maxWidth, rowInset = CodeTheme.dimens.inset)
+        // A link card fills its width, so it takes the capped width even on a text message's row.
+        val cardMaxWidth = transcriptBubbleMaxWidth(
+            rowWidth = maxWidth,
+            rowInset = CodeTheme.dimens.inset,
+            fillsWidth = true,
+        )
 
         // A split message's citation goes on its first row and its marker on its last, so the
         // pieces read as one message stacked rather than as three.
@@ -187,7 +190,7 @@ fun ContentBubble(
                     position = position,
                     // A message card takes the cash card's width rather than a bubble's, so its
                     // states read as one fixed card against the prose either side (iOS matches).
-                    maxWidth = if (card is LinkCard.Message) messageCardWidth else bubbleMaxWidth,
+                    maxWidth = if (card is LinkCard.Message) messageCardWidth else cardMaxWidth,
                     quote = quote,
                     onQuoteClick = onQuoteClick,
                     onQuoteLongClick = onLongClick?.takeIf { interactive },
@@ -212,6 +215,7 @@ fun ContentBubble(
                     jumbo = jumbo,
                     webCard = webCard,
                     webCardAlone = webCardAlone,
+                    cardMaxWidth = cardMaxWidth,
                     onCardLongClick = onLongClick?.takeIf { interactive },
                     onCardDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
@@ -295,6 +299,7 @@ fun ContentBubble(
                         interactive = interactive,
                         onLongClick = onLongClick?.takeIf { interactive },
                         onDoubleClick = onDoubleClick?.takeIf { interactive },
+                        stack = stack,
                     )
                 } ?: TextBubble(
                     modifier = modifier,
@@ -314,6 +319,7 @@ fun ContentBubble(
                     jumbo = jumbo,
                     webCard = webCard,
                     webCardAlone = webCardAlone,
+                    cardMaxWidth = cardMaxWidth,
                     onCardLongClick = onLongClick?.takeIf { interactive },
                     onCardDoubleClick = onDoubleClick?.takeIf { interactive },
                     interactive = interactive,
@@ -342,6 +348,7 @@ fun ContentBubble(
                     interactive = interactive,
                     onLongClick = onLongClick?.takeIf { interactive },
                     onDoubleClick = onDoubleClick?.takeIf { interactive },
+                    stack = stack,
                 )
                 // Unreachable: the transcript emits System content as ChatListItem.SystemMessage.
                 is MessageContent.System -> Unit
@@ -449,8 +456,6 @@ private fun ChatListItem.ContentBubble.linkOnlyWebCard(): LinkCard.Web? {
     return web.takeIf { plainText?.let(it::isAloneIn) == true }
 }
 
-private const val EDITED_MARKER_SLOT = "edited-marker"
-
 internal const val REPLY_QUOTE_TAG = "bubble_reply_quote"
 
 /** The hairline across the top of a cash bubble's Sent Back footer. */
@@ -518,6 +523,8 @@ private fun TextBubble(
     jumbo: Boolean = false,
     webCard: LinkCard.Web? = null,
     webCardAlone: Boolean = false,
+    /** The bubble's width once [webCard] draws: a card fills its width, so this is capped. */
+    cardMaxWidth: Dp = maxWidth,
     onCardLongClick: (() -> Unit)? = null,
     onCardDoubleClick: (() -> Unit)? = null,
     interactive: Boolean = true,
@@ -556,7 +563,7 @@ private fun TextBubble(
             web = web,
             isFromSelf = isFromSelf,
             position = position,
-            maxWidth = maxWidth,
+            maxWidth = cardMaxWidth,
             modifier = modifier,
             quote = quote,
             onQuoteClick = onQuoteClick,
@@ -572,9 +579,9 @@ private fun TextBubble(
     Bubble(
         isFromSelf,
         position,
-        maxWidth,
+        if (cardDrawn) cardMaxWidth else maxWidth,
         modifier,
-        minWidth = if (cardDrawn) maxWidth else 0.dp,
+        minWidth = if (cardDrawn) cardMaxWidth else 0.dp,
         horizontalPadding = surround,
         attention = attention,
     ) {
@@ -621,43 +628,14 @@ private fun TextBubble(
             CodeTheme.colors.textMain
         }
 
-        val markerLabel = stringResource(Res.string.label_edited)
-        val markerStyle = CodeTheme.typography.caption
-
-        // The marker is pinned to the bubble's bottom-trailing corner rather than laid out after
-        // the text, so the body has to leave a hole of exactly the marker's width. An empty
-        // placeholder in the text flow does that: it sits on the last line where there is room and
-        // wraps onto its own line where there isn't, without dragging the last word along with it.
-        // It draws nothing and holds no text, so selection and the accessibility tree see only the
-        // real marker below.
+        val marker = rememberEditedMarker()
         val measurer = rememberTextMeasurer()
         val density = LocalDensity.current
-        val reservation = remember(markerLabel, markerStyle, density) {
-            with(density) {
-                (measurer.measure(markerLabel, markerStyle).size.width.toDp() + EDITED_MARKER_GAP).toSp()
-            }
-        }
-
-        val laidOut = if (isEdited) {
-            buildAnnotatedString {
-                append(body)
-                appendInlineContent(EDITED_MARKER_SLOT, "\u2007")
-            }
-        } else {
-            body
-        }
+        val laidOut = if (isEdited) marker.reserveSpace(body) else body
         val inlineContent = buildMap {
             if (isEdited) {
-                put(
-                    EDITED_MARKER_SLOT,
-                    InlineTextContent(
-                        Placeholder(
-                            width = reservation,
-                            height = 1.sp,
-                            placeholderVerticalAlign = PlaceholderVerticalAlign.TextBottom,
-                        ),
-                    ) { },
-                )
+                val (slot, placeholder) = marker.inlineContent()
+                put(slot, placeholder)
             }
             if (handles.isNotEmpty()) {
                 val (slot, spacing) = mentionSpacingContent(density)
@@ -717,14 +695,7 @@ private fun TextBubble(
                 }
 
                 if (isEdited) {
-                    Text(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(end = bodyInset),
-                        text = markerLabel,
-                        style = markerStyle,
-                        color = CodeTheme.colors.textSecondary,
-                    )
+                    with(marker) { Label(endPadding = bodyInset) }
                 }
             }
             if (web != null) {

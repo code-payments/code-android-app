@@ -5,7 +5,12 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import com.getcode.theme.Black50
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -29,6 +34,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import coil3.request.ImageRequest
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Text
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_chat_media_position
+import com.flipcash.shared.chat.media.ChatPhoto
+import com.getcode.theme.CodeTheme
+import org.jetbrains.compose.resources.stringResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
@@ -147,6 +166,12 @@ internal class ChatPhotoPresentation(
     }
 }
 
+/** One photo of a card stack the viewer pages through: its message, and what it loads in full. */
+class ChatPhotoPage(val messageId: Long, val model: ChatPhoto?)
+
+internal const val PHOTO_COUNTER_TAG = "chat_photo_counter"
+internal const val PHOTO_PAGER_TAG = "chat_photo_pager"
+
 /**
  * The photo of message [messageId], opened over the chat: it grows out of its bubble in [sources],
  * drags back into it, and goes when it lands. Compose it above the whole screen with the chat
@@ -154,6 +179,11 @@ internal class ChatPhotoPresentation(
  *
  * [onReply] and [onForward] are null when the message cannot be replied to or linked.
  * [onSaveResult] reports whether a save reached the gallery, for the host to tell the user.
+ *
+ * [pages] is the set a card stack opens, oldest first, [messageId] being the first: the viewer pages
+ * through it with a counter, [onPageChange] reports the page on screen so the host can act on its
+ * message, and the open and close transition stays anchored to [messageId]'s bubble, the front card.
+ * Empty or a single page is the plain viewer.
  *
  * The caller hides the keyboard first, so the bubble the photo grows from is where it will rest.
  */
@@ -171,6 +201,8 @@ fun ChatPhotoOverlay(
     onReply: (() -> Unit)? = null,
     onForward: (() -> Unit)? = null,
     reduceMotion: Boolean = rememberReducedMotion(),
+    pages: List<ChatPhotoPage> = emptyList(),
+    onPageChange: (Int) -> Unit = {},
 ) {
     val source = remember(messageId) { sources.sourceOf(messageId) }
     if (source == null) {
@@ -182,7 +214,14 @@ fun ChatPhotoOverlay(
     val density = LocalDensity.current.density
     val context = LocalContext.current
     val currentOnClosed by rememberUpdatedState(onClosed)
-    val zoomState = remember(messageId) { ChatMediaZoomState() }
+    val pageCount = pages.size.coerceAtLeast(1)
+    val zoomStates = remember(messageId, pageCount) { List(pageCount) { ChatMediaZoomState() } }
+    val zoomState = zoomStates[0]
+    val pagerState = rememberPagerState { pageCount }
+    val currentOnPageChange by rememberUpdatedState(onPageChange)
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }.collect { currentOnPageChange(it) }
+    }
     val windowSize = LocalWindowInfo.current.containerSize
 
     val presentation = remember(messageId) {
@@ -215,7 +254,19 @@ fun ChatPhotoOverlay(
         onDispose { if (sources.landing === landing) sources.landing = null }
     }
     LaunchedEffect(presentation) { presentation.open() }
-    BackHandler { presentation.dismiss() }
+    // The photo always lands back on the front card, the one the stack draws in front: from another
+    // page it first returns to the front photo, then flies into the card.
+    val dismissToFront: () -> Unit = {
+        if (pagerState.currentPage == 0) {
+            presentation.dismiss()
+        } else {
+            scope.launch {
+                pagerState.scrollToPage(0)
+                presentation.dismiss()
+            }
+        }
+    }
+    BackHandler { dismissToFront() }
 
     // The bubble already has the photo cached at its own size: draw that until the full one lands.
     val request = remember(source) {
@@ -225,7 +276,13 @@ fun ChatPhotoOverlay(
             .build()
     }
     var fullImageLoaded by remember(messageId) { mutableStateOf(false) }
-    val save = rememberSavePhoto(source.fullModel, onSaveResult)
+    // One chrome state for every page, so paging keeps the controls as the viewer left them.
+    val chromeVisible = remember(messageId) { mutableStateOf(false) }
+    // Save is for the photo on screen, which is the stack's other pages' own models past the first.
+    val save = rememberSavePhoto(
+        if (pagerState.currentPage == 0) source.fullModel else pages.getOrNull(pagerState.currentPage)?.model,
+        onSaveResult,
+    )
 
     Box(
         modifier = modifier
@@ -233,20 +290,22 @@ fun ChatPhotoOverlay(
             .onSizeChanged { presentation.container = Size(it.width.toFloat(), it.height.toFloat()) }
             .onGloballyPositioned { presentation.origin = it.positionInRoot() },
     ) {
+        val viewer: @Composable (page: Int) -> Unit = { page ->
+            if (page == 0) {
         ChatMediaViewer(
             model = request,
             fullImageLoaded = fullImageLoaded,
             onFullImageLoaded = { fullImageLoaded = true },
             onSave = save,
             // Reply leaves the photo, back into its bubble, as the composer's strip opens.
-            onReply = onReply?.let { reply -> { presentation.dismiss(); reply() } },
+            onReply = onReply?.let { reply -> { dismissToFront(); reply() } },
             // Forward and the picker, like Reply, leave the photo before their screen opens.
-            onForward = onForward?.let { forward -> { presentation.dismiss(); forward() } },
+            onForward = onForward?.let { forward -> { dismissToFront(); forward() } },
             onReact = onReact,
             reactionStrip = reactionStrip,
             ownReactions = ownReactions,
-            onOpenPicker = { presentation.dismiss(); onOpenPicker() },
-            onDismiss = presentation::dismiss,
+            onOpenPicker = { dismissToFront(); onOpenPicker() },
+            onDismiss = dismissToFront,
             zoomState = zoomState,
             reduceMotion = reduceMotion,
             frame = presentation::frame,
@@ -254,6 +313,69 @@ fun ChatPhotoOverlay(
             onPullEnd = presentation::onPullEnd,
             interactive = !presentation.closing,
             onPainter = { painter = it },
+            chromeVisible = chromeVisible,
         )
+            } else {
+                val model = pages[page].model
+                val pageRequest = remember(model) { ImageRequest.Builder(context).data(model).build() }
+                var loaded by remember(model) { mutableStateOf(false) }
+                ChatMediaViewer(
+                    model = pageRequest,
+                    fullImageLoaded = loaded,
+                    onFullImageLoaded = { loaded = true },
+                    onSave = save,
+                    onReply = onReply?.let { reply -> { dismissToFront(); reply() } },
+                    onForward = onForward?.let { forward -> { dismissToFront(); forward() } },
+                    onReact = onReact,
+                    reactionStrip = reactionStrip,
+                    ownReactions = ownReactions,
+                    onOpenPicker = { dismissToFront(); onOpenPicker() },
+                    onDismiss = dismissToFront,
+                    zoomState = zoomStates[page],
+                    reduceMotion = reduceMotion,
+                    interactive = !presentation.closing,
+                    chromeVisible = chromeVisible,
+                )
+            }
+        }
+        if (pageCount > 1) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize().testTag(PHOTO_PAGER_TAG),
+                // A zoomed photo pans under the finger; the pager waits for it to be back at fit.
+                userScrollEnabled = !zoomStates[pagerState.currentPage].isZoomed && !presentation.closing,
+                beyondViewportPageCount = 1,
+            ) { page -> viewer(page) }
+            // Level with the close button, and on a pill of its own: it shows while the rest of the
+            // chrome is hidden, so it cannot lean on the chrome's shade to read over a light photo.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(top = CodeTheme.dimens.staticGrid.x2)
+                    .height(CodeTheme.dimens.staticGrid.x8),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(
+                        Res.string.label_chat_media_position,
+                        pagerState.currentPage + 1,
+                        pageCount,
+                    ),
+                    style = CodeTheme.typography.textSmall,
+                    color = Color.White,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(percent = 50))
+                        .background(Black50)
+                        .padding(
+                            horizontal = CodeTheme.dimens.staticGrid.x3,
+                            vertical = CodeTheme.dimens.staticGrid.x1,
+                        )
+                        .testTag(PHOTO_COUNTER_TAG),
+                )
+            }
+        } else {
+            viewer(0)
+        }
     }
 }
