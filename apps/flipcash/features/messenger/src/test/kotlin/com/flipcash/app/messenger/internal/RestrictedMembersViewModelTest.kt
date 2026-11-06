@@ -18,6 +18,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.flipcash.libs.coroutines.TestDispatcherProvider
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -42,6 +43,8 @@ class RestrictedMembersViewModelTest {
     private val toasts = mockk<SystemToastController>(relaxed = true)
     private val restrictionWrites = GroupRestrictionWrites()
     private val chatId = ChatId(ByteArray(32) { 3 }.toList())
+    private val main = UnconfinedTestDispatcher()
+    private val dispatchers = TestDispatcherProvider(main)
 
     private val soon = SilenceState.Until(Clock.System.now() + 1.hours)
     private val lapsed = SilenceState.Until(Clock.System.now() - 1.hours)
@@ -64,7 +67,7 @@ class RestrictedMembersViewModelTest {
 
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        Dispatchers.setMain(main)
         BottomBarManager.clear()
     }
 
@@ -77,12 +80,12 @@ class RestrictedMembersViewModelTest {
     private fun loaded(vararg users: RestrictedUser): RestrictedMembersViewModel {
         coEvery { chatController.getRestrictedUsers(chatId, any()) } returns
             Result.success(RestrictedUsersPage(users.toList(), null, false))
-        return RestrictedMembersViewModel(chatController, resources, toasts, restrictionWrites).also { it.load(chatId) }
+        return RestrictedMembersViewModel(chatController, resources, toasts, restrictionWrites, dispatchers).also { it.dispatchEvent(RestrictedMembersViewModel.Event.Load(chatId)) }
     }
 
     @Test
     fun `silenced holds active silences with no ban, removed holds every ban`() {
-        val state = loaded(silencedOnly, silencedForever, lapsedOnly, removed, removedAndSilenced).state.value
+        val state = loaded(silencedOnly, silencedForever, lapsedOnly, removed, removedAndSilenced).stateFlow.value
 
         assertEquals(listOf(silencedOnly, silencedForever), state.rows(RestrictedKind.Silenced))
         assertEquals(listOf(removed, removedAndSilenced), state.rows(RestrictedKind.Removed))
@@ -96,15 +99,15 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.getRestrictedUsers(chatId, QueryOptions(token = listOf(9))) } returns
             Result.success(RestrictedUsersPage(listOf(removed), null, false))
 
-        val vm = RestrictedMembersViewModel(chatController, resources, toasts, restrictionWrites).also { it.load(chatId) }
+        val vm = RestrictedMembersViewModel(chatController, resources, toasts, restrictionWrites, dispatchers).also { it.dispatchEvent(RestrictedMembersViewModel.Event.Load(chatId)) }
 
-        assertEquals(listOf(silencedOnly, removed), vm.state.value.users)
+        assertEquals(listOf(silencedOnly, removed), vm.stateFlow.value.users)
     }
 
     @Test
     fun `loading the same chat again does not read twice`() {
         val vm = loaded(silencedOnly)
-        vm.load(chatId)
+        vm.dispatchEvent(RestrictedMembersViewModel.Event.Load(chatId))
 
         coVerify(exactly = 1) { chatController.getRestrictedUsers(chatId, any()) }
     }
@@ -112,15 +115,15 @@ class RestrictedMembersViewModelTest {
     @Test
     fun `a failed read is flagged and can be retried`() {
         coEvery { chatController.getRestrictedUsers(chatId, any()) } returns Result.failure(Throwable("down"))
-        val vm = RestrictedMembersViewModel(chatController, resources, toasts, restrictionWrites).also { it.load(chatId) }
+        val vm = RestrictedMembersViewModel(chatController, resources, toasts, restrictionWrites, dispatchers).also { it.dispatchEvent(RestrictedMembersViewModel.Event.Load(chatId)) }
 
-        assertTrue(vm.state.value.failed)
-        assertFalse(vm.state.value.loading)
+        assertTrue(vm.stateFlow.value.failed)
+        assertFalse(vm.stateFlow.value.loading)
 
         coEvery { chatController.getRestrictedUsers(chatId, any()) } returns
             Result.success(RestrictedUsersPage(listOf(removed), null, false))
-        vm.load(chatId)
-        assertEquals(listOf(removed), vm.state.value.users)
+        vm.dispatchEvent(RestrictedMembersViewModel.Event.Load(chatId))
+        assertEquals(listOf(removed), vm.stateFlow.value.users)
     }
 
     @Test
@@ -128,10 +131,10 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.unsilenceUser(chatId, any()) } returns Result.success(Unit)
         val vm = loaded(silencedOnly, silencedForever)
 
-        vm.unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada")
+        vm.dispatchEvent(RestrictedMembersViewModel.Event.Unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada"))
 
-        assertEquals(listOf(silencedForever), vm.state.value.rows(RestrictedKind.Silenced))
-        assertTrue(vm.state.value.pending.isEmpty())
+        assertEquals(listOf(silencedForever), vm.stateFlow.value.rows(RestrictedKind.Silenced))
+        assertTrue(vm.stateFlow.value.pending.isEmpty())
         coVerify(exactly = 1) { chatController.getRestrictedUsers(chatId, any()) }
     }
 
@@ -140,9 +143,9 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.unsilenceUser(chatId, any()) } returns Result.success(Unit)
         val vm = loaded(removedAndSilenced)
 
-        vm.unsilence(chatId, removedAndSilenced.userProfile.userId!!, "Ada")
+        vm.dispatchEvent(RestrictedMembersViewModel.Event.Unsilence(chatId, removedAndSilenced.userProfile.userId!!, "Ada"))
 
-        assertEquals(listOf(removedAndSilenced.copy(silence = null)), vm.state.value.rows(RestrictedKind.Removed))
+        assertEquals(listOf(removedAndSilenced.copy(silence = null)), vm.stateFlow.value.rows(RestrictedKind.Removed))
     }
 
     @Test
@@ -150,11 +153,11 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.unbanUser(chatId, any()) } returns Result.success(Unit)
         val vm = loaded(removed, removedAndSilenced)
 
-        vm.unban(chatId, removed.userProfile.userId!!)
-        vm.unban(chatId, removedAndSilenced.userProfile.userId!!)
+        vm.dispatchEvent(RestrictedMembersViewModel.Event.Unban(chatId, removed.userProfile.userId!!))
+        vm.dispatchEvent(RestrictedMembersViewModel.Event.Unban(chatId, removedAndSilenced.userProfile.userId!!))
 
-        assertTrue(vm.state.value.rows(RestrictedKind.Removed).isEmpty())
-        assertEquals(listOf(removedAndSilenced.copy(ban = null)), vm.state.value.rows(RestrictedKind.Silenced))
+        assertTrue(vm.stateFlow.value.rows(RestrictedKind.Removed).isEmpty())
+        assertEquals(listOf(removedAndSilenced.copy(ban = null)), vm.stateFlow.value.rows(RestrictedKind.Silenced))
     }
 
     @Test
@@ -162,10 +165,10 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.unsilenceUser(chatId, any()) } returns Result.failure(Throwable("denied"))
         val vm = loaded(silencedOnly)
 
-        vm.unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada")
+        vm.dispatchEvent(RestrictedMembersViewModel.Event.Unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada"))
 
-        assertEquals(listOf(silencedOnly), vm.state.value.rows(RestrictedKind.Silenced))
-        assertTrue(vm.state.value.pending.isEmpty())
+        assertEquals(listOf(silencedOnly), vm.stateFlow.value.rows(RestrictedKind.Silenced))
+        assertTrue(vm.stateFlow.value.pending.isEmpty())
     }
 
     @Test
@@ -173,7 +176,7 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.unsilenceUser(chatId, any()) } returns Result.success(Unit)
         val vm = loaded(silencedOnly)
 
-        vm.unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada")
+        vm.dispatchEvent(RestrictedMembersViewModel.Event.Unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada"))
 
         verify(exactly = 1) { toasts.showToast(R.string.toast_unsilenced, "Ada", replacePrevious = true) }
     }
@@ -183,7 +186,7 @@ class RestrictedMembersViewModelTest {
         coEvery { chatController.unsilenceUser(chatId, any()) } returns Result.failure(Throwable("denied"))
         val vm = loaded(silencedOnly)
 
-        vm.unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada")
+        vm.dispatchEvent(RestrictedMembersViewModel.Event.Unsilence(chatId, silencedOnly.userProfile.userId!!, "Ada"))
 
         verify(exactly = 0) { toasts.showToast(any<Int>(), *anyVararg(), replacePrevious = any()) }
     }
