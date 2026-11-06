@@ -13,7 +13,7 @@ import kotlin.time.Instant
 
 /**
  * A silenced member sees the read-only pill instead of the composer. A timed silence lapses with no
- * event, so the state reads the deadline against [ChatViewModel.State.silenceClock], which the view
+ * event, so the state reads the deadline against [ViewerSlice.silenceClock], which the view
  * model refreshes when the timer fires; these pin the answers on both sides of that refresh.
  */
 class ChatSilenceStateTest {
@@ -26,8 +26,10 @@ class ChatSilenceStateTest {
         subject = ChatSubject.Group(
             chatId = chatId, groupTitle = "XCTest Bed", picture = null, memberCount = 2L, rules = null, isMember = true,
         ),
-        viewerState = ViewerState(restrictions = silence?.let { ViewerState.Restrictions(it) }),
-        silenceClock = clock,
+        viewer = ViewerSlice(
+            viewerState = ViewerState(restrictions = silence?.let { ViewerState.Restrictions(it) }),
+            silenceClock = clock,
+        ),
     )
 
     @Test
