@@ -141,12 +141,14 @@ class ChatMessageDataSource @Inject constructor(
             .orEmpty()
 
     /**
-     * Emits whenever the set of newest-visible messages changes (one per chat). Carries the rows
-     * only so callers can de-duplicate on them; the list reads previews with
-     * [getLatestVisibleByChat].
+     * [getLatestVisibleByChat] as a stream: emits when some chat's newest visible message changes,
+     * not on every message write.
      */
-    fun observeLatestVisibleChanges(): Flow<List<Any>> =
-        db?.chatMessageDao()?.observeLatestVisibleForAllChats()?.distinctUntilChanged() ?: emptyFlow()
+    fun observeLatestVisibleByChat(): Flow<Map<String, ChatMessage>> =
+        db?.chatMessageDao()?.observeLatestVisibleForAllChats()
+            ?.distinctUntilChanged()
+            ?.map { rows -> rows.associate { it.chatIdHex to toChatMessage(it) } }
+            ?: emptyFlow()
 
     /**
      * The server's unread stamp on one stored message, or null when that message isn't stored —
@@ -154,6 +156,10 @@ class ChatMessageDataSource @Inject constructor(
      */
     suspend fun getUnreadSeq(chatIdHex: String, messageId: Long): Long? =
         db?.chatMessageDao()?.getUnreadSeq(chatIdHex, messageId)
+
+    /** [getUnreadSeq] for many (chat id hex, message id) keys; keys with no stamp are absent. */
+    suspend fun getUnreadSeqs(keys: Collection<Pair<String, Long>>): Map<Pair<String, Long>, Long> =
+        db?.chatMessageDao()?.getUnreadSeqs(keys).orEmpty()
 
     suspend fun hasMessages(chatId: ChatId): Boolean =
         db?.chatMessageDao()?.getLatest(mapper.chatIdHex(chatId)) != null
