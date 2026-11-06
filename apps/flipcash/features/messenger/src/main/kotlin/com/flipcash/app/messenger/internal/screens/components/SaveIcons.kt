@@ -47,11 +47,11 @@ internal val SaveAllIcon: ImageVector by lazy {
         arrow(x = 8.5f, top = 1.5f, tip = 12.5f, head = 3f)
         // Back tray, from its top-right corner round to its bottom-left one.
         moveTo(17.5f, 12f)
-        corner(20.5f, 15f)
+        corner(20.5f, 15f, clockwise = true)
         verticalLineTo(20f)
-        corner(17.5f, 23f)
+        corner(17.5f, 23f, clockwise = true)
         horizontalLineTo(11.5f)
-        corner(8.5f, 20f)
+        corner(8.5f, 20f, clockwise = true)
     }
 }
 
@@ -72,9 +72,12 @@ private fun saveIcon(name: String, pathBuilder: PathBuilder.() -> Unit): ImageVe
         )
     }.build()
 
-/** A rounded corner, turning the way a tray drawn anticlockwise turns. */
-private fun PathBuilder.corner(x: Float, y: Float, r: Float = 3f) =
-    arcTo(r, r, 0f, isMoreThanHalf = false, isPositiveArc = false, x1 = x, y1 = y)
+/**
+ * A rounded corner ending at ([x], [y]). [clockwise] is the direction the outline is being drawn
+ * in: the front trays go anticlockwise, the back tray clockwise. The wrong one bows the corner inward.
+ */
+private fun PathBuilder.corner(x: Float, y: Float, r: Float = 3f, clockwise: Boolean = false) =
+    arcTo(r, r, 0f, isMoreThanHalf = false, isPositiveArc = clockwise, x1 = x, y1 = y)
 
 private fun PathBuilder.arrow(x: Float, top: Float, tip: Float, head: Float) {
     moveTo(x, top)
