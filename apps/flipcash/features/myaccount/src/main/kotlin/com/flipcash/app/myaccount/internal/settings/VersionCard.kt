@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -196,10 +197,12 @@ private fun Modifier.pinnedGlass(hazeState: HazeState?, shape: Shape): Modifier 
     val tint = Color(0xFF1C1C1D).copy(alpha = 0.62f)
     val backdrop = CodeTheme.colors.background
     val fill = if (hazeState != null) {
-        val style = HazeBlurStyle {
-            blurRadius(24.dp)
-            backgroundColor(backdrop)
-            colorEffects(listOf(HazeColorEffect.tint(tint)))
+        val style = remember(backdrop) {
+            HazeBlurStyle {
+                blurRadius(24.dp)
+                backgroundColor(backdrop)
+                colorEffects(listOf(HazeColorEffect.tint(tint)))
+            }
         }
         Modifier.hazeBlur(HazeInput.Sources(hazeState), style)
     } else {

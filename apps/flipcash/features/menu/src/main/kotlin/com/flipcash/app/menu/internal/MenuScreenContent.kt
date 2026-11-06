@@ -321,17 +321,21 @@ private fun UnclaimedTipCardPrompt(
     // the sharp code would read straight through its own frosting.
     // The HazeBlurStyle builder is not a @Composable scope, so the theme read is hoisted above it.
     val cardGround = White08.compositeOver(CodeTheme.colors.background)
-    val frosting = HazeBlurStyle {
-        blurEnabled(blurEnabled)
-        blurRadius(PlaceholderBlurRadius)
-        backgroundColor(cardGround)
-        // Haze only blurs on API 31+ and minSdk is 29; below that it falls back to this scrim, which
-        // has to be opaque for the same reason. Never the sharp code: an unclaimed card drawn
-        // legibly would read as a real one.
-        fallbackColorEffect(HazeColorEffect.tint(cardGround))
-        // Off: haze's default film grain over a scannable figure reads as noise in the code itself
-        // rather than as texture, and iOS frosts the stand-in with a plain blur.
-        noiseFactor(0f)
+    // Haze compares styles by identity, so an unremembered builder reads as a new style every
+    // recomposition.
+    val frosting = remember(blurEnabled, cardGround) {
+        HazeBlurStyle {
+            blurEnabled(blurEnabled)
+            blurRadius(PlaceholderBlurRadius)
+            backgroundColor(cardGround)
+            // Haze only blurs on API 31+ and minSdk is 29; below that it falls back to this scrim,
+            // which has to be opaque for the same reason. Never the sharp code: an unclaimed card
+            // drawn legibly would read as a real one.
+            fallbackColorEffect(HazeColorEffect.tint(cardGround))
+            // Off: haze's default film grain over a scannable figure reads as noise in the code
+            // itself rather than as texture, and iOS frosts the stand-in with a plain blur.
+            noiseFactor(0f)
+        }
     }
 
     // The stand-in is a fixed-width card in a full-width header slot, so it has to be centred the way

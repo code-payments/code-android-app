@@ -792,10 +792,12 @@ private fun InviteComposer(
     // fill is dropped because stacking it on the tint made the pill opaque and hid its edges.
     // The HazeBlurStyle builder is not a @Composable scope, so the theme read is hoisted above it.
     val backdrop = CodeTheme.colors.surface
-    val glass = HazeBlurStyle {
-        blurRadius(ComposerBlurRadius)
-        backgroundColor(backdrop)
-        colorEffects(listOf(HazeColorEffect.tint(ComposerFill)))
+    val glass = remember(backdrop) {
+        HazeBlurStyle {
+            blurRadius(ComposerBlurRadius)
+            backgroundColor(backdrop)
+            colorEffects(listOf(HazeColorEffect.tint(ComposerFill)))
+        }
     }
     val message = rememberTextFieldState()
     LaunchedEffect(message) {

@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -569,10 +570,12 @@ internal fun CurrencyInfoTitlePill(
     // translucent capsule otherwise. `clip` precedes `hazeBlur` so the blur is bounded to the pill.
     val fill = if (hazeState != null) {
         // The HazeBlurStyle builder is not a @Composable scope, so theme reads are hoisted above it.
-        val liquidGlass = HazeBlurStyle {
-            blurRadius(glassBlurRadius)
-            backgroundColor(backdrop)
-            colorEffects(listOf(HazeColorEffect.tint(glassTint.copy(alpha = 0.72f))))
+        val liquidGlass = remember(glassBlurRadius, backdrop, glassTint) {
+            HazeBlurStyle {
+                blurRadius(glassBlurRadius)
+                backgroundColor(backdrop)
+                colorEffects(listOf(HazeColorEffect.tint(glassTint.copy(alpha = 0.72f))))
+            }
         }
         Modifier
             .clip(shape)
