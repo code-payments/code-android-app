@@ -1,4 +1,4 @@
-package com.flipcash.libs.reflex
+package com.flipcash.libs.puppet
 
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.SerialName
@@ -12,7 +12,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class ReflexHostTest {
+class PuppetHostTest {
 
     @Serializable
     enum class Size { Small, Large }
@@ -27,14 +27,14 @@ class ReflexHostTest {
 
     private var size = Size.Small
 
-    private val host = ReflexHost(
+    private val host = PuppetHost(
         root = {
-            ReflexNode(
+            PuppetNode(
                 name = "Box",
                 state = { JsonObject(mapOf("size" to JsonPrimitive(size.name))) },
                 actions = listOf(
-                    ReflexAction(Resize.serializer()) { size = it.size },
-                    ReflexAction(Reset.serializer()) { size = Size.Small },
+                    PuppetAction(Resize.serializer()) { size = it.size },
+                    PuppetAction(Reset.serializer()) { size = Size.Small },
                 ),
             )
         },
@@ -99,7 +99,7 @@ class ReflexHostTest {
 
     @Test
     fun `a fixture guard violation turns the response into an error`() = runTest {
-        val guarded = ReflexHost(root = { ReflexNode("Box", { JsonObject(emptyMap()) }, emptyList()) }, violations = { listOf("network: ChatRepository.getChat") })
+        val guarded = PuppetHost(root = { PuppetNode("Box", { JsonObject(emptyMap()) }, emptyList()) }, violations = { listOf("network: ChatRepository.getChat") })
         val error = Json.parseToJsonElement(guarded.handle("""{"cmd":"ls"}""")).jsonObject["error"]!!.jsonObject
         assertEquals("fixture_violation", error["code"]!!.jsonPrimitive.content)
         assertEquals(listOf("network: ChatRepository.getChat"), error["calls"]!!.jsonArray.map { it.jsonPrimitive.content })

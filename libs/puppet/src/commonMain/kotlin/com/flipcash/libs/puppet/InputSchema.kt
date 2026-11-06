@@ -1,4 +1,4 @@
-package com.flipcash.libs.reflex
+package com.flipcash.libs.puppet
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PolymorphicKind

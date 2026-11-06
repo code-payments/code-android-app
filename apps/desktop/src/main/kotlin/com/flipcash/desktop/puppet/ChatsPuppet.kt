@@ -1,10 +1,10 @@
-package com.flipcash.desktop.reflex
+package com.flipcash.desktop.puppet
 
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.tipping.internal.ChatsViewModel
 import com.flipcash.app.tipping.internal.ChatsViewModel.Event
-import com.flipcash.libs.reflex.ReflexAction
-import com.flipcash.libs.reflex.ReflexNode
+import com.flipcash.libs.puppet.PuppetAction
+import com.flipcash.libs.puppet.PuppetNode
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ChatListFilter
 import kotlinx.serialization.json.JsonArray
@@ -15,9 +15,9 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 /**
- * The Chats screen as a Reflex node.
+ * The Chats screen as a Puppet node.
  *
- * Its actions are the view model's [com.getcode.view.PublicAction] events; `ChatsReflexTest`
+ * Its actions are the view model's [com.getcode.view.PublicAction] events; `ChatsPuppetTest`
  * checks this list against the events that implement the marker, so a new one can't be left out.
  *
  * Its state is mapped by hand rather than serializing [ChatsViewModel.State]: the rows carry
@@ -27,19 +27,19 @@ import kotlinx.serialization.json.put
  * (`visibleChatIds`, `showsChips`, ...), which is what the screen draws from. Formatted strings
  * such as the last-message preview are left out: they depend on locale and the clock.
  */
-fun chatsNode(viewModel: ChatsViewModel): ReflexNode = ReflexNode(
+fun chatsNode(viewModel: ChatsViewModel): PuppetNode = PuppetNode(
     name = "Chats",
     state = { chatsState(viewModel.stateFlow.value) },
     actions = chatsActions.map { it(viewModel) },
 )
 
 /** One entry per [com.getcode.view.PublicAction] event of [ChatsViewModel]. */
-internal val chatsActions: List<(ChatsViewModel) -> ReflexAction<*>> = listOf(
-    { vm -> ReflexAction(Event.FilterSelected.serializer(), vm::dispatchEvent) },
-    { vm -> ReflexAction(Event.ChipsRevealed.serializer(), vm::dispatchEvent) },
-    { vm -> ReflexAction(Event.SelectionStarted.serializer(), vm::dispatchEvent) },
-    { vm -> ReflexAction(Event.SelectionToggled.serializer(), vm::dispatchEvent) },
-    { vm -> ReflexAction(Event.SelectionEnded.serializer(), vm::dispatchEvent) },
+internal val chatsActions: List<(ChatsViewModel) -> PuppetAction<*>> = listOf(
+    { vm -> PuppetAction(Event.FilterSelected.serializer(), vm::dispatchEvent) },
+    { vm -> PuppetAction(Event.ChipsRevealed.serializer(), vm::dispatchEvent) },
+    { vm -> PuppetAction(Event.SelectionStarted.serializer(), vm::dispatchEvent) },
+    { vm -> PuppetAction(Event.SelectionToggled.serializer(), vm::dispatchEvent) },
+    { vm -> PuppetAction(Event.SelectionEnded.serializer(), vm::dispatchEvent) },
 )
 
 @OptIn(ExperimentalStdlibApi::class)

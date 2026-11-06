@@ -1,4 +1,4 @@
-package com.flipcash.desktop.reflex
+package com.flipcash.desktop.puppet
 
 import com.flipcash.app.tipping.internal.ChatsViewModel
 import com.flipcash.libs.coroutines.DispatcherProvider
@@ -28,11 +28,11 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
- * Drives the Chats screen through the Reflex line protocol end to end, over the seeded fixture,
+ * Drives the Chats screen through the Puppet line protocol end to end, over the seeded fixture,
  * with the same request lines the CLI reads from stdin.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class ChatsReflexTest {
+class ChatsPuppetTest {
 
     private val main = UnconfinedTestDispatcher()
 

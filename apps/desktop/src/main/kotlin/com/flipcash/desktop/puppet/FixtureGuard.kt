@@ -1,10 +1,10 @@
-package com.flipcash.desktop.reflex
+package com.flipcash.desktop.puppet
 
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Proxy
 
 /**
- * Records every call that gets past the Reflex fixture. The fixture has no network channel: every
+ * Records every call that gets past the Puppet fixture. The fixture has no network channel: every
  * repository (the gRPC-facing interfaces) is a [network] stand-in, and every other seam it doesn't
  * fake is an [unfaked] one. Both record the call here and then throw.
  *
@@ -45,4 +45,4 @@ class FixtureGuard {
     }
 }
 
-class FixtureViolation(call: String) : IllegalStateException("Reflex fixture guard: $call")
+class FixtureViolation(call: String) : IllegalStateException("Puppet fixture guard: $call")

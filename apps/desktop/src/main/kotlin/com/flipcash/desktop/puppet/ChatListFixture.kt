@@ -1,4 +1,4 @@
-package com.flipcash.desktop.reflex
+package com.flipcash.desktop.puppet
 
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.storage.DirectoryPreferencesFiles
@@ -54,7 +54,7 @@ import java.nio.file.Files
 import kotlin.time.Instant
 
 /**
- * A [ChatsViewModel] over seeded chats, for the Reflex host. Nothing here reaches the backend:
+ * A [ChatsViewModel] over seeded chats, for the Puppet host. Nothing here reaches the backend:
  * the chat list comes from a [ChatCoordinator] holding [seed], and every repository under the
  * view model's other dependencies is a [FixtureGuard.network] stand-in.
  *
@@ -68,7 +68,7 @@ class ChatListFixture(
     dispatchers: DispatcherProvider,
     seed: ChatFeeds = defaultSeed,
     val guard: FixtureGuard = FixtureGuard(),
-    dataDir: File = Files.createTempDirectory("reflex-chats").toFile(),
+    dataDir: File = Files.createTempDirectory("puppet-chats").toFile(),
 ) {
     val feeds = MutableStateFlow(seed)
 

@@ -1,8 +1,8 @@
-package com.flipcash.desktop.reflex
+package com.flipcash.desktop.puppet
 
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.libs.coroutines.DispatcherProvider
-import com.flipcash.libs.reflex.ReflexHost
+import com.flipcash.libs.puppet.PuppetHost
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -15,8 +15,8 @@ import kotlin.system.exitProcess
 
 /**
  * Drives the Chats screen headlessly over seeded data: one JSON request per line on stdin, one
- * JSON response per line on stdout (see [ReflexHost] for the protocol). Run it with
- * `./gradlew -q :apps:desktop:reflex`.
+ * JSON response per line on stdout (see [PuppetHost] for the protocol). Run it with
+ * `./gradlew -q :apps:desktop:puppet`.
  *
  * Exits with status 2 after answering a request during which the fixture guard caught a call
  * past the fixture, so a scripted session can't miss one.
@@ -54,8 +54,8 @@ fun main() {
     exitProcess(0)
 }
 
-/** The Reflex host over [fixture]'s Chats screen; [settle] waits for the view model's work. */
-fun chatsHost(fixture: ChatListFixture, settle: suspend () -> Unit): ReflexHost = ReflexHost(
+/** The Puppet host over [fixture]'s Chats screen; [settle] waits for the view model's work. */
+fun chatsHost(fixture: ChatListFixture, settle: suspend () -> Unit): PuppetHost = PuppetHost(
     root = { chatsNode(fixture.viewModel) },
     settle = settle,
     violations = fixture.guard::drain,

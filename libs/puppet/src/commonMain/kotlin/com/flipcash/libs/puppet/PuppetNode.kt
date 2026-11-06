@@ -1,4 +1,4 @@
-package com.flipcash.libs.reflex
+package com.flipcash.libs.puppet
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonElement
@@ -8,17 +8,17 @@ import kotlinx.serialization.json.JsonElement
  * and the screen it is showing on top of itself, if any. The host follows [child] to the focused
  * screen.
  */
-class ReflexNode(
+class PuppetNode(
     val name: String,
     private val state: () -> JsonElement,
-    val actions: List<ReflexAction<*>>,
-    private val child: () -> ReflexNode? = { null },
+    val actions: List<PuppetAction<*>>,
+    private val child: () -> PuppetNode? = { null },
 ) {
     fun state(): JsonElement = state.invoke()
 
-    fun child(): ReflexNode? = child.invoke()
+    fun child(): PuppetNode? = child.invoke()
 
-    fun action(name: String): ReflexAction<*>? = actions.firstOrNull { it.name == name }
+    fun action(name: String): PuppetAction<*>? = actions.firstOrNull { it.name == name }
 }
 
 /**
@@ -26,7 +26,7 @@ class ReflexNode(
  * `@SerialName` with the short name both platforms use; its input schema comes from the same
  * serializer's descriptor.
  */
-class ReflexAction<A>(
+class PuppetAction<A>(
     val serializer: KSerializer<A>,
     private val perform: (A) -> Unit,
 ) {
@@ -34,7 +34,7 @@ class ReflexAction<A>(
 
     /** Decodes [input], throwing on a mismatch, and returns the call that performs the action. */
     internal fun bind(input: JsonElement): () -> Unit {
-        val decoded = ReflexJson.input.decodeFromJsonElement(serializer, input)
+        val decoded = PuppetJson.input.decodeFromJsonElement(serializer, input)
         return { perform(decoded) }
     }
 }

@@ -1,4 +1,4 @@
-package com.flipcash.libs.reflex
+package com.flipcash.libs.puppet
 
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -12,7 +12,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 
-internal object ReflexJson {
+internal object PuppetJson {
     /** Action input: strict, so a misspelled field is an error rather than a silent default. */
     val input = Json { ignoreUnknownKeys = false }
 
@@ -21,7 +21,7 @@ internal object ReflexJson {
 }
 
 /**
- * Answers the Reflex line protocol for the screen tree under [root]. One request per line, one
+ * Answers the Puppet line protocol for the screen tree under [root]. One request per line, one
  * response per line:
  *
  * - `{"cmd":"ls"}` returns the focused screen.
@@ -38,16 +38,16 @@ internal object ReflexJson {
  * request (a repository call is a network attempt); any entry turns the response into a
  * `fixture_violation` error listing them under `calls`.
  */
-class ReflexHost(
-    private val root: () -> ReflexNode,
+class PuppetHost(
+    private val root: () -> PuppetNode,
     private val settle: suspend () -> Unit = {},
     private val violations: () -> List<String> = { emptyList() },
 ) {
-    suspend fun handle(line: String): String = ReflexJson.output.encodeToString(JsonObject.serializer(), respond(line))
+    suspend fun handle(line: String): String = PuppetJson.output.encodeToString(JsonObject.serializer(), respond(line))
 
     private suspend fun respond(line: String): JsonObject {
         val request = try {
-            ReflexJson.input.parseToJsonElement(line) as? JsonObject
+            PuppetJson.input.parseToJsonElement(line) as? JsonObject
         } catch (e: SerializationException) {
             null
         } ?: return error("bad_request", "Expected one JSON object per line, got: $line")
@@ -112,7 +112,7 @@ class ReflexHost(
         }
     }
 
-    private fun focused(): ReflexNode = generateSequence(root()) { it.child() }.last()
+    private fun focused(): PuppetNode = generateSequence(root()) { it.child() }.last()
 
     private fun error(
         code: String,

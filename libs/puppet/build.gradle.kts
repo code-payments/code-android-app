@@ -2,11 +2,11 @@ plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
 }
 
-// Headless introspection for view models (Reflex). Only the desktop host depends on this; Android
+// Headless introspection for view models (Puppet). Only the desktop host depends on this; Android
 // production code must not.
 kotlin {
     android {
-        namespace = "${Gradle.codeNamespace}.libs.reflex"
+        namespace = "${Gradle.codeNamespace}.libs.puppet"
     }
 
     sourceSets {
