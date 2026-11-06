@@ -1,6 +1,9 @@
 package com.flipcash.shared.chat
 
+import kotlinx.serialization.Serializable
+
 /** The chip selected above the Chats list. Not persisted: every cold start opens on [All]. */
+@Serializable
 enum class ChatListFilter { All, Unread, Groups }
 
 /**

@@ -208,6 +208,7 @@ include(
     ":libs:coroutines",
     ":libs:coroutines:test-fixtures",
     ":libs:parcelable",
+    ":libs:puppet",
     ":libs:currency-math:test-fixtures",
     ":libs:crypto:kin",
     ":libs:crypto:solana",
