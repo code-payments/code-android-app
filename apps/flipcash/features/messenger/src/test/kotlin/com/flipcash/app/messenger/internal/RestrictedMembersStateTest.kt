@@ -43,12 +43,19 @@ class RestrictedMembersStateTest {
     }
 
     @Test
-    fun `a new read starts from an empty loading state`() {
+    fun `a new read starts from an empty loading state for its chat`() {
         val failed = reduce(loaded, Event.LoadFailed)
         assertTrue(failed.failed)
         assertFalse(failed.loading)
 
-        assertEquals(State(), reduce(failed, Event.LoadStarted))
+        assertEquals(State(loadedFor = chatId), reduce(failed, Event.LoadStarted(chatId)))
+    }
+
+    @Test
+    fun `a failed read forgets its chat so the next open retries`() {
+        val started = reduce(State(), Event.LoadStarted(chatId))
+        assertEquals(chatId, started.loadedFor)
+        assertEquals(null, reduce(started, Event.LoadFailed).loadedFor)
     }
 
     @Test

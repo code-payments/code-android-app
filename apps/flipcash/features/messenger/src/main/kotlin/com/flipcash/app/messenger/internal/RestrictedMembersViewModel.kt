@@ -49,6 +49,11 @@ internal class RestrictedMembersViewModel @Inject constructor(
         val users: List<RestrictedUser> = emptyList(),
         /** Users whose Unsilence or Unban is in flight. */
         val pending: Set<ID> = emptySet(),
+        /**
+         * The chat the last read was for. A repeat [Event.Load] for it is dropped, since the flow's
+         * back stack reopens this screen; a failed read clears it so the next open retries.
+         */
+        val loadedFor: ChatId? = null,
     ) {
         fun rows(kind: RestrictedKind): List<RestrictedUser> = when (kind) {
             RestrictedKind.Silenced -> users.filter { it.ban == null && it.silence.isActiveAt() }
@@ -66,8 +71,8 @@ internal class RestrictedMembersViewModel @Inject constructor(
         /** Lift [userId]'s ban. */
         data class Unban(val chatId: ChatId, val userId: ID) : Event
 
-        /** A new read started; drops whatever the last one showed. */
-        data object LoadStarted : Event
+        /** A new read for [chatId] started; drops whatever the last one showed. */
+        data class LoadStarted(val chatId: ChatId) : Event
         data class Loaded(val users: List<RestrictedUser>) : Event
         data object LoadFailed : Event
 
@@ -76,8 +81,6 @@ internal class RestrictedMembersViewModel @Inject constructor(
         data class Unbanned(val userId: ID) : Event
         data class RestrictionFailed(val userId: ID) : Event
     }
-
-    private var loadedFor: ChatId? = null
 
     init {
         // One collector, so a second tap on a row sees the first one's pending entry.
@@ -110,16 +113,14 @@ internal class RestrictedMembersViewModel @Inject constructor(
     }
 
     private fun load(chatId: ChatId) {
-        if (loadedFor == chatId) return
-        loadedFor = chatId
-        dispatchEvent(Event.LoadStarted)
+        if (stateFlow.value.loadedFor == chatId) return
+        dispatchEvent(Event.LoadStarted(chatId))
         viewModelScope.launch {
             val all = mutableListOf<RestrictedUser>()
             var options = QueryOptions()
             while (true) {
                 val page = chatController.getRestrictedUsers(chatId, options).getOrElse {
                     trace("failed to load restricted users - ${it.localizedMessage}")
-                    loadedFor = null
                     dispatchEvent(Event.LoadFailed)
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_failedToLoadRestricted),
@@ -169,9 +170,9 @@ internal class RestrictedMembersViewModel @Inject constructor(
                 is Event.Unsilence,
                 is Event.Unban -> { state -> state }
 
-                Event.LoadStarted -> { _ -> State() }
+                is Event.LoadStarted -> { _ -> State(loadedFor = event.chatId) }
                 is Event.Loaded -> { state -> state.copy(loading = false, users = event.users) }
-                Event.LoadFailed -> { state -> state.copy(loading = false, failed = true) }
+                Event.LoadFailed -> { state -> state.copy(loading = false, failed = true, loadedFor = null) }
 
                 is Event.RestrictionPending -> { state -> state.copy(pending = state.pending + setOf(event.userId)) }
                 is Event.RestrictionFailed -> { state -> state.copy(pending = state.pending - setOf(event.userId)) }
