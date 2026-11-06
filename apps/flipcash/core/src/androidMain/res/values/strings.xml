@@ -298,6 +298,7 @@
     <string name="description_noBalanceYetForBalance">Add money to get started</string>
     <string name="description_noBalanceYetToCreate">Add money to create a currency</string>
     <string name="description_noBalanceYetToTip">Add money to send tips</string>
+    <string name="description_noBalanceYetToPayRequest">Add money to pay this request</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="title_success">Success</string>
 
@@ -999,6 +1000,8 @@
     <string name="action_silenceMemberShort">Restrict</string>
     <string name="action_removeFromGroup">Remove from Group</string>
     <string name="title_menuSection_inGroup">In %1$s</string>
+    <string name="subtitle_notInGroup">%1$s isn\'t in this group.</string>
+    <string name="subtitle_membershipCheckFailed">Couldn\'t check whether %1$s is in this group.</string>
     <!-- The host's shortcuts: a trailing swipe on a Members row and the member sheet opened by
          tapping someone's picture. The time left is cut to its two largest units, rounded down. -->
     <string name="action_viewProfile">View Profile</string>

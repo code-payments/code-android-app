@@ -3,6 +3,7 @@ package com.flipcash.app.messenger.internal.currencysend
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.shared.chat.ui.ConversationReference
+import com.getcode.chatcipher.ChatEncryptionPolicy
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Instant
@@ -16,9 +17,10 @@ class CurrencySendRecipientsTest {
         type: ChatType = ChatType.TIP_DM,
         activity: Long = 0,
         withUser: Boolean = true,
+        userId: List<Byte>? = ByteArray(32) { 1 }.toList(),
     ) = ConversationReference(
         chatId = ChatId(ByteArray(32) { (next + 1).toByte() }.also { next++ }),
-        userId = if (withUser && type != ChatType.GROUP) ByteArray(32) { 1 }.toList() else null,
+        userId = if (withUser && type != ChatType.GROUP) userId else null,
         displayName = name,
         handle = handle,
         isGroup = type == ChatType.GROUP,
@@ -40,6 +42,21 @@ class CurrencySendRecipientsTest {
     fun `a chat with no counterparty is dropped`() {
         val result = listOf(chat("Ghost", withUser = false), chat("Real")).currencySendRecipients()
         assertEquals(listOf("Real"), result.map { it.displayName })
+    }
+
+    @Test
+    fun `the flipcash dm is dropped`() {
+        val result = listOf(
+            chat("Noah"),
+            chat("Flipcash", userId = ChatEncryptionPolicy.FLIPCASH_USER_ID.toList()),
+        ).currencySendRecipients()
+        assertEquals(listOf("Noah"), result.map { it.displayName })
+    }
+
+    @Test
+    fun `a user named Flipcash with an ordinary id still appears`() {
+        val result = listOf(chat("Flipcash", handle = "flipcash")).currencySendRecipients()
+        assertEquals(listOf("Flipcash"), result.map { it.displayName })
     }
 
     @Test

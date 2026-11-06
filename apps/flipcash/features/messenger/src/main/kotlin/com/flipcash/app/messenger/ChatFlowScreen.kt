@@ -40,6 +40,7 @@ import com.flipcash.app.core.chat.ReactionBoostAmountResult
 import com.flipcash.app.core.extensions.openAsSheet
 import com.flipcash.app.core.util.Linkify
 import com.flipcash.app.messenger.internal.ChatSubject
+import com.flipcash.app.messenger.internal.MemberModerationViewModel
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
@@ -796,6 +797,16 @@ private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileO
     }
 
     val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
+    // A private group's host actions need the roster to list this person. Read it with the profile,
+    // so the menu is complete whenever it opens.
+    val memberModeration = flowSharedViewModel<MemberModerationViewModel>()
+    val rosters by memberModeration.rosters.collectAsStateWithLifecycle()
+    val rosterFailed by memberModeration.rosterFailed.collectAsStateWithLifecycle()
+    val groupChatId = chatState.chatId
+    val groupIsPrivate = (chatState.subject as? ChatSubject.Group)?.isPrivate == true
+    LaunchedEffect(groupChatId, groupIsPrivate) {
+        if (groupChatId != null && groupIsPrivate) memberModeration.ensureRoster(groupChatId)
+    }
     // Only a profile opened from the chat itself has that chat underneath; a member's portrait in
     // a group is ProfileOrigin.Chat too, but its DM is not the group.
     val chatUnderneath = chatState.chatId.takeIf { origin == ProfileOrigin.Chat }
@@ -813,6 +824,9 @@ private fun FlowChatProfileScreen(participant: ChatParticipant, origin: ProfileO
                 creatorId = subject.creator,
                 canSilence = moderation?.canSilence == true,
                 canBan = moderation?.canBan == true,
+                roster = rosters[chatId],
+                isPrivate = subject.isPrivate,
+                rosterFailed = chatId in rosterFailed,
             )
         } else {
             null

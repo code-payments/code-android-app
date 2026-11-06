@@ -51,9 +51,14 @@ internal interface StartChattingPayer {
     /**
      * Whether the sender holds anything to pay with. When not, an alert has been raised offering
      * the way out and the caller should stop: [onAddMoney] for an empty account,
-     * [onDiscoverCurrencies] for one that only holds reserves.
+     * [onDiscoverCurrencies] for one that only holds reserves. [noBalanceMessage] is the empty
+     * account alert's subtitle.
      */
-    suspend fun mayProceed(onAddMoney: () -> Unit, onDiscoverCurrencies: () -> Unit): Boolean
+    suspend fun mayProceed(
+        onAddMoney: () -> Unit,
+        onDiscoverCurrencies: () -> Unit,
+        @StringRes noBalanceMessage: Int = R.string.description_noBalanceYetToSend,
+    ): Boolean
 
     /** Over balance, with something in the account. [onAddMoney] is the alert's action. */
     fun presentInsufficientBalance(
@@ -109,10 +114,11 @@ internal class DefaultStartChattingPayer @Inject constructor(
     override suspend fun mayProceed(
         onAddMoney: () -> Unit,
         onDiscoverCurrencies: () -> Unit,
+        @StringRes noBalanceMessage: Int,
     ): Boolean {
         if (tokenCoordinator.hasGiveableBalance()) return true
         if (!tokenCoordinator.hasBalance()) {
-            presentAddMoney(onAddMoney)
+            presentAddMoney(onAddMoney, noBalanceMessage)
         } else {
             presentDiscoverCurrencies(onDiscoverCurrencies)
         }
@@ -204,10 +210,10 @@ internal class DefaultStartChattingPayer @Inject constructor(
         return result
     }
 
-    private fun presentAddMoney(onAddMoney: () -> Unit) {
+    private fun presentAddMoney(onAddMoney: () -> Unit, @StringRes message: Int) {
         BottomBarManager.showInfo(
             title = resources.getString(R.string.title_noBalanceYet),
-            message = resources.getString(R.string.description_noBalanceYetToSend),
+            message = resources.getString(message),
             actions = listOf(
                 BottomBarAction(text = resources.getString(R.string.action_addMoney)) { onAddMoney() },
             ),

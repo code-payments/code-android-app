@@ -73,6 +73,7 @@ class RequestDetailsInsufficientFundsTest {
         every { owner.withTimelockForToken(any()) } returns owner
         every { rosters.state } returns MutableStateFlow(emptyMap())
         every { payer.observeSelectedToken() } returns flowOf(token)
+        coEvery { payer.mayProceed(any(), any(), any()) } returns true
         every { exchange.rateFor(any()) } returns Rate.oneToOne
         every { tokenCoordinator.balanceForToken(any<Token>()) } answers { balance }
         every { transactionController.limits } returns MutableStateFlow(null)
