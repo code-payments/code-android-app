@@ -80,6 +80,11 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Flipcash"
             packageVersion = "1.0.0"
+            // Rendered from the iOS app's Icon Composer file (code-ios-app Flipcash/Supporting Files/AppIcon.icon)
+            // with ictool, so all three desktop icons match the phone apps.
+            macOS { iconFile.set(project.file("icons/Flipcash.icns")) }
+            windows { iconFile.set(project.file("icons/Flipcash.ico")) }
+            linux { iconFile.set(project.file("icons/Flipcash.png")) }
         }
     }
 }
