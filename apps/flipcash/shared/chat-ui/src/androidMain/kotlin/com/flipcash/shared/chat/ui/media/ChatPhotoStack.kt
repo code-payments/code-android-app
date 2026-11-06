@@ -62,12 +62,17 @@ class PhotoStackLook(val count: Int, val behind: List<StackCardPhoto>) {
 internal class StackCardPose(val tiltDegrees: Float, val nudge: Float)
 
 /**
- * Where the cards of a stack sit inside the box a single photo bubble takes.
+ * A stack's card sizes in its frame: the front photo [frontWidth] wide at the frame's full height,
+ * and each back card [frontWidth] by [cardHeight].
+ */
+internal data class StackFan(val frontWidth: Float, val cardHeight: Float)
+
+/**
+ * Where the cards of a stack sit inside its square frame, laid out as iOS lays them out.
  *
- * The stack takes exactly that box, so it clears the avatar gutter and the timestamp column and
- * keeps the normal gap to the next message, as a single photo does. The fan has to fit inside it,
- * so every card, the front one included, is scaled down until the tilted, nudged cards behind it
- * no longer reach past the box's edges.
+ * The frame is a single photo's width, so the stack clears the avatar gutter and the timestamp column
+ * as a single photo does. The front photo keeps the frame's height and narrows; the tilted, nudged
+ * cards behind it are shortened until their corners just meet the frame's edges.
  */
 internal object PhotoStackGeometry {
     /**
@@ -78,37 +83,35 @@ internal object PhotoStackGeometry {
         listOf(StackCardPose(-NEAR_TILT, -nearNudge), StackCardPose(FAR_TILT, farNudge)).take(behind)
 
     /**
-     * The fraction of [width] by [height] each card is drawn at so that every pose in [poses],
-     * turned about the card's centre, stays inside the box. 1 with nothing behind.
+     * Sizes a stack's cards for a [width] by [height] frame, as iOS's `stackFan` does: the front photo
+     * keeps the full height and narrows, centred, and each back card is as wide as the front and
+     * short enough that, turned and nudged by its pose, its corners stay inside the frame. Null when
+     * the frame is too narrow or flat to fan; the cards then fill it.
      */
-    fun cardScale(width: Float, height: Float, poses: List<StackCardPose>): Float {
-        if (width <= 0f || height <= 0f) return 1f
-        var scale = 1f
-        for (pose in poses) {
+    fun fan(width: Float, height: Float, poses: List<StackCardPose>): StackFan? {
+        if (width <= 0f || height <= 0f) return null
+        // A w by h card turned by the tilt spans w·cos + h·sin across, less the nudge on each side,
+        // and w·sin + h·cos down.
+        class Span(val cos: Float, val sin: Float, val across: Float)
+        val spans = poses.map { pose ->
             val radians = Math.toRadians(pose.tiltDegrees.toDouble())
-            val c = abs(cos(radians)).toFloat()
-            val s = abs(sin(radians)).toFloat()
-            // A w by h card turned by the tilt spans w·cos + h·sin across and w·sin + h·cos down;
-            // the nudge spends some of the width on one side.
-            val across = (width - 2f * abs(pose.nudge)) / (width * c + height * s)
-            val down = height / (width * s + height * c)
-            scale = min(scale, min(across, down))
+            Span(abs(cos(radians)).toFloat(), abs(sin(radians)).toFloat(), width - 2f * abs(pose.nudge))
         }
-        return scale.coerceIn(0f, 1f)
+        // The widest front for which every pose's card can still meet both edges.
+        var front = width
+        for (span in spans) {
+            val determinant = span.cos * span.cos - span.sin * span.sin
+            if (determinant <= 0f) return null
+            front = min(front, (span.across * span.cos - height * span.sin) / determinant)
+        }
+        if (front <= 0f) return null
+        var card = height
+        for (span in spans) {
+            card = min(card, (height - front * span.sin) / span.cos)
+            if (span.sin > 0f) card = min(card, (span.across - front * span.cos) / span.sin)
+        }
+        return if (card > 0f) StackFan(frontWidth = front, cardHeight = card) else null
     }
-
-    /**
-     * The height of the stack's box once its cards are [cardWidth] by [cardHeight]: the tallest
-     * card's span down, turned by its pose. No taller than the single photo's box when the cards come
-     * from [cardScale], and shorter when the width was what shrank them, so the stack takes no empty
-     * band above or below the fan.
-     */
-    fun stackHeight(cardWidth: Float, cardHeight: Float, poses: List<StackCardPose>): Float =
-        poses.fold(cardHeight) { tallest, pose ->
-            val radians = Math.toRadians(pose.tiltDegrees.toDouble())
-            val down = cardWidth * abs(sin(radians)).toFloat() + cardHeight * abs(cos(radians)).toFloat()
-            maxOf(tallest, down)
-        }
 
     private const val NEAR_TILT = 4f
     private const val FAR_TILT = 6f
@@ -123,23 +126,18 @@ internal fun photoStackPoses(look: PhotoStackLook): List<StackCardPose> = PhotoS
 )
 
 /**
- * The space around [look]'s front card inside the [width] by [height] box the stack takes: what
+ * The space around [look]'s front card inside the [width] by [height] frame the stack takes: what
  * something drawn on the front card, such as a reply's quote, insets by.
  */
 @Composable
 internal fun photoStackFrontPadding(look: PhotoStackLook, width: Float, height: Float): PaddingValues {
-    val poses = photoStackPoses(look)
-    val scale = PhotoStackGeometry.cardScale(width, height, poses)
-    val stackHeight = PhotoStackGeometry.stackHeight(width * scale, height * scale, poses)
-    return PaddingValues(
-        horizontal = (width * (1f - scale) / 2f).dp,
-        vertical = ((stackHeight - height * scale) / 2f).dp,
-    )
+    val front = PhotoStackGeometry.fan(width, height, photoStackPoses(look))?.frontWidth ?: width
+    return PaddingValues(horizontal = ((width - front) / 2f).dp)
 }
 
 /**
- * Draws [look]'s cards behind [content], the front card, inside the width a single photo bubble of
- * this photo takes ([width] by [height]) and no taller than it. [content] receives the size to draw the front card at;
+ * Draws [look]'s cards behind [content], the front card, in a [width] by [height] frame (a square,
+ * from [ChatMediaBubbleSizing.stackSize]). [content] receives the size to draw the front card at;
  * [frontShape] is the shape it draws in, which its outline and shadow follow.
  */
 @Composable
@@ -152,13 +150,11 @@ internal fun PhotoStackFrame(
     content: @Composable (cardWidth: Float, cardHeight: Float) -> Unit,
 ) {
     val poses = photoStackPoses(look)
-    val scale = PhotoStackGeometry.cardScale(width, height, poses)
-    val cardWidth = width * scale
-    val cardHeight = height * scale
+    val fan = PhotoStackGeometry.fan(width, height, poses)
+    val cardWidth = fan?.frontWidth ?: width
+    val cardHeight = fan?.cardHeight ?: height
     val radius = RoundedCornerShape(BubbleDefaults.cornerLarge)
-    // As wide as the single photo, and only as tall as the fan, so nothing sits above or below it.
-    val stackHeight = PhotoStackGeometry.stackHeight(cardWidth, cardHeight, poses)
-    Box(modifier.size(width.dp, stackHeight.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.size(width.dp, height.dp), contentAlignment = Alignment.Center) {
         // Farthest first, so each nearer card covers the last.
         look.behind.zip(poses).asReversed().forEach { (card, pose) ->
             Box(
@@ -186,8 +182,9 @@ internal fun PhotoStackFrame(
         }
         // The front card's shadow falls on the cards behind it, so cards of photos that look alike
         // still read apart. [content] draws the front photo inside its own outline.
-        Box(Modifier.size(cardWidth.dp, cardHeight.dp).dropShadow(frontShape, PhotoStackFrontShadow)) {
-            content(cardWidth, cardHeight)
+        // The front photo keeps the frame's full height.
+        Box(Modifier.size(cardWidth.dp, height.dp).dropShadow(frontShape, PhotoStackFrontShadow)) {
+            content(cardWidth, height)
         }
     }
 }

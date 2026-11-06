@@ -133,7 +133,12 @@ fun ChatPhotoBubble(
     stack: PhotoStackLook? = null,
     drawsPhoto: Boolean = true,
 ) {
-    val size = ChatMediaBubbleSizing.size(imageWidth, imageHeight, maxWidth.value)
+    // A stack takes a square whatever its photos' shape; a single photo keeps its own clamped shape.
+    val size = if (stack != null) {
+        ChatMediaBubbleSizing.stackSize(maxWidth.value)
+    } else {
+        ChatMediaBubbleSizing.size(imageWidth, imageHeight, maxWidth.value)
+    }
     val hasCaption = !caption.isNullOrEmpty()
     // An emoji-only caption is drawn as a text message's is: large, with no bubble. Only a bubble
     // is squared off against the photo.
@@ -219,7 +224,7 @@ fun ChatPhotoBubble(
         }
         if (drawsPhoto) {
             if (stack != null) {
-                // The same box a single photo takes; the front card shrinks to leave the fan room.
+                // A square frame; the front card narrows to leave the fan room.
                 PhotoStackFrame(
                     look = stack,
                     width = size.width,

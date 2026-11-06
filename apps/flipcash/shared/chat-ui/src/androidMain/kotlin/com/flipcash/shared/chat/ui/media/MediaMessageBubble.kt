@@ -300,7 +300,7 @@ internal fun MediaMessageBubble(
             if (quote != null) {
                 // Inset to the front card, so on a stack the citation sits on it rather than the fan.
                 val frontPadding = if (look != null) {
-                    val box = ChatMediaBubbleSizing.size(image?.width, image?.height, maxWidth.value)
+                    val box = ChatMediaBubbleSizing.stackSize(maxWidth.value)
                     photoStackFrontPadding(look, box.width, box.height)
                 } else {
                     PaddingValues(0.dp)

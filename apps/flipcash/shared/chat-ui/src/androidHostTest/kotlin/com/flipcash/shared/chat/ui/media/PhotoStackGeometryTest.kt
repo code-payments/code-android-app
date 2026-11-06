@@ -5,9 +5,11 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** The fan of a card stack fits inside the box a single photo of the same image takes. */
+/** A card stack takes a square frame, and its fan fits inside it. */
 class PhotoStackGeometryTest {
 
     @Test
@@ -20,46 +22,47 @@ class PhotoStackGeometryTest {
     }
 
     @Test
-    fun `every tilted card stays inside the box, wide or tall`() {
-        // A landscape photo, a square one and one clipped at the 5:4 tall cap.
-        for ((width, height) in listOf(260f to 195f, 260f to 260f, 260f to 325f)) {
+    fun `a stack's frame is a maxWidth square whatever its photos' shape`() {
+        assertEquals(ChatMediaBubbleSize(260f, 260f, cropped = true), ChatMediaBubbleSizing.stackSize(260f))
+    }
+
+    @Test
+    fun `every turned card stays inside the square and just meets an edge`() {
+        for (side in listOf(200f, 260f, 440f)) {
             for (behind in 1..2) {
                 val poses = PhotoStackGeometry.poses(behind, nearNudge = 4f, farNudge = 8f)
-                val scale = PhotoStackGeometry.cardScale(width, height, poses)
-                assertTrue(scale < 1f, "the cards shrink to leave the fan room")
-                val w = width * scale
-                val h = height * scale
+                val fan = assertNotNull(PhotoStackGeometry.fan(side, side, poses))
+                assertTrue(fan.frontWidth < side, "the front narrows to leave the fan room")
+                assertTrue(fan.cardHeight < side, "the back cards shorten to fit turned")
+                var tightest = Float.MAX_VALUE
                 for (pose in poses) {
                     val r = Math.toRadians(pose.tiltDegrees.toDouble())
-                    val across = (w * abs(cos(r)) + h * abs(sin(r))).toFloat() / 2f + abs(pose.nudge)
-                    val down = (w * abs(sin(r)) + h * abs(cos(r))).toFloat() / 2f
-                    assertTrue(across <= width / 2f + 0.01f, "$width x $height, $behind behind: reaches $across across")
-                    assertTrue(down <= height / 2f + 0.01f, "$width x $height, $behind behind: reaches $down down")
+                    val across = (fan.frontWidth * abs(cos(r)) + fan.cardHeight * abs(sin(r))).toFloat() / 2f + abs(pose.nudge)
+                    val down = (fan.frontWidth * abs(sin(r)) + fan.cardHeight * abs(cos(r))).toFloat() / 2f
+                    assertTrue(across <= side / 2f + 0.01f, "$side, $behind behind: reaches $across across")
+                    assertTrue(down <= side / 2f + 0.01f, "$side, $behind behind: reaches $down down")
+                    tightest = minOf(tightest, side / 2f - across, side / 2f - down)
                 }
+                assertTrue(tightest < 0.01f, "$side, $behind behind: no card meets an edge")
             }
         }
     }
 
     @Test
-    fun `nothing behind draws the card at full size`() {
-        assertEquals(1f, PhotoStackGeometry.cardScale(260f, 195f, emptyList()))
+    fun `without a nudge the fan matches iOS's stackFan`() {
+        // iOS: width = (W cos - H sin) / (cos² - sin²), card = (H cos - W sin) / (cos² - sin²), at 4°.
+        val r = Math.toRadians(4.0)
+        val c = cos(r).toFloat()
+        val s = sin(r).toFloat()
+        val det = c * c - s * s
+        val fan = assertNotNull(PhotoStackGeometry.fan(260f, 260f, listOf(StackCardPose(-4f, 0f))))
+        assertEquals((260f * c - 260f * s) / det, fan.frontWidth, 0.01f)
+        assertEquals((260f * c - 260f * s) / det, fan.cardHeight, 0.01f)
     }
 
     @Test
-    fun `the stack is no taller than the photo, and a tall photo's stack is shorter`() {
-        // The width binds for a tall photo, so its cards shrink further than its height needs and the
-        // box drops to the fan's height: no empty band above or below for the next message to clear.
-        for ((width, height) in listOf(260f to 195f, 260f to 260f, 260f to 325f)) {
-            for (behind in 1..2) {
-                val poses = PhotoStackGeometry.poses(behind, nearNudge = 4f, farNudge = 8f)
-                val scale = PhotoStackGeometry.cardScale(width, height, poses)
-                val stack = PhotoStackGeometry.stackHeight(width * scale, height * scale, poses)
-                assertTrue(stack <= height + 0.01f, "$width x $height, $behind behind: $stack tall")
-                assertTrue(stack >= height * scale, "$width x $height, $behind behind: shorter than its card")
-            }
-        }
-        val tall = PhotoStackGeometry.poses(1, nearNudge = 4f, farNudge = 8f)
-        val scale = PhotoStackGeometry.cardScale(260f, 346.7f, tall)
-        assertTrue(PhotoStackGeometry.stackHeight(260f * scale, 346.7f * scale, tall) < 346.7f - 1f)
+    fun `nothing behind fills the frame, and a frame too small to fan gives null`() {
+        assertEquals(StackFan(260f, 260f), PhotoStackGeometry.fan(260f, 260f, emptyList()))
+        assertNull(PhotoStackGeometry.fan(10f, 10f, PhotoStackGeometry.poses(2, nearNudge = 4f, farNudge = 8f)))
     }
 }

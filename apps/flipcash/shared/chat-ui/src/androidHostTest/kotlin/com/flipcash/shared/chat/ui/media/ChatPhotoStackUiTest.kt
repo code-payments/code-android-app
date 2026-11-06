@@ -194,14 +194,14 @@ class ChatPhotoStackUiTest {
     }
 
     /**
-     * The stack takes the box a single photo of the same image takes, fanned cards and all: no
-     * taller, so the next message keeps the normal gap, and no wider, so the cards stay off the
-     * avatar gutter and the timestamp column a swipe reveals.
+     * The stack takes a square as wide as a single photo, fanned cards and all: no wider, so the
+     * cards stay off the avatar gutter and the timestamp column a swipe reveals, and no card past
+     * the square's edges, so the next message keeps the normal gap.
      */
     @Test
     // Tall enough that all three rows lay out on screen, unclipped.
     @Config(qualifiers = "w360dp-h1200dp")
-    fun `the fanned cards stay inside the box a single photo takes`() {
+    fun `the fanned cards stay inside a square as wide as a single photo`() {
         rule.setContent {
             DesignSystem {
                 Column {
@@ -218,7 +218,6 @@ class ChatPhotoStackUiTest {
             }
         }
 
-        val loneRow = rule.onNodeWithTag("lone").fetchSemanticsNode().boundsInRoot
         // The photo of the lone bubble: the box a stack has to stay inside.
         val single = rule.onNode(
             hasTestTag(PHOTO_BUBBLE_TAG) and hasAnyAncestor(hasTestTag("lone")),
@@ -226,11 +225,10 @@ class ChatPhotoStackUiTest {
         ).fetchSemanticsNode().boundsInRoot
         for (count in listOf(2, 3)) {
             val row = rule.onNodeWithTag("stack$count").fetchSemanticsNode().boundsInRoot
-            // No taller than the single photo: the box shrinks to the fan, so no empty band is left
-            // above or below it for the next message to clear.
-            assertTrue(row.height <= loneRow.height + 0.5f, "row height at $count photos: ${row.height} > ${loneRow.height}")
+            // A square: as tall as the single photo is wide, whatever the photos' shape.
+            assertEquals(single.width, row.height, 0.5f, "row height at $count photos")
             // Both rows lead from the same edge, so the photo box sits at the same x in each.
-            val frame = androidx.compose.ui.geometry.Rect(single.left, row.top, single.right, row.top + row.height)
+            val frame = androidx.compose.ui.geometry.Rect(single.left, row.top, single.right, row.top + single.width)
             val cards = rule.onAllNodes(
                 hasTestTag(PHOTO_STACK_CARD_TAG) and hasAnyAncestor(hasTestTag("stack$count")),
                 useUnmergedTree = true,

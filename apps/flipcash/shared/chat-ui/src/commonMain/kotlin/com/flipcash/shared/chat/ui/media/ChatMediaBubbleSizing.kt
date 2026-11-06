@@ -36,4 +36,11 @@ object ChatMediaBubbleSizing {
         val clamped = ratio.coerceIn(MIN_ASPECT, MAX_ASPECT)
         return ChatMediaBubbleSize(maxWidth, (maxWidth * clamped).toFloat(), cropped = clamped != ratio)
     }
+
+    /**
+     * The bubble for a stack of photos: a [maxWidth] square, whatever the photos' shape. Matches iOS's
+     * `ChatMediaBubbleSizing.stackSize`; a stack of portrait photos would otherwise stand as tall as a
+     * single one.
+     */
+    fun stackSize(maxWidth: Float): ChatMediaBubbleSize = ChatMediaBubbleSize(maxWidth, maxWidth, cropped = true)
 }
