@@ -23,8 +23,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.PushPin
@@ -378,7 +377,7 @@ private fun MessageSelectionBar(
             add(
                 MessageAction(
                     label = stringResource(R.string.action_savePhoto),
-                    icon = Icons.Outlined.Download,
+                    icon = Icons.Filled.Download,
                     testTag = "action_save_photo",
                     // The bar stays up until the result lands: the save runs in its scope.
                     onClick = savePhoto,
@@ -389,7 +388,7 @@ private fun MessageSelectionBar(
             add(
                 MessageAction(
                     label = stringResource(R.string.action_saveAllPhotos),
-                    icon = Icons.Outlined.PhotoLibrary,
+                    icon = SaveAllIcon,
                     testTag = "action_save_all_photos",
                     onClick = saveAll,
                 )
