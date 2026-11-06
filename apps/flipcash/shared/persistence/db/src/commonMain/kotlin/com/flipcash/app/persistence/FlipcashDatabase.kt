@@ -151,8 +151,9 @@ import kotlin.jvm.Synchronized
         // The chat_marked_unread table, an AutoMigration for the same reason as chat_archive: a
         // mark cannot be re-fetched until the server stores it.
         AutoMigration(from = 51, to = 52), // chat_marked_unread table
+        AutoMigration(from = 52, to = 53, spec = FlipcashDatabase.Migration52To53::class), // chat_messages launch-scan partial indexes
     ],
-    version = 52,
+    version = 53,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 @ConstructedBy(FlipcashDatabaseConstructor::class)
@@ -348,6 +349,16 @@ abstract class FlipcashDatabase : RoomDatabase() {
     }
 
     /**
+     * Makes the three launch-scan indexes the auto-migration just created partial. See
+     * [ChatPartialIndexes].
+     */
+    class Migration52To53 : AutoMigrationSpec {
+        override fun onPostMigrate(connection: SQLiteConnection) {
+            ChatPartialIndexes.ensure(connection)
+        }
+    }
+
+    /**
      * Adds `chat_messages.ciphertext_json` and `encryption_state`. A row stored before this version
      * with encrypted content was never opened, so it's marked for opening with its ciphertext
      * copied across, the same as a row whose key fetch failed.
@@ -488,6 +499,7 @@ abstract class FlipcashDatabase : RoomDatabase() {
             instance =
                 builder(dbName)
                     .addMigrations(MIGRATION_25_26)
+                    .addCallback(ChatPartialIndexes.Callback)
                     .fallbackToDestructiveMigration(dropAllTables = false)
                     .build()
 
