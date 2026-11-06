@@ -27,20 +27,12 @@ fun main() {
     System.setProperty("opencode.processLifecycle.autoStart", "false")
     System.setProperty("java.awt.headless", "true")
 
-    val fixture = ChatListFixture(
-        dispatchers = object : DispatcherProvider {
-            override val Default: CoroutineDispatcher = Dispatchers.Default
-            override val Main: CoroutineDispatcher = Dispatchers.Main
-            override val IO: CoroutineDispatcher = Dispatchers.IO
-        },
-    )
-    val host = chatsHost(fixture) {
-        // The first feed mapping runs on Default; wait for it, then let follow-on work land.
-        withTimeoutOrNull(5_000) {
-            while (fixture.viewModel.stateFlow.value.chats is Loadable.Loading) delay(10)
-        }
-        delay(50)
+    val dispatchers = object : DispatcherProvider {
+        override val Default: CoroutineDispatcher = Dispatchers.Default
+        override val Main: CoroutineDispatcher = Dispatchers.Main
+        override val IO: CoroutineDispatcher = Dispatchers.IO
     }
+    val host = chatsHost(newFixture = { ChatListFixture(dispatchers) })
 
     runBlocking {
         generateSequence(::readLine).filter { it.isNotBlank() }.forEach { line ->
@@ -54,9 +46,31 @@ fun main() {
     exitProcess(0)
 }
 
-/** The Puppet host over [fixture]'s Chats screen; [settle] waits for the view model's work. */
-fun chatsHost(fixture: ChatListFixture, settle: suspend () -> Unit): PuppetHost = PuppetHost(
-    root = { chatsNode(fixture.viewModel) },
-    settle = settle,
-    violations = fixture.guard::drain,
-)
+/**
+ * The Puppet host over a Chats fixture from [newFixture]. `reset` closes the current fixture and
+ * builds a fresh one, so a runner can reuse one JVM for many behavior files. [settle] waits for the
+ * current fixture's view model before each response.
+ */
+fun chatsHost(
+    newFixture: () -> ChatListFixture,
+    settle: suspend (ChatListFixture) -> Unit = ::awaitLoaded,
+): PuppetHost {
+    var fixture = newFixture()
+    return PuppetHost(
+        root = { chatsNode(fixture.viewModel) },
+        settle = { settle(fixture) },
+        violations = { fixture.guard.drain() },
+        reset = {
+            fixture.close()
+            fixture = newFixture()
+        },
+    )
+}
+
+/** The first feed mapping runs on Default; wait for it, then let follow-on work land. */
+private suspend fun awaitLoaded(fixture: ChatListFixture) {
+    withTimeoutOrNull(5_000) {
+        while (fixture.viewModel.stateFlow.value.chats is Loadable.Loading) delay(10)
+    }
+    delay(50)
+}

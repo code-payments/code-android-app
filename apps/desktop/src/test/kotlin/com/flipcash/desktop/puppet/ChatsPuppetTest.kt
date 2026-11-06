@@ -42,17 +42,36 @@ class ChatsPuppetTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
+    /** Every fixture the session's host built, oldest first; a reset adds one. */
+    private val fixtures = mutableListOf<ChatListFixture>()
+
     private fun TestScope.session(): Pair<ChatListFixture, suspend (String) -> JsonObject> {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
-        val fixture = ChatListFixture(
-            dispatchers = object : DispatcherProvider {
-                override val Default: CoroutineDispatcher = dispatcher
-                override val Main: CoroutineDispatcher = dispatcher
-                override val IO: CoroutineDispatcher = dispatcher
-            },
-        )
-        val host = chatsHost(fixture) { advanceUntilIdle() }
-        return fixture to { line -> Json.parseToJsonElement(host.handle(line)).jsonObject }
+        val dispatchers = object : DispatcherProvider {
+            override val Default: CoroutineDispatcher = dispatcher
+            override val Main: CoroutineDispatcher = dispatcher
+            override val IO: CoroutineDispatcher = dispatcher
+        }
+        val host = chatsHost({ ChatListFixture(dispatchers).also(fixtures::add) }) { advanceUntilIdle() }
+        return fixtures.first() to { line -> Json.parseToJsonElement(host.handle(line)).jsonObject }
+    }
+
+    @Test
+    fun `reset discards changed state and builds a fresh fixture`() = runTest(main) {
+        val (_, send) = session()
+        send("""{"cmd":"do","action":"SelectionStarted","input":{"chatId":"$ava"}}""")
+        val changed = send("""{"cmd":"do","action":"FilterSelected","input":{"filter":"Unread"}}""").state
+        assertEquals("Unread", changed["filter"]!!.jsonPrimitive.content)
+
+        val reset = send("""{"cmd":"reset"}""")
+        assertEquals(true, reset["ok"]!!.jsonPrimitive.boolean)
+        with(reset.state) {
+            assertEquals("All", this["filter"]!!.jsonPrimitive.content)
+            assertEquals(false, this["isSelecting"]!!.jsonPrimitive.boolean)
+            assertEquals(listOf(ballers, ava, bookClub, sam), strings("visibleChatIds"))
+        }
+        assertEquals(2, fixtures.size)
+        fixtures.forEach { assertEquals(emptyList(), it.guard.drain(), "a fixture reached past its seed") }
     }
 
     private val JsonObject.state get() = this["node"]!!.jsonObject["state"]!!.jsonObject

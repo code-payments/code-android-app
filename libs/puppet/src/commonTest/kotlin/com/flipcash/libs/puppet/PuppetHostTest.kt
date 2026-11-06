@@ -98,6 +98,24 @@ class PuppetHostTest {
     }
 
     @Test
+    fun `reset runs the host's reset and returns the focused node`() = runTest {
+        var resets = 0
+        val resettable = PuppetHost(
+            root = { PuppetNode("Box", { JsonObject(mapOf("size" to JsonPrimitive(size.name))) }, emptyList()) },
+            reset = { resets++; size = Size.Small },
+        )
+        size = Size.Large
+        val response = Json.parseToJsonElement(resettable.handle("""{"cmd":"reset"}""")).jsonObject
+        assertEquals(1, resets)
+        assertEquals("Small", response["node"]!!.jsonObject["state"]!!.jsonObject["size"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `reset on a host without one is bad_request`() = runTest {
+        assertEquals("bad_request", send("""{"cmd":"reset"}""")["error"]!!.jsonObject["code"]!!.jsonPrimitive.content)
+    }
+
+    @Test
     fun `a fixture guard violation turns the response into an error`() = runTest {
         val guarded = PuppetHost(root = { PuppetNode("Box", { JsonObject(emptyMap()) }, emptyList()) }, violations = { listOf("network: ChatRepository.getChat") })
         val error = Json.parseToJsonElement(guarded.handle("""{"cmd":"ls"}""")).jsonObject["error"]!!.jsonObject

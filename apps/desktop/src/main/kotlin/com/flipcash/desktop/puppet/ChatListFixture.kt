@@ -49,6 +49,7 @@ import com.hoc081098.channeleventbus.ChannelEventBus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import androidx.lifecycle.ViewModelStore
 import java.io.File
 import java.nio.file.Files
 import kotlin.time.Instant
@@ -68,7 +69,7 @@ class ChatListFixture(
     dispatchers: DispatcherProvider,
     seed: ChatFeeds = defaultSeed,
     val guard: FixtureGuard = FixtureGuard(),
-    dataDir: File = Files.createTempDirectory("puppet-chats").toFile(),
+    private val dataDir: File = Files.createTempDirectory("puppet-chats").toFile(),
 ) {
     val feeds = MutableStateFlow(seed)
 
@@ -139,6 +140,15 @@ class ChatListFixture(
             FlipcashAnalytics.None,
         ),
     )
+
+    // Owns the view model so close() can cancel its viewModelScope.
+    private val store = ViewModelStore().apply { put("chats", viewModel) }
+
+    /** Cancels the view model's work and deletes the data directory. */
+    fun close() {
+        store.clear()
+        dataDir.deleteRecursively()
+    }
 
     companion object {
         val selfId: ID = List(32) { 1 }

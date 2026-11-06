@@ -25,6 +25,8 @@ internal object PuppetJson {
  * response per line:
  *
  * - `{"cmd":"ls"}` returns the focused screen.
+ * - `{"cmd":"reset"}` runs [reset], which re-seeds the fixture, and returns the focused screen. A
+ *   runner uses it to reuse one host for many behavior files. Without [reset] it is a bad request.
  * - `{"cmd":"do","action":"<name>","input":{...}}` sends an action to the focused screen and returns
  *   the focused screen after it. `input` may be left out for an action that takes none.
  *
@@ -42,6 +44,7 @@ class PuppetHost(
     private val root: () -> PuppetNode,
     private val settle: suspend () -> Unit = {},
     private val violations: () -> List<String> = { emptyList() },
+    private val reset: (suspend () -> Unit)? = null,
 ) {
     suspend fun handle(line: String): String = PuppetJson.output.encodeToString(JsonObject.serializer(), respond(line))
 
@@ -55,7 +58,8 @@ class PuppetHost(
         val response = when (request.string("cmd")) {
             "ls" -> focusedResponse()
             "do" -> perform(request)
-            else -> error("bad_request", "Unknown cmd ${request["cmd"]}; expected \"ls\" or \"do\"")
+            "reset" -> reset?.let { it(); focusedResponse() } ?: error("bad_request", "This host can't reset")
+            else -> error("bad_request", "Unknown cmd ${request["cmd"]}; expected \"ls\", \"do\" or \"reset\"")
         }
         val caught = violations()
         if (caught.isNotEmpty()) {
