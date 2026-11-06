@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -52,10 +53,12 @@ fun Modifier.floatingGlass(
     val glassTint = lerp(backdrop, Color.White, 0.18f)
     val fill = if (hazeState != null) {
         // The HazeBlurStyle builder is not a @Composable scope, so theme reads are hoisted above it.
-        val liquidGlass = HazeBlurStyle {
-            blurRadius(32.dp)
-            backgroundColor(backdrop)
-            colorEffects(listOf(HazeColorEffect.tint(glassTint.copy(alpha = 0.72f))))
+        val liquidGlass = remember(backdrop, glassTint) {
+            HazeBlurStyle {
+                blurRadius(32.dp)
+                backgroundColor(backdrop)
+                colorEffects(listOf(HazeColorEffect.tint(glassTint.copy(alpha = 0.72f))))
+            }
         }
         Modifier.hazeBlur(HazeInput.Sources(hazeState), liquidGlass)
     } else {

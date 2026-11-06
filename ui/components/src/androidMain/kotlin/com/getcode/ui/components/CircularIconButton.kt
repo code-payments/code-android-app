@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,10 +53,12 @@ fun CircularIconButton(
         val glassBlurRadius = CodeTheme.dimens.grid.x4
         val glassTint = lerp(backdrop, Color.White, 0.18f)
         // The HazeBlurStyle builder is not a @Composable scope, so theme reads are hoisted above it.
-        val liquidGlass = HazeBlurStyle {
-            blurRadius(glassBlurRadius)
-            backgroundColor(backdrop)
-            colorEffects(listOf(HazeColorEffect.tint(glassTint.copy(alpha = 0.72f))))
+        val liquidGlass = remember(glassBlurRadius, backdrop, glassTint) {
+            HazeBlurStyle {
+                blurRadius(glassBlurRadius)
+                backgroundColor(backdrop)
+                colorEffects(listOf(HazeColorEffect.tint(glassTint.copy(alpha = 0.72f))))
+            }
         }
         Modifier
             .clip(CircleShape)
