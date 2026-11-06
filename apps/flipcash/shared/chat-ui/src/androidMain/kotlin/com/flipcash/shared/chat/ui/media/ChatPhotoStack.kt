@@ -3,8 +3,8 @@ package com.flipcash.shared.chat.ui.media
 // kmp-audit: draws through PhotoLayers and Coil's AsyncImage, which sit in androidMain with the photo bubble
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -165,39 +165,48 @@ internal fun PhotoStackFrame(
                 Modifier
                     .size(cardWidth.dp, cardHeight.dp)
                     .offset(x = pose.nudge.dp)
+                    // Clipped after the turn and the nudge, so the clip turns with the card.
                     .graphicsLayer { rotationZ = pose.tiltDegrees }
                     .clip(radius)
                     .testTag(PHOTO_STACK_CARD_TAG),
             ) {
-                PhotoLayers(
-                    blurHash = card.blurHash,
-                    model = card.model,
-                    localModel = card.localModel,
-                    sentPreview = null,
-                    blurhashOnly = card.model == null && card.localModel == null,
-                    onLoadError = null,
-                )
-                // Dimmed so the front card reads as the one in the light.
-                Box(Modifier.fillMaxSize().background(CodeTheme.colors.scrim))
-                PhotoStackCardOutline(radius)
+                PhotoStackCardInset(radius) {
+                    PhotoLayers(
+                        blurHash = card.blurHash,
+                        model = card.model,
+                        localModel = card.localModel,
+                        sentPreview = null,
+                        blurhashOnly = card.model == null && card.localModel == null,
+                        onLoadError = null,
+                    )
+                    // Dimmed so the front card reads as the one in the light.
+                    Box(Modifier.fillMaxSize().background(CodeTheme.colors.scrim))
+                }
             }
         }
-        // The front card's shadow falls on the cards behind it, and the outline is drawn inside its
-        // own shape, so cards of photos that look alike still read apart and the frame keeps its size.
+        // The front card's shadow falls on the cards behind it, so cards of photos that look alike
+        // still read apart. [content] draws the front photo inside its own outline.
         Box(Modifier.size(cardWidth.dp, cardHeight.dp).dropShadow(frontShape, PhotoStackFrontShadow)) {
             content(cardWidth, cardHeight)
-            PhotoStackCardOutline(frontShape)
         }
     }
 }
 
-/** A line in the conversation's background colour around a stack card, inside its shape. */
+/**
+ * A stack card's outline and photo: the card is filled with the conversation's background colour,
+ * and [content] is clipped to [shape] [PHOTO_STACK_OUTLINE_WIDTH] inside its edge, so the frame keeps
+ * its size. The photo's anti-aliased edge falls on the outline rather than on the card's own edge,
+ * where it would show past the outline as a line of the photo's colour.
+ */
 @Composable
-private fun PhotoStackCardOutline(shape: Shape) {
+internal fun PhotoStackCardInset(shape: Shape, content: @Composable BoxScope.() -> Unit) {
     Box(
         Modifier
             .fillMaxSize()
-            .border(PHOTO_STACK_OUTLINE_WIDTH, CodeTheme.colors.background, shape),
+            .background(CodeTheme.colors.background)
+            .padding(PHOTO_STACK_OUTLINE_WIDTH)
+            .clip(shape),
+        content = content,
     )
 }
 

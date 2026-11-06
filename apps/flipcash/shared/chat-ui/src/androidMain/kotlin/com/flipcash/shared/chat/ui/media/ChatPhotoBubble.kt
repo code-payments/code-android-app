@@ -150,10 +150,45 @@ fun ChatPhotoBubble(
         horizontalAlignment = if (isFromSelf) Alignment.End else Alignment.Start,
     ) {
         val photoPosition = if (captionBubbled && drawsPhoto) position.withCaptionBelow() else position
+        val photoShape = bubbleShape(photoPosition, isFromSelf)
+        // What the photo box draws; a stack's front card draws it inside the card's outline.
+        val photoContent: @Composable BoxScope.() -> Unit = {
+            PhotoLayers(
+                blurHash = blurHash,
+                model = model,
+                localModel = localModel,
+                sentPreview = sentPreview,
+                blurhashOnly = blurhashOnly || unavailable,
+                onLoadError = onLoadError,
+            )
+            if (unavailable) {
+                Text(
+                    text = stringResource(Res.string.label_chat_media_unavailable),
+                    style = CodeTheme.typography.textSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(horizontal = CodeTheme.dimens.staticGrid.x3),
+                )
+            } else if (progress != null) {
+                progress()
+            }
+            if (stack != null) {
+                PhotoStackPill(
+                    count = stack.count,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(CodeTheme.dimens.staticGrid.x2),
+                )
+            }
+        }
         val photo = @Composable { photoWidth: Float, photoHeight: Float ->
         Bubble(
             isFromSelf = isFromSelf,
             position = photoPosition,
+            shape = photoShape,
             maxWidth = maxWidth,
             horizontalPadding = CodeTheme.dimens.none,
             verticalPadding = CodeTheme.dimens.none,
@@ -174,35 +209,10 @@ fun ChatPhotoBubble(
                     .testTag(PHOTO_BUBBLE_TAG)
                     .semantics { contentDescription = photoDescription },
             ) {
-                PhotoLayers(
-                    blurHash = blurHash,
-                    model = model,
-                    localModel = localModel,
-                    sentPreview = sentPreview,
-                    blurhashOnly = blurhashOnly || unavailable,
-                    onLoadError = onLoadError,
-                )
-                if (unavailable) {
-                    Text(
-                        text = stringResource(Res.string.label_chat_media_unavailable),
-                        style = CodeTheme.typography.textSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(horizontal = CodeTheme.dimens.staticGrid.x3),
-                    )
-                } else if (progress != null) {
-                    progress()
-                }
                 if (stack != null) {
-                    PhotoStackPill(
-                        count = stack.count,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(CodeTheme.dimens.staticGrid.x2),
-                    )
+                    PhotoStackCardInset(photoShape) { photoContent() }
+                } else {
+                    photoContent()
                 }
             }
         }
@@ -214,7 +224,7 @@ fun ChatPhotoBubble(
                     look = stack,
                     width = size.width,
                     height = size.height,
-                    frontShape = bubbleShape(photoPosition, isFromSelf),
+                    frontShape = photoShape,
                 ) { w, h -> photo(w, h) }
             } else {
                 photo(size.width, size.height)
