@@ -32,6 +32,9 @@ import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
+import com.getcode.view.PublicAction
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.coroutines.flow.combine
 import com.flipcash.shared.chat.PaymentRequests
 import com.flipcash.services.models.paymentrequest.PaymentRequest
@@ -118,15 +121,28 @@ open class ChatsViewModel @Inject constructor(
             val projection: ChatListProjection,
         ) : Event
 
-        data class FilterSelected(val filter: ChatListFilter) : Event
+        // The events below are what the screen sends. They are serializable, under short names, so the
+        // headless host in apps/desktop can list them and decode their input; the names are shared
+        // with the iOS host.
+        @Serializable
+        @SerialName("FilterSelected")
+        data class FilterSelected(val filter: ChatListFilter) : Event, PublicAction
 
-        data object ChipsRevealed : Event
+        @Serializable
+        @SerialName("ChipsRevealed")
+        data object ChipsRevealed : Event, PublicAction
 
-        data class SelectionStarted(val chatId: ChatId?) : Event
+        @Serializable
+        @SerialName("SelectionStarted")
+        data class SelectionStarted(val chatId: ChatId? = null) : Event, PublicAction
 
-        data class SelectionToggled(val chatId: ChatId) : Event
+        @Serializable
+        @SerialName("SelectionToggled")
+        data class SelectionToggled(val chatId: ChatId) : Event, PublicAction
 
-        data object SelectionEnded : Event
+        @Serializable
+        @SerialName("SelectionEnded")
+        data object SelectionEnded : Event, PublicAction
     }
 
     fun selectFilter(filter: ChatListFilter) = dispatchEvent(Event.FilterSelected(filter))

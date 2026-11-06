@@ -49,8 +49,10 @@ dependencies {
     implementation(project(":apps:flipcash:shared:device-link"))
     implementation(project(":apps:flipcash:shared:blob"))
     implementation(project(":apps:flipcash:shared:chat"))
+    implementation(project(":apps:flipcash:shared:chat-ui"))
     implementation(project(":apps:flipcash:features:chat-list"))
     implementation(project(":libs:emojis"))
+    implementation(project(":libs:reflex"))
     implementation(libs.kotlinx.coroutines.swing)
     implementation(libs.dagger)
     implementation(libs.grpc.okhttp)
@@ -93,6 +95,16 @@ tasks.register<JavaExec>("snapshot") {
         providers.gradleProperty("out").getOrElse(layout.buildDirectory.file("wallet.png").get().asFile.path),
         providers.gradleProperty("screen").getOrElse("wallet"),
     )
+}
+
+tasks.register<JavaExec>("reflex") {
+    group = "application"
+    description = "Drives the Chats screen headlessly over seeded data: JSON requests on stdin, responses on stdout."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.flipcash.desktop.reflex.ReflexMainKt")
+    standardInput = System.`in`
+    systemProperty("opencode.processLifecycle.autoStart", "false")
+    systemProperty("java.awt.headless", "true")
 }
 
 tasks.withType<JavaExec>().configureEach {

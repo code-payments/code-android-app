@@ -39,6 +39,7 @@ kotlin {
             implementation(libs.jetbrains.compose.ui.tooling.preview)
             implementation(libs.bundles.haze)
             implementation(libs.javax.inject)
+            implementation(libs.kotlinx.serialization.core)
         }
         androidMain.dependencies {
             // What flipcash.android.feature supplied before the move to KMP.
