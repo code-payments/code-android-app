@@ -5,6 +5,9 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RawQuery
+import androidx.room.RoomRawQuery
+import androidx.room.ColumnInfo
 import androidx.room.Transaction
 import com.flipcash.app.persistence.converters.mergeReactionsJson
 import com.flipcash.app.persistence.entities.ChatMessageEntity
@@ -23,6 +26,16 @@ import kotlinx.coroutines.flow.Flow
 private const val NOT_REQUEST_SHARE =
     "AND NOT (COALESCE(content_json, '') LIKE '%\"type\":\"cash\"%' " +
         "AND COALESCE(content_json, '') LIKE '%\"paymentRequestId\":\"%') "
+
+/** Keys per statement in [ChatMessageDao.getUnreadSeqs]: two bind variables each, under 999. */
+internal const val UNREAD_SEQ_CHUNK = 400
+
+/** One row of [ChatMessageDao.getUnreadSeqs]. */
+data class UnreadSeqRow(
+    @ColumnInfo(name = "chat_id_hex") val chatIdHex: String,
+    @ColumnInfo(name = "message_id") val messageId: Long,
+    @ColumnInfo(name = "unread_seq") val unreadSeq: Long?,
+)
 
 /** [NOT_REQUEST_SHARE] for the correlated subqueries that alias the table as `m`. */
 private const val NOT_REQUEST_SHARE_M =
@@ -90,7 +103,12 @@ interface ChatMessageDao {
     suspend fun getLatestVisible(chatIdHex: String): ChatMessageEntity?
 
     /**
-     * [getLatestVisible] for every chat at once: one row per chat that has a message with content.
+     * [getLatestVisible] for every chat at once: one row per chat that has a `chat_metadata` row and
+     * a message with content. Messages of a chat with no metadata row are left out; the list builds
+     * only from metadata rows, so it never reads them.
+     *
+     * Driven from `chat_metadata` rather than `SELECT DISTINCT chat_id_hex FROM chat_messages`,
+     * which walks an index over every stored message to find the chats.
      *
      * The conversation list needs this for every chat it builds, and one query per chat costs a
      * round trip each. A correlated subquery rather than a window function, which needs SQLite 3.25
@@ -104,7 +122,7 @@ interface ChatMessageDao {
             "AND (m.encryption_state IS NULL OR m.encryption_state != 'KEY_PENDING') " +
             NOT_REQUEST_SHARE_M +
             "ORDER BY m.timestamp_epoch_ms DESC, m.message_id DESC LIMIT 1) " +
-            "FROM (SELECT DISTINCT chat_id_hex FROM chat_messages) c)"
+            "FROM chat_metadata c)"
     )
     suspend fun getLatestVisibleForAllChats(): List<ChatMessageEntity>
 
@@ -121,7 +139,7 @@ interface ChatMessageDao {
             "AND (m.encryption_state IS NULL OR m.encryption_state != 'KEY_PENDING') " +
             NOT_REQUEST_SHARE_M +
             "ORDER BY m.timestamp_epoch_ms DESC, m.message_id DESC LIMIT 1) " +
-            "FROM (SELECT DISTINCT chat_id_hex FROM chat_messages) c)"
+            "FROM chat_metadata c)"
     )
     fun observeLatestVisibleForAllChats(): Flow<List<ChatMessageEntity>>
 
@@ -316,6 +334,39 @@ interface ChatMessageDao {
 
     @Query("SELECT unread_seq FROM chat_messages WHERE chat_id_hex = :chatIdHex AND message_id = :messageId")
     suspend fun getUnreadSeq(chatIdHex: String, messageId: Long): Long?
+
+    @RawQuery
+    suspend fun queryUnreadSeqs(query: RoomRawQuery): List<UnreadSeqRow>
+
+    /**
+     * [getUnreadSeq] for many (chat id hex, message id) keys. A key whose message isn't stored, or
+     * whose stamp is null, is absent from the result.
+     *
+     * One statement per [UNREAD_SEQ_CHUNK] keys rather than one per key: the conversation list
+     * reads a stamp for every chat on every rebuild. The chunk keeps a statement under the 999
+     * bind variables of the SQLite that minSdk ships.
+     */
+    @Transaction
+    suspend fun getUnreadSeqs(keys: Collection<Pair<String, Long>>): Map<Pair<String, Long>, Long> {
+        if (keys.isEmpty()) return emptyMap()
+        val stamps = HashMap<Pair<String, Long>, Long>(keys.size)
+        for (chunk in keys.distinct().chunked(UNREAD_SEQ_CHUNK)) {
+            val values = chunk.joinToString(",") { "(?,?)" }
+            val query = RoomRawQuery(
+                "SELECT m.chat_id_hex, m.message_id, m.unread_seq FROM (VALUES $values) k " +
+                    "JOIN chat_messages m ON m.chat_id_hex = k.column1 AND m.message_id = k.column2",
+            ) { statement ->
+                chunk.forEachIndexed { i, (chatIdHex, messageId) ->
+                    statement.bindText(2 * i + 1, chatIdHex)
+                    statement.bindLong(2 * i + 2, messageId)
+                }
+            }
+            for (row in queryUnreadSeqs(query)) {
+                row.unreadSeq?.let { stamps[row.chatIdHex to row.messageId] = it }
+            }
+        }
+        return stamps
+    }
 
     @Transaction
     suspend fun upsert(entity: ChatMessageEntity) {

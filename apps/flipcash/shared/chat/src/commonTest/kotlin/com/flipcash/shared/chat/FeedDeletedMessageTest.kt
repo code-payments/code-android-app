@@ -85,7 +85,12 @@ class FeedDeletedMessageTest {
             ),
         )
 
-        val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
+        // The READ pointer's message carries a stamp equal to its id, as `message()` builds them.
+        val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true).also {
+            coEvery { it.getUnreadSeqs(any()) } answers {
+                firstArg<Collection<Pair<String, Long>>>().associateWith { key -> key.second }
+            }
+        }
 
         /** Stubs the chat's newest visible message, as the batched read returns it. */
         fun latestVisible(message: ChatMessage?) {

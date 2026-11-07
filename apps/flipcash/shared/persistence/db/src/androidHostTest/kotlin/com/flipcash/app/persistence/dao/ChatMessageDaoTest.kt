@@ -9,9 +9,11 @@ import com.flipcash.app.persistence.converters.EmojiReactionSerialized
 import com.flipcash.app.persistence.converters.MessageContentSerialized
 import com.flipcash.app.persistence.converters.ReactionSummarySerialized
 import com.flipcash.app.persistence.entities.ChatMessageEntity
+import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.entities.EncryptionState
 import com.flipcash.app.persistence.entities.MessageStatus
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.After
@@ -22,6 +24,7 @@ import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Covers the split between the newest stored row and the newest row that still has content. The
@@ -43,7 +46,16 @@ class ChatMessageDaoTest {
             .allowMainThreadQueries()
             .build()
         dao = db.chatMessageDao()
+        // The chat-list preview reads only chats with a metadata row.
+        runBlocking { listOf(CHAT_HEX, OTHER_HEX).forEach { db.chatMetadataDao().insertIfAbsent(metadata(it)) } }
     }
+
+    private fun metadata(chatIdHex: String) = ChatMetadataEntity(
+        chatIdHex = chatIdHex,
+        chatType = "CONTACT_DM",
+        lastActivityEpochMs = 0,
+        lastMessageId = null,
+    )
 
     @After
     fun tearDown() {
@@ -141,6 +153,52 @@ class ChatMessageDaoTest {
         dao.upsert(text(2, "two").copy(chatIdHex = OTHER_HEX))
 
         assertEquals(listOf(OTHER_HEX), dao.getLatestVisibleForAllChats().map { it.chatIdHex })
+    }
+
+    @Test
+    fun `getLatestVisibleForAllChats leaves out a chat with no metadata row`() = runTest {
+        dao.upsert(text(1, "one"))
+        dao.upsert(text(2, "two").copy(chatIdHex = NO_METADATA_HEX))
+
+        assertEquals(listOf(CHAT_HEX), dao.getLatestVisibleForAllChats().map { it.chatIdHex })
+        assertEquals(listOf(CHAT_HEX), dao.observeLatestVisibleForAllChats().first().map { it.chatIdHex })
+    }
+
+    @Test
+    fun `getUnreadSeqs returns the stamp of each stored key and leaves out the rest`() = runTest {
+        dao.upsert(listOf(text(1, "one"), text(2, "two").copy(unreadSeq = 20)))
+        dao.upsert(text(5, "five").copy(chatIdHex = OTHER_HEX, unreadSeq = 50))
+
+        val stamps = dao.getUnreadSeqs(
+            listOf(CHAT_HEX to 1L, CHAT_HEX to 2L, OTHER_HEX to 5L, CHAT_HEX to 5L, OTHER_HEX to 9L, CHAT_HEX to 2L),
+        )
+
+        assertEquals(mapOf((CHAT_HEX to 1L) to 1L, (CHAT_HEX to 2L) to 20L, (OTHER_HEX to 5L) to 50L), stamps)
+        assertEquals(emptyMap(), dao.getUnreadSeqs(emptyList()))
+    }
+
+    @Test
+    fun `getUnreadSeqs agrees with getUnreadSeq across more keys than one statement takes`() = runTest {
+        val ids = 1L..(UNREAD_SEQ_CHUNK * 2 + 7L)
+        dao.upsert(ids.filter { it % 3 != 0L }.map { text(it, "m$it").copy(unreadSeq = it * 10) })
+
+        val stamps = dao.getUnreadSeqs(ids.map { CHAT_HEX to it })
+
+        val expected = ids.mapNotNull { id -> dao.getUnreadSeq(CHAT_HEX, id)?.let { (CHAT_HEX to id) to it } }.toMap()
+        assertEquals(expected, stamps)
+        assertEquals(ids.count { it % 3 != 0L }, stamps.size)
+    }
+
+    @Test
+    fun `getUnreadSeqs looks each key up by primary key`() {
+        val plan = db.openHelper.writableDatabase.query(
+            "EXPLAIN QUERY PLAN SELECT m.chat_id_hex, m.message_id, m.unread_seq FROM (VALUES (?,?),(?,?)) k " +
+                "JOIN chat_messages m ON m.chat_id_hex = k.column1 AND m.message_id = k.column2",
+            arrayOf<Any>(CHAT_HEX, 1L, OTHER_HEX, 2L),
+        ).use { c -> buildList { while (c.moveToNext()) add(c.getString(c.getColumnIndexOrThrow("detail"))) } }
+
+        assertTrue(plan.any { "SEARCH m USING" in it && "PRIMARY KEY" in it || "sqlite_autoindex_chat_messages_1" in it }, plan.toString())
+        assertTrue(plan.none { it.startsWith("SCAN m") }, plan.toString())
     }
 
     @Test
@@ -914,6 +972,7 @@ class ChatMessageDaoTest {
     private companion object {
         const val CHAT_HEX = "aabb"
         const val OTHER_HEX = "ccdd"
+        const val NO_METADATA_HEX = "eeff"
         const val SENDER_HEX = "1122"
         const val SELF_HEX = "3344"
         const val CLIENT_HEX = "eeff"

@@ -90,6 +90,7 @@ class ChatArchiveFeedTest {
         val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true).also {
             coEvery { it.getLatestVisibleByChat() } returns entities.associate { e -> e.chatIdHex to message(2) }
             coEvery { it.getUnreadSeq(any(), any()) } answers { secondArg() }
+            coEvery { it.getUnreadSeqs(any()) } answers { firstArg<Collection<Pair<String, Long>>>().associateWith { key -> key.second } }
         }
         val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true).also { source ->
             every { source.observeAll() } returns flowOf(entities)
