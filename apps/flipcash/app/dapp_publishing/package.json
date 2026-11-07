@@ -1,0 +1,9 @@
+{
+  "name": "flipcash-dapp-publishing",
+  "private": true,
+  "description": "Publishes the Flipcash APK to the Solana dApp Store. See scripts/dapp-store-publish.sh.",
+  "packageManager": "pnpm@10.13.1",
+  "devDependencies": {
+    "@solana-mobile/dapp-store-cli": "1.0.1"
+  }
+}

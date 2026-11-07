@@ -13,3 +13,15 @@ updates:
   - bmc08gt
   assignees:
   - bmc08gt
+- package-ecosystem: npm
+  directory: "/apps/flipcash/app/dapp_publishing"
+  schedule:
+    interval: weekly
+  labels:
+    - "dependencies"
+    - "type: build"
+  target-branch: code/cash
+  reviewers:
+  - bmc08gt
+  assignees:
+  - bmc08gt
