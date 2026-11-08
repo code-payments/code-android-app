@@ -1,16 +1,20 @@
 package com.flipcash.app.updates.internal
 
 import android.app.Activity
+import android.os.RemoteException
 import com.flipcash.app.updates.OptionalUpdate
 import com.getcode.utils.trace
 import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateOptions
+import com.google.android.play.core.install.InstallException
 import com.google.android.play.core.install.InstallStateUpdatedListener
+import com.google.android.play.core.install.model.InstallErrorCode
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
 import com.google.android.gms.tasks.Task
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,9 +60,14 @@ internal class FlexibleUpdates(
             return
         }
 
-        val info = runCatching { manager.appUpdateInfo.await() }
-            .onFailure { trace(tag = TAG, message = "Failed to check for an optional update", error = it) }
-            .getOrNull()
+        val info = try {
+            manager.appUpdateInfo.await()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            traceCheckFailure(e)
+            null
+        }
         this.info = info
         if (info == null) {
             _update.value = null
@@ -154,7 +163,33 @@ internal class FlexibleUpdates(
         }
     }
 
+    /**
+     * Play refusing the check because of the device (its state, a missing or outdated Store, a
+     * sideloaded install) or the Store process dying mid-call is not something the app can fix,
+     * so it stays a breadcrumb. Anything else, like a malformed request, still goes to Bugsnag.
+     */
+    private fun traceCheckFailure(error: Exception) {
+        val fromDevice = error is RemoteException ||
+            (error is InstallException && error.errorCode in deviceInstallErrors)
+        if (fromDevice) {
+            trace(
+                tag = TAG,
+                message = "Optional update check unavailable on this device",
+                metadata = { "error" to (error.message ?: error::class.simpleName) },
+            )
+        } else {
+            trace(tag = TAG, message = "Failed to check for an optional update", error = error)
+        }
+    }
+
     private companion object {
         const val TAG = "App Updates"
+
+        val deviceInstallErrors = setOf(
+            InstallErrorCode.ERROR_API_NOT_AVAILABLE,
+            InstallErrorCode.ERROR_INSTALL_NOT_ALLOWED,
+            InstallErrorCode.ERROR_PLAY_STORE_NOT_FOUND,
+            InstallErrorCode.ERROR_APP_NOT_OWNED,
+        )
     }
 }

@@ -8,6 +8,15 @@ import com.flipcash.app.updates.OptionalUpdate
 import com.flipcash.app.userflags.UserFlagsCoordinator
 import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.google.android.play.core.appupdate.testing.FakeAppUpdateManager
+import android.os.RemoteException
+import com.getcode.utils.ErrorReporter
+import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceManager
+import com.google.android.gms.tasks.Tasks
+import com.google.android.play.core.appupdate.AppUpdateInfo
+import com.google.android.play.core.install.InstallException
+import com.google.android.play.core.install.model.InstallErrorCode
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
@@ -40,6 +49,59 @@ class FlexibleUpdatesTest {
     )
 
     private fun idleMain() = shadowOf(Looper.getMainLooper()).idle()
+
+    /** Runs [block] with a reporter attached and returns what reached Bugsnag. */
+    private suspend fun reportedDuring(block: suspend () -> Unit): List<Throwable> {
+        val reported = mutableListOf<Throwable>()
+        val reporter = object : ErrorReporter {
+            override fun report(error: Throwable, cause: Throwable, isNotifiable: Boolean) { reported += error }
+        }
+        TraceManager.initialize()
+        ErrorUtils.addReporter(reporter)
+        try {
+            block()
+        } finally {
+            ErrorUtils.removeReporter(reporter)
+        }
+        return reported
+    }
+
+    private fun failCheckWith(error: Exception) {
+        every { fake.appUpdateInfo } returns Tasks.forException<AppUpdateInfo>(error)
+    }
+
+    @Test
+    fun `a check Play refuses for device state is not reported`() = runTest {
+        failCheckWith(InstallException(InstallErrorCode.ERROR_INSTALL_NOT_ALLOWED))
+        val updates = flexibleUpdates()
+
+        val reported = reportedDuring { updates.check() }
+
+        assertNull(updates.update.value)
+        assertTrue(reported.isEmpty())
+    }
+
+    @Test
+    fun `a check cut off by the Play Store dying is not reported`() = runTest {
+        failCheckWith(RemoteException("AppUpdateService : Binder has died."))
+        val updates = flexibleUpdates()
+
+        val reported = reportedDuring { updates.check() }
+
+        assertNull(updates.update.value)
+        assertTrue(reported.isEmpty())
+    }
+
+    @Test
+    fun `a malformed check request is still reported`() = runTest {
+        failCheckWith(InstallException(InstallErrorCode.ERROR_INVALID_REQUEST))
+        val updates = flexibleUpdates()
+
+        val reported = reportedDuring { updates.check() }
+
+        assertNull(updates.update.value)
+        assertEquals(1, reported.size)
+    }
 
     @Test
     fun `reads priority and treats unknown staleness as zero`() = runTest {
