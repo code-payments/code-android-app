@@ -2,7 +2,7 @@ package com.flipcash.app.blob
 
 import android.content.Context
 import com.getcode.util.resources.ContentReader
-import com.getcode.util.resources.uploadMimeFor
+import com.getcode.util.resources.uploadMimeFor as contentUploadMimeFor
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -13,7 +13,7 @@ internal class AndroidUploadImageCache @Inject constructor(
 ) : UploadImageCache {
     override fun mimeType(photo: PickedPhoto): String? = contentReader.mimeType(photo.toUri())
 
-    override fun uploadMimeFor(sourceMimeType: String?): String = uploadMimeFor(sourceMimeType)
+    override fun uploadMimeFor(sourceMimeType: String?): String = contentUploadMimeFor(sourceMimeType)
 
     override fun copyToCache(photo: PickedPhoto, fileName: String, maxSize: Int, mimeType: String?): PickedPhoto? =
         contentReader.copyToCache(photo.toUri(), fileName, maxSize, mimeType)
