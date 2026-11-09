@@ -40,6 +40,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
@@ -47,10 +48,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
@@ -111,6 +112,12 @@ class EventStreamDelegate @Inject constructor(
         private val GAP_FILL_DELAY = 2.seconds
         private val HEARTBEAT_INTERVAL = 30.seconds
         private val REOPEN_BACKOFF_BASE = 1.seconds
+
+        /** How many caught-up messages are written per transaction; `GetDelta` sends at most 100 per batch. */
+        internal const val DELTA_FLUSH_MESSAGES = 500
+
+        /** Bounds a catch-up stream, which runs inline in the coordinator's event handling. */
+        private val DELTA_SYNC_TIMEOUT = 60.seconds
     }
 
     sealed interface Event {
@@ -301,39 +308,82 @@ class EventStreamDelegate @Inject constructor(
      * The cursor is read from `chat_metadata`, which holds what the client has actually applied:
      * nothing writes the server's head there — a feed sync refreshes only the server-owned columns
      * (`ChatMetadataDao.upsert`), and the mapper drops the head on the way in.
+     *
+     * `GetDelta` streams the catch-up as batches of at most 100 messages, and only the completed
+     * stream reaches the head (`latest_sequence`). Batches are buffered and written
+     * [DELTA_FLUSH_MESSAGES] at a time, each write followed by the checkpoint it reached, so a long
+     * catch-up costs observers a few invalidations rather than one per batch. A stream that fails,
+     * drops or times out keeps what it delivered, and the next sync resumes from that checkpoint.
      */
     internal suspend fun performDeltaSync(chatId: ChatId) {
         val afterSequence = metadataDataSource.getLatestEventSequence(chatId)
         trace(tag = TAG, message = "Delta sync for $chatId from sequence $afterSequence", type = TraceType.Process)
 
-        try {
-            val result = messagingController.getDelta(chatId, afterSequence).first()
-            result
-                .onSuccess { delta ->
-                    if (delta.messages.isNotEmpty()) {
-                        messageDataSource.upsert(chatId, delta.messages)
+        val buffered = mutableListOf<ChatMessage>()
+        var checkpoint = afterSequence
+        var head: Long? = null
+        var applied = 0
+        var failure: Throwable? = null
+
+        // One write that only moves forward: the cursor, and the newest message only when it is
+        // newer than the stored one. See ChatMetadataDao.applyCatchUp.
+        suspend fun flush(cursor: Long) {
+            if (buffered.isNotEmpty()) messageDataSource.upsert(chatId, buffered.toList())
+            metadataDataSource.applyCatchUp(
+                chatId,
+                if (cursor > afterSequence) cursor else 0L,
+                buffered.maxByOrNull { it.messageId },
+            )
+            applied += buffered.size
+            buffered.clear()
+        }
+
+        val completed = try {
+            withTimeoutOrNull(DELTA_SYNC_TIMEOUT) {
+                messagingController.getDelta(chatId, afterSequence)
+                    .transformWhile { result ->
+                        result.onSuccess { emit(it) }.onFailure { failure = it }
+                        result.isSuccess
                     }
-                    // One write that only moves forward: the cursor, and the newest message only
-                    // when it is newer than the stored one. See ChatMetadataDao.applyCatchUp.
-                    metadataDataSource.applyCatchUp(
-                        chatId,
-                        if (delta.latestSequence > afterSequence) delta.latestSequence else 0L,
-                        delta.messages.maxByOrNull { it.messageId },
-                    )
-                    sequenceTracker.resetTo(chatId, delta.latestSequence)
-                    trace(tag = TAG, message = "Delta sync complete: ${delta.messages.size} messages, sequence ${delta.latestSequence}", type = TraceType.Process)
-                }
-                .onFailure { error ->
-                    if (error is GetDeltaError.ResetRequired) {
-                        trace(tag = TAG, message = "Delta sync reset required for $chatId, falling back to full load", type = TraceType.Process)
-                        sequenceTracker.clear(chatId)
-                        _events.send(Event.LoadMessages(chatId))
-                    } else {
-                        trace(tag = TAG, message = "Delta sync failed for $chatId: ${error.message}", type = TraceType.Error)
+                    .collect { delta ->
+                        buffered += delta.messages
+                        checkpoint = maxOf(checkpoint, delta.checkpointSequence)
+                        head = delta.latestSequence
+                        if (buffered.size >= DELTA_FLUSH_MESSAGES) flush(checkpoint)
                     }
-                }
+                true
+            } ?: false
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             trace(tag = TAG, message = "Delta sync exception for $chatId: ${e.message}", type = TraceType.Error)
+            false
+        }
+
+        val latest = head
+        if (completed && failure == null && latest != null) {
+            flush(maxOf(latest, checkpoint))
+            sequenceTracker.resetTo(chatId, latest)
+            trace(tag = TAG, message = "Delta sync complete: $applied messages, sequence $latest", type = TraceType.Process)
+            return
+        }
+
+        // Every batch received before the stream stopped was whole; keep them, and resume from
+        // their checkpoint rather than the head they never reached.
+        flush(checkpoint)
+        val error = failure
+        when {
+            error is GetDeltaError.ResetRequired -> {
+                trace(tag = TAG, message = "Delta sync reset required for $chatId, falling back to full load", type = TraceType.Process)
+                sequenceTracker.clear(chatId)
+                _events.send(Event.LoadMessages(chatId))
+            }
+            error != null ->
+                trace(tag = TAG, message = "Delta sync failed for $chatId: ${error.message}", type = TraceType.Error)
+            completed ->
+                trace(tag = TAG, message = "Delta sync for $chatId ended without a response", type = TraceType.Error)
+            else ->
+                trace(tag = TAG, message = "Delta sync for $chatId stopped at sequence $checkpoint after $applied messages", type = TraceType.Error)
         }
     }
 
