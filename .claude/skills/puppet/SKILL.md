@@ -3,9 +3,9 @@ name: puppet
 description: >
   Drive this app's real view models headlessly with the `puppet` CLI (no device, no network), run
   the shared behavior tests against the Android host, or add a screen to puppet. The skill lives in
-  the orchestrator repo; this file points to it. Usage: /puppet [test android [path] | sync | add-screen <name>]
+  the orchestrator repo; this file points to it. Usage: /puppet [android|ios | test android|ios [path] | sync | add-screen <name>]
 user-invocable: true
-argument-hint: "[test android [path] | sync | add-screen <name>]"
+argument-hint: "[android|ios | test android|ios [path] | sync | add-screen <name>]"
 ---
 
 # puppet (pointer)
