@@ -15,6 +15,8 @@ import com.flipcash.shared.chat.internal.DataStoreApproveNewMembersStore
 import com.flipcash.shared.chat.internal.DataStoreLobbyRequestStore
 import com.flipcash.shared.chat.internal.DmOutgoingEncryption
 import com.flipcash.shared.chat.alerts.ReactionAlertController
+import com.flipcash.shared.chat.LiveCashArrivals
+import com.flipcash.shared.chat.LiveCashSink
 import com.flipcash.shared.chat.PaymentRequestUpdateSink
 import com.flipcash.shared.chat.PaymentRequests
 import com.flipcash.shared.chat.alerts.ReactionAlertSink
@@ -130,6 +132,11 @@ abstract class ChatModule {
     internal abstract fun bindGroupKeyEnvelopeStore(
         impl: GroupKeyEnvelopeDataSource
     ): GroupKeyEnvelopeStore
+
+    @Binds
+    internal abstract fun bindLiveCashSink(
+        impl: LiveCashArrivals
+    ): LiveCashSink
 
     @Binds
     internal abstract fun bindReactionAlertSink(

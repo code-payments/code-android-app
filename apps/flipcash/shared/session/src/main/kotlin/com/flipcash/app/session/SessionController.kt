@@ -23,7 +23,11 @@ data object PutInWallet : BillDeterminationResult, ActedUpon
 
 interface BillOperations {
     val billState: StateFlow<BillState>
-    fun showBill(bill: Scannable.Payable)
+    /**
+     * Presents [bill]. Returns false when nothing was started (a zero amount, no account, or no
+     * network), so a caller waiting on the bill can stop waiting; true means the grab is awaited.
+     */
+    fun showBill(bill: Scannable.Payable): Boolean
     fun dismissBill(action: BillDeterminationResult)
 
     /**

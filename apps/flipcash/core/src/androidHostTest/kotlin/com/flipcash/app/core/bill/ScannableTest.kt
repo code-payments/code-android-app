@@ -66,6 +66,7 @@ class ScannableTest {
             token = tokenWith(nonUsdfMint),
             amount = localFiat(),
             didReceive = true,
+            receivedInChat = true,
             disableGestures = true,
             confirmationDelay = expectedDelay,
             data = expectedData,
@@ -73,11 +74,20 @@ class ScannableTest {
             nonce = expectedNonce,
         )
         assertTrue(bill.didReceive)
+        assertTrue(bill.receivedInChat)
         assertTrue(bill.disableGestures)
         assertEquals(expectedDelay, bill.confirmationDelay)
         assertEquals(expectedData, bill.data)
         assertEquals(Scannable.Payable.Kind.airdrop, bill.kind)
         assertEquals(expectedNonce, bill.nonce)
+    }
+
+    @Test
+    fun `a bill is not a chat bill unless it says so`() {
+        val bill = Scannable.Payable.forToken(token = tokenWith(nonUsdfMint), amount = localFiat(), didReceive = true)
+        assertTrue(!bill.receivedInChat)
+        assertTrue(bill.stamped(listOf(1), listOf(2)).let { !it.receivedInChat })
+        assertTrue(Scannable.Payable.forToken(token = tokenWith(nonUsdfMint), amount = localFiat(), didReceive = true, receivedInChat = true).stamped(listOf(1), listOf(2)).receivedInChat)
     }
 
     @Test
