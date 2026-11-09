@@ -29,6 +29,7 @@ class NetworkGuardTest {
 
     @AfterTest
     fun restore() {
+        NetworkGuard.drain()
         ProxySelector.setDefault(previous)
     }
 
@@ -55,7 +56,7 @@ class NetworkGuardTest {
                 )
             }
         } finally {
-            channel.shutdownNow()
+            channel.shutdownNow().awaitTermination(5, TimeUnit.SECONDS)
         }
 
         val caught = NetworkGuard.drain()

@@ -121,7 +121,9 @@ fun chatsHost(
 ): PuppetHost {
     NetworkGuard.install()
     val stack = PuppetStack()
+    // A session never inherits blocked calls from an earlier one in the same JVM.
     fun start(): ChatListFixture = newFixture().also { fixture ->
+        NetworkGuard.drain()
         fixture.viewModel.eventFlow
             .filterIsInstance<Event.OpenScreen>()
             .onEach { stack.push(routeNode(it.screen)) }
