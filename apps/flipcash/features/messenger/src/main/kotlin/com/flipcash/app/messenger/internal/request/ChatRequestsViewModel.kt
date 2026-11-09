@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.deckOrder
+import com.flipcash.services.models.paymentrequest.nextExpiry
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.PaymentRequests
@@ -31,26 +32,35 @@ import kotlin.time.Instant
 
 /**
  * A group chat's payment requests as the conversation screen shows them: the cards in the
- * transcript and the deck in the app bar. Owns the screen's one-minute clock and its 45 s poll.
+ * transcript and the deck under the app bar. Owns the screen's one-minute clock, a tick at the
+ * next `ends_at` so an expiring request leaves the deck on time, and the 45 s poll.
  */
 @HiltViewModel
-internal class ChatRequestsViewModel @Inject constructor(
+internal class ChatRequestsViewModel(
     private val requests: PaymentRequests,
     private val chatCoordinator: ChatCoordinator,
     private val userManager: UserManager,
+    private val clock: Clock,
 ) : ViewModel() {
+
+    @Inject
+    constructor(
+        requests: PaymentRequests,
+        chatCoordinator: ChatCoordinator,
+        userManager: UserManager,
+    ) : this(requests, chatCoordinator, userManager, Clock.System)
 
     val viewerId: ID? get() = userManager.accountId
 
     private val chatId = MutableStateFlow<ChatId?>(null)
 
-    private val _now = MutableStateFlow(Clock.System.now())
+    private val _now = MutableStateFlow(clock.now())
 
-    /** The time for status lines and the ended state, ticking once a minute. */
+    /** The time for status lines and the ended state, ticking once a minute and at each `ends_at`. */
     val now: StateFlow<Instant> = _now.asStateFlow()
 
     /** When this screen opened, so a card can tell a message that arrived from one scrolled to. */
-    val openedAt: Instant = Clock.System.now()
+    val openedAt: Instant = clock.now()
 
     /** How many times the deck was swiped since the last refetch. View state only. */
     private val cycled = MutableStateFlow(0)
@@ -68,9 +78,9 @@ internal class ChatRequestsViewModel @Inject constructor(
 
     // Above init: viewModelScope runs on Main.immediate, so the deck collector publishes before
     // the constructor returns, and fields declared after init would still be null.
-    private var shownNow = _now.value
     private var settle: Job? = null
     private var settledDeck: List<PaymentRequest> = emptyList()
+    private var expiry: Job? = null
 
     init {
         viewModelScope.launch {
@@ -78,8 +88,11 @@ internal class ChatRequestsViewModel @Inject constructor(
                 chatId.flatMapLatest { id -> id?.let { requests.inChat(it) } ?: flowOf(emptyList()) },
                 _now,
                 cycled,
-            ) { inChat, now, cycled -> deckOrder(inChat, now, viewerId).rotated(cycled) to now }
-                .collect { (next, now) -> publish(next, now) }
+            ) { inChat, now, cycled -> Triple(deckOrder(inChat, now, viewerId).rotated(cycled), inChat, now) }
+                .collect { (next, inChat, now) ->
+                    publish(next, inChat)
+                    scheduleExpiry(inChat, now)
+                }
         }
         viewModelScope.launch {
             chatId.filterNotNull().flatMapLatest { id ->
@@ -90,33 +103,47 @@ internal class ChatRequestsViewModel @Inject constructor(
         viewModelScope.launch {
             while (true) {
                 delay(1.minutes)
-                _now.value = Clock.System.now()
+                _now.value = clock.now()
             }
         }
     }
 
     /**
-     * Puts [next] on the deck. A request ending moves it in the sort order; the deck keeps its
-     * order for the ended look's fade first, and only then lets the list slide it into place.
-     * Changes arriving meanwhile update the cards in place and join the pending settle.
+     * Puts [next] on the deck. A request that ends leaves it at once, except a completed one, which
+     * stays in its slot while its ring sweeps to full and then leaves; the cards behind close the
+     * gap. Changes arriving meanwhile update the cards in place and join the pending settle.
      */
-    private fun publish(next: List<PaymentRequest>, now: Instant) {
-        val shown = _deck.value
+    private fun publish(next: List<PaymentRequest>, inChat: List<PaymentRequest>) {
         val holding = settle?.isActive == true
-        val held = if (holding) inShownOrder(shown, next) else holdForEndedFade(shown, shownNow, next, now)
-        shownNow = now
+        val held = holdForCompletion(_deck.value, next, inChat)
         settledDeck = next
         if (held == null) {
             settle?.cancel()
-            _deck.value = next
+            show(next)
             return
         }
         _deck.value = held
         if (!holding) {
             settle = viewModelScope.launch {
                 delay(RequestMotion.CHANGE_MILLIS.toLong())
-                _deck.value = settledDeck
+                show(settledDeck)
             }
+        }
+    }
+
+    /** An expanded list that loses its last card collapses as the deck fades out. */
+    private fun show(deck: List<PaymentRequest>) {
+        _deck.value = deck
+        if (deck.isEmpty()) _expanded.value = false
+    }
+
+    /** Ticks the clock at the next `ends_at`, not the next minute, so an expiring card leaves on time. */
+    private fun scheduleExpiry(inChat: List<PaymentRequest>, now: Instant) {
+        expiry?.cancel()
+        val at = nextExpiry(inChat, now) ?: return
+        expiry = viewModelScope.launch {
+            delay(at - clock.now())
+            _now.value = maxOf(clock.now(), at)
         }
     }
 
@@ -139,7 +166,7 @@ internal class ChatRequestsViewModel @Inject constructor(
         chatId.value = chat
         while (true) {
             requests.loadChat(chat).onSuccess { cycled.value = 0 }
-            _now.value = Clock.System.now()
+            _now.value = clock.now()
             delay(POLL_INTERVAL)
         }
     }

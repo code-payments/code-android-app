@@ -27,6 +27,9 @@ import kotlin.time.Instant
  *   that send.
  * @param createdRequestId set once Create returns OK. From then on only the message send is
  *   retried; Create is never called again for this confirm.
+ * @param defaultTitle the weekday default ("Monday Request") the draft started with; the Name
+ *   field's placeholder.
+ * @param titleSaved whether the creator has saved a title of their own with Done.
  */
 internal data class NewRequestDraft(
     val viewerId: ID,
@@ -37,7 +40,19 @@ internal data class NewRequestDraft(
     val deadline: Deadline = Deadline.Week,
     val idempotencyKey: IdempotencyKey? = null,
     val createdRequestId: ID? = null,
+    val defaultTitle: String = title,
+    val titleSaved: Boolean = false,
 ) {
+    /** What the Name field opens with: empty while the title is still the default, else the saved title. */
+    val nameFieldText: String get() = if (titleSaved) title else ""
+
+    /** The draft with [input] saved as its title, trimmed and cut to [maxLength]; null when blank. */
+    fun renamed(input: String, maxLength: Int): NewRequestDraft? {
+        val trimmed = input.trim().take(maxLength).trim()
+        if (trimmed.isEmpty()) return null
+        return copy(title = trimmed, titleSaved = true)
+    }
+
     /** Members asked other than the creator. */
     val requestedCount: Int get() = selected.count { it != viewerId }
 

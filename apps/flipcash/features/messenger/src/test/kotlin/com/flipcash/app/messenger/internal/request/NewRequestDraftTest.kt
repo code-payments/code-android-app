@@ -178,5 +178,43 @@ class NewRequestDraftTest {
         assertEquals(now + 2.days, Deadline.Custom(now + 2.days).endsAt(now + 1.days))
     }
 
+    // 61
+    @Test
+    fun `the name field opens empty over the weekday default, and back keeps it`() {
+        val draft = draft(5).copy(title = "Monday Request", defaultTitle = "Monday Request")
+
+        assertEquals("", draft.nameFieldText)
+        assertEquals("Monday Request", draft.defaultTitle)
+        // Done is disabled while the field is empty: an empty or blank entry saves nothing.
+        assertNull(draft.renamed("", RequestMoneyViewModel.MAX_TITLE))
+        assertNull(draft.renamed("   ", RequestMoneyViewModel.MAX_TITLE))
+        // Back without Done never renames, so the title stays the default.
+        assertEquals("Monday Request", draft.title)
+        assertTrue(draft.canSend)
+    }
+
+    // 62
+    @Test
+    fun `a saved title pre-fills the name field`() {
+        val draft = draft(5).copy(title = "Monday Request", defaultTitle = "Monday Request")
+        val renamed = draft.renamed("  Rent ", RequestMoneyViewModel.MAX_TITLE)!!
+
+        assertEquals("Rent", renamed.title)
+        assertEquals("Rent", renamed.nameFieldText)
+        assertEquals("Monday Request", renamed.defaultTitle)
+    }
+
+    @Test
+    fun `saving the default text itself still pre-fills it next time`() {
+        val renamed = draft(5).renamed("Saturday Request", RequestMoneyViewModel.MAX_TITLE)!!
+
+        assertEquals("Saturday Request", renamed.nameFieldText)
+    }
+
+    @Test
+    fun `a saved title is cut to the limit`() {
+        assertEquals("a".repeat(RequestMoneyViewModel.MAX_TITLE), draft(5).renamed("a".repeat(RequestMoneyViewModel.MAX_TITLE + 5), RequestMoneyViewModel.MAX_TITLE)!!.title)
+    }
+
     private fun sealed() = PaymentRequestText.Encrypted(1, ByteArray(24), ByteArray(32))
 }

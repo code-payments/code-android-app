@@ -13,10 +13,8 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import kotlin.time.Instant
 
-/** The deck holds its order while an ending request fades, then settles. */
+/** A completed request stays in its slot while its ring fills, then leaves; other endings leave at once. */
 class DeckHoldTest {
-
-    private val now = Instant.fromEpochSeconds(500)
 
     private fun request(id: Int, status: PaymentRequestStatus = PaymentRequestStatus.Open, endsAt: Long = 1_000) = PaymentRequest(
         id = List(16) { id.toByte() },
@@ -36,43 +34,59 @@ class DeckHoldTest {
         ),
     )
 
+    // 3, 58
     @Test
-    fun `a request closing keeps the old order with the new contents`() {
+    fun `a completed front request keeps its slot until the settle`() {
         val a = request(1)
         val b = request(2)
-        val closedA = request(1, PaymentRequestStatus.Closed)
-        val held = holdForEndedFade(shown = listOf(a, b), shownNow = now, next = listOf(b, closedA), now = now)
-        assertEquals(listOf(closedA, b), held)
+        val completedA = request(1, PaymentRequestStatus.Completed)
+        val held = holdForCompletion(shown = listOf(a, b), next = listOf(b), held = listOf(completedA, b))
+        assertEquals(listOf(completedA, b), held)
     }
 
     @Test
-    fun `a request expiring by the clock holds the order too`() {
+    fun `the only request completing holds a deck of one`() {
+        val a = request(1)
+        val completedA = request(1, PaymentRequestStatus.Completed)
+        assertEquals(listOf(completedA), holdForCompletion(listOf(a), emptyList(), listOf(completedA)))
+    }
+
+    @Test
+    fun `a closed request leaves at once`() {
+        val a = request(1)
+        val b = request(2)
+        assertNull(holdForCompletion(listOf(a, b), listOf(b), listOf(request(1, PaymentRequestStatus.Closed), b)))
+    }
+
+    // 9, 60
+    @Test
+    fun `an expired request leaves at once`() {
         val a = request(1, endsAt = 600)
         val b = request(2)
-        val later = Instant.fromEpochSeconds(700)
-        val held = holdForEndedFade(listOf(a, b), now, listOf(b, a), later)
-        assertEquals(listOf(a, b), held)
+        assertNull(holdForCompletion(listOf(a, b), listOf(b), listOf(a, b)))
     }
 
     @Test
-    fun `an order change with nothing ending is not held`() {
+    fun `nothing leaving needs no hold`() {
         val a = request(1)
         val b = request(2)
-        assertNull(holdForEndedFade(listOf(a, b), now, listOf(b, a), now))
+        assertNull(holdForCompletion(listOf(a, b), listOf(b, a), listOf(a, b)))
     }
 
     @Test
-    fun `an unchanged order needs no hold`() {
+    fun `a request completed before it was shown is not brought in`() {
         val a = request(1)
-        val closedA = request(1, PaymentRequestStatus.Closed)
-        assertNull(holdForEndedFade(listOf(a), now, listOf(closedA), now))
+        val b = request(2)
+        assertNull(holdForCompletion(listOf(a), listOf(a), listOf(a, request(2, PaymentRequestStatus.Completed))))
+        assertNull(holdForCompletion(emptyList(), listOf(b), listOf(b)))
     }
 
     @Test
-    fun `a different set of requests is not held`() {
+    fun `a request arriving during the hold joins at the back`() {
         val a = request(1)
         val b = request(2)
         val c = request(3)
-        assertNull(holdForEndedFade(listOf(a, b), now, listOf(c, request(1, PaymentRequestStatus.Closed)), now))
+        val completedA = request(1, PaymentRequestStatus.Completed)
+        assertEquals(listOf(completedA, b, c), holdForCompletion(listOf(a, b), listOf(c, b), listOf(completedA, b, c)))
     }
 }
