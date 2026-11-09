@@ -1103,6 +1103,8 @@
     <string name="label_sharePayment_toViewer">%1$s paid you %2$s</string>
     <string name="label_sharePayment">%1$s paid %2$s %3$s</string>
     <string name="label_sharePayment_noReceiver">%1$s paid %2$s</string>
+    <!-- The viewer as the receiver in label_sharePayment: "Jordan paid you $40". -->
+    <string name="label_sharePayment_viewerAsReceiver">you</string>
     <!-- A run of share payments for one request drawn as one row. %1$d payers, %2$s their sum. -->
     <plurals name="label_sharePayment_people">
         <item quantity="one">%1$d person paid %2$s</item>

@@ -128,8 +128,13 @@ private fun shareTemplate(run: List<ChatListItem.SharePayment>): CaptionTemplate
     }
     val receiver = head.receiverName
     return when {
-        head.isFromSelf -> CaptionTemplate(stringResource(R.string.label_sharePayment_self), emptyList())
-        head.receiverIsViewer -> CaptionTemplate(stringResource(R.string.label_sharePayment_toViewer), listOf(head.payerName))
+        // "You" and "you" fill name slots so they take the names' weight, as the design draws them.
+        head.isFromSelf ->
+            CaptionTemplate(stringResource(R.string.label_sharePayment_noReceiver), listOf(stringResource(R.string.title_you)))
+        head.receiverIsViewer -> CaptionTemplate(
+            stringResource(R.string.label_sharePayment),
+            listOf(head.payerName, stringResource(R.string.label_sharePayment_viewerAsReceiver)),
+        )
         receiver == null -> CaptionTemplate(stringResource(R.string.label_sharePayment_noReceiver), listOf(head.payerName))
         else -> CaptionTemplate(stringResource(R.string.label_sharePayment), listOf(head.payerName, receiver))
     }
@@ -177,13 +182,19 @@ internal fun SharePaymentRowLayout(
     }
 }
 
-/** Fills what the caption leaves, down to [RULE_MIN_WIDTH]. */
+/**
+ * Fills what the caption leaves, down to [RULE_MIN_WIDTH]. Sits at the middle of the caption's
+ * first line, so a caption that wraps keeps its rules beside line 1.
+ */
 @Composable
 private fun RowScope.Rule(brush: Brush) {
+    val firstLineMiddle = with(LocalDensity.current) { CodeTheme.typography.caption.lineHeight.toDp() / 2 }
     Box(
         Modifier
             .weight(1f)
             .widthIn(min = RULE_MIN_WIDTH)
+            .align(Alignment.Top)
+            .padding(top = firstLineMiddle)
             .height(1.dp)
             .background(brush),
     )
