@@ -189,8 +189,12 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
+import com.flipcash.shared.chat.ChatCashBillShare
+import com.flipcash.shared.chat.LiveCashArrival
+import com.flipcash.shared.chat.LiveCashArrivals
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.core.ID
+import com.flipcash.app.core.bill.Scannable
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
@@ -333,6 +337,8 @@ internal class ChatViewModel @AssistedInject constructor(
     // Defaulted for the same reason: only the Send Back tests supply them.
     sendBackPayments: SendBackPaymentDelegate? = null,
     chatMessagingController: ChatMessagingController? = null,
+    // Defaulted likewise: only the live-cash bill reads it.
+    liveCash: LiveCashArrivals? = null,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(
         openingAtMessage = openAtMessageId != null,
@@ -1321,6 +1327,38 @@ internal class ChatViewModel @AssistedInject constructor(
         .distinctUntilChanged()
         .flatMapLatest { chatCoordinator.observePendingMutations(it) }
         .distinctUntilChanged()
+
+    /** Cash that reached the client on the live stream, for the chat's received bill. */
+    val liveCashArrivals: Flow<LiveCashArrival> = liveCash?.arrivals ?: emptyFlow()
+
+    /** The chat the app is showing in the foreground, which a live cash arrival must belong to. */
+    fun openChatId(): ChatId? = chatCoordinator.state.value.activeChat
+
+    fun viewerId(): ID? = userManager.accountId
+
+    /**
+     * The received bill for [share], built the way the Give screen builds its bill: priced through
+     * the verified-fiat calculator, so the give the bill opens carries the verified state the
+     * server checks the grab against. Null when the token, the rate or the pricing is not
+     * available, in which case the payment shows as its bubble only.
+     */
+    suspend fun buildChatCashBill(share: ChatCashBillShare): Scannable.Payable? {
+        val token = tokenCoordinator.getTokenMetadata(share.mint).getOrNull()?.token ?: return null
+        val rate = exchange.rateFor(share.amount.currencyCode) ?: return null
+        val priced = verifiedFiatCalculator.compute(
+            amount = share.amount,
+            token = token,
+            balance = tokenCoordinator.balanceForToken(token),
+            rate = rate,
+        ).getOrNull() ?: return null
+        return Scannable.Payable.forToken(
+            token = token,
+            amount = priced.localFiat,
+            verifiedState = priced.verifiedState,
+            didReceive = true,
+            receivedInChat = true,
+        )
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val otherReadPointer = stateFlow.mapNotNull { it.chatId }

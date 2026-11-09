@@ -212,7 +212,8 @@ class BillPresentationDelegate @Inject constructor(
         stateHolder.update { it.copy(billResult = style) }
 
         if (bill.didReceive) {
-            toastController.enqueue(bill.amount, isDeposit = true)
+            // A chat payment already shows as a bubble in the open chat, so it gets no "+$X" toast.
+            if (!bill.receivedInChat) toastController.enqueue(bill.amount, isDeposit = true)
             vibrator.vibrate(duration = 50)
         }
     }

@@ -98,8 +98,11 @@ internal data class PayableDecorator(private val bill: Scannable.Payable) : Scan
                     // grab time. A cash link is claimed from a link rather than from the scanner,
                     // so it has no snapshot to reveal and stays where it is.
                     onClaim = {
-                        if (session == null) context.onDismiss(PutInWallet)
-                        else if (session.claimReceivedFunds()) {
+                        if (session == null || bill.receivedInChat) {
+                            // A chat payment's funds were credited on arrival and the user is
+                            // already in the chat: nothing to reveal, nowhere to go.
+                            context.onDismiss(PutInWallet)
+                        } else if (session.claimReceivedFunds()) {
                             navigator.navigateAll(listOf(AppRoute.Tabs.Wallet))
                         }
                     }

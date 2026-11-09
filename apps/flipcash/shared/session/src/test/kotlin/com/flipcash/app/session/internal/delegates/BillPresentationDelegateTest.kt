@@ -37,6 +37,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import com.getcode.opencode.internal.transactors.BillPresentationData
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -458,6 +459,42 @@ class BillPresentationDelegateTest {
             TransferEvents.giveBill(State.FAILURE, localFiat.analytics, error = "give failed"),
             analytics.events.last(),
         )
+    }
+
+    // --- chat bill mode ---
+
+    private fun presentReceived(receivedInChat: Boolean) {
+        val presentSlot = slot<(BillPresentationData) -> Unit>()
+        every {
+            billController.awaitGrab(
+                amount = any(), token = any(), owner = any(), verifiedState = any(), nonce = any(),
+                present = capture(presentSlot), onGrabbed = any(), onTimeout = any(), onError = any(),
+            )
+        } answers {}
+        val bill = Scannable.CashBill(
+            token = mockk(relaxed = true),
+            amount = localFiat,
+            didReceive = true,
+            receivedInChat = receivedInChat,
+        )
+        createDelegate().showBill(bill)
+        presentSlot.captured.invoke(BillPresentationData(listOf<Byte>(1), listOf<Byte>(2)))
+    }
+
+    @Test
+    fun `a chat bill raises the receive haptic and no deposit toast`() = runTest {
+        presentReceived(receivedInChat = true)
+
+        verify(exactly = 1) { vibrator.vibrate(duration = 50) }
+        verify(exactly = 0) { toastController.enqueue(any(), isDeposit = true) }
+    }
+
+    @Test
+    fun `a received bill from anywhere else still enqueues the deposit toast`() = runTest {
+        presentReceived(receivedInChat = false)
+
+        verify(exactly = 1) { toastController.enqueue(localFiat, isDeposit = true) }
+        verify(exactly = 1) { vibrator.vibrate(duration = 50) }
     }
 
     private fun cashBill() = Scannable.CashBill(

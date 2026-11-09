@@ -109,6 +109,7 @@ import com.flipcash.app.shareable.LocalShareController
 import com.flipcash.app.shareable.Shareable
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.navigateForResult
@@ -859,6 +860,19 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         onCollapse = { requestsViewModel.setExpanded(false) },
         onOpen = openRequest,
     )
+
+    // The chat is the top screen only when nothing is drawn over it: another route above this
+    // chat or this flow step, a dialog, the in-screen sheets and viewer, or a chat that is itself
+    // inside a sheet (its entry is then not the root's top).
+    val dialogsShowing by BottomBarManager.messages.collectAsStateWithLifecycle()
+    val nothingOnTop = navigator.rootNavigator.currentRouteKey is AppRoute.Messaging.Chat &&
+        navigator.currentRouteKey is ChatStep.Conversation &&
+        dialogsShowing.isEmpty() &&
+        openPhoto == null &&
+        sendBackSheet == null &&
+        !requestPayState.open &&
+        !deckExpanded
+    ChatCashBillEffect(viewModel = viewModel, nothingOnTop = nothingOnTop)
 
     openPhoto?.let { opened ->
         // The bubble the photo opened from is a snapshot; the strip highlights the live picks.
