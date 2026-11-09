@@ -92,4 +92,26 @@ class ChatCashBillSlotTest {
         s.onSessionBill(showing = true, appInForeground = true, nowMs = 20_000)
         assertFalse(s.onSessionBill(showing = false, appInForeground = true, nowMs = 21_000))
     }
+
+    @Test
+    fun `a bill the presenter declined frees the slot at once`() {
+        // showBill returns early on no network or a zero amount and never reports a bill.
+        val s = slot()
+        s.onRequested(keyboardUp = true, nowMs = 0)
+        s.onPresentResult(started = false)
+        assertFalse(s.taken(false, 1))
+        // And the keyboard it held is not raised by some later bill closing.
+        s.onSessionBill(showing = true, appInForeground = true, nowMs = 2)
+        assertFalse(s.onSessionBill(showing = false, appInForeground = true, nowMs = 3))
+    }
+
+    @Test
+    fun `a bill the presenter accepted keeps the slot until it shows and closes`() {
+        val s = slot()
+        s.onRequested(keyboardUp = true, nowMs = 0)
+        s.onPresentResult(started = true)
+        assertTrue(s.taken(false, 1))
+        s.onSessionBill(showing = true, appInForeground = true, nowMs = 2)
+        assertTrue(s.onSessionBill(showing = false, appInForeground = true, nowMs = 3))
+    }
 }

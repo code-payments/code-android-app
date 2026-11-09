@@ -75,7 +75,7 @@ internal fun ChatCashBillEffect(viewModel: ChatViewModel, nothingOnTop: Boolean,
             if (decide() == null) return@collect
 
             slot.onRequested(keyboardUp = latestKeyboardUp, nowMs = System.currentTimeMillis())
-            session.showBill(bill)
+            slot.onPresentResult(started = session.showBill(bill))
         }
     }
 }

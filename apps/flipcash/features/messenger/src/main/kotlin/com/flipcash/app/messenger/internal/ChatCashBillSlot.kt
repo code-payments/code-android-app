@@ -1,5 +1,25 @@
 package com.flipcash.app.messenger.internal
 
+import androidx.navigation3.runtime.NavKey
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatStep
+
+/**
+ * Whether the chat's conversation is the top thing on screen, for the received bill.
+ *
+ * [rootTopKey] must be the chat route itself: a chat opened inside a sheet (`openAsSheet` wraps it
+ * in [AppRoute.Main.Sheet]) or with another route pushed above it leaves the root's top as
+ * something else. [flowTopKey] must be the conversation step, not a profile or request screen.
+ * [overlaysShowing] is every in-screen layer (dialogs, photo viewer, sheets, deck) being absent.
+ */
+internal fun chatNothingOnTop(
+    rootTopKey: NavKey?,
+    flowTopKey: NavKey?,
+    overlaysShowing: Boolean,
+): Boolean = rootTopKey is AppRoute.Messaging.Chat &&
+    flowTopKey is ChatStep.Conversation &&
+    !overlaysShowing
+
 /**
  * Tracks the one received bill a chat raises for live cash, and the keyboard it took down.
  *
@@ -48,6 +68,14 @@ internal class ChatCashBillSlot(private val pendingWindowMs: Long = 10_000L) {
             }
         }
         return false
+    }
+
+    /**
+     * The presenter answered the request. A bill it declined (zero amount, no network, no account)
+     * never reports back, so the slot is released now rather than held for [pendingWindowMs].
+     */
+    fun onPresentResult(started: Boolean) {
+        if (!started && phase == Phase.Pending) reset()
     }
 
     /** The app left the foreground: nothing is restored when the user comes back. */

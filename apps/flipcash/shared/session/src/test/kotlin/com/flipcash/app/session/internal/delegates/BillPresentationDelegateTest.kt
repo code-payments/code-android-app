@@ -497,6 +497,21 @@ class BillPresentationDelegateTest {
         verify(exactly = 1) { vibrator.vibrate(duration = 50) }
     }
 
+    @Test
+    fun `showBill reports false when it started nothing and true when it did`() = runTest {
+        val delegate = createDelegate()
+        every { networkObserver.isConnected } returns false
+        assertFalse(delegate.showBill(cashBill()))
+
+        every { networkObserver.isConnected } returns true
+        every { userManager.accountCluster } returns null
+        assertFalse(delegate.showBill(cashBill()))
+
+        every { userManager.accountCluster } returns accountCluster
+        assertFalse(delegate.showBill(cashBill().copy(amount = localFiat.copy(nativeAmount = Fiat(0.0)))))
+        assertTrue(delegate.showBill(cashBill()))
+    }
+
     private fun cashBill() = Scannable.CashBill(
         token = mockk(relaxed = true),
         amount = localFiat,

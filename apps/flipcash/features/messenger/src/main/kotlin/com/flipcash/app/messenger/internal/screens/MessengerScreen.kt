@@ -110,6 +110,7 @@ import com.flipcash.app.shareable.Shareable
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import com.getcode.manager.BottomBarManager
+import com.flipcash.app.messenger.internal.chatNothingOnTop
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.navigateForResult
@@ -865,13 +866,15 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // chat or this flow step, a dialog, the in-screen sheets and viewer, or a chat that is itself
     // inside a sheet (its entry is then not the root's top).
     val dialogsShowing by BottomBarManager.messages.collectAsStateWithLifecycle()
-    val nothingOnTop = navigator.rootNavigator.currentRouteKey is AppRoute.Messaging.Chat &&
-        navigator.currentRouteKey is ChatStep.Conversation &&
-        dialogsShowing.isEmpty() &&
-        openPhoto == null &&
-        sendBackSheet == null &&
-        !requestPayState.open &&
-        !deckExpanded
+    val nothingOnTop = chatNothingOnTop(
+        rootTopKey = navigator.rootNavigator.currentRouteKey,
+        flowTopKey = navigator.currentRouteKey,
+        overlaysShowing = dialogsShowing.isNotEmpty() ||
+            openPhoto != null ||
+            sendBackSheet != null ||
+            requestPayState.open ||
+            deckExpanded,
+    )
     ChatCashBillEffect(viewModel = viewModel, nothingOnTop = nothingOnTop, keyboardUp = keyboard.visible)
 
     openPhoto?.let { opened ->

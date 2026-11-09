@@ -1339,7 +1339,8 @@ internal class ChatViewModel @AssistedInject constructor(
     /**
      * The received bill for [share], built the way the Give screen builds its bill: priced through
      * the verified-fiat calculator, so the give the bill opens carries the verified state the
-     * server checks the grab against. Null when the token, the rate or the pricing is not
+     * server checks the grab against. The amount shown is the share the message carries (what the
+     * bubble shows), not the calculator's estimate. Null when the token, the rate or the pricing is not
      * available, in which case the payment shows as its bubble only.
      */
     suspend fun buildChatCashBill(share: ChatCashBillShare): Scannable.Payable? {
@@ -1351,13 +1352,7 @@ internal class ChatViewModel @AssistedInject constructor(
             balance = tokenCoordinator.balanceForToken(token),
             rate = rate,
         ).getOrNull() ?: return null
-        return Scannable.Payable.forToken(
-            token = token,
-            amount = priced.localFiat,
-            verifiedState = priced.verifiedState,
-            didReceive = true,
-            receivedInChat = true,
-        )
+        return chatCashBillOf(token, priced, share)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
