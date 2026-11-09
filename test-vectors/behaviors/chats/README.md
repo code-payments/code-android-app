@@ -38,6 +38,13 @@ Ids repeat their two-digit prefix sixteen times, e.g. `0101010101010101010101010
 |---|---|
 | `FilterSelected` | `filter` (required) |
 | `ChipsRevealed` | none |
-| `SelectionStarted` | `chatId` (optional) |
+| `SelectionStarted` | `chatId` (optional, Android only; see below) |
 | `SelectionToggled` | `chatId` (required) |
 | `SelectionEnded` | none |
+
+## Where the platforms differ
+
+- **Starting a selection on a row.** On Android a long-press on a row opens select mode with that row
+  picked (`SelectionStarted` with `chatId`). On iOS a long-press opens the row's context menu, and
+  select mode only opens from the More menu with nothing picked. Shared files send
+  `SelectionStarted` without `chatId`; Android's `ChatListSelectionTest` covers the row case.
