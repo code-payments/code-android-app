@@ -107,6 +107,10 @@ class FeedReadStampFetchTest {
             messageDataSource = mockk<ChatMessageDataSource>(relaxed = true).also {
                 coEvery { it.getLatestVisibleByChat() } returns mapOf(chatHex to message(9))
                 coEvery { it.getUnreadSeq(chatHex, readPointer) } returns storedStamp
+                coEvery { it.getUnreadSeqs(any()) } answers {
+                    val key = chatHex to readPointer
+                    if (key in firstArg<Collection<Pair<String, Long>>>()) listOfNotNull(storedStamp?.let { key to it }).toMap() else emptyMap()
+                }
             },
             memberDataSource = mockk<ChatMemberDataSource>(relaxed = true).also {
                 every { it.observeAll() } returns flowOf(mapOf(chatHex to members))

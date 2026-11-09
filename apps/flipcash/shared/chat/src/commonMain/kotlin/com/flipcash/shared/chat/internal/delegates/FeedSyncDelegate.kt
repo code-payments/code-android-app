@@ -19,6 +19,7 @@ import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.models.GetMessageError
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.PointerType
@@ -290,15 +291,17 @@ class FeedSyncDelegate @Inject constructor(
             // a row whose newest message changed without its metadata row changing (an edit, a
             // delete, a preview written a beat after the row) kept its old preview until some
             // unrelated write. Distinct, so only a change to some chat's newest visible message
-            // rebuilds, not every message write; the initial value keeps a slow first read from
-            // holding the list up.
-            messageDataSource.observeLatestVisibleChanges()
-                .onStart { emit(emptyList()) }
+            // rebuilds, not every message write. The build reads its previews from here rather
+            // than querying them again. The initial null keeps a slow first read from holding the
+            // list up; a build that sees it reads the previews itself.
+            messageDataSource.observeLatestVisibleByChat()
+                .map<Map<String, ChatMessage>, Map<String, ChatMessage>?> { it }
+                .onStart { emit(null) }
                 .distinctUntilChanged(),
             archiveStore.observeArchived(),
             markedUnreadStore.observeMarked(),
-        ) { metadataEntities, membersByChat, _, archived, marked ->
-            Triple(buildFeedFromDb(metadataEntities, membersByChat), archived, marked)
+        ) { metadataEntities, membersByChat, latestVisible, archived, marked ->
+            Triple(buildFeedFromDb(metadataEntities, membersByChat, latestVisible), archived, marked)
         }.onEach { (built, archived, marked) ->
             val (feed, readStamps) = built
             val staged = drainStagedStamps()
@@ -464,27 +467,31 @@ class FeedSyncDelegate @Inject constructor(
     private suspend fun buildFeedFromDb(
         metadataEntities: List<ChatMetadataEntity>,
         membersByChat: Map<String, List<ChatMember>>,
+        observedLatestVisible: Map<String, ChatMessage>?,
     ): Pair<List<ChatMetadata>, Map<Pair<ChatId, Long>, Long>> {
         // `is_member` is a column rather than a field on ChatMetadata: a chat you have left is
         // still a chat you can be shown (Plan C's gate reads the same row), so the flag is dropped
         // here, at the edge of the list, rather than carried through the domain model.
-        val latestVisible = messageDataSource.getLatestVisibleByChat()
+        val latestVisible = observedLatestVisible ?: messageDataSource.getLatestVisibleByChat()
         val selfId = userManager.accountId
-        val readStamps = mutableMapOf<Pair<ChatId, Long>, Long>()
-        val feed = metadataEntities.filter { it.isMember }.map { entity ->
-            val members = membersByChat[entity.chatIdHex] ?: emptyList()
+        val rows = metadataEntities.filter { it.isMember }
+        val feed = rows.map { entity ->
             // Deliberately the newest *visible* message, not the newest row: deleting the newest
             // message drops the feed back to the one before it, so the preview reads that message
             // instead of "Message deleted" and its unread splat clears with it (the fallback sits
             // at or below the read pointer whenever the deleted message was the only unread one).
             val lastMessage = entity.lastMessageId?.let { latestVisible[entity.chatIdHex] }
-            metadataDataSource.toMetadata(entity, members, lastMessage).also { metadata ->
-                // Only the stamp a row can ask for: the one on the message the READ pointer names.
-                val readPointer = selfReadPointer(metadata, selfId) ?: return@also
-                messageDataSource.getUnreadSeq(entity.chatIdHex, readPointer)
-                    ?.let { readStamps[metadata.chatId to readPointer] = it }
-            }
+            metadataDataSource.toMetadata(entity, membersByChat[entity.chatIdHex] ?: emptyList(), lastMessage)
         }
+        // Only the stamp a row can ask for: the one on the message the READ pointer names. Read
+        // for every row at once; one query per chat was most of a rebuild.
+        val pointers = feed.zip(rows).mapNotNull { (metadata, entity) ->
+            selfReadPointer(metadata, selfId)?.let { Triple(metadata.chatId, entity.chatIdHex, it) }
+        }
+        val stamps = messageDataSource.getUnreadSeqs(pointers.map { (_, hex, pointer) -> hex to pointer })
+        val readStamps = pointers.mapNotNull { (chatId, hex, pointer) ->
+            stamps[hex to pointer]?.let { (chatId to pointer) to it }
+        }.toMap()
         return feed to readStamps
     }
 

@@ -94,6 +94,7 @@ class FeedGroupProjectionTest {
             coEvery { it.getLatestVisibleByChat() } returns entities.associate { e -> e.chatIdHex to message(2) }
             // Every stored message is stamped with its own id, as [message] builds them.
             coEvery { it.getUnreadSeq(any(), any()) } answers { secondArg() }
+            coEvery { it.getUnreadSeqs(any()) } answers { firstArg<Collection<Pair<String, Long>>>().associateWith { key -> key.second } }
         }
 
         private val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true).also { source ->
