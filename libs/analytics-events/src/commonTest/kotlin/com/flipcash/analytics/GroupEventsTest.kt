@@ -243,6 +243,21 @@ class GroupEventsTest {
     }
 
     @Test
+    fun joinedForAPrivateGroupSendsGatedFalse() {
+        assertEquals(
+            AnalyticsEvent(
+                "Group: Joined",
+                mapOf(
+                    "State" to PropertyValue.Text("Success"),
+                    "Member Count" to PropertyValue.Number(5.0),
+                    "Gated" to PropertyValue.Flag(false),
+                ),
+            ),
+            GroupEvents.joined(State.SUCCESS, null, 5, false),
+        )
+    }
+
+    @Test
     fun leftCarriesStateAndMemberCount() {
         assertEquals(
             AnalyticsEvent(
