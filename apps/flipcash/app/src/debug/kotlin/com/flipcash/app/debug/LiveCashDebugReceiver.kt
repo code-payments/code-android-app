@@ -19,8 +19,13 @@ import dagger.hilt.components.SingletonComponent
  * the same sink the event stream uses, so the bill, the keyboard and the toast can be driven from
  * adb without moving money. It credits nothing.
  *
- *     adb shell am broadcast -a com.flipcash.debug.LIVE_CASH --ef amount 1.25
- *     adb shell am broadcast -a com.flipcash.debug.LIVE_CASH --ef amount 1.25 --ez twice true
+ *     adb shell am broadcast -n com.flipcash.app.android/com.flipcash.app.debug.LiveCashDebugReceiver \
+ *         -a com.flipcash.debug.LIVE_CASH --ef amount 1.25
+ *     adb shell am broadcast -n com.flipcash.app.android/com.flipcash.app.debug.LiveCashDebugReceiver \
+ *         -a com.flipcash.debug.LIVE_CASH --ef amount 1.25 --ez twice true
+ *
+ * The component (`-n`) is required: an implicit broadcast is not delivered to a manifest receiver
+ * and fails silently.
  *
  * The message is addressed to the viewer as a legacy DM payment (no receiver field), from a sender
  * id that is not theirs. `twice` fires a second one at once, which must be dropped.
