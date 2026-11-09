@@ -65,7 +65,6 @@ class ChatCashBillShareTest {
         val result = assertNotNull(share())
         assertEquals(five, result.amount)
         assertEquals(mint, result.mint)
-        assertEquals(500L, result.tokenQuarks)
     }
 
     @Test
@@ -84,7 +83,6 @@ class ChatCashBillShareTest {
             share(content = cash(receiver = null, multi = parts, amount = Fiat(fiat = 10.0, currencyCode = CurrencyCode.CAD)))
         )
         assertEquals(Fiat(fiat = 3.34, currencyCode = CurrencyCode.CAD), result.amount)
-        assertEquals(334L, result.tokenQuarks)
     }
 
     @Test

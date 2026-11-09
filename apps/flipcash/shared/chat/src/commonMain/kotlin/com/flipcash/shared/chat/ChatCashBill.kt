@@ -34,8 +34,6 @@ data class LiveCashArrival(
 data class ChatCashBillShare(
     val amount: Fiat,
     val mint: Mint,
-    /** The share's on-chain quarks when the message carries them for this viewer. */
-    val tokenQuarks: Long?,
 )
 
 /**
@@ -64,9 +62,7 @@ fun chatCashBillShare(
     if (!nothingOnTop) return null
     if (billShowing) return null
     val amount = content.receivedBy(selfId) ?: return null
-    val quarks = content.multiReceiver.firstOrNull { it.receiver == selfId }?.tokenQuarks
-        ?: content.tokenQuarks
-    return ChatCashBillShare(amount = amount, mint = content.mint, tokenQuarks = quarks)
+    return ChatCashBillShare(amount = amount, mint = content.mint)
 }
 
 /** Where the event stream hands a live cash arrival. [None] drops it. */

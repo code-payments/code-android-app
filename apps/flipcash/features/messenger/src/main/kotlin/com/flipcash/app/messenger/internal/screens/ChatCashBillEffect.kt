@@ -16,7 +16,6 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.shared.chat.ArrivalSource
 import com.flipcash.shared.chat.chatCashBillShare
-import com.getcode.ui.utils.rememberKeyboardController
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
@@ -29,16 +28,15 @@ import kotlinx.coroutines.flow.map
  * remembers that it was up, and raises the composer's own input request once the bill is gone.
  */
 @Composable
-internal fun ChatCashBillEffect(viewModel: ChatViewModel, nothingOnTop: Boolean) {
+internal fun ChatCashBillEffect(viewModel: ChatViewModel, nothingOnTop: Boolean, keyboardUp: Boolean) {
     val session = LocalSessionController.current ?: return
     val flagOn by LocalFeatureFlags.current.observe(FeatureFlag.ChatCashBill).collectAsStateWithLifecycle()
-    val keyboard = rememberKeyboardController()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val slot = remember { ChatCashBillSlot() }
 
     val latestNothingOnTop by rememberUpdatedState(nothingOnTop)
     val latestFlagOn by rememberUpdatedState(flagOn)
-    val latestKeyboardUp by rememberUpdatedState(keyboard.visible)
+    val latestKeyboardUp by rememberUpdatedState(keyboardUp)
 
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { slot.onAppStopped() }
 

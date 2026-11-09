@@ -872,7 +872,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         sendBackSheet == null &&
         !requestPayState.open &&
         !deckExpanded
-    ChatCashBillEffect(viewModel = viewModel, nothingOnTop = nothingOnTop)
+    ChatCashBillEffect(viewModel = viewModel, nothingOnTop = nothingOnTop, keyboardUp = keyboard.visible)
 
     openPhoto?.let { opened ->
         // The bubble the photo opened from is a snapshot; the strip highlights the live picks.
