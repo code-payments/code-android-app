@@ -20,9 +20,9 @@ internal fun peopleValue(people: NewRequestDraft.People, resources: ResourceHelp
 internal fun peopleDetail(people: NewRequestDraft.People, resources: ResourceHelper): String? =
     resources.getString(R.string.subtitle_requestMarkedPaid).takeIf { people.markedPaid }
 
-/** The summary's button, "Request <total> Total", [total] being the amount times the shares, formatted. */
-internal fun requestButtonText(total: String, resources: ResourceHelper): String =
-    resources.getString(R.string.action_requestTotal, total)
+/** The summary's button: "Send Request", whatever the amount and selection. */
+internal fun requestButtonText(resources: ResourceHelper): String =
+    resources.getString(R.string.action_sendRequest)
 
 /** The sheet for checking a 101st share: title and body. */
 internal fun maxPeopleNotice(resources: ResourceHelper): Pair<String, String> =

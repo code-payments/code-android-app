@@ -198,7 +198,12 @@ internal fun RequestMoneyScreen(
             annotatedEntry<RequestStep.Name> {
                 FollowStage(RequestStep.Name, target, onBack = back)
                 state.draft?.let { draft ->
-                    RequestNameContent(title = draft.title, onBack = back, onDone = viewModel::rename)
+                    RequestNameContent(
+                        initial = draft.nameFieldText,
+                        placeholder = draft.defaultTitle,
+                        onBack = back,
+                        onDone = viewModel::rename,
+                    )
                 }
             }
         },
@@ -385,7 +390,6 @@ private fun RequestSummaryContent(
     onRequest: () -> Unit,
 ) {
     val amount = draft.amount?.text().orEmpty()
-    val total = draft.totalAmount?.text().orEmpty()
     val resources = LocalResources.current
     CodeScaffold(
         topBar = {
@@ -403,7 +407,7 @@ private fun RequestSummaryContent(
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(bottom = CodeTheme.dimens.grid.x2)
                     .testTag("request_summary_send"),
-                text = requestButtonText(total, resources),
+                text = requestButtonText(resources),
                 enabled = draft.canSend,
                 isLoading = sending,
                 onClick = onRequest,
@@ -501,10 +505,13 @@ private fun deadlineValue(deadline: NewRequestDraft.Deadline): String = when (de
     }
 }
 
-/** The request's name, in the editor the group's name uses. */
+/**
+ * The request's name, in the editor the group's name uses. [initial] is empty while the title is
+ * still the weekday default, which shows as [placeholder] instead.
+ */
 @Composable
-private fun RequestNameContent(title: String, onBack: () -> Unit, onDone: (String) -> Unit) {
-    val field = rememberTextFieldState(initialText = title)
+private fun RequestNameContent(initial: String, placeholder: String, onBack: () -> Unit, onDone: (String) -> Unit) {
+    val field = rememberTextFieldState(initialText = initial)
     var length by remember { mutableIntStateOf(field.text.length) }
     var valid by remember { mutableStateOf(field.text.isNotBlank()) }
     LaunchedEffect(field) {
@@ -518,7 +525,7 @@ private fun RequestNameContent(title: String, onBack: () -> Unit, onDone: (Strin
     }
     NameEditScaffold(
         heading = stringResource(R.string.title_requestName),
-        placeholder = stringResource(R.string.label_requestName),
+        placeholder = placeholder,
         field = field,
         buttonText = stringResource(R.string.action_done),
         canSubmit = valid,

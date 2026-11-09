@@ -1183,7 +1183,6 @@
     <string name="value_requestUntil">Until %1$s</string>
     <string name="subtitle_requestAutoCloses">Request automatically closes after</string>
     <!-- %1$s is the amount times the shares: "Request $520 Total". -->
-    <string name="action_requestTotal">Request %1$s Total</string>
     <string name="title_requestFrom">Request From</string>
     <string name="label_selectPeople_you">You</string>
     <string name="title_requestMaxPeople">100 People Max</string>
