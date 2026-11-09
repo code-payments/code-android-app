@@ -1921,6 +1921,8 @@
     <string name="error_title_tipCardExportFailed">Couldn\'t Export</string>
     <string name="error_description_tipCardExportFailed">We were unable to export your tip code. Please try again</string>
     <string name="action_showGroupCard">Show QR Code</string>
+    <string name="action_qrCode">QR Code</string>
+    <string name="label_inviteLinkSendHint">Send this link to the people you want to join your group</string>
     <string name="label_groupCardTitleFallback">Group Chat</string>
     <string name="label_groupCardFileName">Join %1$s</string>
     <string name="label_groupCardFileNameFallback">Group Card</string>

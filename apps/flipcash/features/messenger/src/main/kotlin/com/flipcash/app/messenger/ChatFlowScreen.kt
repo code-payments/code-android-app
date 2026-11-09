@@ -547,42 +547,23 @@ private fun FlowGroupSelectPeople(viewModel: ChatViewModel, onSendComplete: () -
 private fun FlowGroupInviteSheet() {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val inviteViewModel = hiltViewModel<GroupInviteViewModel>()
-    val inviteState by inviteViewModel.state.collectAsStateWithLifecycle()
     // Same dismissal rule as the other sheets in this flow: exit through the sheet so it animates
     // down rather than having its scene deleted mid-frame.
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
-
-    LaunchedEffect(inviteViewModel, state.chatId) {
-        state.chatId?.let(inviteViewModel::exclude)
-    }
-
-    // Returned to whichever screen opened the sheet (see openGroupInvite), which navigates. The
-    // keyboard goes first: the message field has it up, and leaving with it still open drags the
-    // screen behind out from under it.
     val keyboard = rememberKeyboardController()
     val navigator = LocalCodeNavigator.current
-    val resultBack = resultBackNavigator<GroupInviteResult>(exit = dismissSheet)
-    LaunchedEffect(inviteViewModel) {
-        inviteViewModel.invited.collect { chatId ->
-            keyboard.hideIfVisible { resultBack.returnValue(GroupInviteResult(chatId)) }
-        }
-    }
+    val cardViewModel = hiltViewModel<GroupInviteViewModel>()
 
     GroupInviteSheet(
         inviteUrl = state.shareableGroupInviteUrl,
         subject = ShareToChatsSubject.Group(state.subject as? ChatSubject.Group),
-        state = inviteState,
         onShare = { viewModel.dispatchEvent(ChatViewModel.Event.InviteLinkShared) },
         onCopy = { viewModel.dispatchEvent(ChatViewModel.Event.CopyInviteLink) },
-        onToggle = inviteViewModel::toggle,
-        onMessageChanged = inviteViewModel::onMessageChanged,
-        onInvite = { state.shareableGroupInviteUrl?.let(inviteViewModel::invite) },
         onDismiss = dismissSheet,
         // The card is drawn over this sheet, which stays open beneath it.
         onShowCard = (state.subject as? ChatSubject.Group)?.let { group ->
             {
-                state.shareableGroupInviteUrl?.let { inviteViewModel.handOverPlainCard(group.chatId, it) }
+                state.shareableGroupInviteUrl?.let { cardViewModel.handOverPlainCard(group.chatId, it) }
                 keyboard.hideIfVisible { navigator.push(group.cardRoute()) }
             }
         },
@@ -606,38 +587,22 @@ private fun ChatSubject.Group.cardRoute() = AppRoute.Menu.GroupCard(
 private fun FlowInviteLinkSheet(inviteIdHex: String?) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    val inviteViewModel = hiltViewModel<GroupInviteViewModel>()
-    val inviteState by inviteViewModel.state.collectAsStateWithLifecycle()
     val linkViewModel = hiltViewModel<InviteLinkViewModel>()
     val link by linkViewModel.state.collectAsStateWithLifecycle()
     val dismissSheet = LocalBottomSheetDismissDispatcher.current
     val keyboard = rememberKeyboardController()
     val navigator = LocalCodeNavigator.current
-    val resultBack = resultBackNavigator<GroupInviteResult>(exit = dismissSheet)
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
 
-    LaunchedEffect(inviteViewModel, state.chatId) {
-        state.chatId?.let(inviteViewModel::exclude)
-        inviteViewModel.restrictToEncrypted(true)
-    }
     LaunchedEffect(linkViewModel, state.chatId, inviteIdHex) {
         state.chatId?.let { linkViewModel.open(it, inviteIdHex) }
-    }
-    LaunchedEffect(inviteViewModel) {
-        inviteViewModel.invited.collect { chatId ->
-            keyboard.hideIfVisible { resultBack.returnValue(GroupInviteResult(chatId)) }
-        }
     }
 
     GroupInviteSheet(
         inviteUrl = null,
         subject = ShareToChatsSubject.GroupInviteLink(state.subject as? ChatSubject.Group, link.link),
-        state = inviteState,
         onShare = linkViewModel::onShare,
         onCopy = linkViewModel::onCopy,
-        onToggle = inviteViewModel::toggle,
-        onMessageChanged = inviteViewModel::onMessageChanged,
-        onInvite = linkViewModel::onSend,
         onDismiss = dismissSheet,
         // The card is drawn over this sheet and encodes its invite link, handed over in memory.
         onShowCard = (state.subject as? ChatSubject.Group)?.let { group ->
@@ -650,7 +615,6 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?) {
         inviteEffects = linkViewModel.effects,
         onInviteEffect = { effect ->
             when (effect) {
-                is InviteLinkViewModel.Effect.Send -> inviteViewModel.invite(effect.url)
                 // 1e's offer: the plain join link, in place of this sheet.
                 InviteLinkViewModel.Effect.OpenJoinLink -> {
                     dismissSheet()
