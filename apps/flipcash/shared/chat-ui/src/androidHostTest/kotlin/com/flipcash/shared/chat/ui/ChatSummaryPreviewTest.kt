@@ -660,4 +660,24 @@ class ChatSummaryPreviewTest {
         } returns "Jordan paid Alex \$40"
         assertEquals("Jordan paid Alex \$40", sharePreview(viewer = self, held = false))
     }
+
+    // The chat list fetches the request this names; without it the preview never gains its title.
+    @Test
+    fun `a share payment names its request as the one its preview needs`() {
+        val requestId: ID = listOf(5)
+        val share = MessageContent.Cash(
+            intentId = listOf(1),
+            amount = 40.toFiat(),
+            mint = Mint.usdf,
+            receiver = alex,
+            paymentRequestId = requestId,
+        )
+        assertEquals(requestId, groupSummary(listOf(share), senderId = jordan).previewedPaymentRequestId())
+    }
+
+    @Test
+    fun `cash that pays no request names none`() {
+        val cash = MessageContent.Cash(intentId = listOf(1), amount = 40.toFiat(), mint = Mint.usdf, receiver = alex)
+        assertNull(groupSummary(listOf(cash), senderId = jordan).previewedPaymentRequestId())
+    }
 }
