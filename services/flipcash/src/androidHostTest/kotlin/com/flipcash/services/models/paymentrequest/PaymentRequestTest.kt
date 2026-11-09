@@ -19,7 +19,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/** The spec's shared test cases 1–13: amounts, the status line, the version merge and deck order. */
+/** The spec's shared test cases: amounts, the status line, the version merge and deck order. */
 class PaymentRequestTest {
 
     private val now = Instant.fromEpochSeconds(1_800_000_000)
@@ -102,7 +102,7 @@ class PaymentRequestTest {
         )
         assertEquals(StatusLine.PaidInFull, r.statusLine(now))
         assertEquals(1f, r.split!!.paidFraction)
-        assertTrue(r.isInDeck(now))
+        assertFalse(r.isInDeck(now))
         assertFalse(r.isOpen(now))
     }
 
@@ -159,6 +159,7 @@ class PaymentRequestTest {
         assertEquals(r.split!!.endsAt, r.resolvedClosedAt(now))
         assertEquals(StatusLine.Expired, r.statusLine(now))
         assertFalse(r.isOpen(now))
+        assertFalse(r.isInDeck(now))
     }
 
     @Test
@@ -185,11 +186,46 @@ class PaymentRequestTest {
         val in2d = request(id = 2, endsIn = 2.days)
         val closed3hAgo = request(id = 3, status = PaymentRequestStatus.Closed, closedAt = now - 3.hours)
         val expired30hAgo = request(id = 4, status = PaymentRequestStatus.Expired, closedAt = now - 30.hours)
+        // Ended requests leave the deck at once, so the CLOSED one is out too.
         assertEquals(
-            listOf(in2d, in5d, closed3hAgo),
+            listOf(in2d, in5d),
             deckOrder(listOf(in5d, closed3hAgo, expired30hAgo, in2d), now),
         )
     }
+
+    @Test
+    fun `59 - only the open request of four is in the deck`() {
+        val open = request(id = 1)
+        val completed = request(id = 2, shares = (1..2).map { share(it, paid = true) }, status = PaymentRequestStatus.Completed, closedAt = now - 1.hours)
+        val closed = request(id = 3, status = PaymentRequestStatus.Closed, closedAt = now - 1.hours)
+        val expired = request(id = 4, endsIn = (-1).hours)
+        assertEquals(listOf(open), deckOrder(listOf(completed, open, closed, expired), now))
+    }
+
+    @Test
+    fun `58 - paying the last share takes the request out of the deck`() {
+        val open = request(shares = listOf(share(1, paid = true), share(2)))
+        assertEquals(listOf(open), deckOrder(listOf(open), now))
+        val completed = request(shares = listOf(share(1, paid = true), share(2, paid = true)), status = PaymentRequestStatus.Completed, closedAt = now, version = 2)
+        assertEquals(emptyList(), deckOrder(listOf(completed), now))
+        assertEquals(StatusLine.PaidInFull, completed.statusLine(now))
+    }
+
+    @Test
+    fun `60 - the front request leaves at its ends_at and the other comes to the front`() {
+        val front = request(id = 1, endsIn = 10.minutes)
+        val other = request(id = 2, endsIn = 2.days)
+        assertEquals(listOf(front, other), deckOrder(listOf(other, front), now))
+        val expiry = nextExpiry(listOf(other, front), now)
+        assertEquals(now + 10.minutes, expiry)
+        assertEquals(listOf(front, other), deckOrder(listOf(other, front), expiry!! - 1.seconds))
+        assertEquals(listOf(other), deckOrder(listOf(other, front), expiry))
+        assertEquals(now + 2.days, nextExpiry(listOf(other, front), expiry))
+    }
+
+    @Test
+    fun `no open request has no next expiry`() =
+        assertNull(nextExpiry(listOf(request(status = PaymentRequestStatus.Closed, closedAt = now)), now))
 
     @Test
     fun `23 - a request the viewer owes on sorts before an earlier one they paid`() {
