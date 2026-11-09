@@ -119,6 +119,7 @@ fun chatsHost(
     newFixture: () -> ChatListFixture,
     settle: suspend (ChatListFixture) -> Unit,
 ): PuppetHost {
+    NetworkGuard.install()
     val stack = PuppetStack()
     fun start(): ChatListFixture = newFixture().also { fixture ->
         fixture.viewModel.eventFlow
@@ -130,7 +131,7 @@ fun chatsHost(
     return PuppetHost(
         root = { chatsNode(fixture.viewModel) },
         settle = { settle(fixture) },
-        violations = { fixture.guard.drain() },
+        violations = { fixture.guard.drain() + NetworkGuard.drain() },
         reset = {
             fixture.close()
             fixture = start()

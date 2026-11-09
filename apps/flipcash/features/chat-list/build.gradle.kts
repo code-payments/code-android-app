@@ -57,6 +57,10 @@ kotlin {
         // Puppet: the real ChatsViewModel over a seeded fixture, replaying the shared behavior files
         // (test-vectors/behaviors/chats/, synced from the orchestrator). See ChatsBehaviorTest.
         jvmTest.dependencies {
+            // NetworkGuardTest: real OkHttp and grpc-okhttp clients the guard must block.
+            implementation(libs.okhttp)
+            implementation(libs.grpc.okhttp)
+            implementation(libs.grpc.stub)
             implementation(project(":apps:flipcash:shared:analytics"))
             implementation(project(":apps:flipcash:shared:chat"))
             implementation(project(":apps:flipcash:shared:chat-ui"))
