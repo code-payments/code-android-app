@@ -39,6 +39,7 @@ kotlin {
             implementation(libs.jetbrains.compose.ui.tooling.preview)
             implementation(libs.bundles.haze)
             implementation(libs.javax.inject)
+            implementation(libs.kotlinx.serialization.core)
         }
         androidMain.dependencies {
             // What flipcash.android.feature supplied before the move to KMP.
@@ -52,6 +53,25 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.mockk)
             implementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
+        }
+        // Puppet: the real ChatsViewModel over a seeded fixture, replaying the shared behavior files
+        // (test-vectors/behaviors/chats/, synced from the orchestrator). See ChatsBehaviorTest.
+        jvmTest.dependencies {
+            implementation(project(":apps:flipcash:shared:analytics"))
+            implementation(project(":apps:flipcash:shared:chat"))
+            implementation(project(":apps:flipcash:shared:chat-ui"))
+            implementation(project(":apps:flipcash:shared:persistence:sources"))
+            implementation(project(":apps:flipcash:shared:persistence:db"))
+            implementation(project(":apps:flipcash:shared:tokens"))
+            implementation(project(":services:flipcash"))
+            implementation(project(":services:opencode"))
+            implementation(project(":libs:coroutines"))
+            implementation(project(":libs:encryption:chat-cipher"))
+            implementation(project(":libs:puppet"))
+            implementation(project(":ui:resources"))
+            implementation(project(":apps:flipcash:startup-contract"))
+            implementation(libs.event.bus)
+            implementation(libs.kotlinx.serialization.json)
         }
         getByName("androidHostTest").dependencies {
             implementation(kotlin("test"))
@@ -69,4 +89,14 @@ dependencies {
     add("kspAndroid", libs.hilt.compiler)
     add("kspJvm", libs.dagger.compiler)
     add("jvmMainImplementation", libs.dagger)
+}
+
+// ChatsBehaviorTest replays these. `-Ppuppet.behaviors=<dir or file>` points it at others, such as
+// one file an agent is writing; the default is the synced copy of the orchestrator's behaviors.
+tasks.named<Test>("jvmTest") {
+    val behaviors = providers.gradleProperty("puppet.behaviors")
+        .map { rootProject.file(it) }
+        .orElse(rootProject.layout.projectDirectory.dir("test-vectors/behaviors/chats").asFile)
+    inputs.files(behaviors).withPropertyName("puppetBehaviors").optional()
+    systemProperty("puppet.behaviors", behaviors.get().absolutePath)
 }
