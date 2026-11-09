@@ -51,7 +51,6 @@ import com.flipcash.app.core.ui.TokenSelectionPill
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
-import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.Share
 import com.flipcash.services.models.paymentrequest.statusLine
 import com.flipcash.shared.chat.ui.request.RequestProgressBar
@@ -73,26 +72,25 @@ import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.flipcash.app.messenger.internal.swipepay.SwipePaySheet
 import com.flipcash.app.messenger.internal.swipepay.SwipePayUiState
 import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
-import kotlin.time.Instant
 
 /**
- * The swipe-to-pay sheet for the viewer's unpaid share of [request], drawn while [pay] is open.
- * In-window, so the entry decorator's bar lands above it. Shared by Request details and the chat.
+ * The swipe-to-pay sheet for the share [pay] holds, drawn while [pay] is open. In-window, so the
+ * entry decorator's bar lands above it. Shared by Request details and the chat.
+ *
+ * The share comes from [pay], not the live request: the request reads paid during the success
+ * hold, and the sheet keeps its amount until it has gone.
  */
 @Composable
 internal fun RequestPaySheet(
     pay: RequestPayFlow.State,
-    request: PaymentRequest?,
     members: Map<ID, ChatMember>,
-    viewerId: ID?,
-    now: Instant,
     token: Token?,
     actions: SwipePayActions,
 ) {
-    if (!pay.open || request == null) return
-    val share = unpaidShareOf(request, viewerId, now) ?: return
+    if (!pay.open) return
+    val share = pay.share ?: return
     PayShareSheet(
-        creator = members[request.creator],
+        creator = pay.creator?.let(members::get),
         share = share,
         swipePay = requestPaySwipeState(pay, token),
         actions = actions,

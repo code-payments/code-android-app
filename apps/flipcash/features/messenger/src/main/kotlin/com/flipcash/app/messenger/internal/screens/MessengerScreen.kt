@@ -841,10 +841,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     // In-window, over the conversation and the deck, so the bottom bar draws above it.
     RequestPaySheet(
         pay = requestPayState,
-        request = deck.firstOrNull { it.id == requestPayState.requestId },
         members = requestPayMembers,
-        viewerId = viewerId,
-        now = deckNow,
         token = requestPayToken,
         actions = requestPay.actions,
     )
