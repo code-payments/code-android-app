@@ -202,10 +202,7 @@ internal fun RequestDetailsScreen(
     val name = { userId: ID -> memberName(members[userId], unnamed) }
     RequestPaySheet(
         pay = pay,
-        request = current,
         members = members,
-        viewerId = viewerId,
-        now = now,
         token = token,
         actions = viewModel.swipePayActions,
     )
