@@ -97,10 +97,8 @@ sealed interface ChatStep : FlowStep, Parcelable {
      * group's profile, which is why it hangs off the chat flow rather than the create flow that
      * used to end on it.
      *
-     * Not a [WrapContentSheet]: the chat list can run past the screen, and a wrap-content body is
-     * measured at its full height and then clipped, taking the message bar under it off the bottom.
-     * A full sheet bounds the body, so the list scrolls and the bar stays on screen. Full screen,
-     * as on iOS, which presents it as a cover.
+     * A [WrapContentSheet] (Nov 9): it has no Recent Chats or message bar, only the link, a line
+     * and three tiles. [ShareMessage] keeps the full sheet for its list.
      */
     @Parcelize
     @Serializable
@@ -108,7 +106,7 @@ sealed interface ChatStep : FlowStep, Parcelable {
         ChatStep,
         NavigationRetVal<GroupInviteResult>,
         Sheet,
-        com.getcode.navigation.FullscreenSheet
+        WrapContentSheet
 
     /**
      * Frames 1b, 1f: a private group's invite link, in the share-to-chats sheet. [inviteIdHex] null
@@ -124,7 +122,7 @@ sealed interface ChatStep : FlowStep, Parcelable {
         ChatStep,
         NavigationRetVal<GroupInviteResult>,
         Sheet,
-        com.getcode.navigation.FullscreenSheet
+        WrapContentSheet
 
     /**
      * Frames 1m to 1m″: a host's link card, Approve new members and Manage Invites, from the

@@ -82,14 +82,13 @@ fun NewGroupFlowScreen(
                     // action was making this group, so that is what they land on. Popping by route
                     // type, as FindByUsername does, because the chooser that opened this flow is
                     // entry UI for the same chat and should not sit between it and the list.
-                    navigator.popUntil {
+                    // Done as one stack change so the chat slides in over the form; a separate
+                    // pop would animate back to the Chats list first.
+                    navigator.popUntilThenPush(
+                        AppRoute.Messaging.Chat(identifier = ChatIdentifier.ByChatId(chatId))
+                    ) {
                         it !is AppRoute.Messaging.NewGroup && it !is AppRoute.Messaging.NewChat
                     }
-                    // Every new group opens on the conversation, private or not. A group with only
-                    // its creator in it shows the "Your Group Is Ready" invite card there.
-                    navigator.push(
-                        AppRoute.Messaging.Chat(identifier = ChatIdentifier.ByChatId(chatId))
-                    )
                 }
             }
         },
