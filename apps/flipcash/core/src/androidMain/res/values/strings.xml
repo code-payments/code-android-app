@@ -1094,6 +1094,47 @@
     <string name="label_chat_preview_sentRequest_bySender">%1$s sent request for %2$s</string>
     <string name="label_chat_preview_sentRequest_untitled">You sent request</string>
     <string name="label_chat_preview_sentRequest_untitled_bySender">%1$s sent request</string>
+    <!-- A share payment as the chat list previews it: payer, receiver, amount, request title. -->
+    <string name="label_chat_preview_sharePaid_self">You paid %1$s for %2$s</string>
+    <string name="label_chat_preview_sharePaid_toViewer">%1$s paid you %2$s for %3$s</string>
+    <string name="label_chat_preview_sharePaid">%1$s paid %2$s %3$s for %4$s</string>
+    <!-- A share payment row in the chat, before its " · title". %s are names, then the amount. -->
+    <string name="label_sharePayment_self">You paid %1$s</string>
+    <string name="label_sharePayment_toViewer">%1$s paid you %2$s</string>
+    <string name="label_sharePayment">%1$s paid %2$s %3$s</string>
+    <string name="label_sharePayment_noReceiver">%1$s paid %2$s</string>
+    <!-- A run of share payments for one request drawn as one row. %1$d payers, %2$s their sum. -->
+    <plurals name="label_sharePayment_people">
+        <item quantity="one">%1$d person paid %2$s</item>
+        <item quantity="other">%1$d people paid %2$s</item>
+    </plurals>
+    <plurals name="label_sharePayment_peopleToViewer">
+        <item quantity="one">%1$d person paid you %2$s</item>
+        <item quantity="other">%1$d people paid you %2$s</item>
+    </plurals>
+    <!-- The viewer is one of the run's payers; %1$d is the others. -->
+    <plurals name="label_sharePayment_selfAndOthers">
+        <item quantity="one">You and %1$d other paid %2$s</item>
+        <item quantity="other">You and %1$d others paid %2$s</item>
+    </plurals>
+    <!-- The creator marked a share paid by hand, or closed the request. No message announces either. -->
+    <string name="label_requestMarkedPaid_byViewer">You marked %1$s as paid</string>
+    <string name="label_requestMarkedPaid_viewer">%1$s marked you as paid</string>
+    <string name="label_requestMarkedPaid">%1$s marked %2$s as paid</string>
+    <plurals name="label_requestMarkedPaid_peopleByViewer">
+        <item quantity="one">You marked %1$d person as paid</item>
+        <item quantity="other">You marked %1$d people as paid</item>
+    </plurals>
+    <plurals name="label_requestMarkedPaid_people">
+        <item quantity="one">%1$s marked %2$d person as paid</item>
+        <item quantity="other">%1$s marked %2$d people as paid</item>
+    </plurals>
+    <plurals name="label_requestMarkedPaid_viewerAndOthers">
+        <item quantity="one">%1$s marked you and %2$d other as paid</item>
+        <item quantity="other">%1$s marked you and %2$d others as paid</item>
+    </plurals>
+    <string name="label_requestClosed_byViewer">You closed %1$s</string>
+    <string name="label_requestClosed_by">%1$s closed %2$s</string>
     <string name="action_sendMoney">Send Money</string>
     <string name="subtitle_sendMoney_group">Send money to someone in the group, or multiple people</string>
     <string name="action_requestMoney">Request Money</string>

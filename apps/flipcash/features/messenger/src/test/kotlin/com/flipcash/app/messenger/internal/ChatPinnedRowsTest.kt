@@ -124,6 +124,9 @@ class ChatPinnedRowsTest {
         exchange = exchange,
         verifiedFiatCalculator = verifiedFiatCalculator,
         startChattingPayer = startChattingPayer,
+        paymentRequests = mockk(relaxed = true) {
+            every { inChat(any()) } returns kotlinx.coroutines.flow.flowOf(emptyList())
+        },
         userManager = userManager,
         resources = resources,
         analytics = analytics,

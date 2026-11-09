@@ -3,6 +3,7 @@ package com.flipcash.shared.chat
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ReactionSummary
+import com.flipcash.shared.chat.internal.UnreadBasis
 import com.getcode.opencode.model.core.ID
 import kotlin.time.Instant
 
@@ -14,6 +15,8 @@ data class ChatState(
     // message's id, read alongside [feed] so a row can count its unread messages. A chat whose
     // pointed-at message isn't stored is absent.
     val readStamps: Map<Pair<ChatId, Long>, Long> = emptyMap(),
+    /** Chats whose unread check can't read the preview; see [UnreadBasis]. Absent for every other chat. */
+    val unreadBases: Map<ChatId, UnreadBasis> = emptyMap(),
     // The same stamps fetched from the server for pointed-at messages the device doesn't store,
     // held for the session and never written to the message table: a lone message there would read
     // as part of the transcript. [readStamps] wins where both hold a key.

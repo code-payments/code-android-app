@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal
 
+import kotlinx.coroutines.flow.flowOf
+import com.flipcash.shared.chat.PaymentRequests
 import android.content.ClipboardManager
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.RecordingAnalytics
@@ -65,6 +67,7 @@ internal fun chatViewModel(
     exchange: Exchange = mockk(relaxed = true),
     verifiedFiatCalculator: VerifiedFiatCalculator = mockk(relaxed = true),
     startChattingPayer: StartChattingPayer = mockk(relaxed = true),
+    paymentRequests: PaymentRequests = mockk(relaxed = true) { every { inChat(any()) } returns flowOf(emptyList()) },
     userManager: UserManager = mockk(relaxed = true),
     resources: ResourceHelper = mockk(relaxed = true),
     analytics: FlipcashAnalytics = RecordingAnalytics(),
@@ -101,6 +104,7 @@ internal fun chatViewModel(
     exchange = exchange,
     verifiedFiatCalculator = verifiedFiatCalculator,
     startChattingPayer = startChattingPayer,
+    paymentRequests = paymentRequests,
     userManager = userManager,
     resources = resources,
     analytics = analytics,

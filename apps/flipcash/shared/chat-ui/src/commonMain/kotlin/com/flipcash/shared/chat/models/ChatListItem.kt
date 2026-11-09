@@ -10,6 +10,7 @@ import com.flipcash.shared.chat.ui.UndecryptableHint
 import com.flipcash.shared.chat.ui.linkableText
 import com.flipcash.shared.chat.ui.mediaBody
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import kotlin.time.Instant
 
 enum class ReceiptStatus { SENDING, SENT, READ, FAILED, DENIED }
@@ -81,6 +82,69 @@ sealed interface ChatListItem {
         override val itemKey: Any =
             if (contentIndex == 0) "sys-$messageId" else "sys-$messageId-$contentIndex"
         override val itemContentType: Any = "system-message"
+    }
+
+    /**
+     * A cash message that paid a payment request share, drawn as a line between two rules instead of
+     * a cash bubble: "Jordan paid Alex $40 · Tahoe cabin". The request's title and ring come from the
+     * request store when the row is drawn, so the row carries only what the message says.
+     *
+     * A run of these for one request with nothing drawn between them draws as one row, on the
+     * newest; the others keep their place in the page and draw nothing (`sharePaymentRun`).
+     *
+     * @param receiverName null when the message named no receiver, which reads "Jordan paid $40".
+     */
+    data class SharePayment(
+        override val messageId: Long,
+        val contentIndex: Int,
+        override val timestamp: Instant,
+        override val isFromSelf: Boolean,
+        val requestId: ID,
+        val payerId: ID?,
+        val payerName: String,
+        val receiverId: ID?,
+        val receiverName: String?,
+        val receiverIsViewer: Boolean,
+        val amount: Fiat,
+    ) : TranscriptMessage {
+        override val itemKey: Any =
+            if (contentIndex == 0) "share-$messageId" else "share-$messageId-$contentIndex"
+        override val itemContentType: Any = "share-payment"
+    }
+
+    /**
+     * A change to a payment request that no message announces: the creator marked shares paid, or
+     * closed the request. Built from the stored request and placed in the transcript by time.
+     *
+     * Not a [TranscriptMessage]: it is never unread, an arrival, a jump target or the read pointer.
+     * [above] is the message drawn after it, null when it is the newest row, so the unread divider
+     * and the Encrypted marker are placed as if the notice weren't there.
+     *
+     * @param creatorName null when the viewer is the creator ("You marked", "You closed").
+     * @param key unique per request and event; a collapsed run of marks keys on its newest.
+     */
+    data class RequestNotice(
+        val key: String,
+        val requestId: ID,
+        val timestamp: Instant,
+        val kind: Kind,
+        val creatorName: String?,
+        val title: String,
+        val above: TranscriptMessage? = null,
+    ) : ChatListItem {
+        sealed interface Kind {
+            /**
+             * [marked] newest first: one, or a run collapsed into "3 people". [progress] is the
+             * request's paid fraction as of the newest mark.
+             */
+            data class MarkedPaid(val marked: List<Person>, val progress: Float) : Kind
+            data object Closed : Kind
+        }
+
+        data class Person(val userId: ID, val name: String, val isViewer: Boolean)
+
+        override val itemKey: Any = key
+        override val itemContentType: Any = "request-notice"
     }
 
     /** Whether this is the unread divider, alone or drawn above the Encrypted marker. */

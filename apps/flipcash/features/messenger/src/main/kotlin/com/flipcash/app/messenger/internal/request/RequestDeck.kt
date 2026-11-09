@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.request
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
@@ -594,33 +595,56 @@ internal fun RequestRing(
     val status = request.resolvedStatus(now)
     val ended = status != PaymentRequestStatus.Open
     val fraction = if (status == PaymentRequestStatus.Completed) 1f else request.split?.paidFraction ?: 0f
-    val accent by animateColorAsState(
-        if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success,
-        RequestMotion.change(),
-        label = "ring accent",
-    )
+    RequestProgressRing(
+        fraction = fraction,
+        accent = if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success,
+        closed = status == PaymentRequestStatus.Closed,
+        size = size,
+        modifier = modifier,
+    ) {
+        PaidBadge(glyph = size, ended = ended, paid = paid)
+    }
+}
+
+/**
+ * [RequestRing]'s drawing for a stated [fraction] and [accent], so a row can show a request as it
+ * stood at some earlier time. [stroke] and [glyphStyle] default to the deck's; a ring smaller than
+ * the deck's passes its own, scaled down with it.
+ */
+@Composable
+internal fun RequestProgressRing(
+    fraction: Float,
+    accent: Color,
+    closed: Boolean,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    stroke: Dp = 2.dp,
+    glyphStyle: TextStyle = if (size > 30.dp) CodeTheme.typography.textMedium else CodeTheme.typography.caption,
+    overlay: @Composable BoxScope.() -> Unit = {},
+) {
+    val accent by animateColorAsState(accent, RequestMotion.change(), label = "ring accent")
     val sweep by animateFloatAsState(fraction, RequestMotion.change(), label = "ring sweep")
     val track = CodeTheme.colors.divider
     val inset = size * (4f / 26f)
     Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val stroke = 2.dp.toPx()
-            val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
-            val topLeft = Offset(stroke / 2, stroke / 2)
-            drawArc(track, 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
+            val strokePx = stroke.toPx()
+            val arcSize = Size(this.size.width - strokePx, this.size.height - strokePx)
+            val topLeft = Offset(strokePx / 2, strokePx / 2)
+            drawArc(track, 0f, 360f, false, topLeft, arcSize, style = Stroke(strokePx))
             if (sweep > 0f) {
-                drawArc(accent, -90f, 360f * sweep.coerceIn(0f, 1f), false, topLeft, arcSize, style = Stroke(stroke))
+                drawArc(accent, -90f, 360f * sweep.coerceIn(0f, 1f), false, topLeft, arcSize, style = Stroke(strokePx))
             }
             drawCircle(accent, radius = this.size.minDimension / 2 - inset.toPx())
         }
-        Crossfade(targetState = status == PaymentRequestStatus.Closed, animationSpec = RequestMotion.change(), label = "ring glyph") { closed ->
+        Crossfade(targetState = closed, animationSpec = RequestMotion.change(), label = "ring glyph") { closed ->
             Text(
                 text = if (closed) "✓" else "$",
-                style = if (size > 30.dp) CodeTheme.typography.textMedium else CodeTheme.typography.caption,
+                style = glyphStyle,
                 color = Color.Black,
             )
         }
-        PaidBadge(glyph = size, ended = ended, paid = paid)
+        overlay()
     }
 }
 

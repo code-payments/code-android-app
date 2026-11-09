@@ -54,6 +54,7 @@ class UnreadTableTest {
         type: ChatType,
         newestSeq: Long? = newest,
         stamps: (Long) -> Long? = { it },
+        basis: ((ChatMessage?) -> UnreadBasis)? = null,
     ): Int? {
         val members = listOfNotNull(member(otherId), selfPointer?.let { member(selfId, it) })
         val lastMessage = newest?.let {
@@ -72,7 +73,7 @@ class UnreadTableTest {
             lastMessage = lastMessage,
             lastActivity = Instant.fromEpochSeconds(2_000),
         )
-        return unreadCount(metadata, selfId, stamps)
+        return unreadCount(metadata, selfId, basis?.invoke(metadata.lastMessage), stamps)
     }
 
     @Test
@@ -118,4 +119,41 @@ class UnreadTableTest {
     @Test
     fun `read chats count zero whatever the stamps say`() =
         assertEquals(0, count(newest = 5, selfPointer = 5, stamps = { null }, type = ChatType.CONTACT_DM))
+
+    // Spec case 72: the preview is a share payment someone else received, so the unread check reads
+    // the message before it.
+    @Test
+    fun `a preview that can't count leaves a chat read through the message before it read`() =
+        assertEquals(
+            0,
+            count(newest = 6, selfPointer = 5, type = ChatType.GROUP) { preview ->
+                UnreadBasis(latest = preview?.copy(messageId = 5, unreadSeq = 5), uncounted = 0)
+            },
+        )
+
+    @Test
+    fun `a preview that can't count leaves the count at the messages before it`() =
+        assertEquals(
+            2,
+            count(newest = 6, selfPointer = 3, type = ChatType.GROUP) { preview ->
+                UnreadBasis(latest = preview?.copy(messageId = 5, unreadSeq = 5), uncounted = 0)
+            },
+        )
+
+    @Test
+    fun `share payments someone else received come off the stamp difference`() =
+        // Stamps 4, 5, 6 past the pointer; 4 and 5 are uncounted share payments.
+        assertEquals(
+            1,
+            count(newest = 6, selfPointer = 3, type = ChatType.GROUP) { preview ->
+                UnreadBasis(latest = preview, uncounted = 2)
+            },
+        )
+
+    @Test
+    fun `a chat with nothing that can count is read`() =
+        assertEquals(
+            0,
+            count(newest = 6, selfPointer = 3, type = ChatType.GROUP) { UnreadBasis(latest = null, uncounted = 0) },
+        )
 }

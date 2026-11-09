@@ -65,6 +65,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
+import com.flipcash.app.messenger.internal.request.sharePaymentRunHead
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.originsReached
@@ -758,6 +759,7 @@ internal fun MessageList(
                             is ChatListItem.DateSeparator -> null // already a separator
                             is ChatListItem.UnreadDivider -> null // carries the oldest message's date
                             is ChatListItem.EncryptedMarker -> null // carries it too, as `above`
+                            is ChatListItem.RequestNotice -> null // only ever between two messages
                             null -> null
                         }
                         if (oldestTimestamp != null) {
@@ -1100,13 +1102,19 @@ private fun LazyListState.restsOn(key: Any, index: Int): Boolean =
 /** The presented index of [messageId], or `null` while it is still unloaded. */
 private fun indexOf(messages: LazyPagingItems<ChatListItem>, messageId: Long): Int? =
     (0 until messages.itemCount).firstOrNull { i ->
-        (messages.peek(i) as? ChatListItem.ContentBubble)?.messageId == messageId
+        when (val item = messages.peek(i)) {
+            is ChatListItem.ContentBubble -> item.messageId == messageId
+            // A share payment's row is its message's: a payment push or a reply to it lands there.
+            is ChatListItem.SharePayment -> item.messageId == messageId
+            else -> false
+        }
     }
+        // One folded into a run has no row of its own; the run's row stands for it.
+        ?.let { sharePaymentRunHead(it, messages.itemCount) { i -> messages.peek(i) } }
 
 /**
- * [indexOf], or the newest loaded message older than [messageId] when it isn't drawn. A request
- * share's cash message is stored and paged but has no row, and a link or quote to it (a payment
- * push opens at its message) lands on its neighbour instead of walking the whole budget for nothing.
+ * [indexOf], or the newest loaded message older than [messageId] when it isn't drawn: a link or
+ * quote to it lands on its neighbour instead of walking the whole budget for nothing.
  *
  * Rows run newest first, so the first one at or below [messageId] is the nearest. Pending sends
  * carry non-positive ids and say nothing about where [messageId] sits. A target that is simply not

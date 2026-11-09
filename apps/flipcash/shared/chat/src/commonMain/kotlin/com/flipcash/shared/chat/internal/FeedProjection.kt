@@ -1,8 +1,10 @@
 package com.flipcash.shared.chat.internal
 
 import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.services.models.chat.PointerType
 import com.flipcash.services.models.chat.isDmAddressable
 import com.getcode.opencode.model.core.ID
@@ -62,15 +64,39 @@ internal fun selfReadPointer(metadata: ChatMetadata, selfId: ID?): Long? =
 internal fun unreadCount(
     metadata: ChatMetadata,
     selfId: ID?,
+    basis: UnreadBasis? = null,
     unreadSeqAt: (messageId: Long) -> Long?,
 ): Int? {
     if (metadata.type == ChatType.GROUP && metadata.members.none { it.userId == selfId }) return 0
 
-    val lastMessage = metadata.lastMessage ?: return 0
+    // The preview and the unread check part ways on a share payment the viewer did not receive: it
+    // is the row's preview and never unread.
+    val lastMessage = (if (basis != null) basis.latest else metadata.lastMessage) ?: return 0
     if (lastMessage.senderId == selfId) return 0
     val readPointer = selfReadPointer(metadata, selfId)
     if (lastMessage.messageId <= (readPointer ?: 0L)) return 0
 
     val readStamp = if (readPointer == null) 0L else unreadSeqAt(readPointer) ?: return null
-    return (lastMessage.unreadSeq - readStamp).takeIf { it > 0 }?.toInt()
+    val stamped = (lastMessage.unreadSeq - readStamp).takeIf { it > 0 }?.toInt() ?: return null
+    // The message being counted is itself past the pointer, so at least one is unread whatever the
+    // stamps say about the share payments between.
+    return (stamped - (basis?.uncounted ?: 0)).coerceAtLeast(1)
 }
+
+/**
+ * What the unread check reads when it can't read the preview: a chat whose unread range holds share
+ * payments the viewer did not receive. Those are previews and drawn rows for every member, unread
+ * only for the request's creator.
+ *
+ * [latest] is the newest message that may count, null when there is none. [uncounted] is how many
+ * such share payments sit past the READ pointer up to [latest]; the server stamps them like any
+ * cash message, so they come back off the stamp difference.
+ */
+data class UnreadBasis(val latest: ChatMessage?, val uncounted: Int)
+
+/**
+ * Whether [message] is a share payment someone other than [selfId] received. Mirrors the DAO's
+ * `COUNTS_AS_UNREAD`.
+ */
+internal fun ChatMessage.isShareForSomeoneElse(selfId: ID?): Boolean =
+    content.any { it is MessageContent.Cash && it.paymentRequestId != null && it.receiver != selfId }
