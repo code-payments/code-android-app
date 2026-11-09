@@ -25,8 +25,11 @@ internal object PuppetJson {
  * response per line:
  *
  * - `{"cmd":"ls"}` returns the focused screen.
- * - `{"cmd":"reset"}` runs [reset], which re-seeds the fixture, and returns the focused screen. A
- *   runner uses it to reuse one host for many behavior files. Without [reset] it is a bad request.
+ * - `{"cmd":"launch","route":"/tab/chats"}` runs [reset], which re-seeds the fixture, clears [stack]
+ *   and returns the focused screen. A runner uses it to reuse one host for many behavior files.
+ *   `route` may be left out; a route outside [launchRoutes] is `bad_input`.
+ * - `{"cmd":"reset"}` is `launch` without a route, kept for runners that predate it. Without
+ *   [reset] it is a bad request.
  * - `{"cmd":"do","action":"<name>","input":{...}}` sends an action to the focused screen and returns
  *   the focused screen after it. `input` may be left out for an action that takes none.
  *
@@ -39,13 +42,20 @@ internal object PuppetJson {
  * action started. [violations] returns the calls the host's fixture guard caught since the last
  * request (a repository call is a network attempt); any entry turns the response into a
  * `fixture_violation` error listing them under `calls`.
+ *
+ * Screens a view model navigates to are pushed onto [stack]. They follow the root's own [PuppetNode.child]
+ * chain in `path`, the top one is focused, and the host adds `Back` to its actions.
  */
 class PuppetHost(
     private val root: () -> PuppetNode,
     private val settle: suspend () -> Unit = {},
     private val violations: () -> List<String> = { emptyList() },
     private val reset: (suspend () -> Unit)? = null,
+    private val stack: PuppetStack? = null,
+    private val launchRoutes: Set<String> = emptySet(),
 ) {
+    private val back = PuppetAction(Back.serializer()) { stack?.pop() }
+
     suspend fun handle(line: String): String = PuppetJson.output.encodeToString(JsonObject.serializer(), respond(line))
 
     private suspend fun respond(line: String): JsonObject {
@@ -58,8 +68,9 @@ class PuppetHost(
         val response = when (request.string("cmd")) {
             "ls" -> focusedResponse()
             "do" -> perform(request)
-            "reset" -> reset?.let { it(); focusedResponse() } ?: error("bad_request", "This host can't reset")
-            else -> error("bad_request", "Unknown cmd ${request["cmd"]}; expected \"ls\", \"do\" or \"reset\"")
+            "launch" -> launch(request)
+            "reset" -> reset?.let { it(); stack?.clear(); focusedResponse() } ?: error("bad_request", "This host can't reset")
+            else -> error("bad_request", "Unknown cmd ${request["cmd"]}; expected \"ls\", \"do\", \"launch\" or \"reset\"")
         }
         val caught = violations()
         if (caught.isNotEmpty()) {
@@ -70,14 +81,25 @@ class PuppetHost(
         return response
     }
 
+    private suspend fun launch(request: JsonObject): JsonObject {
+        val route = request.string("route")
+        if (route != null && route !in launchRoutes) {
+            return error("bad_input", "This host launches only ${launchRoutes.joinToString()}, not $route")
+        }
+        reset?.invoke()
+        stack?.clear()
+        return focusedResponse()
+    }
+
     private suspend fun perform(request: JsonObject): JsonObject {
         val name = request.string("action") ?: return error("bad_request", "\"do\" needs an \"action\"")
-        val focused = focused()
-        val action = focused.action(name) ?: return error(
+        val focused = screens().last()
+        val actions = actionsOf(focused)
+        val action = actions.firstOrNull { it.name == name } ?: return error(
             "unknown_action",
             "${focused.name} has no action $name",
         ) {
-            putJsonArray("actions") { focused.actions.forEach { add(it.name) } }
+            putJsonArray("actions") { actions.forEach { add(it.name) } }
         }
         val input = request["input"]?.takeUnless { it is JsonNull } ?: JsonObject(emptyMap())
         // SerializationException is an IllegalArgumentException, as are the require() checks in a
@@ -96,8 +118,9 @@ class PuppetHost(
 
     private suspend fun focusedResponse(): JsonObject {
         settle()
-        val path = generateSequence(root()) { it.child() }.toList()
+        val path = screens()
         val node = path.last()
+        val actions = actionsOf(node)
         return buildJsonObject {
             put("ok", true)
             putJsonArray("path") { path.forEach { add(it.name) } }
@@ -105,7 +128,7 @@ class PuppetHost(
                 put("name", node.name)
                 put("state", node.state())
                 putJsonArray("actions") {
-                    node.actions.forEach { action ->
+                    actions.forEach { action ->
                         add(buildJsonObject {
                             put("name", action.name)
                             put("input", action.serializer.descriptor.inputSchema())
@@ -116,7 +139,11 @@ class PuppetHost(
         }
     }
 
-    private fun focused(): PuppetNode = generateSequence(root()) { it.child() }.last()
+    private fun screens(): List<PuppetNode> = generateSequence(root()) { it.child() }.toList() + stack?.pushed.orEmpty()
+
+    // Back is lent only while the stack has a screen; the root chain has nowhere to go back to.
+    private fun actionsOf(node: PuppetNode): List<PuppetAction<*>> =
+        if (stack?.pushed.orEmpty().isNotEmpty()) node.actions + back else node.actions
 
     private fun error(
         code: String,

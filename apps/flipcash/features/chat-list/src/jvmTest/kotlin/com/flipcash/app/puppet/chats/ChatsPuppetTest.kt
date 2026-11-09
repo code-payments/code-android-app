@@ -91,7 +91,8 @@ class ChatsPuppetTest {
         val node = first["node"]!!.jsonObject
         assertEquals("Chats", node["name"]!!.jsonPrimitive.content)
         assertEquals(
-            listOf("FilterSelected", "ChipsRevealed", "SelectionStarted", "SelectionToggled", "SelectionEnded"),
+            listOf("FilterSelected", "ChipsRevealed", "SelectionStarted", "SelectionToggled", "SelectionEnded",
+                "ChatOpened", "ArchivedOpened", "NewChatOpened"),
             node["actions"]!!.jsonArray.map { it.jsonObject["name"]!!.jsonPrimitive.content },
         )
         val filterInput = node["actions"]!!.jsonArray.first().jsonObject["input"]!!.jsonObject
@@ -124,7 +125,8 @@ class ChatsPuppetTest {
         val error = unknown["error"]!!.jsonObject
         assertEquals("unknown_action", error["code"]!!.jsonPrimitive.content)
         assertEquals(
-            listOf("FilterSelected", "ChipsRevealed", "SelectionStarted", "SelectionToggled", "SelectionEnded"),
+            listOf("FilterSelected", "ChipsRevealed", "SelectionStarted", "SelectionToggled", "SelectionEnded",
+                "ChatOpened", "ArchivedOpened", "NewChatOpened"),
             error.strings("actions"),
         )
 

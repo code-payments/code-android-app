@@ -11,13 +11,14 @@ import androidx.compose.material.SnackbarResult
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.tipping.internal.ChatsViewModel
 import com.flipcash.app.tipping.internal.HiltChatsViewModel
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.action_undo
@@ -27,6 +28,9 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.toast.LocalFloatingToastHost
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
@@ -60,6 +64,14 @@ fun ChatsScreen() {
         }
     }
 
+    // The view model picks the route for each way off the list; the screen only pushes it.
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<ChatsViewModel.Event.OpenScreen>()
+            .onEach { navigator.push(it.screen) }
+            .launchIn(this)
+    }
+
     // Close or system back leaves select mode; deselecting the last row does not.
     BackHandler(enabled = state.isSelecting) { viewModel.endSelection() }
 
@@ -67,10 +79,8 @@ fun ChatsScreen() {
         state = state,
         onSelectFilter = viewModel::selectFilter,
         onRevealChips = viewModel::revealChips,
-        onOpenArchived = { navigator.push(AppRoute.Messaging.ArchivedChats) },
-        onOpenChat = { chat ->
-            navigator.push(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(chat.chatId)))
-        },
+        onOpenArchived = viewModel::openArchived,
+        onOpenChat = { chat -> viewModel.openChat(chat.chatId) },
         onMute = { chat -> navigator.push(AppRoute.Messaging.MuteChat(chat.chatId, chat.chatType)) },
         onArchive = { chat ->
             viewModel.archive(chat.chatId)
@@ -113,7 +123,7 @@ fun ChatsScreen() {
                     // you. A pushed route rather than an in-place screen: this list is a tab home, and
                     // anything drawn inside it would leave the tab bar over the entry screen.
                     endContent = {
-                        AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
+                        AppBarDefaults.Add(onClick = viewModel::openNewChat)
                     },
                 )
             }

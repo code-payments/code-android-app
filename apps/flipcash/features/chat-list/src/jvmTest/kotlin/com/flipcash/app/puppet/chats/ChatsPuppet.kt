@@ -1,13 +1,20 @@
 package com.flipcash.app.puppet.chats
 
+import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.tipping.internal.ChatsViewModel
 import com.flipcash.app.tipping.internal.ChatsViewModel.Event
 import com.flipcash.libs.puppet.PuppetAction
 import com.flipcash.libs.puppet.PuppetHost
 import com.flipcash.libs.puppet.PuppetNode
+import com.flipcash.libs.puppet.PuppetStack
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ChatListFilter
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -41,7 +48,21 @@ internal val chatsActions: List<(ChatsViewModel) -> PuppetAction<*>> = listOf(
     { vm -> PuppetAction(Event.SelectionStarted.serializer(), vm::dispatchEvent) },
     { vm -> PuppetAction(Event.SelectionToggled.serializer(), vm::dispatchEvent) },
     { vm -> PuppetAction(Event.SelectionEnded.serializer(), vm::dispatchEvent) },
+    { vm -> PuppetAction(Event.ChatOpened.serializer(), vm::dispatchEvent) },
+    { vm -> PuppetAction(Event.ArchivedOpened.serializer(), vm::dispatchEvent) },
+    { vm -> PuppetAction(Event.NewChatOpened.serializer(), vm::dispatchEvent) },
 )
+
+/** The route Chats sent to the stack, as a node. These screens aren't hosted: they offer only the lent `Back`. */
+internal fun routeNode(route: AppRoute): PuppetNode = when (route) {
+    is AppRoute.Messaging.Chat -> {
+        val chatId = (route.identifier as? ChatIdentifier.ByChatId)?.chatId?.hex
+        PuppetNode("Chat", { buildJsonObject { put("chatId", chatId) } }, emptyList())
+    }
+    AppRoute.Messaging.ArchivedChats -> PuppetNode("ArchivedChats", { buildJsonObject {} }, emptyList())
+    AppRoute.Messaging.NewChat -> PuppetNode("NewChat", { buildJsonObject {} }, emptyList())
+    else -> PuppetNode(route::class.simpleName ?: "Unknown", { buildJsonObject {} }, emptyList())
+}
 
 @OptIn(ExperimentalStdlibApi::class)
 private val ChatId.hex: String get() = bytes.toHexString()
@@ -88,22 +109,36 @@ internal fun chatsState(state: ChatsViewModel.State): JsonElement {
 }
 
 /**
- * The Puppet host over a Chats fixture from [newFixture]. `reset` closes the current fixture and
- * builds a fresh one. [settle] runs before each response; tests pass `advanceUntilIdle`, so the
+ * The Puppet host over a Chats fixture from [newFixture]. `launch` (or `reset`) closes the current
+ * fixture, builds a fresh one and empties the stack. Each `OpenScreen` the view model emits pushes
+ * that route's node, standing in for the screen's `navigator.push`; the collector runs on the view
+ * model's scope, so closing the fixture stops it. [settle] runs before each response; tests pass `advanceUntilIdle`, so the
  * view model's work has landed without a wall-clock wait.
  */
 fun chatsHost(
     newFixture: () -> ChatListFixture,
     settle: suspend (ChatListFixture) -> Unit,
 ): PuppetHost {
-    var fixture = newFixture()
+    val stack = PuppetStack()
+    fun start(): ChatListFixture = newFixture().also { fixture ->
+        fixture.viewModel.eventFlow
+            .filterIsInstance<Event.OpenScreen>()
+            .onEach { stack.push(routeNode(it.screen)) }
+            .launchIn(fixture.viewModel.viewModelScope)
+    }
+    var fixture = start()
     return PuppetHost(
         root = { chatsNode(fixture.viewModel) },
         settle = { settle(fixture) },
         violations = { fixture.guard.drain() },
         reset = {
             fixture.close()
-            fixture = newFixture()
+            fixture = start()
         },
+        stack = stack,
+        launchRoutes = setOf(CHATS_ROUTE),
     )
 }
+
+/** The Chats tab in both apps' deep-link form, the only route this host launches. */
+const val CHATS_ROUTE = "/tab/chats"

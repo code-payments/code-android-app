@@ -64,6 +64,21 @@ class ChatsBehaviorTest {
                 override val IO: CoroutineDispatcher = dispatcher
             }
             val host = chatsHost({ ChatListFixture(dispatchers).also(fixtures::add) }) { advanceUntilIdle() }
+            val launch = buildJsonObject {
+                put("cmd", "launch")
+                spec["route"]?.let { put("route", it) }
+            }
+            val launched = Json.parseToJsonElement(host.handle(launch.toString())).jsonObject
+            val screen = spec["screen"]?.jsonPrimitive?.content
+            when {
+                !launched.getValue("ok").jsonPrimitive.boolean -> {
+                    failures += "launch: ${launched["error"]}"
+                    fixtures.forEach(ChatListFixture::close)
+                    return@runTest
+                }
+                screen != null && launched.getValue("node").jsonObject.getValue("name").jsonPrimitive.content != screen ->
+                    failures += "launch: expected screen $screen, got ${launched.getValue("node").jsonObject["name"]}"
+            }
             spec.getValue("steps").let { it as kotlinx.serialization.json.JsonArray }.forEachIndexed { index, element ->
                 val step = element.jsonObject
                 val label = "step ${index + 1} (${step["do"]?.jsonPrimitive?.content ?: "ls"})"
@@ -78,18 +93,20 @@ class ChatsBehaviorTest {
                     }
                     !ok -> {
                         failures += "$label: ${error?.get("code")}: ${error?.get("message")}"
+                        fixtures.forEach(ChatListFixture::close)
                         return@runTest
                     }
                     else -> {
                         val node = response.getValue("node").jsonObject
-                        val screen = spec["screen"]?.jsonPrimitive?.content
-                        val name = node.getValue("name").jsonPrimitive.content
-                        if (index == 0 && screen != null && name != screen) failures += "$label: expected screen $screen, got $name"
+                        step["expectPath"]?.let { expected ->
+                            val path = response.getValue("path")
+                            if (path != expected) failures += "$label: path: expected $expected, got $path"
+                        }
                         step["expect"]?.let { failures += mismatches(it, node.getValue("state")).map { m -> "$label: $m" } }
                     }
                 }
             }
-            fixtures.last().close()
+            fixtures.forEach(ChatListFixture::close)
         }
         return failures
     }

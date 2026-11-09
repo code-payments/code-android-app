@@ -122,4 +122,57 @@ class PuppetHostTest {
         assertEquals("fixture_violation", error["code"]!!.jsonPrimitive.content)
         assertEquals(listOf("network: ChatRepository.getChat"), error["calls"]!!.jsonArray.map { it.jsonPrimitive.content })
     }
+
+    private class Navigating {
+        val stack = PuppetStack()
+        var resets = 0
+        val host = PuppetHost(
+            root = {
+                PuppetNode(
+                    name = "List",
+                    state = { JsonObject(emptyMap()) },
+                    actions = listOf(PuppetAction(Reset.serializer()) { stack.push(PuppetNode("Detail", { JsonObject(mapOf("id" to JsonPrimitive("7"))) }, emptyList())) }),
+                )
+            },
+            stack = stack,
+            launchRoutes = setOf("/tab/list"),
+            reset = { resets++ },
+        )
+
+        suspend fun send(line: String): JsonObject = Json.parseToJsonElement(host.handle(line)).jsonObject
+    }
+
+    private fun JsonObject.path(): List<String> = this["path"]!!.jsonArray.map { it.jsonPrimitive.content }
+    private fun JsonObject.actionNames(): List<String> = this["node"]!!.jsonObject["actions"]!!.jsonArray.map { it.jsonObject["name"]!!.jsonPrimitive.content }
+    private fun JsonObject.errorCode(): String = this["error"]!!.jsonObject["code"]!!.jsonPrimitive.content
+
+    @Test
+    fun `a pushed screen is focused and lends Back, which pops it`() = runTest {
+        val nav = Navigating()
+        val pushed = nav.send("""{"cmd":"do","action":"Reset"}""")
+        assertEquals(listOf("List", "Detail"), pushed.path())
+        assertEquals(listOf("Back"), pushed.actionNames())
+        assertEquals("7", pushed["node"]!!.jsonObject["state"]!!.jsonObject["id"]!!.jsonPrimitive.content)
+
+        val back = nav.send("""{"cmd":"do","action":"Back"}""")
+        assertEquals(listOf("List"), back.path())
+        assertEquals(listOf("Reset"), back.actionNames())
+    }
+
+    @Test
+    fun `Back at the root is unknown_action`() = runTest {
+        assertEquals("unknown_action", Navigating().send("""{"cmd":"do","action":"Back"}""").errorCode())
+    }
+
+    @Test
+    fun `launch resets, clears the stack and accepts only the hosted route`() = runTest {
+        val nav = Navigating()
+        nav.send("""{"cmd":"do","action":"Reset"}""")
+        val launched = nav.send("""{"cmd":"launch","route":"/tab/list"}""")
+        assertEquals(listOf("List"), launched.path())
+        assertEquals(1, nav.resets)
+        assertEquals(listOf("List"), nav.send("""{"cmd":"launch"}""").path())
+        assertEquals("bad_input", nav.send("""{"cmd":"launch","route":"/tab/elsewhere"}""").errorCode())
+        assertEquals(2, nav.resets)
+    }
 }
