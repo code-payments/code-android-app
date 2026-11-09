@@ -3,6 +3,7 @@ package com.flipcash.app.persistence.entities
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
+import com.flipcash.app.persistence.ChatPartialIndexes
 import com.flipcash.app.persistence.converters.MessageContentSerialized
 
 enum class MessageStatus {
@@ -39,6 +40,13 @@ enum class EncryptionState {
  * composite primary key `(chat_id_hex, message_id)` does not serve that order. Without the index
  * every page is a fresh scan and sort of the whole table: walking 2,000 rows back in a 40,000-row
  * table measured 536 ms unindexed against 20 ms indexed.
+ *
+ * The other three serve the scans that run at every login, before the chat list paints (see
+ * [ChatPartialIndexes]). On disk each is partial, holding only the few rows its scan looks for, but
+ * `@Index` can't say `WHERE`: these declarations name the columns so Room's schema check, which
+ * compares name, columns and uniqueness and never the `WHERE`, accepts them. The exported schema
+ * therefore shows full indexes. Anything Room creates from these, a fresh install or a later
+ * migration that rebuilds this table, is made partial again when the database opens.
  */
 @Entity(
     tableName = "chat_messages",
@@ -48,6 +56,9 @@ enum class EncryptionState {
             value = ["chat_id_hex", "timestamp_epoch_ms"],
             name = "index_chat_messages_chat_id_hex_timestamp_epoch_ms",
         ),
+        Index(value = ["status"], name = ChatPartialIndexes.SENDING),
+        Index(value = ["encryption_state"], name = ChatPartialIndexes.KEY_PENDING),
+        Index(value = ["chat_id_hex", "pending_client_id_hex"], name = ChatPartialIndexes.CLIENT_ID),
     ],
 )
 data class ChatMessageEntity(
