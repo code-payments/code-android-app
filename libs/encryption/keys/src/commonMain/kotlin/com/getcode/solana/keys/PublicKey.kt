@@ -6,6 +6,7 @@ import com.getcode.libs.parcelable.parcelableCreator
 import com.getcode.utils.serializer.PublicKeyAsStringSerializer
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmField
 
 @Serializable(with = PublicKeyAsStringSerializer::class)
 open class PublicKey(bytes: List<Byte>) : Key32(bytes), ManualParcelable {

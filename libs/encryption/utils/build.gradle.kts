@@ -2,16 +2,21 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     alias(libs.plugins.flipcash.kmp.library)
+    alias(libs.plugins.flipcash.kmp.js)
 }
 
 @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
 kotlin {
     // jvmShared: code for both JVM targets (Android and desktop) that needs java.* or protobuf.
+    // jvmAndJs: jvmShared plus JS, for the base64 helpers :libs:encryption:keys needs on Node.
     applyDefaultHierarchyTemplate {
         common {
-            group("jvmShared") {
-                withJvm()
-                withCompilations { it.platformType == KotlinPlatformType.androidJvm }
+            group("jvmAndJs") {
+                group("jvmShared") {
+                    withJvm()
+                    withCompilations { it.platformType == KotlinPlatformType.androidJvm }
+                }
+                withJs()
             }
         }
     }

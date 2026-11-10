@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.flipcash.kmp.js)
 }
 
 kotlin {
