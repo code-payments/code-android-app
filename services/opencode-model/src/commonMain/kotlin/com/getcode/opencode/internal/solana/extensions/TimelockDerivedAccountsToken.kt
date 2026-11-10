@@ -1,12 +1,13 @@
 package com.getcode.opencode.internal.solana.extensions
 
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.solana.keys.ProgramDerivedAccount
 import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
 import com.getcode.opencode.solana.keys.TimelockVmSwapAccounts
 import com.getcode.solana.keys.PublicKey
 
-internal fun TimelockDerivedAccounts.Companion.newInstance(owner: PublicKey, token: Token): TimelockDerivedAccounts {
+@InternalOpenCodeApi public fun TimelockDerivedAccounts.Companion.newInstance(owner: PublicKey, token: Token): TimelockDerivedAccounts {
     val state: ProgramDerivedAccount = PublicKey.deriveTimelockStateAccount(
         mint = token.address,
         owner = owner,
@@ -26,7 +27,7 @@ internal fun TimelockDerivedAccounts.Companion.newInstance(owner: PublicKey, tok
     )
 }
 
-internal fun TimelockVmSwapAccounts.Companion.newInstance(owner: PublicKey, token: Token): TimelockVmSwapAccounts {
+@InternalOpenCodeApi public fun TimelockVmSwapAccounts.Companion.newInstance(owner: PublicKey, token: Token): TimelockVmSwapAccounts {
     val pda = PublicKey.deriveSwapAddress(
         owner = owner,
         mint = token.address,

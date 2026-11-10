@@ -1,5 +1,6 @@
 package com.getcode.opencode.model.financial
 
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.libs.parcelable.Parcelable
 import com.flipcash.libs.currency.math.Estimator
 import com.getcode.opencode.model.ui.WindowedRange
@@ -34,19 +35,6 @@ data class TokenWithBalance(
         get() = token.address == Mint.usdf
 
     val costBasis: Fiat
-        get() = balance - appreciation
-}
-
-data class TokenWithLocalizedBalance(
-    val token: Token,
-    val balance: LocalFiat,
-    val appreciation: LocalFiat = LocalFiat.MIN_VALUE,
-    val displayName: String = token.name,
-) {
-    val isReserves: Boolean
-        get() = token.address == Mint.usdf
-
-    val costBasis: LocalFiat
         get() = balance - appreciation
 }
 
@@ -99,51 +87,6 @@ val MintMetadata.Companion.usdc: Token
         billCustomizations = null,
         holderMetrics = HolderMetrics.None,
     )
-
-/**
- * Builds a local [Token] stub for a currency that was just launched via
- * [com.getcode.opencode.controllers.CurrencyController.launchToken] but whose
- * on-chain [LaunchpadMetadata] has not yet been propagated by the server.
- *
- * The returned stub is only intended to flow into
- * [com.getcode.opencode.controllers.TransactionController.buy] so the atomic
- * new-currency buy swap can execute. Its null [com.codeinc.opencode.gen.currency.v1.launchpadMetadata] — together
- * with an address that isn't [Mint.usdf] — is also the signal inside
- * `TransactionController.buy` to skip the pre-flight `createUserAccount` call
- * (the atomic swap itself creates the VM and the VM deposit ATA).
- *
- * All on-chain values that actually drive transaction bytes (sellFeeBps,
- * vmLockDurationInDays) still come from
- * [com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters.NewCurrency] inside
- * `buildNewCurrencyBuyInstructions` — this stub never drives those.
- */
-fun MintMetadata.Companion.fromLaunch(
-    mint: Mint,
-    request: TokenCreateRequest,
-    owner: PublicKey,
-    lockDurationInDays: Int = TimelockDerivedAccounts.lockoutInDays.toInt(),
-): Token = MintMetadata(
-    address = mint,
-    decimals = 10,
-    name = request.name.text,
-    symbol = request.symbol?.text ?: request.name.text.take(6).uppercase(),
-    description = request.description?.text.orEmpty(),
-    createdAt = Clock.System.now(),
-    imageUrl = "",
-    vmMetadata = VmMetadata(
-        authority = owner,
-        vm = PublicKey.deriveVirtualMachineAccount(
-            mint = mint,
-            authority = owner,
-            lockout = lockDurationInDays.toUByte(),
-        ).publicKey,
-        lockDurationInDays = lockDurationInDays,
-    ),
-    launchpadMetadata = null,
-    billCustomizations = request.bill,
-    socialLinks = emptyList(),
-    holderMetrics = HolderMetrics.None,
-)
 
 /**
  * Represents metadata associated with a token account.
@@ -224,7 +167,7 @@ data class VmMetadata(
     val authority: PublicKey,
     val lockDurationInDays: Int // currently hardcoded to 21 days
 ) : Parcelable {
-    internal val omnibus: PublicKey
+    @InternalOpenCodeApi public val omnibus: PublicKey
         get() = PublicKey.deriveVmOmnibusAddress(vm = vm).publicKey
 }
 

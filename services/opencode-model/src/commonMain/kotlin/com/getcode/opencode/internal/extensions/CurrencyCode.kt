@@ -1,5 +1,6 @@
 package com.getcode.opencode.internal.extensions
 
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.utils.trace
 import java.util.Currency
@@ -18,7 +19,7 @@ val CurrencyCode.fractionDigits: Int
         else -> Currency.getInstance(name).defaultFractionDigits
     }
 
-internal fun CurrencyCode.getClosestLocale(): Locale {
+@InternalOpenCodeApi public fun CurrencyCode.getClosestLocale(): Locale {
     val currency = Currency.getInstance(name.uppercase())
 
     val locales = Locale.getAvailableLocales()
