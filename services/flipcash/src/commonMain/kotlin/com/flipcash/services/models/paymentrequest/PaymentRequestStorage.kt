@@ -2,6 +2,7 @@ package com.flipcash.services.models.paymentrequest
 
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.paymentrequest.v1.Model as PaymentRequestModel
+import com.flipcash.services.internal.network.extensions.toByteString
 import com.flipcash.services.internal.network.extensions.toPaymentRequest
 import com.getcode.opencode.model.financial.Fiat
 import com.google.protobuf.ByteString
@@ -93,8 +94,6 @@ private fun PaymentRequestStatus.toProto(): PaymentRequestModel.PaymentRequestSt
     PaymentRequestStatus.Expired -> PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_EXPIRED
     PaymentRequestStatus.Unknown -> PaymentRequestModel.PaymentRequestStatus.PAYMENT_REQUEST_STATUS_UNKNOWN
 }
-
-private fun List<Byte>.toByteString(): ByteString = ByteString.copyFrom(toByteArray())
 
 private fun Instant.toTimestamp(): Timestamp =
     Timestamp.newBuilder().setSeconds(epochSeconds).setNanos(nanosecondsOfSecond).build()
