@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.screens.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +21,12 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -28,7 +34,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewWrapper
@@ -36,8 +41,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.app.messenger.internal.request.RequestProgressRing
-import com.flipcash.app.messenger.internal.request.RequestRowFit
-import com.flipcash.app.messenger.internal.request.fitRequestRow
 import com.flipcash.app.messenger.internal.request.paidFractionAfterPayment
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.features.messenger.R
@@ -136,7 +139,7 @@ private fun shareTemplate(run: List<ChatListItem.SharePayment>): CaptionTemplate
 
 /**
  * The share payment row for given text, which is all a preview or a test has. [caption] builds the
- * caption and amount from the names as fitted; [title] and [progress] null draw neither the
+ * caption and amount from the names; [title] and [progress] null draw neither the
  * " · title" nor the ring.
  */
 @Composable
@@ -254,7 +257,7 @@ internal fun RequestNoticeRowLayout(
             contentAlignment = Alignment.Center,
         ) {
             if (titleInCaption) {
-                // The title is an argument of the sentence, so it shortens inside it.
+                // The title is an argument of the sentence, so it moves to the second line with it.
                 RequestRowCaption(
                     names = names + title,
                     caption = { fitted -> caption(fitted.dropLast(1), fitted.last()) },
@@ -277,11 +280,13 @@ internal fun RequestNoticeRowLayout(
 }
 
 /**
- * The text and ring both rows share, fitted to [maxWidth] by [fitRequestRow]: `<caption> · <title>
- * <ring>` on one line, or the caption over the title and ring when it can't fit.
+ * The text and ring both rows share, fitted to [maxWidth] (spec "Too wide"): `<caption> · <title>
+ * <ring>` on one line when it fits, otherwise the caption and amount over the title and ring, each
+ * centred. Nothing is shortened. A line still too wide on its own wraps at a word break, centred,
+ * with the ring after the title's last word.
  *
- * [titleAmongNames] says the last of [names] is a title inside the caption's sentence: it shortens
- * first and to a title's length, and moves to the second line, as a title after the dot does.
+ * [titleAmongNames] says the last of [names] is a title inside the caption's sentence: it moves to
+ * the second line, as a title after the dot does.
  */
 @Composable
 private fun RequestRowCaption(
@@ -296,61 +301,66 @@ private fun RequestRowCaption(
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val ringSpace = if (progress != null) RING_SIZE + RING_GAP else 0.dp
-    val fit = remember(names, caption, title, maxWidth, ringSpace, style, density) {
+    val twoLines = remember(names, caption, title, maxWidth, ringSpace, style, density, titleAmongNames) {
         val available = with(density) { (maxWidth - ringSpace).toPx() }
-        val fullWidth = with(density) { maxWidth.toPx() }
-        fun width(text: AnnotatedString) = measurer.widthOf(text, style)
-        if (titleAmongNames) {
-            fitRequestRow(
-                names = names.dropLast(1),
-                title = names.last(),
-                canWrap = true,
-                fits = { n, t -> width(caption(n + t.orEmpty())) <= available },
-                lineOneFits = { n -> width(caption(n + "").trimmed()) <= fullWidth },
-            )
-        } else {
-            fitRequestRow(
-                names = names,
-                title = title,
-                canWrap = true,
-                fits = { n, t -> width(oneLine(caption(n), t)) <= available },
-                lineOneFits = { n -> width(caption(n)) <= fullWidth },
-            )
-        }
+        val oneLine = if (titleAmongNames) caption(names) else oneLine(caption(names), title)
+        // With no title there is nothing to move to a second line.
+        (titleAmongNames || title != null) && measurer.widthOf(oneLine, style) > available
     }
     val color = CodeTheme.colors.textSecondary
-    if (fit.twoLines) {
+    if (twoLines) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             // The sentence without its title, when the title is one of its arguments.
-            val lineOne = if (titleAmongNames) caption(fit.names + "").trimmed() else caption(fit.names)
-            Text(lineOne, style = style, color = color, maxLines = 1, softWrap = false)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(RING_GAP)) {
-                Text(
-                    text = fit.title.orEmpty(),
-                    modifier = Modifier.weight(1f, fill = false),
-                    style = style,
-                    color = color,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (progress != null) RowRing(progress)
-            }
+            val lineOne = if (titleAmongNames) caption(names.dropLast(1) + "").trimmed() else caption(names)
+            Text(lineOne, style = style, color = color, textAlign = TextAlign.Center)
+            TitleAndRing(title = (if (titleAmongNames) names.last() else title).orEmpty(), progress = progress, style = style, color = color)
         }
     } else {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(RING_GAP)) {
             Text(
-                text = if (titleAmongNames) caption(fit.names + fit.title.orEmpty()) else oneLine(caption(fit.names), fit.title),
+                text = if (titleAmongNames) caption(names) else oneLine(caption(names), title),
                 modifier = Modifier.weight(1f, fill = false),
                 style = style,
                 color = color,
                 textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             if (progress != null) RowRing(progress)
         }
     }
 }
+
+/**
+ * The title, wrapping at word breaks and centred, with the ring inline after its last word so it
+ * goes where the last line ends. A word joiner keeps the ring from breaking onto a line of its own.
+ */
+@Composable
+private fun TitleAndRing(title: String, progress: Float?, style: TextStyle, color: Color) {
+    if (progress == null) {
+        Text(title, style = style, color = color, textAlign = TextAlign.Center)
+        return
+    }
+    val density = LocalDensity.current
+    val ring = remember(density) {
+        with(density) {
+            mapOf(
+                RING_CONTENT_ID to InlineTextContent(
+                    Placeholder((RING_SIZE + RING_GAP).toSp(), RING_SIZE.toSp(), PlaceholderVerticalAlign.TextCenter),
+                ) { Box(Modifier.padding(start = RING_GAP)) { RowRing(progress) } },
+            )
+        }
+    }
+    val text = remember(title) {
+        buildAnnotatedString {
+            append(title)
+            append(WORD_JOINER)
+            appendInlineContent(RING_CONTENT_ID, "ring")
+        }
+    }
+    Text(text, inlineContent = ring, style = style, color = color, textAlign = TextAlign.Center)
+}
+
+private const val RING_CONTENT_ID = "ring"
+private const val WORD_JOINER = "\u2060"
 
 private fun oneLine(caption: AnnotatedString, title: String?): AnnotatedString =
     if (title == null) caption else buildAnnotatedString {
@@ -425,11 +435,24 @@ private fun Preview_RequestRows() {
         SharePaymentRowLayout(
             listOf("Maximilian", "Alexandra"), caption("%1\$s paid %2\$s %3\$s", "$12,500.00"), "Tahoe cabin weekend", 0.5f, {},
         )
+        SharePaymentRowLayout(listOf("Jordan", "Alex"), caption("%1\$s paid %2\$s %3\$s", "$40"), "Tahoe cabin weekend with everyone", 0.5f, {})
+        SharePaymentRowLayout(
+            listOf("Maximilian-Alexander", "Alexandra-Josephine"), caption("%1\$s paid %2\$s %3\$s", "$12,500.00"),
+            "Tahoe cabin weekend with everyone", 0.5f, {},
+        )
         SharePaymentRowLayout(listOf("Jordan", "Alex"), caption("%1\$s paid %2\$s %3\$s", "$40"), null, null, null)
         RequestNoticeRowLayout(
             names = listOf("Alex", "Sam"),
             caption = { names, _ -> styledTemplate("%1\$s marked %2\$s as paid", names.map { it to NameStyle }) },
             title = "Tahoe cabin",
+            titleInCaption = false,
+            progress = 0.7f,
+            onClick = {},
+        )
+        RequestNoticeRowLayout(
+            names = listOf("Maximilian-Alexander", "Sam"),
+            caption = { names, _ -> styledTemplate("%1\$s marked %2\$s as paid", names.map { it to NameStyle }) },
+            title = "Tahoe cabin weekend with everyone",
             titleInCaption = false,
             progress = 0.7f,
             onClick = {},
