@@ -446,8 +446,8 @@ private fun Preview_RequestRows() {
         styledTemplate(template, names.map { it to NameStyle } + (sum to amount))
     }
     Column(modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset)) {
-        SharePaymentRowLayout(emptyList(), caption("You paid %1\$s", "$40"), "Tahoe cabin", 0.35f, {})
-        SharePaymentRowLayout(listOf("Jordan"), caption("%1\$s paid you %2\$s", "$40"), "Tahoe cabin", 0.7f, {})
+        SharePaymentRowLayout(listOf("You"), caption("%1\$s paid %2\$s", "$40"), "Tahoe cabin", 0.35f, {})
+        SharePaymentRowLayout(listOf("Jordan", "you"), caption("%1\$s paid %2\$s %3\$s", "$40"), "Tahoe cabin", 0.7f, {})
         SharePaymentRowLayout(listOf("Jordan", "Alex"), caption("%1\$s paid %2\$s %3\$s", "$40"), "Tahoe cabin", 1f, {})
         SharePaymentRowLayout(emptyList(), caption("7 people paid %1\$s", "$140"), "Tahoe cabin", 0.7f, {})
         SharePaymentRowLayout(listOf("Jordan", "Alex"), caption("%1\$s paid %2\$s %3\$s", "$40"), "Tahoe cabin weekend", 0.5f, {})
