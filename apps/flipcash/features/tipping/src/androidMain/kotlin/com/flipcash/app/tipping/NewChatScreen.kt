@@ -17,6 +17,7 @@ import com.flipcash.analytics.GroupType
 import com.flipcash.analytics.events.GroupEvents
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.tipping.internal.HiltNewChatViewModel
 import com.flipcash.app.tipping.internal.NewChatViewModel
 import com.flipcash.features.tipping.R
 import com.getcode.manager.BottomBarAction
@@ -40,7 +41,7 @@ fun NewChatScreen() {
     val navigator = LocalCodeNavigator.current
     val analytics = rememberAnalytics()
     val resources = LocalResources.current
-    val viewModel = hiltViewModel<NewChatViewModel>()
+    val viewModel: NewChatViewModel = hiltViewModel<HiltNewChatViewModel>()
     val hasCommunityCurrency by viewModel.hasCommunityCurrency.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxSize()) {

@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.tokens.TokenCoordinator
 import com.getcode.opencode.exchange.Exchange
-import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,8 +15,7 @@ import kotlinx.coroutines.flow.stateIn
  * Whether the New Chat chooser can open the currency-gated form, by the same [communityCurrencies]
  * the form defaults from.
  */
-@HiltViewModel
-internal class NewChatViewModel @Inject constructor(
+open class NewChatViewModel @Inject constructor(
     tokenCoordinator: TokenCoordinator,
     exchange: Exchange,
 ) : ViewModel() {
