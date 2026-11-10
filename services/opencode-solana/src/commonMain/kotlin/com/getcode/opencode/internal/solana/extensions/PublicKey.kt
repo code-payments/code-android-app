@@ -13,13 +13,11 @@ import com.getcode.opencode.internal.solana.programs.TokenProgram
 import com.getcode.opencode.solana.keys.ProgramDerivedAccount
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
-import java.io.ByteArrayOutputStream
-import java.io.IOException
 
 @InternalOpenCodeApi public fun PublicKey.Companion.deriveVirtualMachineAccount(mint: PublicKey, authority: PublicKey, lockout: UByte): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(
-            "code_vm".toByteArray(Charsets.UTF_8),
+            "code_vm".encodeToByteArray(),
             mint.bytes.toByteArray(),
             authority.bytes.toByteArray(),
             byteArrayOf(lockout.toByte())
@@ -31,8 +29,8 @@ import java.io.IOException
 @InternalOpenCodeApi public fun PublicKey.Companion.deriveDepositAccount(vm: PublicKey, depositor: PublicKey): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(
-            "code_vm".toByteArray(Charsets.UTF_8),
-            "vm_deposit_pda".toByteArray(Charsets.UTF_8),
+            "code_vm".encodeToByteArray(),
+            "vm_deposit_pda".encodeToByteArray(),
             depositor.bytes.toByteArray(),
             vm.bytes.toByteArray()
         ),
@@ -49,7 +47,7 @@ import java.io.IOException
 @InternalOpenCodeApi public fun PublicKey.Companion.deriveTimelockStateAccount(owner: PublicKey, mint: Mint, authority: PublicKey, lockout: UByte): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(
-            "timelock_state".toByteArray(Charsets.UTF_8),
+            "timelock_state".encodeToByteArray(),
             mint.bytes.toByteArray(),
             authority.bytes.toByteArray(),
             owner.bytes.toByteArray(),
@@ -65,7 +63,7 @@ import java.io.IOException
 ): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(
-            "timelock_vault".toByteArray(Charsets.UTF_8),
+            "timelock_vault".encodeToByteArray(),
             stateAccount.bytes.toByteArray(),
             byteArrayOf(version.toByte())
         ),
@@ -78,8 +76,8 @@ import java.io.IOException
 
     return findProgramAddress(
         seeds = listOf(
-            "code_vm".toByteArray(Charsets.UTF_8),
-            "vm_swap_pda".toByteArray(Charsets.UTF_8),
+            "code_vm".encodeToByteArray(),
+            "vm_swap_pda".encodeToByteArray(),
             owner.bytes.toByteArray(),
             vmAccount.publicKey.bytes.toByteArray()
         ),
@@ -91,8 +89,8 @@ import java.io.IOException
     return findProgramAddress(
         programId = VirtualMachineProgram.address,
         seeds = listOf(
-            "code_vm".toByteArray(Charsets.UTF_8),
-            "vm_omnibus".toByteArray(Charsets.UTF_8),
+            "code_vm".encodeToByteArray(),
+            "vm_omnibus".encodeToByteArray(),
             vm.bytes.toByteArray()
         )
     )
@@ -100,12 +98,12 @@ import java.io.IOException
 
 @InternalOpenCodeApi public fun PublicKey.Companion.deriveCurrencyMintAddress(authority: PublicKey, name: String, seed: PublicKey): ProgramDerivedAccount {
     val nameBytes = ByteArray(32)
-    val raw = name.toByteArray(Charsets.UTF_8)
+    val raw = name.encodeToByteArray()
     raw.copyInto(nameBytes, 0, 0, minOf(raw.size, 32))
 
     return findProgramAddress(
         seeds = listOf(
-            "mint".toByteArray(Charsets.UTF_8),
+            "mint".encodeToByteArray(),
             authority.bytes.toByteArray(),
             nameBytes,
             seed.bytes.toByteArray()
@@ -117,7 +115,7 @@ import java.io.IOException
 @InternalOpenCodeApi public fun PublicKey.Companion.deriveCurrencyConfigAddress(mint: PublicKey): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(
-            "currency".toByteArray(Charsets.UTF_8),
+            "currency".encodeToByteArray(),
             mint.bytes.toByteArray()
         ),
         programId = CurrencyCreatorProgram.address,
@@ -127,7 +125,7 @@ import java.io.IOException
 @InternalOpenCodeApi public fun PublicKey.Companion.deriveLiquidityPoolAddress(currency: PublicKey): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(
-            "pool".toByteArray(Charsets.UTF_8),
+            "pool".encodeToByteArray(),
             currency.bytes.toByteArray()
         ),
         programId = CurrencyCreatorProgram.address,
@@ -137,7 +135,7 @@ import java.io.IOException
 @InternalOpenCodeApi public fun PublicKey.Companion.deriveVaultAddress(pool: PublicKey, mint: PublicKey): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(
-            "treasury".toByteArray(Charsets.UTF_8),
+            "treasury".encodeToByteArray(),
             pool.bytes.toByteArray(),
             mint.bytes.toByteArray()
         ),
@@ -147,7 +145,7 @@ import java.io.IOException
 
 @InternalOpenCodeApi public fun PublicKey.Companion.deriveCoinbasePoolAddress(): ProgramDerivedAccount {
     return findProgramAddress(
-        seeds = listOf("liquidity_pool".toByteArray(Charsets.UTF_8)),
+        seeds = listOf("liquidity_pool".encodeToByteArray()),
         programId = CoinbaseStableSwapperProgram.address,
     )
 }
@@ -155,7 +153,7 @@ import java.io.IOException
 @InternalOpenCodeApi public fun PublicKey.Companion.deriveCoinbaseTokenVaultAddress(pool: PublicKey, mint: PublicKey): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(
-            "token_vault".toByteArray(Charsets.UTF_8),
+            "token_vault".encodeToByteArray(),
             pool.bytes.toByteArray(),
             mint.bytes.toByteArray(),
         ),
@@ -166,7 +164,7 @@ import java.io.IOException
 @InternalOpenCodeApi public fun PublicKey.Companion.deriveCoinbaseVaultTokenAccountAddress(vault: PublicKey): ProgramDerivedAccount {
     return findProgramAddress(
         seeds = listOf(
-            "vault_token_account".toByteArray(Charsets.UTF_8),
+            "vault_token_account".encodeToByteArray(),
             vault.bytes.toByteArray(),
         ),
         programId = CoinbaseStableSwapperProgram.address,
@@ -206,23 +204,16 @@ private fun findProgramAddress(
 private fun deriveProgramAddress(programId: PublicKey, seeds: List<ByteArray>): PublicKey {
     fun PublicKey.Companion.getMaxSeeds() = 16
 
-    val buffer = ByteArrayOutputStream()
     require(seeds.size < PublicKey.MAX_SEEDS) { "Max seed size exceeded" }
 
+    // seeds || programId || "ProgramDerivedAddress"
+    var buffer = ByteArray(0)
     for (seed in seeds) {
-        try {
-            buffer.write(seed)
-        } catch (e: IOException) {
-            throw RuntimeException(e)
-        }
+        buffer += seed
     }
-    try {
-        buffer.write(programId.bytes.toByteArray())
-        buffer.write("ProgramDerivedAddress".toByteArray())
-    } catch (e: IOException) {
-        throw RuntimeException(e)
-    }
-    val hash = Sha256Hash.hash(buffer.toByteArray())
+    buffer += programId.bytes.toByteArray()
+    buffer += "ProgramDerivedAddress".encodeToByteArray()
+    val hash = Sha256Hash.hash(buffer)
 
     val publicKey = PublicKey(hash.toList())
 

@@ -15,6 +15,6 @@ import com.getcode.opencode.solana.Instruction
     }
 
     override fun encode(): List<Byte> {
-        return message.toByteArray(Charsets.UTF_8).toList()
+        return message.encodeToByteArray().toList()
     }
 }

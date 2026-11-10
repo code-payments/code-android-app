@@ -37,13 +37,13 @@ import com.getcode.solana.keys.PublicKey
         data.add(CurrencyCreatorProgram.Command.initializeCurrency.value)
 
         // name: 32 bytes, right-padded with zeros
-        val nameBytes = name.toByteArray(Charsets.UTF_8)
+        val nameBytes = name.encodeToByteArray()
         val namePadded = ByteArray(32)
         nameBytes.copyInto(namePadded, 0, 0, minOf(nameBytes.size, 32))
         data.addAll(namePadded.toList())
 
         // symbol: 8 bytes, right-padded with zeros
-        val symbolBytes = symbol.toByteArray(Charsets.UTF_8)
+        val symbolBytes = symbol.encodeToByteArray()
         val symbolPadded = ByteArray(8)
         symbolBytes.copyInto(symbolPadded, 0, 0, minOf(symbolBytes.size, 8))
         data.addAll(symbolPadded.toList())

@@ -2,22 +2,23 @@ package com.getcode.opencode.internal.solana
 
 import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.internal.solana.utils.DataSlice.tail
-import java.io.ByteArrayInputStream
 
 @InternalOpenCodeApi public object ShortVec {
     /**
      * decodeLen decodes a ShortVec encoded length from the [input].
      *
-     * @param input - the input stream that the length is encoded in
+     * @param input - the bytes the length is encoded in
      * @return - returns the decoded length of the ShortVec and Offset
      */
-    private fun decodeLen(input: ByteArrayInputStream): Pair<Int, Int> {
+    private fun decodeLen(input: ByteArray): Pair<Int, Int> {
         var offset = 0
+        var position = 0
         val valBuf = ByteArray(1)
         var value = 0
 
         while (true) {
-            input.read(valBuf)
+            // Reads like ByteArrayInputStream.read(valBuf) did: past the end, valBuf keeps its byte.
+            if (position < input.size) valBuf[0] = input[position++]
 
             value = value or (valBuf[0].toInt() and 0x7f shl (offset * 7))
             offset++
@@ -37,7 +38,7 @@ import java.io.ByteArrayInputStream
      * @return - returns the decoded length of the ShortVec and Offset
      */
     fun decodeLen(input: List<Byte>): Pair<Int, List<Byte>> {
-        val l = decodeLen(input.toByteArray().inputStream())
+        val l = decodeLen(input.toByteArray())
         return Pair(l.first, input.tail(l.second))
     }
 
