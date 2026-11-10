@@ -13,6 +13,7 @@ kotlin {
 
 dependencies {
     implementation(project(":apps:flipcash:features:chat-list"))
+    implementation(project(":apps:flipcash:features:tipping"))
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:analytics"))
     implementation(project(":apps:flipcash:shared:chat"))

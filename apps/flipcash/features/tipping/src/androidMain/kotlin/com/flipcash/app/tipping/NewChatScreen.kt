@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
@@ -16,7 +15,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.analytics.GroupType
 import com.flipcash.analytics.events.GroupEvents
 import com.flipcash.app.analytics.rememberAnalytics
-import com.flipcash.app.core.AppRoute
 import com.flipcash.app.tipping.internal.HiltNewChatViewModel
 import com.flipcash.app.tipping.internal.NewChatViewModel
 import com.flipcash.features.tipping.R
@@ -42,7 +40,21 @@ fun NewChatScreen() {
     val analytics = rememberAnalytics()
     val resources = LocalResources.current
     val viewModel: NewChatViewModel = hiltViewModel<HiltNewChatViewModel>()
-    val hasCommunityCurrency by viewModel.hasCommunityCurrency.collectAsStateWithLifecycle()
+    // Collected so the gate is known by the time the community row is tapped.
+    viewModel.hasCommunityCurrency.collectAsStateWithLifecycle()
+    val choose: (NewChatViewModel.Choice) -> Unit = { choice ->
+        when (val outcome = viewModel.choose(choice)) {
+            is NewChatViewModel.Outcome.Open -> {
+                when (choice) {
+                    NewChatViewModel.Choice.PrivateGroup -> analytics.track(GroupEvents.newOpened(GroupType.PRIVATE))
+                    NewChatViewModel.Choice.CommunityGroup -> analytics.track(GroupEvents.newOpened(GroupType.COMMUNITY))
+                    NewChatViewModel.Choice.FindByUsername -> Unit
+                }
+                navigator.push(outcome.route)
+            }
+            NewChatViewModel.Outcome.NoCommunityCurrencies -> presentNoCommunityCurrencies(resources, navigator)
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         AppBarWithTitle(
@@ -60,29 +72,17 @@ fun NewChatScreen() {
             ChoiceRow(
                 label = stringResource(R.string.action_findByUsername),
                 icon = R.drawable.ic_at,
-                onClick = { navigator.push(AppRoute.Messaging.FindByUsername) },
+                onClick = { choose(NewChatViewModel.Choice.FindByUsername) },
             )
             ChoiceRow(
                 label = stringResource(R.string.action_createPrivateGroup),
                 icon = R.drawable.ic_group_3,
-                onClick = {
-                    analytics.track(GroupEvents.newOpened(GroupType.PRIVATE))
-                    navigator.push(AppRoute.Messaging.NewGroup(isPrivate = true))
-                },
+                onClick = { choose(NewChatViewModel.Choice.PrivateGroup) },
             )
             ChoiceRow(
                 label = stringResource(R.string.action_createPublicGroup),
                 icon = R.drawable.ic_currency_coin,
-                onClick = {
-                    // Unknown counts as having one: the form keeps Create disabled until a
-                    // currency is seated, which is a better answer than a sheet that may be wrong.
-                    if (hasCommunityCurrency == false) {
-                        presentNoCommunityCurrencies(resources, navigator)
-                    } else {
-                        analytics.track(GroupEvents.newOpened(GroupType.COMMUNITY))
-                        navigator.push(AppRoute.Messaging.NewGroup())
-                    }
-                },
+                onClick = { choose(NewChatViewModel.Choice.CommunityGroup) },
             )
         }
     }
@@ -95,7 +95,7 @@ private fun presentNoCommunityCurrencies(resources: Resources, navigator: CodeNa
         message = resources.getString(R.string.description_noCommunityCurrencies),
         actions = listOf(
             BottomBarAction(text = resources.getString(R.string.action_exploreCurrencies)) {
-                navigator.push(AppRoute.Token.Discovery)
+                navigator.push(NewChatViewModel.Outcome.NoCommunityCurrencies.explore)
             },
             BottomBarAction(
                 text = resources.getString(R.string.action_dismiss),

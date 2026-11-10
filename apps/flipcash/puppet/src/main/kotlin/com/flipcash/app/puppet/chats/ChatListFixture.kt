@@ -1,5 +1,13 @@
 package com.flipcash.app.puppet.chats
 
+import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Mint
+import com.getcode.opencode.model.financial.VmMetadata
+import com.getcode.opencode.model.financial.TokenWithBalance
+import com.getcode.opencode.model.financial.MintMetadata
+import com.getcode.opencode.model.financial.HolderMetrics
+import com.getcode.opencode.model.financial.Fiat
+import com.flipcash.app.tipping.internal.NewChatViewModel
 import com.flipcash.app.puppet.FixtureGuard
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.storage.DirectoryPreferencesFiles
@@ -191,6 +199,19 @@ class ChatListFixture(
         rowActions = rowActions,
     ).also { store.put("archived-${archivedOpened++}", it) }
 
+    /**
+     * The account's balances as New Chat reads them: $25 of dollars and no community currency, so
+     * the community row's gate depends on the app leaving dollars out.
+     */
+    val balances: List<TokenWithBalance> = listOf(TokenWithBalance(dollarsToken(), Fiat(25.0)))
+    private var newChatOpened = 0
+
+    /** A new New Chat screen's view model, as each push of the New Chat route builds one. */
+    fun newChatViewModel(): NewChatViewModel = NewChatViewModel(
+        tokenBalances = flowOf(balances),
+        preferredRate = exchange.observePreferredRate(),
+    ).also { store.put("new-chat-${newChatOpened++}", it) }
+
     /** Cancels the view model's work and deletes the data directory. */
     fun close() {
         store.clear()
@@ -249,3 +270,23 @@ class ChatListFixture(
         )
     }
 }
+
+// Built by hand: `Token.usdf` derives its VM account, and the fixture needs only the address.
+private fun dollarsToken() = MintMetadata(
+    address = Mint.usdf,
+    decimals = 6,
+    name = "USDF",
+    symbol = "USDF",
+    createdAt = null,
+    description = "",
+    imageUrl = "",
+    vmMetadata = VmMetadata(
+        vm = PublicKey.fromBase58("11111111111111111111111111111111"),
+        authority = PublicKey.fromBase58("11111111111111111111111111111111"),
+        lockDurationInDays = 21,
+    ),
+    launchpadMetadata = null,
+    billCustomizations = null,
+    socialLinks = emptyList(),
+    holderMetrics = HolderMetrics.None,
+)

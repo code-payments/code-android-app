@@ -10,4 +10,7 @@ import javax.inject.Inject
 internal class HiltNewChatViewModel @Inject constructor(
     tokenCoordinator: TokenCoordinator,
     exchange: Exchange,
-) : NewChatViewModel(tokenCoordinator = tokenCoordinator, exchange = exchange)
+) : NewChatViewModel(
+    tokenBalances = tokenCoordinator.tokenBalances,
+    preferredRate = exchange.observePreferredRate(),
+)

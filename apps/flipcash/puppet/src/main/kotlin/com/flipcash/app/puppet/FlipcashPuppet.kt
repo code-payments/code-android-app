@@ -8,8 +8,7 @@ import com.flipcash.libs.puppet.PuppetHost
 
 /**
  * The Flipcash app's Puppet host: every hosted screen, keyed by the route `launch` takes. A new
- * screen adds its route here, and a route a hosted screen pushes can become a hosted node instead
- * of a bare one.
+ * root screen adds its route here; a screen reached by a push adds its node to [HostedRoutes].
  *
  * Every session runs on [dispatchers], and [settle] runs before each response. [chatsFixture]
  * builds the Chats fixture for each launch of [CHATS_ROUTE]; tests pass one to keep a handle on it.
@@ -26,7 +25,8 @@ fun flipcashHost(
         routes = mapOf(
             CHATS_ROUTE to { stack ->
                 NetworkGuard.drain()
-                chatsSession(stack, chatsFixture(), settle)
+                val fixture = chatsFixture()
+                chatsSession(fixture, HostedRoutes(fixture, stack)::push, settle)
             },
         ),
         violations = NetworkGuard::drain,
