@@ -298,7 +298,8 @@ internal fun RequestNoticeRowLayout(
                     caption = { fitted -> caption(fitted, null) },
                     title = title,
                     progress = progress,
-                    canWrap = false,
+                    // A marked-paid row still too wide goes to two lines, as a share payment row does.
+                    canWrap = true,
                     maxWidth = maxWidth,
                 )
             }
@@ -374,8 +375,8 @@ private fun RequestRowCaption(
                 style = style,
                 color = color,
                 textAlign = TextAlign.Center,
-                // A share payment row that can wrap never gets here too wide. A notice that is
-                // still too wide wraps as any system row does.
+                // A row that can wrap never gets here too wide. A closed row that is still too
+                // wide wraps as any system row does.
                 maxLines = if (canWrap) 1 else Int.MAX_VALUE,
                 overflow = TextOverflow.Ellipsis,
             )

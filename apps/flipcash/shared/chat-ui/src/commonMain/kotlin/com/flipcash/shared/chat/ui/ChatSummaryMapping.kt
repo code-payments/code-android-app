@@ -209,8 +209,8 @@ fun MessageContent.previewText(
         val paid = (exchange?.let { forViewer(it.preferredRate, it.rates()) } ?: amount)
             .formatted(Fiat.FormattingRule.Truncated)
         val request = paymentRequests[paymentRequestId]
-        // Another chat's request, or one this receiver didn't create, lends the preview no title.
-        val title = request?.takeIf { receiver != null && it.creator == receiver }
+        // The title shows whenever it can be read, as on iOS.
+        val title = request
             ?.let { (it.split?.text as? PaymentRequestText.Plain)?.title }
             ?.takeIf { it.isNotBlank() }
         val receiverName = receiver?.let { nameOf(it) }

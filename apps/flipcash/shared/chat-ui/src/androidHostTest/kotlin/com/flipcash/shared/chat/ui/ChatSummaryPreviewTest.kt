@@ -606,9 +606,14 @@ class ChatSummaryPreviewTest {
     private val jordan: ID = listOf(7)
     private val alex: ID = listOf(8)
 
-    private fun sharePreview(viewer: ID, sentBySelf: Boolean = false, held: Boolean = true): String? {
+    private fun sharePreview(
+        viewer: ID,
+        sentBySelf: Boolean = false,
+        held: Boolean = true,
+        creator: ID = alex,
+    ): String? {
         val requestId: ID = listOf(5)
-        val request = request(40.toFiat()).copy(id = requestId, creator = alex)
+        val request = request(40.toFiat()).copy(id = requestId, creator = creator)
         return MessageContent.Cash(
             intentId = listOf(1),
             amount = 40.toFiat(),
@@ -651,6 +656,14 @@ class ChatSummaryPreviewTest {
             resources.getString(Res.string.label_chat_preview_sharePaid_self, "\$40", "Dinner")
         } returns "You paid \$40 for Dinner"
         assertEquals("You paid \$40 for Dinner", sharePreview(viewer = jordan, sentBySelf = true))
+    }
+
+    @Test
+    fun `a share payment keeps its title when the receiver did not create the request`() {
+        every {
+            resources.getString(Res.string.label_chat_preview_sharePaid, "Jordan", "Alex", "\$40", "Dinner")
+        } returns "Jordan paid Alex \$40 for Dinner"
+        assertEquals("Jordan paid Alex \$40 for Dinner", sharePreview(viewer = self, creator = jordan))
     }
 
     @Test
