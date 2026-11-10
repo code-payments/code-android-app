@@ -174,7 +174,6 @@ internal fun SharePaymentRowLayout(
                 caption = caption,
                 title = title,
                 progress = progress,
-                canWrap = true,
                 maxWidth = maxWidth,
             )
         }
@@ -288,7 +287,6 @@ internal fun RequestNoticeRowLayout(
                     caption = { fitted -> caption(fitted.dropLast(1), fitted.last()) },
                     title = null,
                     progress = progress,
-                    canWrap = false,
                     maxWidth = maxWidth,
                     titleAmongNames = true,
                 )
@@ -298,8 +296,6 @@ internal fun RequestNoticeRowLayout(
                     caption = { fitted -> caption(fitted, null) },
                     title = title,
                     progress = progress,
-                    // A marked-paid row still too wide goes to two lines, as a share payment row does.
-                    canWrap = true,
                     maxWidth = maxWidth,
                 )
             }
@@ -309,10 +305,10 @@ internal fun RequestNoticeRowLayout(
 
 /**
  * The text and ring both rows share, fitted to [maxWidth] by [fitRequestRow]: `<caption> · <title>
- * <ring>` on one line, or the caption over the title and ring when [canWrap] and it can't fit.
+ * <ring>` on one line, or the caption over the title and ring when it can't fit.
  *
  * [titleAmongNames] says the last of [names] is a title inside the caption's sentence: it shortens
- * first and to a title's length, as a title after the dot does.
+ * first and to a title's length, and moves to the second line, as a title after the dot does.
  */
 @Composable
 private fun RequestRowCaption(
@@ -320,7 +316,6 @@ private fun RequestRowCaption(
     caption: (names: List<String>) -> AnnotatedString,
     title: String?,
     progress: Float?,
-    canWrap: Boolean,
     maxWidth: Dp,
     titleAmongNames: Boolean = false,
 ) {
@@ -333,19 +328,18 @@ private fun RequestRowCaption(
         val fullWidth = with(density) { maxWidth.toPx() }
         fun width(text: AnnotatedString) = measurer.widthOf(text, style)
         if (titleAmongNames) {
-            val people = names.dropLast(1)
-            val fitted = fitRequestRow(
-                names = people,
+            fitRequestRow(
+                names = names.dropLast(1),
                 title = names.last(),
-                canWrap = false,
+                canWrap = true,
                 fits = { n, t -> width(caption(n + t.orEmpty())) <= available },
+                lineOneFits = { n -> width(caption(n + "").trimmed()) <= fullWidth },
             )
-            RequestRowFit(fitted.names + fitted.title.orEmpty(), null, twoLines = false)
         } else {
             fitRequestRow(
                 names = names,
                 title = title,
-                canWrap = canWrap,
+                canWrap = true,
                 fits = { n, t -> width(oneLine(caption(n), t)) <= available },
                 lineOneFits = { n -> width(caption(n)) <= fullWidth },
             )
@@ -354,7 +348,9 @@ private fun RequestRowCaption(
     val color = CodeTheme.colors.textSecondary
     if (fit.twoLines) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(caption(fit.names), style = style, color = color, maxLines = 1, softWrap = false)
+            // The sentence without its title, when the title is one of its arguments.
+            val lineOne = if (titleAmongNames) caption(fit.names + "").trimmed() else caption(fit.names)
+            Text(lineOne, style = style, color = color, maxLines = 1, softWrap = false)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(RING_GAP)) {
                 Text(
                     text = fit.title.orEmpty(),
@@ -370,14 +366,12 @@ private fun RequestRowCaption(
     } else {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(RING_GAP)) {
             Text(
-                text = oneLine(caption(fit.names), fit.title),
+                text = if (titleAmongNames) caption(fit.names + fit.title.orEmpty()) else oneLine(caption(fit.names), fit.title),
                 modifier = Modifier.weight(1f, fill = false),
                 style = style,
                 color = color,
                 textAlign = TextAlign.Center,
-                // A row that can wrap never gets here too wide. A closed row that is still too
-                // wide wraps as any system row does.
-                maxLines = if (canWrap) 1 else Int.MAX_VALUE,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             if (progress != null) RowRing(progress)
@@ -391,6 +385,12 @@ private fun oneLine(caption: AnnotatedString, title: String?): AnnotatedString =
         append(" · ")
         append(title)
     }
+
+/** [this] without the blanks an empty argument leaves at either end. */
+private fun AnnotatedString.trimmed(): AnnotatedString {
+    val start = text.indexOfFirst { !it.isWhitespace() }
+    return if (start < 0) AnnotatedString("") else subSequence(start, text.indexOfLast { !it.isWhitespace() } + 1)
+}
 
 private fun TextMeasurer.widthOf(text: AnnotatedString, style: TextStyle): Int =
     measure(text, style = style, maxLines = 1, softWrap = false).size.width
@@ -468,6 +468,14 @@ private fun Preview_RequestRows() {
             names = listOf("Alex"),
             caption = { names, title -> styledTemplate("%1\$s closed %2\$s", (names + listOfNotNull(title)).mapIndexed { i, t -> t to NameStyle.takeIf { i == 0 } }) },
             title = "Tahoe cabin",
+            titleInCaption = true,
+            progress = null,
+            onClick = {},
+        )
+        RequestNoticeRowLayout(
+            names = listOf("Maximilian-Alexander"),
+            caption = { names, title -> styledTemplate("%1\$s closed %2\$s", (names + listOfNotNull(title)).mapIndexed { i, t -> t to NameStyle.takeIf { i == 0 } }) },
+            title = "Tahoe cabin weekend with everyone from the old office",
             titleInCaption = true,
             progress = null,
             onClick = {},

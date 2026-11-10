@@ -231,6 +231,34 @@ class RequestRowsTest {
         assertEquals(listOf("Maximilian", "Alexandra"), fit.names)
     }
 
+    // A closed row's title is an argument of its sentence; too wide, it still takes the second line.
+    @Test
+    fun `a closed row that does not fit after both shortening steps goes to two lines with the full title`() {
+        val title = "Tahoe cabin weekend with everyone"
+        val fit = fitRequestRow(
+            names = listOf("Maximilian-Alexander"),
+            title = title,
+            canWrap = true,
+            fits = { names, t -> "${names[0]} closed $t".length <= 20 },
+            lineOneFits = { names -> "${names[0]} closed".length <= 20 },
+        )
+        assertTrue(fit.twoLines)
+        assertEquals(title, fit.title)
+        assertEquals(listOf("Maximilian-A…"), fit.names)
+    }
+
+    @Test
+    fun `a row with no title stays on one line however wide it is`() {
+        val fit = fitRequestRow(
+            names = listOf("Maximilian", "Alexandra"),
+            title = null,
+            canWrap = true,
+            fits = { _, _ -> false },
+        )
+        assertEquals(false, fit.twoLines)
+        assertEquals(listOf("Maxim…", "Alexa…"), fit.names)
+    }
+
     @Test
     fun `names shorten longest first and only after the title has reached its minimum`() {
         fun caption(names: List<String>) = "${names[0]} paid ${names[1]} \$40"

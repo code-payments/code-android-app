@@ -205,7 +205,8 @@ internal fun fitRequestRow(
     }
 
     val shortNames = shortenNames(names) { fits(it, shortTitle) }
-    if (fits(shortNames, shortTitle) || !canWrap) return RequestRowFit(shortNames, shortTitle, twoLines = false)
+    // With no title there is nothing to move to a second line.
+    if (fits(shortNames, shortTitle) || !canWrap || title == null) return RequestRowFit(shortNames, shortTitle, twoLines = false)
 
     return RequestRowFit(shortenNames(names, lineOneFits), title, twoLines = true)
 }
