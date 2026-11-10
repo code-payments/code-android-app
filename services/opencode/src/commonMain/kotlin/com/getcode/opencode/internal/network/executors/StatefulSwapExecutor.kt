@@ -8,6 +8,7 @@ import com.getcode.opencode.internal.network.api.TransactionApi
 import com.getcode.opencode.internal.network.api.intents.IntentStatefulSwap
 import com.getcode.opencode.internal.network.extensions.toCode
 import com.getcode.opencode.internal.network.extensions.toProps
+import com.getcode.opencode.internal.network.extensions.toSignature
 import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.transactions.StatefulSwapRequest
@@ -17,7 +18,6 @@ import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
 import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.fromBytes
 import com.getcode.opencode.solana.diff
-import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -241,7 +241,7 @@ private fun handleErrors(
                     listOf(
                         "Action index: ${error.invalidSignature.actionId}",
                         "Invalid signature: ${
-                            Signature(error.invalidSignature.providedSignature.value).base58()
+                            error.invalidSignature.providedSignature.toSignature().base58()
                         }",
                         "Transaction bytes: ${error.invalidSignature.expectedTransaction.value}",
                         "Transaction expected: $expected",
