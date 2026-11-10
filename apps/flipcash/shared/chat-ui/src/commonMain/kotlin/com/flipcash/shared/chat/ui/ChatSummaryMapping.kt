@@ -5,7 +5,15 @@ import com.flipcash.core.resources.label_chat_media_photo
 import com.flipcash.core.resources.label_chat_preview_cash_suffix
 import com.flipcash.core.resources.label_chat_preview_receivedCash
 import com.flipcash.core.resources.label_chat_preview_senderMessage
+import com.getcode.opencode.model.financial.Fiat
 import com.flipcash.core.resources.label_chat_preview_sentCash
+import com.flipcash.core.resources.label_chat_preview_sharePaid
+import com.flipcash.core.resources.label_chat_preview_sharePaid_self
+import com.flipcash.core.resources.label_chat_preview_sharePaid_toViewer
+import com.flipcash.core.resources.label_sharePayment
+import com.flipcash.core.resources.label_sharePayment_noReceiver
+import com.flipcash.core.resources.label_sharePayment_self
+import com.flipcash.core.resources.label_sharePayment_toViewer
 import com.flipcash.core.resources.label_chat_preview_sentCash_bySender
 import com.flipcash.core.resources.label_chat_preview_sentMessage
 import com.flipcash.core.resources.label_chat_preview_sentRequest
@@ -125,8 +133,12 @@ private fun ChatSummary.groupSenderName(senderId: ID, senderProfiles: Map<String
 }
 
 /** The payment request the row's preview names, when the last message is one; its share comes from the store. */
-fun ChatSummary.previewedPaymentRequestId(): ID? =
-    ((metadata.lastMessage?.content?.firstOrNull() as? MessageContent.Widget)?.widget as? WidgetContent.PaymentRequest)?.id
+fun ChatSummary.previewedPaymentRequestId(): ID? = when (val content = metadata.lastMessage?.content?.firstOrNull()) {
+    is MessageContent.Widget -> (content.widget as? WidgetContent.PaymentRequest)?.id
+    // A share payment previews with its request's title.
+    is MessageContent.Cash -> content.paymentRequestId
+    else -> null
+}
 
 private fun ChatSummary.formatPreview(
     selfId: ID?,
@@ -149,7 +161,11 @@ private fun ChatSummary.formatPreview(
         null
     }
     return lastMsg.content.firstOrNull()
-        ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, exchange, paymentRequests) { content ->
+        ?.previewText(
+            sentBySelf, senderName, isGroup, tokensByMint, resources, exchange, paymentRequests,
+            selfId = selfId,
+            nameOf = { groupSenderName(it, senderProfiles) },
+        ) { content ->
             content.displayText(resources, selfId) { groupSenderName(it, senderProfiles) }
         }
 }
@@ -170,6 +186,9 @@ fun MessageContent.previewText(
     exchange: Exchange?,
     paymentRequests: Map<ID, PaymentRequest>,
     depth: Int = 0,
+    /** The viewer and a member's name, for the one preview that names someone besides the sender: a share payment's receiver. */
+    selfId: ID? = null,
+    nameOf: (ID) -> String? = { null },
     systemText: (MessageContent.System) -> String?,
 ): String? = when (this) {
     is MessageContent.Text -> {
@@ -181,6 +200,32 @@ fun MessageContent.previewText(
             senderName != null ->
                 resources.getString(Res.string.label_chat_preview_senderMessage, senderName, message)
             else -> message
+        }
+    }
+
+    // A share payment reads as its row does, with "for" in place of the dot. The amount stands
+    // alone: the row names no token, and the request's title says what was paid.
+    is MessageContent.Cash if paymentRequestId != null -> {
+        val paid = (exchange?.let { forViewer(it.preferredRate, it.rates()) } ?: amount)
+            .formatted(Fiat.FormattingRule.Truncated)
+        val request = paymentRequests[paymentRequestId]
+        // The title shows whenever it can be read, as on iOS.
+        val title = request
+            ?.let { (it.split?.text as? PaymentRequestText.Plain)?.title }
+            ?.takeIf { it.isNotBlank() }
+        val receiverName = receiver?.let { nameOf(it) }
+        when {
+            sentBySelf && title != null -> resources.getString(Res.string.label_chat_preview_sharePaid_self, paid, title)
+            sentBySelf -> resources.getString(Res.string.label_sharePayment_self, paid)
+            senderName == null -> null
+            receiver != null && receiver == selfId -> if (title != null) {
+                resources.getString(Res.string.label_chat_preview_sharePaid_toViewer, senderName, paid, title)
+            } else {
+                resources.getString(Res.string.label_sharePayment_toViewer, senderName, paid)
+            }
+            receiverName == null -> resources.getString(Res.string.label_sharePayment_noReceiver, senderName, paid)
+            title != null -> resources.getString(Res.string.label_chat_preview_sharePaid, senderName, receiverName, paid, title)
+            else -> resources.getString(Res.string.label_sharePayment, senderName, receiverName, paid)
         }
     }
 
@@ -229,7 +274,7 @@ fun MessageContent.previewText(
         null
     } else {
         content.firstOrNull()
-            ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, exchange, paymentRequests, depth + 1, systemText)
+            ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, exchange, paymentRequests, depth + 1, selfId, nameOf, systemText)
     }
 
     // The feed carries the newest message that still has content, so a tombstone only

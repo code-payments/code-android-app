@@ -15,8 +15,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
-/** The summary copy for the spec's cases 14–18 and 49–51. */
+/** The summary copy and shares for the spec's cases 14–18 and 49–51. */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class RequestCopyTest {
@@ -25,9 +26,6 @@ class RequestCopyTest {
     private val viewer = id(0)
 
     private fun id(n: Int): ID = listOf((n shr 8).toByte(), n.toByte())
-
-    // As the summary formats an amount: "$20" for a whole amount, "$33.34" otherwise.
-    private fun Fiat.text(): String = formatted(Fiat.FormattingRule.Truncated)
 
     private fun draft(memberCount: Int, amount: Fiat = Fiat(20.0, CurrencyCode.USD)) = NewRequestDraft(
         viewerId = viewer,
@@ -39,50 +37,64 @@ class RequestCopyTest {
         amount = amount,
     )
 
-    private fun button(draft: NewRequestDraft) = requestButtonText(draft.totalAmount!!.text(), resources)
+    private fun button() = requestButtonText(resources)
+
+    private fun usd(amount: Double) = Fiat(amount, CurrencyCode.USD)
 
     // 14
     @Test
-    fun `20 each between everyone reads everyone including you and requests 520 total`() {
+    fun `20 each between everyone reads everyone including you and sends 26 shares`() {
         val draft = draft(26)
 
         assertEquals("Everyone, Including You", peopleValue(draft.people, resources))
         assertEquals("You'll be marked as paid", peopleDetail(draft.people, resources))
-        assertEquals("Request $520 Total", button(draft))
+        assertEquals("Send Request", button())
+        val shares = draft.split!!
+        assertEquals(26, shares.size)
+        assertEquals(viewer, shares.first().userId)
+        assertTrue(shares.all { it.amount == usd(20.0) })
     }
 
     // 15
     @Test
-    fun `creator and one other read in the singular and request 40 total`() {
+    fun `creator and one other read in the singular and send 2 shares`() {
         val draft = draft(26).copy(selected = setOf(viewer, id(4)))
 
         assertEquals("1 Person, Including You", peopleValue(draft.people, resources))
-        assertEquals("Request $40 Total", button(draft))
+        assertEquals("Send Request", button())
+        assertEquals(listOf(usd(20.0), usd(20.0)), draft.split!!.map { it.amount })
     }
 
     // 49
     @Test
-    fun `creator unchecked leaves 25 shares and requests 500 total`() {
-        val start = draft(26)
-        val draft = start.copy(selected = start.toggled(viewer)!!)
+    fun `33_33 each for the creator and two others sends three equal shares, creator first`() {
+        val draft = draft(5, amount = usd(33.33)).copy(selected = setOf(id(2), viewer, id(1)))
 
-        assertEquals("Request $500 Total", button(draft))
+        assertEquals("Send Request", button())
+        val shares = draft.split!!
+        assertEquals(listOf(usd(33.33), usd(33.33), usd(33.33)), shares.map { it.amount })
+        assertEquals(viewer, shares.first().userId)
     }
 
     // 50
     @Test
-    fun `a cent amount multiplies exactly`() {
-        val draft = draft(5, amount = Fiat(33.34, CurrencyCode.USD)).copy(selected = setOf(viewer, id(1), id(2)))
+    fun `creator deselected with one other sends one share`() {
+        val draft = draft(26).copy(selected = setOf(id(2)))
 
-        assertEquals("Request $100.02 Total", button(draft))
+        assertEquals("Send Request", button())
+        assertEquals(listOf(usd(20.0)), draft.split!!.map { it.amount })
     }
 
     // 51
     @Test
-    fun `the total follows the selection`() {
-        val draft = draft(26).copy(selected = setOf(id(2)))
+    fun `unchecking the creator leaves 25 shares and the button unchanged`() {
+        val start = draft(26)
+        assertEquals("Send Request", button())
+        val draft = start.copy(selected = start.toggled(viewer)!!)
 
-        assertEquals("Request $20 Total", button(draft))
+        assertEquals("Send Request", button())
+        assertEquals(25, draft.split!!.size)
+        assertTrue(draft.split!!.none { it.userId == viewer })
     }
 
     // 16

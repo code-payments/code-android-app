@@ -147,6 +147,12 @@ import com.flipcash.shared.chat.chatDraftOf
 import com.flipcash.shared.chat.groupAccess
 import com.flipcash.shared.chat.models.ChatListItem
 import com.flipcash.shared.chat.models.paysRequestShare
+import com.flipcash.shared.chat.PaymentRequests
+import com.getcode.utils.base58
+import com.flipcash.app.messenger.internal.request.RequestEvent
+import com.flipcash.app.messenger.internal.request.eventsBetween
+import com.flipcash.app.messenger.internal.request.requestEvents
+import com.flipcash.app.messenger.internal.request.toNotices
 import com.flipcash.shared.chat.models.ChatQuote
 import com.flipcash.shared.chat.models.ChatQuoteSnippet
 import com.flipcash.shared.chat.models.PhotoMessageContext
@@ -189,8 +195,12 @@ import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
+import com.flipcash.shared.chat.ChatCashBillShare
+import com.flipcash.shared.chat.LiveCashArrival
+import com.flipcash.shared.chat.LiveCashArrivals
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.core.ID
+import com.flipcash.app.core.bill.Scannable
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
@@ -306,6 +316,7 @@ internal class ChatViewModel @AssistedInject constructor(
     private val exchange: Exchange,
     private val verifiedFiatCalculator: VerifiedFiatCalculator,
     private val startChattingPayer: StartChattingPayer,
+    private val paymentRequests: PaymentRequests,
     private val userManager: UserManager,
     private val resources: ResourceHelper,
     private val analytics: FlipcashAnalytics,
@@ -333,6 +344,8 @@ internal class ChatViewModel @AssistedInject constructor(
     // Defaulted for the same reason: only the Send Back tests supply them.
     sendBackPayments: SendBackPaymentDelegate? = null,
     chatMessagingController: ChatMessagingController? = null,
+    // Defaulted likewise: only the live-cash bill reads it.
+    liveCash: LiveCashArrivals? = null,
 ) : BaseViewModel<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(
         openingAtMessage = openAtMessageId != null,
@@ -1322,6 +1335,33 @@ internal class ChatViewModel @AssistedInject constructor(
         .flatMapLatest { chatCoordinator.observePendingMutations(it) }
         .distinctUntilChanged()
 
+    /** Cash that reached the client on the live stream, for the chat's received bill. */
+    val liveCashArrivals: Flow<LiveCashArrival> = liveCash?.arrivals ?: emptyFlow()
+
+    /** The chat the app is showing in the foreground, which a live cash arrival must belong to. */
+    fun openChatId(): ChatId? = chatCoordinator.state.value.activeChat
+
+    fun viewerId(): ID? = userManager.accountId
+
+    /**
+     * The received bill for [share], built the way the Give screen builds its bill: priced through
+     * the verified-fiat calculator, so the give the bill opens carries the verified state the
+     * server checks the grab against. The amount shown is the share the message carries (what the
+     * bubble shows), not the calculator's estimate. Null when the token, the rate or the pricing is not
+     * available, in which case the payment shows as its bubble only.
+     */
+    suspend fun buildChatCashBill(share: ChatCashBillShare): Scannable.Payable? {
+        val token = tokenCoordinator.getTokenMetadata(share.mint).getOrNull()?.token ?: return null
+        val rate = exchange.rateFor(share.amount.currencyCode) ?: return null
+        val priced = verifiedFiatCalculator.compute(
+            amount = share.amount,
+            token = token,
+            balance = tokenCoordinator.balanceForToken(token),
+            rate = rate,
+        ).getOrNull() ?: return null
+        return chatCashBillOf(token, priced, share)
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val otherReadPointer = stateFlow.mapNotNull { it.chatId }
         .distinctUntilChanged()
@@ -1678,9 +1718,27 @@ internal class ChatViewModel @AssistedInject constructor(
                         )
                     }
 
-                    // A request share's payment is shown by the request card, not by a bubble. The
-                    // message is still in the page: its key, and so the next page's, are unchanged.
-                    if (content.paysRequestShare) return@flatMapIndexed emptyList()
+                    // A request share's payment is a line between two rules, not a cash bubble.
+                    // Names come from the message, so the row reads the same with no request held.
+                    if (content is MessageContent.Cash && content.paysRequestShare) {
+                        val selfId = userManager.accountId
+                        val unnamed = resources.getString(R.string.title_unnamedUser)
+                        return@flatMapIndexed listOf(
+                            ChatListItem.SharePayment(
+                                messageId = message.messageId,
+                                contentIndex = index,
+                                timestamp = message.timestamp,
+                                isFromSelf = message.isFromSelf,
+                                requestId = content.paymentRequestId!!,
+                                payerId = message.senderId,
+                                payerName = message.senderId?.let { profiles.systemUserName(it) } ?: unnamed,
+                                receiverId = content.receiver,
+                                receiverName = content.receiver?.let { profiles.systemUserName(it) ?: unnamed },
+                                receiverIsViewer = content.receiver != null && content.receiver == selfId,
+                                amount = content.amount,
+                            ),
+                        )
+                    }
 
                     val enriched = content.withTokenMetadata()
 
@@ -1874,6 +1932,26 @@ internal class ChatViewModel @AssistedInject constructor(
         }
         .cachedIn(pagingScope)
 
+    private class RequestNoticeInputs(
+        val chatId: ChatId,
+        val events: List<RequestEvent>,
+        val profiles: Map<String, UserProfile>?,
+    )
+
+    /**
+     * The marked-paid and closed events of the chat's stored requests. They have no message, so
+     * they join the transcript in [messages]' separator pass and never reach [mappedMessages],
+     * which is what read receipts, jumps and the presenter read.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val requestNoticeInputs: Flow<RequestNoticeInputs> =
+        stateFlow.mapNotNull { it.chatId }.distinctUntilChanged().flatMapLatest { chatId ->
+            combine(
+                paymentRequests.inChat(chatId).map { requestEvents(it, chatId) }.distinctUntilChanged(),
+                senderProfiles,
+            ) { events, profiles -> RequestNoticeInputs(chatId, events, profiles) }
+        }
+
     /**
      * The transcript as the list draws it: [mappedMessages] with date separators and the unread
      * divider. The boundary and config are inputs rather than reads of the current state, so a
@@ -1891,8 +1969,18 @@ internal class ChatViewModel @AssistedInject constructor(
                 .distinctUntilChanged(),
             stateFlow.map { it.separatorConfig }.distinctUntilChanged(),
             oldestEncryptedId,
-        ) { paging, boundary, config, oldestEncrypted ->
-            paging.withSeparators(boundary, config, oldestEncrypted)
+            requestNoticeInputs,
+        ) { paging, boundary, config, oldestEncrypted, notices ->
+            paging.withSeparators(boundary, config, oldestEncrypted) { newer, older ->
+                eventsBetween(newer, older, notices.events).toNotices(
+                    chatId = notices.chatId,
+                    viewerId = userManager.accountId,
+                    config = config,
+                    above = newer,
+                    nameOf = { notices.profiles.systemUserName(it) ?: resources.getString(R.string.title_unnamedUser) },
+                    keyOf = { it.base58 },
+                )
+            }
         }
 
     /**

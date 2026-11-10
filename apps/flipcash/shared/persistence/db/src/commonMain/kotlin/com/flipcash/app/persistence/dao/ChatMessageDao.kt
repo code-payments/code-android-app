@@ -16,16 +16,30 @@ import com.flipcash.app.persistence.entities.MessageStatus
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Excludes a cash message that pays a payment request share: the transcript draws no bubble for it
- * (`MessageContent.paysRequestShare`), so it is not a preview, an unread message or an arrival.
+ * Matches a cash message that pays a payment request share (`MessageContent.paysRequestShare`).
  *
  * `content_json` is serialized with defaults, so a cash entry always carries `"paymentRequestId"`:
  * `null` unless it paid a share. The widget that shows a request carries the same key under another
  * type, hence the `"cash"` test. An unescaped `"` cannot come from message text, which is escaped.
  */
-private const val NOT_REQUEST_SHARE =
-    "AND NOT (COALESCE(content_json, '') LIKE '%\"type\":\"cash\"%' " +
-        "AND COALESCE(content_json, '') LIKE '%\"paymentRequestId\":\"%') "
+private const val IS_REQUEST_SHARE =
+    "COALESCE(content_json, '') LIKE '%\"type\":\"cash\"%' " +
+        "AND COALESCE(content_json, '') LIKE '%\"paymentRequestId\":\"%'"
+
+/**
+ * Excludes a share payment the viewer did not receive from the unread queries. The transcript draws
+ * a row for every share payment and the chat list previews it, but it is unread, an arrival and a
+ * divider anchor only for its receiver, the request's creator.
+ *
+ * `:selfReceiver` is the viewer's user id in base58, the form `"receiver"` is stored in. A share
+ * payment has a single receiver, so the key appears once.
+ */
+private const val COUNTS_AS_UNREAD =
+    "AND NOT ($IS_REQUEST_SHARE " +
+        "AND COALESCE(content_json, '') NOT LIKE '%\"receiver\":\"' || :selfReceiver || '\"%') "
+
+/** One row of [ChatMessageDao.getUncountedShareIds]. */
+data class MessageIdRow(@ColumnInfo(name = "message_id") val messageId: Long)
 
 /** Keys per statement in [ChatMessageDao.getUnreadSeqs]: two bind variables each, under 999. */
 internal const val UNREAD_SEQ_CHUNK = 400
@@ -36,11 +50,6 @@ data class UnreadSeqRow(
     @ColumnInfo(name = "message_id") val messageId: Long,
     @ColumnInfo(name = "unread_seq") val unreadSeq: Long?,
 )
-
-/** [NOT_REQUEST_SHARE] for the correlated subqueries that alias the table as `m`. */
-private const val NOT_REQUEST_SHARE_M =
-    "AND NOT (COALESCE(m.content_json, '') LIKE '%\"type\":\"cash\"%' " +
-        "AND COALESCE(m.content_json, '') LIKE '%\"paymentRequestId\":\"%') "
 
 @Dao
 interface ChatMessageDao {
@@ -93,14 +102,48 @@ interface ChatMessageDao {
      * content list is empty (`'[]'`; a NULL column too), such as a system notice with no text.
      * Nothing renders such a message, so it must not become a blank preview or an unread dot.
      *
-     * This is what the conversation list previews and what its unread check reads, so deleting the
-     * newest message falls the row back to the one before it instead of reading "Message deleted".
+     * This is what the conversation list previews, so deleting the newest message falls the row back
+     * to the one before it instead of reading "Message deleted". A share payment is a preview for
+     * every member; whether it is unread is [getLatestCountable]'s question.
      * Deliberately separate from the identity-keyed anchors ([getNewestMessageId] for mark-read,
      * [getLatest] for the receive buzz): they need the newest id including tombstones, or a delete
      * would regress the read pointer and leave the chat unread forever.
      */
-    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 AND content_json IS NOT NULL AND content_json != '[]' AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') " + NOT_REQUEST_SHARE + "ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT 1")
+    @Query("SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 AND content_json IS NOT NULL AND content_json != '[]' AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT 1")
     suspend fun getLatestVisible(chatIdHex: String): ChatMessageEntity?
+
+    /**
+     * [getLatestVisible] less the share payments [selfReceiver] did not receive: the newest message
+     * the chat list's unread check may read. It differs from the preview only while the preview is
+     * such a share payment.
+     */
+    @Query(
+        "SELECT * FROM chat_messages WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 " +
+            "AND content_json IS NOT NULL AND content_json != '[]' " +
+            "AND (encryption_state IS NULL OR encryption_state != 'KEY_PENDING') " +
+            COUNTS_AS_UNREAD +
+            "ORDER BY timestamp_epoch_ms DESC, message_id DESC LIMIT 1"
+    )
+    suspend fun getLatestCountable(chatIdHex: String, selfReceiver: String): ChatMessageEntity?
+
+    /**
+     * The share payments in [chatIdHex] past [afterId], up to [throughId], that [selfReceiver] did
+     * not receive. The server's unread stamp counts them like any cash message, so the chat list
+     * takes them back off the difference of two stamps.
+     */
+    @Query(
+        "SELECT message_id FROM chat_messages " +
+            "WHERE chat_id_hex = :chatIdHex AND is_deleted = 0 " +
+            "AND message_id > :afterId AND message_id <= :throughId " +
+            "AND $IS_REQUEST_SHARE " +
+            "AND COALESCE(content_json, '') NOT LIKE '%\"receiver\":\"' || :selfReceiver || '\"%'"
+    )
+    suspend fun getUncountedShareIds(
+        chatIdHex: String,
+        selfReceiver: String,
+        afterId: Long,
+        throughId: Long,
+    ): List<MessageIdRow>
 
     /**
      * [getLatestVisible] for every chat at once: one row per chat that has a `chat_metadata` row and
@@ -120,7 +163,6 @@ interface ChatMessageDao {
             "WHERE m.chat_id_hex = c.chat_id_hex AND m.is_deleted = 0 " +
             "AND m.content_json IS NOT NULL AND m.content_json != '[]' " +
             "AND (m.encryption_state IS NULL OR m.encryption_state != 'KEY_PENDING') " +
-            NOT_REQUEST_SHARE_M +
             "ORDER BY m.timestamp_epoch_ms DESC, m.message_id DESC LIMIT 1) " +
             "FROM chat_metadata c)"
     )
@@ -137,7 +179,6 @@ interface ChatMessageDao {
             "WHERE m.chat_id_hex = c.chat_id_hex AND m.is_deleted = 0 " +
             "AND m.content_json IS NOT NULL AND m.content_json != '[]' " +
             "AND (m.encryption_state IS NULL OR m.encryption_state != 'KEY_PENDING') " +
-            NOT_REQUEST_SHARE_M +
             "ORDER BY m.timestamp_epoch_ms DESC, m.message_id DESC LIMIT 1) " +
             "FROM chat_metadata c)"
     )
@@ -167,9 +208,9 @@ interface ChatMessageDao {
             "WHERE chat_id_hex = :chatIdHex " +
             "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
             "AND is_deleted = 0 AND message_id > :afterId " +
-            NOT_REQUEST_SHARE
+            COUNTS_AS_UNREAD
     )
-    suspend fun countInboundAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Int
+    suspend fun countInboundAfter(chatIdHex: String, selfIdHex: String, selfReceiver: String, afterId: Long): Int
 
     /**
      * [countInboundAfter] as a stream, for the jump-to-bottom badge. The WHERE clause is the same
@@ -180,9 +221,9 @@ interface ChatMessageDao {
             "WHERE chat_id_hex = :chatIdHex " +
             "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
             "AND is_deleted = 0 AND message_id > :afterId " +
-            NOT_REQUEST_SHARE
+            COUNTS_AS_UNREAD
     )
-    fun observeInboundCountAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Flow<Int>
+    fun observeInboundCountAfter(chatIdHex: String, selfIdHex: String, selfReceiver: String, afterId: Long): Flow<Int>
 
     /**
      * The newest inbound, non-deleted message id in [chatIdHex], or `null` when there is none. Same
@@ -193,9 +234,9 @@ interface ChatMessageDao {
             "WHERE chat_id_hex = :chatIdHex " +
             "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
             "AND is_deleted = 0 " +
-            NOT_REQUEST_SHARE
+            COUNTS_AS_UNREAD
     )
-    suspend fun newestInboundId(chatIdHex: String, selfIdHex: String): Long?
+    suspend fun newestInboundId(chatIdHex: String, selfIdHex: String, selfReceiver: String): Long?
 
     /**
      * The first stored message in [chatIdHex] after [afterId] that [selfIdHex] did not send,
@@ -209,9 +250,9 @@ interface ChatMessageDao {
         "SELECT MIN(message_id) FROM chat_messages " +
             "WHERE chat_id_hex = :chatIdHex AND message_id > :afterId " +
             "AND sender_id_hex IS NOT NULL AND sender_id_hex != :selfIdHex " +
-            NOT_REQUEST_SHARE
+            COUNTS_AS_UNREAD
     )
-    suspend fun firstNotSentByAfter(chatIdHex: String, selfIdHex: String, afterId: Long): Long?
+    suspend fun firstNotSentByAfter(chatIdHex: String, selfIdHex: String, selfReceiver: String, afterId: Long): Long?
 
     /**
      * Whether any message in [chatIdHex] at or below [id] is stored, tombstones included. Without one,

@@ -1,6 +1,10 @@
 package com.flipcash.shared.chat.ui
 
 import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_sharePayment
+import com.flipcash.core.resources.label_chat_preview_sharePaid_toViewer
+import com.flipcash.core.resources.label_chat_preview_sharePaid_self
+import com.flipcash.core.resources.label_chat_preview_sharePaid
 import com.flipcash.core.resources.label_chat_media_photo
 import com.flipcash.core.resources.label_chat_preview_receivedCash
 import com.flipcash.core.resources.label_chat_preview_senderMessage
@@ -596,5 +600,97 @@ class ChatSummaryPreviewTest {
         val stranger: ID = listOf(5)
         val notice = MessageContent.System("Someone joined", MessageContent.SystemEvent.UserJoined(self, null, stranger))
         assertEquals(stranger, groupSummary(listOf(notice), senderId = null).unnamedGroupSender(self, emptyMap()))
+    }
+
+    // Spec cases 71 and 72 (the preview half; the unread half is ChatMessageDaoTest's), and 73.
+    private val jordan: ID = listOf(7)
+    private val alex: ID = listOf(8)
+
+    private fun sharePreview(
+        viewer: ID,
+        sentBySelf: Boolean = false,
+        held: Boolean = true,
+        creator: ID = alex,
+    ): String? {
+        val requestId: ID = listOf(5)
+        val request = request(40.toFiat()).copy(id = requestId, creator = creator)
+        return MessageContent.Cash(
+            intentId = listOf(1),
+            amount = 40.toFiat(),
+            mint = Mint.usdf,
+            receiver = alex,
+            paymentRequestId = requestId,
+        ).previewText(
+            sentBySelf = sentBySelf,
+            senderName = if (sentBySelf) null else "Jordan",
+            isGroup = true,
+            tokensByMint = emptyMap(),
+            resources = resources,
+            exchange = null,
+            paymentRequests = if (held) mapOf(requestId to request) else emptyMap(),
+            selfId = viewer,
+            nameOf = { if (it == alex) "Alex" else null },
+            systemText = { null },
+        )
+    }
+
+    @Test
+    fun `a share payment previews to its receiver as paid you, with the request's title`() {
+        every {
+            resources.getString(Res.string.label_chat_preview_sharePaid_toViewer, "Jordan", "\$40", "Dinner")
+        } returns "Jordan paid you \$40 for Dinner"
+        assertEquals("Jordan paid you \$40 for Dinner", sharePreview(viewer = alex))
+    }
+
+    @Test
+    fun `a share payment previews to another member with both names`() {
+        every {
+            resources.getString(Res.string.label_chat_preview_sharePaid, "Jordan", "Alex", "\$40", "Dinner")
+        } returns "Jordan paid Alex \$40 for Dinner"
+        assertEquals("Jordan paid Alex \$40 for Dinner", sharePreview(viewer = self))
+    }
+
+    @Test
+    fun `a share payment previews to its payer as you paid`() {
+        every {
+            resources.getString(Res.string.label_chat_preview_sharePaid_self, "\$40", "Dinner")
+        } returns "You paid \$40 for Dinner"
+        assertEquals("You paid \$40 for Dinner", sharePreview(viewer = jordan, sentBySelf = true))
+    }
+
+    @Test
+    fun `a share payment keeps its title when the receiver did not create the request`() {
+        every {
+            resources.getString(Res.string.label_chat_preview_sharePaid, "Jordan", "Alex", "\$40", "Dinner")
+        } returns "Jordan paid Alex \$40 for Dinner"
+        assertEquals("Jordan paid Alex \$40 for Dinner", sharePreview(viewer = self, creator = jordan))
+    }
+
+    @Test
+    fun `a share payment whose request isn't held previews without a title`() {
+        every {
+            resources.getString(Res.string.label_sharePayment, "Jordan", "Alex", "\$40")
+        } returns "Jordan paid Alex \$40"
+        assertEquals("Jordan paid Alex \$40", sharePreview(viewer = self, held = false))
+    }
+
+    // The chat list fetches the request this names; without it the preview never gains its title.
+    @Test
+    fun `a share payment names its request as the one its preview needs`() {
+        val requestId: ID = listOf(5)
+        val share = MessageContent.Cash(
+            intentId = listOf(1),
+            amount = 40.toFiat(),
+            mint = Mint.usdf,
+            receiver = alex,
+            paymentRequestId = requestId,
+        )
+        assertEquals(requestId, groupSummary(listOf(share), senderId = jordan).previewedPaymentRequestId())
+    }
+
+    @Test
+    fun `cash that pays no request names none`() {
+        val cash = MessageContent.Cash(intentId = listOf(1), amount = 40.toFiat(), mint = Mint.usdf, receiver = alex)
+        assertNull(groupSummary(listOf(cash), senderId = jordan).previewedPaymentRequestId())
     }
 }

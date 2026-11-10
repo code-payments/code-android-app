@@ -4,7 +4,6 @@ import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
-import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
 /**
@@ -49,17 +48,11 @@ data class PaymentRequest(
 
     fun isOpen(now: Instant): Boolean = resolvedStatus(now) == PaymentRequestStatus.Open
 
-    /** Whether the deck still shows it: a split, open or ended less than 24 hours ago. */
-    fun isInDeck(now: Instant): Boolean {
-        if (split == null) return false
-        if (isOpen(now)) return true
-        val closed = resolvedClosedAt(now) ?: return false
-        return now - closed < ENDED_VISIBLE_FOR
-    }
-
-    companion object {
-        val ENDED_VISIBLE_FOR = 24.hours
-    }
+    /**
+     * Whether the deck shows it: an open split. A request leaves the deck as soon as it ends,
+     * completed, closed or expired; the timeline, details and history still show it.
+     */
+    fun isInDeck(now: Instant): Boolean = split != null && isOpen(now)
 }
 
 enum class PaymentRequestStatus { Open, Completed, Closed, Expired, Unknown }
@@ -233,15 +226,17 @@ fun PaymentRequest.viewerStanding(viewerId: ID?, now: Instant): ViewerStanding {
 }
 
 /**
- * The app-bar deck's default order: open requests [viewerId] owes on, then other open requests,
- * each by deadline, nearest first, then requests that ended within the last 24 hours, most
- * recently ended first. Anything else is left out.
+ * The deck's default order: open requests [viewerId] owes on, then the other open requests, each
+ * by deadline, nearest first. Ended requests are left out.
  */
 fun deckOrder(requests: Collection<PaymentRequest>, now: Instant, viewerId: ID? = null): List<PaymentRequest> {
-    val inDeck = requests.filter { it.isInDeck(now) }
-    val (open, ended) = inDeck.partition { it.isOpen(now) }
-    val (owed, other) = open.partition { it.unpaidShareOf(viewerId, now) != null }
-    return owed.sortedBy { it.split?.endsAt } +
-        other.sortedBy { it.split?.endsAt } +
-        ended.sortedByDescending { it.resolvedClosedAt(now) }
+    val (owed, other) = requests.filter { it.isInDeck(now) }.partition { it.unpaidShareOf(viewerId, now) != null }
+    return owed.sortedBy { it.split?.endsAt } + other.sortedBy { it.split?.endsAt }
 }
+
+/**
+ * When the next request in [requests] expires by the clock after [now]: the nearest `ends_at` of
+ * an open request, so the deck can drop it at that moment. Null when none is open.
+ */
+fun nextExpiry(requests: Collection<PaymentRequest>, now: Instant): Instant? =
+    requests.filter { it.isInDeck(now) }.mapNotNull { it.split?.endsAt }.minOrNull()

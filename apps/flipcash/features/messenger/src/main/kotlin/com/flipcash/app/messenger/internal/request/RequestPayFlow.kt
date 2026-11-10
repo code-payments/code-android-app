@@ -10,6 +10,7 @@ import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
+import com.flipcash.services.models.paymentrequest.Share
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
@@ -41,6 +42,10 @@ import kotlinx.coroutines.launch
  *
  * The share's payment intent id lives in [ready] only, for as long as the sheet is up. It is never
  * put in [State], so it can't reach a log through the state's toString.
+ *
+ * The sheet draws from [State.share] and [State.creator], not the live request: once the payment
+ * lands, the request reads paid (or closes, or leaves the deck) during the success hold, and the
+ * sheet has to keep its amount through the checkmark and the dismiss.
  */
 internal class RequestPayFlow(
     private val scope: CoroutineScope,
@@ -64,6 +69,10 @@ internal class RequestPayFlow(
         /** The swipe sheet is up. */
         val open: Boolean = false,
         val progress: LoadingSuccessState = LoadingSuccessState(),
+        /** The share the open sheet pays, as fetched when it opened. */
+        val share: Share? = null,
+        /** Who the share is paid to. */
+        val creator: ID? = null,
     )
 
     private val _state = MutableStateFlow(State())
@@ -102,7 +111,14 @@ internal class RequestPayFlow(
                             // No per-share balance check here: the payer picks the token in the sheet,
                             // and the check runs against that pick when they swipe.
                             ready = found
-                            _state.update { it.copy(open = true, progress = LoadingSuccessState()) }
+                            _state.update {
+                                it.copy(
+                                    open = true,
+                                    progress = LoadingSuccessState(),
+                                    share = found.share,
+                                    creator = found.request.creator,
+                                )
+                            }
                         }
                         is ShareToPay.NothingToPay -> onNothingToPay()
                         is ShareToPay.Closed -> presentClosed()
@@ -163,6 +179,7 @@ internal class RequestPayFlow(
             is ShareToPay.NothingToPay -> dismiss()
             is ShareToPay.Ready -> {
                 ready = found
+                _state.update { it.copy(share = found.share, creator = found.request.creator) }
                 presentPaymentError(cause)
             }
             null -> presentPaymentError(cause)
@@ -175,7 +192,7 @@ internal class RequestPayFlow(
     fun dismiss() {
         if (!_state.value.progress.isIdle && !_state.value.progress.success) return
         ready = null
-        _state.update { it.copy(open = false, progress = LoadingSuccessState()) }
+        _state.update { it.copy(open = false, progress = LoadingSuccessState(), share = null, creator = null) }
     }
 
     /** "Add Money" from a modal: the sheet closes, then the deposit screen opens. */

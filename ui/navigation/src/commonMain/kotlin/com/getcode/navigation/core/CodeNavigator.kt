@@ -321,6 +321,19 @@ class CodeNavigator(
         }
     }
 
+    /**
+     * [popUntil] then [push] as one back stack change. Done as two, the pop is composed on its own
+     * and the host animates it as a pop back to the screen underneath, then the push slides in
+     * after. In one step the stack's new top was never on it, so the host treats it as a forward
+     * push over the entry being replaced.
+     */
+    fun popUntilThenPush(route: NavKey, predicate: (NavKey) -> Boolean) {
+        Snapshot.withMutableSnapshot {
+            popUntil(predicate)
+            push(route)
+        }
+    }
+
     /** Pop all routes except the root. */
     fun popAll() {
         Snapshot.withMutableSnapshot {

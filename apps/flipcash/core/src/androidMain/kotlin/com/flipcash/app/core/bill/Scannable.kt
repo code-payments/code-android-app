@@ -21,6 +21,13 @@ sealed interface Scannable {
         val token: Token
         val amount: LocalFiat
         val didReceive: Boolean
+
+        /**
+         * A received bill raised by a chat payment (see `ChatCashBill`). The funds were credited
+         * when the message arrived, so this bill only presents them: it enqueues no deposit toast
+         * and "Put in Wallet" closes it where the user is. Only meaningful with [didReceive].
+         */
+        val receivedInChat: Boolean
         val disableGestures: Boolean
         val confirmationDelay: Duration
         val kind: Kind
@@ -46,6 +53,7 @@ sealed interface Scannable {
                 token: Token,
                 amount: LocalFiat,
                 didReceive: Boolean = false,
+                receivedInChat: Boolean = false,
                 disableGestures: Boolean = false,
                 confirmationDelay: Duration = Duration.ZERO,
                 data: List<Byte> = emptyList(),
@@ -53,7 +61,7 @@ sealed interface Scannable {
                 verifiedState: VerifiedState? = null,
                 nonce: List<Byte> = emptyList(),
             ): Payable = CashBill(
-                token = token, amount = amount, didReceive = didReceive,
+                token = token, amount = amount, didReceive = didReceive, receivedInChat = receivedInChat,
                 disableGestures = disableGestures, confirmationDelay = confirmationDelay,
                 data = data, kind = kind, verifiedState = verifiedState, nonce = nonce,
             )
@@ -64,6 +72,7 @@ sealed interface Scannable {
         override val token: Token,
         override val amount: LocalFiat,
         override val didReceive: Boolean = false,
+        override val receivedInChat: Boolean = false,
         override val disableGestures: Boolean = false,
         override val confirmationDelay: Duration = Duration.ZERO,
         override val data: List<Byte> = emptyList(),
@@ -78,6 +87,7 @@ sealed interface Scannable {
         override val token: Token,
         override val amount: LocalFiat,
         override val didReceive: Boolean = false,
+        override val receivedInChat: Boolean = false,
         override val disableGestures: Boolean = false,
         override val confirmationDelay: Duration = Duration.ZERO,
         override val data: List<Byte> = emptyList(),

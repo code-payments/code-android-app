@@ -31,7 +31,9 @@ import com.flipcash.shared.chat.FeedOperations
 import com.flipcash.shared.chat.FeedSyncState
 import com.flipcash.shared.chat.ChatState
 import com.flipcash.shared.chat.internal.ChatStateHolder
+import com.flipcash.shared.chat.internal.UnreadBasis
 import com.flipcash.shared.chat.internal.isRenderable
+import com.flipcash.shared.chat.internal.isShareForSomeoneElse
 import com.flipcash.shared.chat.internal.selfReadPointer
 import com.flipcash.shared.chat.internal.unreadCount
 import com.flipcash.services.user.UserManager
@@ -212,7 +214,7 @@ class FeedSyncDelegate @Inject constructor(
             .filter { (it.chatId in state.archived) == archived }
             .filter { isRenderable(it, selfId, selfPhone) }
             .map { metadata ->
-                val count = unreadCount(metadata, selfId) { id -> state.readStampAt(metadata.chatId, id) }
+                val count = unreadCount(metadata, selfId, state.unreadBases[metadata.chatId]) { id -> state.readStampAt(metadata.chatId, id) }
                 ChatSummary(metadata = metadata, unreadCount = count, markedUnread = metadata.chatId in state.markedUnread)
             }
     }
@@ -259,7 +261,8 @@ class FeedSyncDelegate @Inject constructor(
             messageDataSource.getUnreadSeq(entity.chatIdHex, it)
                 ?: stateHolder.state.value.fetchedReadStamps[metadata.chatId to it]
         }
-        val count = unreadCount(metadata, selfId) { id -> readStamp.takeIf { id == readPointer } }
+        val basis = unreadBasis(metadata, entity.chatIdHex, selfId)
+        val count = unreadCount(metadata, selfId, basis) { id -> readStamp.takeIf { id == readPointer } }
         return ChatSummary(metadata = metadata, unreadCount = count)
     }
 
@@ -303,12 +306,13 @@ class FeedSyncDelegate @Inject constructor(
         ) { metadataEntities, membersByChat, latestVisible, archived, marked ->
             Triple(buildFeedFromDb(metadataEntities, membersByChat, latestVisible), archived, marked)
         }.onEach { (built, archived, marked) ->
-            val (feed, readStamps) = built
+            val (feed, readStamps, unreadBases) = built
             val staged = drainStagedStamps()
             stateHolder.update {
                 it.copy(
                     feed = feed,
                     readStamps = readStamps,
+                    unreadBases = unreadBases,
                     fetchedReadStamps = if (staged.isEmpty()) it.fetchedReadStamps else it.fetchedReadStamps + staged,
                     archived = archived,
                     markedUnread = marked,
@@ -367,7 +371,7 @@ class FeedSyncDelegate @Inject constructor(
             if (key in readStampsNotFound) continue
             // With no stamp to look up, only a chat that is unread by its ids counts as unknown;
             // a read chat needs no stamp.
-            if (unreadCount(metadata, selfId) { null } != null) continue
+            if (unreadCount(metadata, selfId, state.unreadBases[metadata.chatId]) { null } != null) continue
             if (!readStampsInFlight.add(key)) continue
 
             scope.launch {
@@ -419,7 +423,7 @@ class FeedSyncDelegate @Inject constructor(
                 state.readStampAt(chat.chatId, readPointer) != null -> null
                 key in readStampsNotFound -> null
                 // Read, or counted without a stamp: nothing to look up.
-                unreadCount(chat, selfId) { null } != null -> null
+                unreadCount(chat, selfId, unreadBasis(chat, metadataDataSource.chatIdHex(chat.chatId), selfId)) { null } != null -> null
                 messageDataSource.getUnreadSeq(metadataDataSource.chatIdHex(chat.chatId), readPointer) != null -> null
                 else -> key
             }
@@ -468,7 +472,7 @@ class FeedSyncDelegate @Inject constructor(
         metadataEntities: List<ChatMetadataEntity>,
         membersByChat: Map<String, List<ChatMember>>,
         observedLatestVisible: Map<String, ChatMessage>?,
-    ): Pair<List<ChatMetadata>, Map<Pair<ChatId, Long>, Long>> {
+    ): Triple<List<ChatMetadata>, Map<Pair<ChatId, Long>, Long>, Map<ChatId, UnreadBasis>> {
         // `is_member` is a column rather than a field on ChatMetadata: a chat you have left is
         // still a chat you can be shown (Plan C's gate reads the same row), so the flag is dropped
         // here, at the edge of the list, rather than carried through the domain model.
@@ -492,7 +496,31 @@ class FeedSyncDelegate @Inject constructor(
         val readStamps = pointers.mapNotNull { (chatId, hex, pointer) ->
             stamps[hex to pointer]?.let { (chatId to pointer) to it }
         }.toMap()
-        return feed to readStamps
+        val unreadBases = feed.zip(rows).mapNotNull { (metadata, entity) ->
+            unreadBasis(metadata, entity.chatIdHex, selfId)?.let { metadata.chatId to it }
+        }.toMap()
+        return Triple(feed, readStamps, unreadBases)
+    }
+
+    /**
+     * The [UnreadBasis] for [metadata], or null when the preview is what the unread check reads:
+     * nearly every chat. Asked only of a chat that looks unread, so a read chat costs no query.
+     */
+    private suspend fun unreadBasis(metadata: ChatMetadata, chatIdHex: String, selfId: ID?): UnreadBasis? {
+        selfId ?: return null
+        val preview = metadata.lastMessage ?: return null
+        val readPointer = selfReadPointer(metadata, selfId) ?: 0L
+        if (preview.messageId <= readPointer) return null
+        val latest = if (preview.isShareForSomeoneElse(selfId)) {
+            messageDataSource.getLatestCountable(chatIdHex, selfId)
+        } else {
+            preview
+        }
+        val uncounted = latest?.takeIf { it.messageId > readPointer }
+            ?.let { messageDataSource.getUncountedShareIds(chatIdHex, selfId, readPointer, it.messageId).size }
+            ?: 0
+        if (latest === preview && uncounted == 0) return null
+        return UnreadBasis(latest, uncounted)
     }
 
     /**

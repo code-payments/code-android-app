@@ -219,4 +219,31 @@ class RequestPayFlowTest {
         verify(exactly = 1) { payer.presentInsufficientBalance(any(), any()) }
         coVerify(exactly = 0) { payments.pay(any(), any(), any()) }
     }
+
+    @Test
+    fun `the sheet keeps its share through the success hold`() {
+        coEvery { payments.pay(any(), any(), any()) } returns Result.success(Unit)
+        val f = flow()
+        f.start(listOf<Byte>(2))
+
+        f.confirm()
+
+        // The hold is running: the request may already read paid, but the sheet still has its share.
+        val state = f.state.value
+        assertEquals(true, state.open)
+        assertEquals(true, state.progress.success)
+        assertEquals(ready.share, state.share)
+        assertEquals(Fiat(50.0), state.share?.amount)
+    }
+
+    @Test
+    fun `dismissing clears the share`() {
+        val f = flow()
+        f.start(listOf<Byte>(2))
+
+        f.dismiss()
+
+        assertEquals(null, f.state.value.share)
+        assertEquals(null, f.state.value.creator)
+    }
 }

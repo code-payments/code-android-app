@@ -64,7 +64,9 @@ class DeltaSyncBatchesTest {
         stateHolder = ChatStateHolder(),
         analytics = mockk(relaxed = true),
         exchange = mockk(relaxed = true),
+        liveCash = { liveArrivals += it },
     )
+    private val liveArrivals = mutableListOf<LiveCashArrival>()
 
     private fun message(sequence: Long) = ChatMessage(
         messageId = sequence,
@@ -102,6 +104,31 @@ class DeltaSyncBatchesTest {
 
         assertEquals((1L..300L).toList(), written.flatten().map { it.messageId }.sorted())
         assertEquals(300L, stored)
+    }
+
+    @Test
+    fun `cash caught up by delta sync offers no live arrival`() = runTest {
+        val cash = DeltaUpdate(
+            messages = listOf(
+                message(1).copy(
+                    content = listOf(
+                        MessageContent.Cash(
+                            intentId = listOf(0),
+                            amount = com.getcode.opencode.model.financial.Fiat(fiat = 5.0, currencyCode = com.getcode.opencode.model.financial.CurrencyCode.USD),
+                            mint = com.getcode.solana.keys.Mint("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaa"),
+                        ),
+                    ),
+                ),
+            ),
+            latestSequence = 1L,
+            checkpointSequence = 1L,
+        )
+        every { messagingController.getDelta(chat, 0L, any()) } returns stream(listOf(cash))
+
+        delegate.performDeltaSync(chat)
+
+        assertEquals(1, written.sumOf { it.size })
+        assertEquals(emptyList(), liveArrivals)
     }
 
     @Test

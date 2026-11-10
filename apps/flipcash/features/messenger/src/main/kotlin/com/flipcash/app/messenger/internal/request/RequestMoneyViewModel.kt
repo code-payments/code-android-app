@@ -200,9 +200,8 @@ internal class RequestMoneyViewModel @Inject constructor(
     }
 
     fun rename(title: String) {
-        val trimmed = title.trim()
-        if (trimmed.isEmpty()) return
-        _state.update { it.copy(stage = Stage.Summary, draft = it.draft?.copy(title = trimmed.take(MAX_TITLE))) }
+        val renamed = _state.value.draft?.renamed(title, MAX_TITLE) ?: return
+        _state.update { it.copy(stage = Stage.Summary, draft = renamed) }
     }
 
     fun chooseDeadline(deadline: NewRequestDraft.Deadline) {

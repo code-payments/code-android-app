@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
@@ -57,14 +58,7 @@ internal fun SystemMessageRow(
         Text(
             modifier = Modifier.widthIn(max = SYSTEM_TEXT_MAX_WIDTH),
             text = remember(text, userLinks) { linkedText(text, userLinks) { currentOnUserClick(it) } },
-            // Centred in each 18sp line box, as iOS does with its baseline offset. The default
-            // proportional split sits the glyphs high, off the glyph's centre.
-            style = CodeTheme.typography.caption.copy(
-                lineHeightStyle = LineHeightStyle(
-                    alignment = LineHeightStyle.Alignment.Center,
-                    trim = LineHeightStyle.Trim.None,
-                ),
-            ),
+            style = systemRowTextStyle(),
             color = CodeTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
         )
@@ -95,8 +89,21 @@ private fun linkedText(
     append(text, cursor, text.length)
 }
 
-private val SYSTEM_TEXT_MAX_WIDTH = 250.dp
-private val SYSTEM_ROW_VERTICAL_PADDING = 6.dp
+/**
+ * The system row's text style, shared with the request rows that read as system rows. Centred in
+ * each 18sp line box, as iOS does with its baseline offset: the default proportional split sits the
+ * glyphs high, off the glyph's centre.
+ */
+@Composable
+internal fun systemRowTextStyle(): TextStyle = CodeTheme.typography.caption.copy(
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.None,
+    ),
+)
+
+internal val SYSTEM_TEXT_MAX_WIDTH = 250.dp
+internal val SYSTEM_ROW_VERTICAL_PADDING = 6.dp
 
 @Preview
 @PreviewWrapper(FlipcashThemeWrapper::class)

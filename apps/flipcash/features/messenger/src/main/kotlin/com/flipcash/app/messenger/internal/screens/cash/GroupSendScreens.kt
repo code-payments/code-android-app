@@ -26,6 +26,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.Text
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.sp
+import com.flipcash.shared.chat.ui.eachAmountText
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.activity.compose.BackHandler
@@ -234,10 +238,21 @@ internal fun GroupSendConfirmSheet(
         amount = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 if (recipients.size >= 2) {
+                    // As on the chat's cash bubble: " each" at half the amount's size, Medium, in the
+                    // total line's color, and the whole line shrinks to stay on one line.
+                    val each = amount.formatted()
+                    val eachLine = stringResource(R.string.label_groupSendEach, each)
+                    val eachColor = CodeTheme.colors.textSecondary
+                    val amountStyle = CodeTheme.typography.displayMedium
                     Text(
-                        text = stringResource(R.string.label_groupSendEach, amount.formatted()),
-                        style = CodeTheme.typography.displayMedium,
+                        text = remember(eachLine, each, eachColor) { eachAmountText(eachLine, each, eachColor) },
+                        style = amountStyle,
                         color = CodeTheme.colors.textMain,
+                        autoSize = TextAutoSize.StepBased(
+                            minFontSize = 20.sp,
+                            maxFontSize = amountStyle.fontSize,
+                        ),
+                        maxLines = 1,
                     )
                     Text(
                         text = stringResource(R.string.label_groupSendTotal, total.formatted()),

@@ -91,4 +91,13 @@ class CodeNavigatorIntentTest {
         assertEquals(listOf(CallerScreen), child.backStack.toList())
         assertEquals(listOf(AppHome), root.backStack.toList())
     }
+
+    @Test
+    fun `popUntilThenPush swaps the top entries for the route in one step`() {
+        val nav = testNavigator(AppHome, DemoSheet)
+
+        nav.popUntilThenPush(CallerScreen) { it == AppHome }
+
+        assertEquals(listOf(AppHome, CallerScreen), nav.backStack.toList())
+    }
 }

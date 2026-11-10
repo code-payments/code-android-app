@@ -9,6 +9,13 @@
                 <action android:name="com.flipcash.debug.REACTION_ALERT" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name="com.flipcash.app.debug.LiveCashDebugReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.flipcash.debug.LIVE_CASH" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

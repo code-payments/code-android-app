@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.request
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
@@ -48,6 +49,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -67,7 +69,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.util.lerp
@@ -291,8 +292,32 @@ private fun DeckStack(
         // the swipe that was. The hand-over starts every card from there.
         var releaseDrag by remember { mutableFloatStateOf(0f) }
         var releaseProgress by remember { mutableFloatStateOf(1f) }
+        // Set while the cards behind rise to close the gap a request that ended left, rather than
+        // after a swipe, so no swiped card drops to the back.
+        var closingGap by remember { mutableStateOf(false) }
         val cardHeightPx = with(density) { STRIP_HEIGHT.toPx() }
         val canCycle = deck.size > 1
+
+        val ids = deck.map { it.id }
+        var shownIds by remember { mutableStateOf(ids) }
+        LaunchedEffect(ids) {
+            val previous = shownIds
+            shownIds = ids
+            // The front request left the deck (it ended) and another took its slot: the cards
+            // behind rise into place on the hand-over spring, from one slot back.
+            if (previous.isNotEmpty() && previous.first() !in ids && ids.isNotEmpty()) {
+                releaseDrag = 0f
+                releaseProgress = 0f
+                closingGap = true
+                try {
+                    drag.snapTo(0f)
+                    arrive.snapTo(0f)
+                    arrive.animateTo(1f, DECK_SPRING)
+                } finally {
+                    closingGap = false
+                }
+            }
+        }
 
         val label = deckLabel(deck, now, viewerId)
         val nextLabel = stringResource(R.string.action_nextRequest)
@@ -312,7 +337,7 @@ private fun DeckStack(
             val insetPx = with(density) { STRIP_INSET.toPx() }
             val stepPx = with(density) { STRIP_STEP.toPx() }
             // The card just swiped off, travelling from below the front slot to its slot at the back.
-            val swiped = if (canCycle && arrive.value < 1f) deck.last() else null
+            val swiped = if (canCycle && !closingGap && arrive.value < 1f) deck.last() else null
             val swipedDepth = (deck.size - 1).coerceAtMost(2).toFloat()
             // How far each card still has to rise after a hand-over: the swipe was let go short of
             // a full card height, so the cards behind finish the step on the same spring.
@@ -421,6 +446,7 @@ private fun DeckStack(
                                 // swiped one drops behind to the back, each from where it was.
                                 releaseDrag = drag.value
                                 releaseProgress = (drag.value / cardHeightPx).coerceIn(0f, 1f)
+                                closingGap = false
                                 drag.snapTo(0f)
                                 arrive.snapTo(0f)
                                 onCycle()
@@ -462,13 +488,10 @@ private fun StripFront(
     val shape = STRIP_SHAPE
     val share = request.unpaidShareOf(viewerId, now)
     val standing = request.viewerStanding(viewerId, now)
-    val ended = !request.isOpen(now)
-    val alpha by animateFloatAsState(if (ended) ENDED_ALPHA else 1f, RequestMotion.change(), label = "ended fade")
     Row(
         modifier = modifier
             .height(STRIP_HEIGHT)
             .background(CodeTheme.colors.background, shape)
-            .alpha(alpha)
             .background(CodeTheme.colors.surfaceVariant, shape)
             .border(1.dp, if (share != null) CodeTheme.colors.success else CodeTheme.colors.border, shape)
             .padding(horizontal = CodeTheme.dimens.grid.x3),
@@ -557,8 +580,9 @@ private fun StatusLine.timeLeftText(): String = when (this) {
 }
 
 /**
- * The paid fraction as a ring around a "$" glyph, filled clockwise from 12 o'clock. Grey once
- * the request has ended; full once it completed; a closed request shows "✓".
+ * The paid fraction as a ring around a "$" glyph, filled clockwise from 12 o'clock. A completed
+ * request sweeps it to full while it stays in the deck for that, before it leaves. Grey once the
+ * request has ended, and a closed request shows "✓", as the spec's glyph reads everywhere.
  */
 @Composable
 internal fun RequestRing(
@@ -571,33 +595,56 @@ internal fun RequestRing(
     val status = request.resolvedStatus(now)
     val ended = status != PaymentRequestStatus.Open
     val fraction = if (status == PaymentRequestStatus.Completed) 1f else request.split?.paidFraction ?: 0f
-    val accent by animateColorAsState(
-        if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success,
-        RequestMotion.change(),
-        label = "ring accent",
-    )
+    RequestProgressRing(
+        fraction = fraction,
+        accent = if (ended) CodeTheme.colors.textSecondary else CodeTheme.colors.success,
+        closed = status == PaymentRequestStatus.Closed,
+        size = size,
+        modifier = modifier,
+    ) {
+        PaidBadge(glyph = size, ended = ended, paid = paid)
+    }
+}
+
+/**
+ * [RequestRing]'s drawing for a stated [fraction] and [accent], so a row can show a request as it
+ * stood at some earlier time. [stroke] and [glyphStyle] default to the deck's; a ring smaller than
+ * the deck's passes its own, scaled down with it.
+ */
+@Composable
+internal fun RequestProgressRing(
+    fraction: Float,
+    accent: Color,
+    closed: Boolean,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    stroke: Dp = 2.dp,
+    glyphStyle: TextStyle = if (size > 30.dp) CodeTheme.typography.textMedium else CodeTheme.typography.caption,
+    overlay: @Composable BoxScope.() -> Unit = {},
+) {
+    val accent by animateColorAsState(accent, RequestMotion.change(), label = "ring accent")
     val sweep by animateFloatAsState(fraction, RequestMotion.change(), label = "ring sweep")
     val track = CodeTheme.colors.divider
     val inset = size * (4f / 26f)
     Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val stroke = 2.dp.toPx()
-            val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
-            val topLeft = Offset(stroke / 2, stroke / 2)
-            drawArc(track, 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
+            val strokePx = stroke.toPx()
+            val arcSize = Size(this.size.width - strokePx, this.size.height - strokePx)
+            val topLeft = Offset(strokePx / 2, strokePx / 2)
+            drawArc(track, 0f, 360f, false, topLeft, arcSize, style = Stroke(strokePx))
             if (sweep > 0f) {
-                drawArc(accent, -90f, 360f * sweep.coerceIn(0f, 1f), false, topLeft, arcSize, style = Stroke(stroke))
+                drawArc(accent, -90f, 360f * sweep.coerceIn(0f, 1f), false, topLeft, arcSize, style = Stroke(strokePx))
             }
             drawCircle(accent, radius = this.size.minDimension / 2 - inset.toPx())
         }
-        Crossfade(targetState = status == PaymentRequestStatus.Closed, animationSpec = RequestMotion.change(), label = "ring glyph") { closed ->
+        Crossfade(targetState = closed, animationSpec = RequestMotion.change(), label = "ring glyph") { closed ->
             Text(
                 text = if (closed) "✓" else "$",
-                style = if (size > 30.dp) CodeTheme.typography.textMedium else CodeTheme.typography.caption,
+                style = glyphStyle,
                 color = Color.Black,
             )
         }
-        PaidBadge(glyph = size, ended = ended, paid = paid)
+        overlay()
     }
 }
 
@@ -691,11 +738,6 @@ internal fun ExpandedRequests(
         ) {
             itemsIndexed(deck, key = { _, request -> request.id.hashCode() }) { index, request ->
                 val title = request.deckTitle
-                val endedAlpha by animateFloatAsState(
-                    if (request.isOpen(now)) 1f else ENDED_ALPHA,
-                    RequestMotion.change(),
-                    label = "ended fade",
-                )
                 val card = Modifier
                     .fillMaxWidth()
                     .then(
@@ -711,15 +753,15 @@ internal fun ExpandedRequests(
                                 enter = slideInVertically { -it * (index + 1) } + fadeIn(),
                                 exit = slideOutVertically { -it * (index + 1) } + fadeOut(),
                             )
-                                // A reorder after a request ends slides into place on the deck's settle spring.
-                                .animateItem(fadeInSpec = null, fadeOutSpec = null, placementSpec = SETTLE_SPRING_OFFSET)
+                                // A request leaving fades out and the cards below close the gap on the
+                                // deck's settle spring.
+                                .animateItem(fadeInSpec = null, fadeOutSpec = RequestMotion.change(), placementSpec = SETTLE_SPRING_OFFSET)
 
                         }
                     )
                     // surfaceVariant is translucent; the opaque base keeps the transcript from
-                    // showing through, and sits outside the alpha so ended cards stay solid.
+                    // showing through.
                     .background(CodeTheme.colors.background, CARD_SHAPE)
-                    .alpha(endedAlpha)
                     .background(CodeTheme.colors.surfaceVariant, CARD_SHAPE)
                     .clickable { onOpen(request) }
                     .padding(CodeTheme.dimens.grid.x3)
@@ -804,7 +846,6 @@ private const val APPEAR_SCALE = 0.95f
 
 /** The stack's fade as the front card moves to and from the expanded list. */
 private const val STRIP_MILLIS = 300
-private const val ENDED_ALPHA = 0.4f
 private const val CYCLE_THRESHOLD = 0.4f
 private const val FLING_VELOCITY = 1_000f
 private const val DROP_SCALE = 0.06f
@@ -816,7 +857,7 @@ internal const val ELASTIC_PULL = 0.25f
 private const val ELASTIC_RESISTANCE = 0.3f
 internal const val DECK_TAG = "request_deck"
 
-/** The deck's settle motion; a reorder after a request ends slides on it too. */
+/** The deck's settle motion; the cards closing the gap a leaving request left slide on it too. */
 private const val SETTLE_STIFFNESS = Spring.StiffnessMediumLow
 private val SETTLE_SPRING_OFFSET = spring<androidx.compose.ui.unit.IntOffset>(stiffness = SETTLE_STIFFNESS)
 private val DECK_SPRING = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium)

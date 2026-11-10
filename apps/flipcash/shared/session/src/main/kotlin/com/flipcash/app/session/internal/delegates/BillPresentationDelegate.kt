@@ -81,12 +81,13 @@ class BillPresentationDelegate @Inject constructor(
 
     override val billState: StateFlow<BillState> get() = billController.state
 
-    override fun showBill(bill: Scannable.Payable) {
-        if (bill.amount.nativeAmount.decimalValue == 0.0) return
-        val owner = userManager.accountCluster ?: return
+    override fun showBill(bill: Scannable.Payable): Boolean {
+        if (bill.amount.nativeAmount.decimalValue == 0.0) return false
+        val owner = userManager.accountCluster ?: return false
 
         if (!networkObserver.isConnected) {
-            return ErrorUtils.showNetworkError(resources)
+            ErrorUtils.showNetworkError(resources)
+            return false
         }
 
         when (bill.kind) {
@@ -114,6 +115,7 @@ class BillPresentationDelegate @Inject constructor(
                 awaitBillGrab(bill, owner)
             }
         }
+        return true
     }
 
     /**
@@ -212,7 +214,8 @@ class BillPresentationDelegate @Inject constructor(
         stateHolder.update { it.copy(billResult = style) }
 
         if (bill.didReceive) {
-            toastController.enqueue(bill.amount, isDeposit = true)
+            // A chat payment already shows as a bubble in the open chat, so it gets no "+$X" toast.
+            if (!bill.receivedInChat) toastController.enqueue(bill.amount, isDeposit = true)
             vibrator.vibrate(duration = 50)
         }
     }

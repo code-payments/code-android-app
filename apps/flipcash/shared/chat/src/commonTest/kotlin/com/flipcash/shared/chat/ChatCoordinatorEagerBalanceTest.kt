@@ -33,6 +33,8 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.advanceTimeBy
@@ -40,6 +42,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
@@ -55,6 +58,7 @@ class ChatCoordinatorEagerBalanceTest {
 
     private val chatUpdatesChannel = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
 
+    private val liveCashArrivals = LiveCashArrivals()
     private lateinit var tokenCoordinator: TokenCoordinator
     private lateinit var coordinator: RealChatCoordinator
     private lateinit var testDispatchers: TestDispatchers
@@ -101,6 +105,7 @@ class ChatCoordinatorEagerBalanceTest {
             stateHolder = stateHolder,
             analytics = mockk(relaxed = true),
             exchange = mockk(relaxed = true),
+            liveCash = liveCashArrivals,
         )
 
         val messagingDelegate = MessagingDelegate(
@@ -190,6 +195,38 @@ class ChatCoordinatorEagerBalanceTest {
             runCurrent()
 
             coVerify(exactly = 0) { tokenCoordinator.add(any<Mint>(), any<Fiat>()) }
+        }
+    }
+
+    @Test
+    fun `live cash from another offers an arrival after the credit`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            val arrivals = mutableListOf<LiveCashArrival>()
+            backgroundScope.launch(testDispatchers.dispatcher) { liveCashArrivals.arrivals.toList(arrivals) }
+            runCurrent()
+            triggerCollection()
+            chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = otherId)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            assertEquals(1, arrivals.size)
+            assertEquals(chatId, arrivals.single().chatId)
+            assertEquals(otherId, arrivals.single().senderId)
+        }
+    }
+
+    @Test
+    fun `the viewer's own cash and plain text offer no arrival`() = runTest(testDispatchers.dispatcher) {
+        tornDown {
+            val arrivals = mutableListOf<LiveCashArrival>()
+            backgroundScope.launch(testDispatchers.dispatcher) { liveCashArrivals.arrivals.toList(arrivals) }
+            runCurrent()
+            triggerCollection()
+            chatUpdatesChannel.send(chatUpdate(cashMessage(senderId = selfId), textMessage(senderId = otherId)))
+            advanceTimeBy(1_000.milliseconds)
+            runCurrent()
+
+            assertEquals(emptyList(), arrivals)
         }
     }
 

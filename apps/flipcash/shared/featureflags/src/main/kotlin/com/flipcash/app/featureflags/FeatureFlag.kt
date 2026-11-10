@@ -98,6 +98,17 @@ sealed interface FeatureFlag<T: Any> {
         override val persistLogOut: Boolean = false
     }
 
+    /** Shows the received bill over the open chat when someone sends this account cash in it. */
+    @FeatureFlagMarker
+    data object ChatCashBill: FeatureFlag<Boolean> {
+        override val key: String = "chat_cash_bill"
+        override val default: Boolean = true
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+        override val minTrack: FeatureTrack = FeatureTrack.Production
+    }
+
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -118,6 +129,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.BackgroundReset -> "Background Reset"
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
         FeatureFlag.LinkDesktop -> "Link a Desktop"
+        FeatureFlag.ChatCashBill -> "Chat Cash Bill"
     }
 
 val FeatureFlag<*>.message: String
@@ -129,4 +141,5 @@ val FeatureFlag<*>.message: String
         FeatureFlag.BackgroundReset -> "Automatically returns the app to the camera screen after a period of inactivity with the app in the background"
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
         FeatureFlag.LinkDesktop -> "When enabled, Settings shows Link a Desktop, which sends this account to the Flipcash desktop app over your local network"
+        FeatureFlag.ChatCashBill -> "Show the bill when someone sends you cash in the chat you have open."
     }

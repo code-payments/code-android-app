@@ -1,30 +1,25 @@
 package com.flipcash.app.messenger.internal.request
 
 import com.flipcash.services.models.paymentrequest.PaymentRequest
-import kotlin.time.Instant
+import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
 
 /**
- * [next]'s contents in [shown]'s order, when ending a request is all that moves the deck: the same
- * requests, a request that was open at [shownNow] and is ended at [now], and a different order.
- * The deck keeps [shown]'s order while the ended look fades, then settles to [next]. Null when
- * nothing needs holding.
+ * The deck to show while a completed request sweeps its ring to full before leaving: [shown]'s
+ * order, each card updated from [next], and each request that left [next] because it completed
+ * kept in its slot as its [held] copy. Requests new to [next] go at the end. Closed and expired
+ * requests leave at once. Null when nothing completed, so the deck can show [next] directly.
  */
-internal fun holdForEndedFade(
+internal fun holdForCompletion(
     shown: List<PaymentRequest>,
-    shownNow: Instant,
     next: List<PaymentRequest>,
-    now: Instant,
+    held: Collection<PaymentRequest>,
 ): List<PaymentRequest>? {
-    if (shown.map { it.id } == next.map { it.id }) return null
-    val slotted = inShownOrder(shown, next) ?: return null
-    val ended = shown.indices.any { shown[it].isOpen(shownNow) && !slotted[it].isOpen(now) }
-    return slotted.takeIf { ended }
-}
-
-/** [next]'s contents in [shown]'s order, or null unless both hold the same requests. */
-internal fun inShownOrder(shown: List<PaymentRequest>, next: List<PaymentRequest>): List<PaymentRequest>? {
-    if (shown.size != next.size) return null
-    val byId = next.associateBy { it.id }
-    if (byId.size != next.size || shown.any { it.id !in byId }) return null
-    return shown.map { byId.getValue(it.id) }
+    val nextById = next.associateBy { it.id }
+    val completed = held
+        .filter { it.status == PaymentRequestStatus.Completed && it.id !in nextById }
+        .associateBy { it.id }
+        .filterKeys { id -> shown.any { it.id == id } }
+    if (completed.isEmpty()) return null
+    val shownIds = shown.map { it.id }.toSet()
+    return shown.mapNotNull { nextById[it.id] ?: completed[it.id] } + next.filter { it.id !in shownIds }
 }

@@ -70,14 +70,14 @@ fun NewChatScreen() {
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             ChoiceRow(
-                label = stringResource(R.string.action_findByUsername),
-                icon = R.drawable.ic_at,
-                onClick = { choose(NewChatViewModel.Choice.FindByUsername) },
-            )
-            ChoiceRow(
                 label = stringResource(R.string.action_createPrivateGroup),
                 icon = R.drawable.ic_group_3,
                 onClick = { choose(NewChatViewModel.Choice.PrivateGroup) },
+            )
+            ChoiceRow(
+                label = stringResource(R.string.action_findByUsername),
+                icon = R.drawable.ic_at,
+                onClick = { choose(NewChatViewModel.Choice.FindByUsername) },
             )
             ChoiceRow(
                 label = stringResource(R.string.action_createPublicGroup),

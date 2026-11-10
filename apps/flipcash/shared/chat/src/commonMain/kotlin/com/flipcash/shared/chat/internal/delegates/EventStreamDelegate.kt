@@ -26,6 +26,8 @@ import com.flipcash.services.models.GetDeltaError
 import com.flipcash.shared.chat.ActiveTypist
 import com.flipcash.shared.chat.EventSequenceTracker
 import com.flipcash.shared.chat.EventStreamOperations
+import com.flipcash.shared.chat.LiveCashArrival
+import com.flipcash.shared.chat.LiveCashSink
 import com.flipcash.shared.chat.alerts.ActorBoostTotals
 import com.flipcash.shared.chat.alerts.ReactionActorProfiles
 import com.flipcash.shared.chat.alerts.ReactionAlertEvent
@@ -104,6 +106,7 @@ class EventStreamDelegate @Inject constructor(
     private val reactionAlerts: ReactionAlertSink = ReactionAlertSink.None,
     private val actorProfiles: ReactionActorProfiles = ReactionActorProfiles.None,
     private val paymentRequestUpdates: PaymentRequestUpdateSink = PaymentRequestUpdateSink.None,
+    private val liveCash: LiveCashSink = LiveCashSink.None,
 ) : EventStreamOperations {
 
 
@@ -592,6 +595,13 @@ class EventStreamDelegate @Inject constructor(
             for (content in msg.content) {
                 if (content is MessageContent.Cash) {
                     content.receivedBy(selfId)?.let { tokenCoordinator.add(content.mint, it) }
+                    // After the credit, so a bill opened for this payment has the balance behind it.
+                    // The watermark keeps a message the stream sends again, or one a catch-up
+                    // already delivered, from raising a second bill. Only this stream handler
+                    // offers: delta sync, gap fill and paging write through their own paths.
+                    if (msg.messageId > countedThrough) {
+                        liveCash.offer(LiveCashArrival(chatId, msg.messageId, msg.senderId, content))
+                    }
                 }
             }
 
