@@ -241,6 +241,7 @@ include(
     ":libs:locale:public",
 
     ":libs:logging",
+    ":libs:logging:grpc",
     ":libs:messaging",
     ":libs:models",
 

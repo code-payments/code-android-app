@@ -22,6 +22,9 @@ object StartupContract {
 
         /** The image loader can fetch https URLs, which is where token logos live. */
         NetworkImageLoader,
+
+        /** `ErrorUtils` has the gRPC classifier, so expected status codes are not logged as errors. */
+        ErrorClassifiers,
     }
 
     sealed interface Desktop {
@@ -48,8 +51,9 @@ object StartupContract {
      */
     val androidStartup: Map<String, Desktop> = mapOf(
         // androidx-startup initializers
+        // Only its ErrorUtils classifier is mirrored; trace export and Bugsnag are Android tooling.
         "com.flipcash.app.internal.startup.TraceInitializer" to
-            Desktop.NotOnDesktop("trace export and Bugsnag breadcrumbs are Android tooling"),
+            Desktop.Mirrored(Step.ErrorClassifiers),
         "com.flipcash.app.internal.startup.ClockDriftInitializer" to
             Desktop.NotOnDesktop("diagnostic only: records SNTP drift for the trace header"),
         "com.flipcash.app.internal.startup.FirebaseInitializer" to

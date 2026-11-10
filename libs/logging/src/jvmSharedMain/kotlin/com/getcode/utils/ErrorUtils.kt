@@ -1,9 +1,6 @@
 package com.getcode.utils
 
 import com.getcode.manager.TopBarManager
-import io.grpc.Status
-import io.grpc.StatusException
-import io.grpc.StatusRuntimeException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import java.net.ConnectException
@@ -15,9 +12,13 @@ import javax.net.ssl.SSLException
 object ErrorUtils {
     private var isDisplayErrors = false
     private val reporters = mutableListOf<ErrorReporter>()
+    private val classifiers = mutableListOf<ErrorClassifier>()
 
     fun addReporter(reporter: ErrorReporter) { reporters.add(reporter) }
     fun removeReporter(reporter: ErrorReporter) { reporters.remove(reporter) }
+
+    fun addClassifier(classifier: ErrorClassifier) { if (classifier !in classifiers) classifiers.add(classifier) }
+    fun removeClassifier(classifier: ErrorClassifier) { classifiers.remove(classifier) }
 
     fun setDisplayErrors(isDisplayErrors: Boolean) {
         ErrorUtils.isDisplayErrors = isDisplayErrors
@@ -43,11 +44,11 @@ object ErrorUtils {
                 throwable.cause ?: throwable
             else throwable
 
-        if (isIgnoredGrpcStatus(throwableCause)) return
+        if (classify(throwableCause) == ErrorClass.Ignore) return
 
         PlatformLog.error(throwable)
 
-        if (isRuntimeError(throwable)) return
+        if (isLogOnly(throwable)) return
 
         if ((isDisplayErrors && !isSuppressibleError(throwable))) {
 
@@ -111,36 +112,12 @@ object ErrorUtils {
         generateSequence(throwable) { it.cause }
             .any { it is java.io.IOException && it.message in gmsTransientMessages }
 
-    val ignoredGrpcStatusCodes = setOf(
-        // Transport/transient
-        Status.Code.UNAVAILABLE,
-        Status.Code.CANCELLED,
-        Status.Code.DEADLINE_EXCEEDED,
-        Status.Code.UNIMPLEMENTED,
-        // Client-error / validation (not bugs)
-        Status.Code.NOT_FOUND,
-        Status.Code.ALREADY_EXISTS,
-        Status.Code.PERMISSION_DENIED,
-        Status.Code.UNAUTHENTICATED,
-        Status.Code.FAILED_PRECONDITION,
-        Status.Code.OUT_OF_RANGE,
-        Status.Code.RESOURCE_EXHAUSTED,
-    )
+    private fun classify(throwable: Throwable): ErrorClass? =
+        classifiers.firstNotNullOfOrNull { it.classify(throwable) }
 
-    private fun isIgnoredGrpcStatus(throwable: Throwable): Boolean {
-        val code = when (throwable) {
-            is StatusRuntimeException -> throwable.status.code
-            is StatusException -> throwable.status.code
-            else -> return false
-        }
-        return code in ignoredGrpcStatusCodes
-    }
-
-    private fun isRuntimeError(throwable: Throwable): Boolean =
-        throwable is StatusRuntimeException ||
-                throwable is StatusException ||
-                throwable.cause is StatusRuntimeException ||
-                throwable.cause is StatusException
+    /** A classified error, or one wrapping a classified cause, is logged but never shown or reported. */
+    private fun isLogOnly(throwable: Throwable): Boolean =
+        classify(throwable) != null || throwable.cause?.let(::classify) != null
 
     private fun isSuppressibleError(throwable: Throwable): Boolean =
         isPlatformSqlException(throwable) || throwable is SuppressibleException || throwable is TimeoutCancellationException

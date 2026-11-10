@@ -7,7 +7,8 @@ plugins {
 
 @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
 kotlin {
-    // jvmShared: ErrorUtils and the rest that needs java.* or gRPC, for Android and the desktop JVM.
+    // jvmShared: ErrorUtils and the rest that needs java.*, for Android and the desktop JVM.
+    // gRPC status handling lives in :libs:logging:grpc, which plugs into ErrorUtils as an ErrorClassifier.
     // commonMain holds trace() and stays free of both, so JS can call it.
     applyDefaultHierarchyTemplate {
         common {
@@ -27,7 +28,6 @@ kotlin {
             implementation(libs.androidx.annotation)
         }
         getByName("jvmSharedMain").dependencies {
-            implementation(libs.grpc.kotlin)
             implementation(project(":libs:messaging"))
         }
         androidMain.dependencies {

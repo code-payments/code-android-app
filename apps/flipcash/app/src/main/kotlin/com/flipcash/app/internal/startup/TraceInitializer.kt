@@ -14,6 +14,7 @@ import com.flipcash.app.updates.ReleaseStageProvider
 import com.getcode.utils.BuildFlags
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceManager
+import com.getcode.utils.grpc.GrpcErrorClassifier
 import com.getcode.utils.initialize
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -33,6 +34,7 @@ class TraceInitializer: Initializer<Unit> {
         BuildFlags.isDebug = BuildConfig.DEBUG
         BuildFlags.notifyErrors = BuildConfig.NOTIFY_ERRORS
         TraceManager.initialize(context)
+        ErrorUtils.addClassifier(GrpcErrorClassifier)
 
         if (BuildConfig.DEBUG) {
             Timber.plant(FlipcashDebugTree)

@@ -235,6 +235,7 @@ compose-webview = { module = "io.github.kevinnzou:compose-webview-multiplatform"
 
 # Networking / gRPC / Protobuf
 slf4j = { module = "org.slf4j:slf4j-android", version.ref = "slf4j" }
+grpc-api = { module = "io.grpc:grpc-api", version.ref = "grpc" }
 grpc-android = { module = "io.grpc:grpc-android", version.ref = "grpc" }
 grpc-okhttp = { module = "io.grpc:grpc-okhttp", version.ref = "grpc" }
 grpc-kotlin = { module = "io.grpc:grpc-kotlin-stub", version.ref = "grpc-kotlin" }
