@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 // The Flipcash app's Puppet host: every hosted screen's real view model over seeded data, keyed by

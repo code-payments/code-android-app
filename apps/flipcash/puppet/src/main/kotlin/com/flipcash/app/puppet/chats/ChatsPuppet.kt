@@ -53,13 +53,16 @@ internal val chatsActions: List<(ChatsViewModel) -> PuppetAction<*>> = listOf(
     { vm -> PuppetAction(Event.NewChatOpened.serializer(), vm::dispatchEvent) },
 )
 
-/** The route Chats sent to the stack, as a node. These screens aren't hosted: they offer only the lent `Back`. */
-internal fun routeNode(route: AppRoute): PuppetNode = when (route) {
+/**
+ * The route Chats sent to the stack, as a node. Archived is hosted, with a view model of its own
+ * over [fixture]'s chats; the others aren't, and offer only the lent `Back`.
+ */
+internal fun routeNode(route: AppRoute, fixture: ChatListFixture): PuppetNode = when (route) {
     is AppRoute.Messaging.Chat -> {
         val chatId = (route.identifier as? ChatIdentifier.ByChatId)?.chatId?.hex
         PuppetNode("Chat", { buildJsonObject { put("chatId", chatId) } }, emptyList())
     }
-    AppRoute.Messaging.ArchivedChats -> PuppetNode("ArchivedChats", { buildJsonObject {} }, emptyList())
+    AppRoute.Messaging.ArchivedChats -> archivedNode(fixture.archivedViewModel())
     AppRoute.Messaging.NewChat -> PuppetNode("NewChat", { buildJsonObject {} }, emptyList())
     else -> PuppetNode(route::class.simpleName ?: "Unknown", { buildJsonObject {} }, emptyList())
 }
@@ -122,7 +125,7 @@ fun chatsSession(
 ): PuppetSession {
     fixture.viewModel.eventFlow
         .filterIsInstance<Event.OpenScreen>()
-        .onEach { stack.push(routeNode(it.screen)) }
+        .onEach { stack.push(routeNode(it.screen, fixture)) }
         .launchIn(fixture.viewModel.viewModelScope)
     return PuppetSession(
         root = { chatsNode(fixture.viewModel) },

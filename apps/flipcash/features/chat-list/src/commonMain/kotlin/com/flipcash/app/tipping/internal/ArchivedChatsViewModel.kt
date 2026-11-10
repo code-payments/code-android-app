@@ -26,8 +26,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /** Backs the Archived screen: the archived chats, newest first, and unarchive. */
-/** Android injects it through `HiltArchivedChatsViewModel`. */
-internal open class ArchivedChatsViewModel @Inject constructor(
+/** Android injects it through `HiltArchivedChatsViewModel`; public so the Puppet host in `:apps:flipcash:puppet` can build one. */
+open class ArchivedChatsViewModel @Inject constructor(
     private val exchange: Exchange,
     private val chatCoordinator: ChatCoordinator,
     private val archiveStore: ChatArchiveStore,

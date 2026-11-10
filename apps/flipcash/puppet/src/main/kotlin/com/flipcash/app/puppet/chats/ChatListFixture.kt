@@ -8,6 +8,7 @@ import com.flipcash.app.persistence.sources.TokenDataSource
 import com.flipcash.app.persistence.sources.mapper.tokens.EntityToTokenMapper
 import com.flipcash.app.persistence.sources.mapper.tokens.RelationToTokenWithBalanceMapper
 import com.flipcash.app.persistence.sources.mapper.tokens.TokenToEntityMapper
+import com.flipcash.app.tipping.internal.ArchivedChatsViewModel
 import com.flipcash.app.tipping.internal.ChatRowActions
 import com.flipcash.app.tipping.internal.ChatsViewModel
 import com.flipcash.app.tokens.TokenCoordinator
@@ -50,13 +51,16 @@ import com.hoc081098.channeleventbus.ChannelEventBus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import androidx.lifecycle.ViewModelStore
 import java.io.File
 import java.nio.file.Files
 import kotlin.time.Instant
 
 /**
- * A [ChatsViewModel] over seeded chats, for the Puppet host. Nothing here reaches the backend:
+ * A [ChatsViewModel] over seeded chats, for the Puppet host, and the [ArchivedChatsViewModel]s
+ * Chats opens over the same chats. Nothing here reaches the backend:
  * the chat list comes from a [ChatCoordinator] holding [seed], and every repository under the
  * view model's other dependencies is a [FixtureGuard.network] stand-in.
  *
@@ -67,7 +71,7 @@ import kotlin.time.Instant
  * coordinator in `ChatModule`, whose bindings are internal to that module, so they can't swap it.
  */
 class ChatListFixture(
-    dispatchers: DispatcherProvider,
+    private val dispatchers: DispatcherProvider,
     seed: ChatFeeds = defaultSeed,
     val guard: FixtureGuard = FixtureGuard(),
     private val dataDir: File = Files.createTempDirectory("puppet-chats").toFile(),
@@ -77,6 +81,8 @@ class ChatListFixture(
     private val chatCoordinator: ChatCoordinator = object : ChatCoordinator by guard.unfaked() {
         override fun feedWithArchived(vararg chatTypes: ChatType): Flow<ChatFeeds> = feeds
         override fun currentFeedWithArchived(vararg chatTypes: ChatType): ChatFeeds = feeds.value
+        override fun archivedFeed(vararg chatTypes: ChatType): Flow<List<ChatSummary>> = feeds.map { it.archived }
+        override fun currentArchivedFeed(vararg chatTypes: ChatType): List<ChatSummary> = feeds.value.archived
         override fun observeSenderProfiles(): Flow<Map<String, UserProfile>> = flowOf(emptyMap())
         override fun currentSenderProfiles(): Map<String, UserProfile> = emptyMap()
     }
@@ -84,6 +90,25 @@ class ChatListFixture(
     private val exchange: Exchange = object : Exchange by guard.unfaked() {
         override fun observePreferredRate(): Flow<Rate> = flowOf(Rate.oneToOne)
         override fun observeRates() = flowOf(emptyMap<com.getcode.opencode.model.financial.CurrencyCode, Rate>())
+    }
+
+    /**
+     * Archiving moves a chat between [feeds]' lists, which is what the real coordinator's feeds do
+     * once the real store records it. Both screens read [feeds], so an unarchive on Archived shows
+     * up on Chats.
+     */
+    private val archiveStore = object : ChatArchiveStore {
+        override fun observeArchived(): Flow<Set<ChatId>> = feeds.map { f -> f.archived.mapTo(mutableSetOf()) { it.metadata.chatId } }
+        override suspend fun isArchived(chatId: ChatId) = feeds.value.archived.any { it.metadata.chatId == chatId }
+        override suspend fun archive(chatId: ChatId) = feeds.update { f ->
+            val chat = f.main.firstOrNull { it.metadata.chatId == chatId } ?: return@update f
+            f.copy(main = f.main - chat, archived = f.archived + chat)
+        }
+        override suspend fun unarchive(chatId: ChatId) = feeds.update { f ->
+            val chat = f.archived.firstOrNull { it.metadata.chatId == chatId } ?: return@update f
+            f.copy(main = f.main + chat, archived = f.archived - chat)
+        }
+        override suspend fun clearAll() = Unit
     }
 
     private val accountController = AccountController(guard.network(), guard.unfaked())
@@ -116,6 +141,24 @@ class ChatListFixture(
         override suspend fun remove(chatId: ChatId) = Unit
     }
 
+    private val hostLobbies = HostLobbies(
+        chatController,
+        GroupKeyEnvelopes(DefaultChatCipher, DefaultInviteCipher, guard.unfaked(), chatController, WrongKeyChats(), guard.unfaked()),
+    )
+
+    private val paymentRequests = PaymentRequests(
+        PaymentRequestController(guard.network(), userManager),
+        GroupContentCrypto(DefaultChatCipher, guard.unfaked()),
+        PaymentRequestDataSource(),
+    )
+
+    private val rowActions = ChatRowActions(
+        chatCoordinator,
+        ChatReadActions(chatCoordinator, ChatMarkedUnreadStore.None),
+        archiveStore,
+        FlipcashAnalytics.None,
+    )
+
     val viewModel = ChatsViewModel(
         exchange = exchange,
         chatCoordinator = chatCoordinator,
@@ -123,27 +166,30 @@ class ChatListFixture(
         tokenCoordinator = tokenCoordinator,
         resources = ComposeResourceHelper(),
         dispatchers = dispatchers,
-        archiveStore = ChatArchiveStore.None,
+        archiveStore = archiveStore,
         lobbyRequests = LobbyRequests(chatController, lobbyStore, chatCoordinator),
-        hostLobbies = HostLobbies(
-            chatController,
-            GroupKeyEnvelopes(DefaultChatCipher, DefaultInviteCipher, guard.unfaked(), chatController, WrongKeyChats(), guard.unfaked()),
-        ),
-        paymentRequests = PaymentRequests(
-            PaymentRequestController(guard.network(), userManager),
-            GroupContentCrypto(DefaultChatCipher, guard.unfaked()),
-            PaymentRequestDataSource(),
-        ),
-        rowActions = ChatRowActions(
-            chatCoordinator,
-            ChatReadActions(chatCoordinator, ChatMarkedUnreadStore.None),
-            ChatArchiveStore.None,
-            FlipcashAnalytics.None,
-        ),
+        hostLobbies = hostLobbies,
+        paymentRequests = paymentRequests,
+        rowActions = rowActions,
     )
 
-    // Owns the view model so close() can cancel its viewModelScope.
+    // Owns the view models so close() can cancel their viewModelScopes.
     private val store = ViewModelStore().apply { put("chats", viewModel) }
+    private var archivedOpened = 0
+
+    /** A new Archived screen's view model, as each push of the Archived route builds one. */
+    fun archivedViewModel(): ArchivedChatsViewModel = ArchivedChatsViewModel(
+        exchange = exchange,
+        chatCoordinator = chatCoordinator,
+        archiveStore = archiveStore,
+        userManager = userManager,
+        tokenCoordinator = tokenCoordinator,
+        resources = ComposeResourceHelper(),
+        dispatchers = dispatchers,
+        paymentRequests = paymentRequests,
+        hostLobbies = hostLobbies,
+        rowActions = rowActions,
+    ).also { store.put("archived-${archivedOpened++}", it) }
 
     /** Cancels the view model's work and deletes the data directory. */
     fun close() {

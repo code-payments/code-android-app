@@ -126,7 +126,7 @@ open class ChatsViewModel @Inject constructor(
         ) : Event
 
         // The events below are what the screen sends. They are serializable, under short names, so the
-        // Puppet host in this module's jvmTest can list them and decode their input; the names are
+        // Puppet host in `:apps:flipcash:puppet` can list them and decode their input; the names are
         // shared with the iOS host.
         @Serializable
         @SerialName("FilterSelected")
