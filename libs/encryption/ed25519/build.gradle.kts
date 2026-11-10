@@ -114,13 +114,17 @@ kotlin {
         }
     }
 
-    // jvmShared: the string-keyed Ed25519 API for both JVM targets (Android and desktop).
+    // jvmAndJs: the string-keyed Ed25519 API, for both JVM targets (Android and desktop) and Node.
+    // jvmShared: its java.util.Base64 actuals.
     @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
     applyDefaultHierarchyTemplate {
         common {
-            group("jvmShared") {
-                withJvm()
-                withCompilations { it.platformType == KotlinPlatformType.androidJvm }
+            group("jvmAndJs") {
+                group("jvmShared") {
+                    withJvm()
+                    withCompilations { it.platformType == KotlinPlatformType.androidJvm }
+                }
+                withJs()
             }
         }
     }
@@ -132,7 +136,7 @@ kotlin {
                 implementation(project(":libs:encryption:sha512"))
             }
         }
-        getByName("jvmSharedMain") {
+        getByName("jvmAndJsMain") {
             dependencies {
                 api(project(":libs:parcelable"))
             }
