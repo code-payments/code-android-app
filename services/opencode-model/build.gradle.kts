@@ -3,8 +3,9 @@ plugins {
 }
 
 // OpenCode domain types (accounts, mints, rates, fiat amounts, swap parameters) with no protos,
-// gRPC or DI. Types that wrap verified proto state (ExchangeData, LocalFiat, AccountInfo, ...)
-// stay in :services:opencode.
+// gRPC or DI, plus the swap instruction builders and TransactionBuilder, which take these types.
+// Types that wrap verified proto state (ExchangeData, LocalFiat, AccountInfo, ...) stay in
+// :services:opencode.
 kotlin {
     android {
         namespace = "${Gradle.codeNamespace}.services.opencode.model"
