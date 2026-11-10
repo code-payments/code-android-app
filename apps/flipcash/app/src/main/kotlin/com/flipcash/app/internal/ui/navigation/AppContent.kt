@@ -63,6 +63,7 @@ import com.flipcash.app.internal.ui.AppNavigationBar
 import com.flipcash.app.internal.ui.SearchMorph
 import com.flipcash.app.search.PreloadSearch
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBillOverlayEntryDecorator
+import com.flipcash.app.internal.ui.navigation.decorators.isBiometricsLocked
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavBlockingOverlayEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavMessagingEntryDecorator
 import com.flipcash.app.internal.ui.navigation.decorators.rememberNavTabBarInsetEntryDecorator
@@ -315,8 +316,9 @@ internal fun AppContent(
         )
 
         // Single persistent bottom overlay. Latch the tallest measured height so the reserved inset
-        // stays stable when the bar hides for a modal/bill.
-        AppNavigationBar(
+        // stays stable when the bar hides for a modal/bill. Left out while the biometrics overlay is
+        // up, which covers only the nav entries.
+        if (!isBiometricsLocked()) AppNavigationBar(
             navigator = codeNavigator,
             // The bar fades itself out with the wallet's card expansion — and drops out of the tree at
             // the end of the fade, so an invisible bar can't be tapped. See AppNavigationBar.

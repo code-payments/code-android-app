@@ -24,7 +24,7 @@ fun BiometricsBlockingView(
     state: BiometricsState,
 ) {
     AnimatedVisibility(
-        visible = !state.passed && !state.checking,
+        visible = state.isLocked,
         enter = fadeIn(),
         exit = fadeOut()
     ) {

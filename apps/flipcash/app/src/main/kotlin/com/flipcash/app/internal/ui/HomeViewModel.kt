@@ -63,13 +63,22 @@ internal class HomeViewModel @Inject constructor(
     }
 
     fun onMissingBiometrics() {
-        // biometrics required by user, but now not enrolled
-        // show a top bar error and let them in
+        // Biometrics are required, but the device has no authenticator left to satisfy them. Let the
+        // user in now, not on the next launch, and turn the requirement off so it can't lock them
+        // out again.
+        _requireBiometrics.value = false
         BottomBarManager.showError(
             resources.getString(R.string.error_title_missingBiometrics),
             resources.getString(R.string.error_description_missingBiometrics)
         )
         appSettingsCoordinator.update(setting = AppSettingValue.BiometricsRequired, value = false, fromUser = false)
+    }
+
+    fun onBiometricsError(message: CharSequence) {
+        BottomBarManager.showError(
+            resources.getString(R.string.title_biometricAuthentication),
+            message.toString(),
+        )
     }
 
     private var loginRequest: String? = null
