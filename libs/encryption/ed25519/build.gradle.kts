@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 plugins {
     alias(libs.plugins.flipcash.kmp.library)
     alias(libs.plugins.flipcash.kmp.test.fixtures)
+    alias(libs.plugins.flipcash.kmp.js)
 }
 
 // Compiles `src/commonTest/resources` into a generated `TestFixtures.kt` on `commonTest`, readable
@@ -126,7 +127,10 @@ kotlin {
 
     sourceSets {
         commonMain {
-            // Ed25519Kmp expect object + KeyPair — no external deps.
+            dependencies {
+                // SHA-512 for Ed25519Reference, the pure-Kotlin port the JS target uses.
+                implementation(project(":libs:encryption:sha512"))
+            }
         }
         getByName("jvmSharedMain") {
             dependencies {
