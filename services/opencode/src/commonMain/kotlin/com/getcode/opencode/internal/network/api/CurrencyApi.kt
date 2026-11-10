@@ -176,29 +176,32 @@ internal class CurrencyApi @Inject constructor(
             .setMint(update.token.address.asSolanaAccountId())
             .setOwner(owner.asSolanaAccountId())
             .apply {
-                if (update.billCustomization != null) {
+                val billCustomization = update.billCustomization
+                if (billCustomization != null) {
                     setNewBillCustomization(
                         OcpCurrencyService.UpdateMetadataRequest.BillCustomizationUpdate.newBuilder()
-                            .setValue(update.billCustomization.asProto())
+                            .setValue(billCustomization.asProto())
                             .build()
                     )
                 }
 
-                if (update.description != null) {
+                val description = update.description
+                if (description != null) {
                     setNewDescription(
                         OcpCurrencyService.UpdateMetadataRequest.DescriptionUpdate.newBuilder()
-                            .setValue(update.description.text)
-                            .setModerationAttestation(update.description.asProto())
+                            .setValue(description.text)
+                            .setModerationAttestation(description.asProto())
                     )
                 }
 
-                if (update.socialLinks != null) {
+                val socialLinks = update.socialLinks
+                if (socialLinks != null) {
                     setNewSocialLinks(
                         OcpCurrencyService.UpdateMetadataRequest.SocialLinksUpdate.newBuilder()
                             .apply {
                                 val proto =
                                     OcpCurrencyService.UpdateMetadataRequest.SocialLinksUpdate.newBuilder()
-                                update.socialLinks.mapIndexed { index, socialLink ->
+                                socialLinks.mapIndexed { index, socialLink ->
                                     proto.setValue(index, socialLink.asProto())
                                 }
                                 setNewSocialLinks(proto)
