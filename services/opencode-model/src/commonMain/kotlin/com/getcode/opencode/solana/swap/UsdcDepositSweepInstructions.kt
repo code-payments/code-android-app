@@ -1,5 +1,6 @@
 package com.getcode.opencode.solana.swap
 
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.extensions.deriveDepositAccount
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
@@ -29,7 +30,7 @@ import com.getcode.solana.keys.PublicKey
  * USDC ATA, destination is the owner's USDF VM Deposit ATA (Geyser-monitored
  * — once funds land there, the server-side watcher transfers them into the USDF VM).
  */
-internal fun buildStatelessSwapInstructions(
+@InternalOpenCodeApi public fun buildStatelessSwapInstructions(
     serverParameters: StatelessSwapServerParameters,
     owner: PublicKey,
     fromMint: MintMetadata,

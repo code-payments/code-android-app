@@ -1,5 +1,6 @@
 package com.getcode.opencode.solana.swap
 
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.internal.solana.extensions.deriveAssociatedAccount
 import com.getcode.opencode.internal.solana.extensions.deriveDepositAccount
 import com.getcode.opencode.internal.solana.extensions.deriveVirtualMachineAccount
@@ -29,7 +30,7 @@ import com.getcode.solana.keys.PublicKey
  * The Geyser watcher monitors the deposit PDA ATA and transfers USDF
  * into the VM once funds land — same path as the stateless sweep.
  */
-internal fun buildUsdfDepositInstructions(
+@InternalOpenCodeApi public fun buildUsdfDepositInstructions(
     sender: PublicKey,
     owner: PublicKey,
     amount: Long,

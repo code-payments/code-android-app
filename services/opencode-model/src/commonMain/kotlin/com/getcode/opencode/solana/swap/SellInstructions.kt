@@ -1,5 +1,6 @@
 package com.getcode.opencode.solana.swap
 
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.internal.solana.extensions.extractServerParameters
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
@@ -39,7 +40,7 @@ import com.getcode.solana.keys.PublicKey
  * @param minOutput The minimum amount of core currency to receive.
  * @return A list of [Instruction]s to execute the sell operation.
  */
-internal fun buildSellInstructions(
+@InternalOpenCodeApi public fun buildSellInstructions(
     serverParameters: StatefulSwapResponseServerParameters.ExistingCurrency,
     nonce: PublicKey,
     authority: PublicKey,

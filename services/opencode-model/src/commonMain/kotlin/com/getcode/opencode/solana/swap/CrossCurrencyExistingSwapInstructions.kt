@@ -1,5 +1,6 @@
 package com.getcode.opencode.solana.swap
 
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.internal.solana.extensions.extractServerParameters
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
@@ -53,7 +54,7 @@ import com.getcode.solana.keys.PublicKey
  * @param amount The amount of the source currency to swap.
  * @return A list of [Instruction]s to execute the cross-currency swap.
  */
-internal fun buildCrossCurrencyExistingSwapInstructions(
+@InternalOpenCodeApi public fun buildCrossCurrencyExistingSwapInstructions(
     serverParameters: StatefulSwapResponseServerParameters.ExistingCurrency,
     nonce: PublicKey,
     authority: PublicKey,

@@ -1,5 +1,6 @@
 package com.getcode.opencode.solana.swap
 
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.internal.solana.extensions.deriveCurrencyConfigAddress
 import com.getcode.opencode.internal.solana.extensions.deriveCurrencyMintAddress
 import com.getcode.opencode.internal.solana.extensions.deriveDepositAccount
@@ -47,7 +48,7 @@ import com.getcode.solana.keys.PublicKey
  * @param amount The amount of core currency to spend.
  * @return A list of [Instruction]s to execute the new currency creation and initial buy.
  */
-internal fun buildNewCurrencyBuyInstructions(
+@InternalOpenCodeApi public fun buildNewCurrencyBuyInstructions(
     serverParameters: StatefulSwapResponseServerParameters.NewCurrency,
     nonce: PublicKey,
     authority: PublicKey,
@@ -248,7 +249,7 @@ internal fun buildNewCurrencyBuyInstructions(
  * @param feeAmount The fee amount of the source mint to collect (in quarks).
  * @return A list of [Instruction]s to execute the treasury-funded new currency buy.
  */
-internal fun buildTreasuryFundedNewCurrencyBuyInstructions(
+@InternalOpenCodeApi public fun buildTreasuryFundedNewCurrencyBuyInstructions(
     serverParameters: StatefulSwapResponseServerParameters.NewCurrency,
     nonce: PublicKey,
     authority: PublicKey,

@@ -1,5 +1,6 @@
 package com.getcode.opencode.solana.swap
 
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.model.CoinbaseSwapAccounts
 import com.getcode.opencode.internal.solana.model.SwapId
@@ -19,7 +20,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 
-internal fun buildUsdcToUsdfSwapInstructions(
+@InternalOpenCodeApi public fun buildUsdcToUsdfSwapInstructions(
     sender: PublicKey,
     owner: PublicKey,
     amount: Long,

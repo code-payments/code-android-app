@@ -1,5 +1,6 @@
 package com.getcode.opencode.solana.swap
 
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.model.CoinbaseSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
@@ -43,7 +44,7 @@ import com.getcode.solana.keys.PublicKey
  * @param minOutput The minimum acceptable amount of to_mint tokens to receive (slippage protection).
  * @return A list of [Instruction]s to execute the stablecoin swap.
  */
-internal fun buildStablecoinSwapperInstructions(
+@InternalOpenCodeApi public fun buildStablecoinSwapperInstructions(
     serverParameters: StatefulSwapResponseServerParameters.Stablecoin,
     nonce: PublicKey,
     authority: PublicKey,

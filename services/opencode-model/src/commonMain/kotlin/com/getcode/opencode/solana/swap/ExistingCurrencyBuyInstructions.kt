@@ -1,5 +1,6 @@
 package com.getcode.opencode.solana.swap
 
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.internal.solana.extensions.extractServerParameters
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.internal.solana.programs.AssociatedTokenProgram_CreateIdempotent
@@ -44,7 +45,7 @@ import com.getcode.solana.keys.PublicKey
  * plain `VM::TransferForSwap`. Defaults to 0 (no fee), which preserves the original instruction set.
  * @return A list of [Instruction]s to execute the buy operation.
  */
-internal fun buildExistingCurrencyBuyInstructions(
+@InternalOpenCodeApi public fun buildExistingCurrencyBuyInstructions(
     serverParameters: StatefulSwapResponseServerParameters.ExistingCurrency,
     nonce: PublicKey,
     authority: PublicKey,
