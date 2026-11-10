@@ -20,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -155,6 +154,8 @@ internal fun SharePaymentRowLayout(
     modifier: Modifier = Modifier,
 ) {
     val rule = CodeTheme.colors.success.copy(alpha = RULE_ALPHA)
+    // Same hue at alpha 0: fading to transparent black would grey the outer half.
+    val clear = rule.copy(alpha = 0f)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -164,7 +165,7 @@ internal fun SharePaymentRowLayout(
         horizontalArrangement = Arrangement.spacedBy(RULE_GAP),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Rule(Brush.horizontalGradient(listOf(Color.Transparent, rule)))
+        Rule(Brush.horizontalGradient(0f to clear, RULE_SOLID_FROM to rule, 1f to rule))
         BoxWithConstraints(
             modifier = Modifier.widthIn(max = SYSTEM_TEXT_MAX_WIDTH),
             contentAlignment = Alignment.Center,
@@ -177,13 +178,14 @@ internal fun SharePaymentRowLayout(
                 maxWidth = maxWidth,
             )
         }
-        Rule(Brush.horizontalGradient(listOf(rule, Color.Transparent)))
+        Rule(Brush.horizontalGradient(0f to rule, 1f - RULE_SOLID_FROM to rule, 1f to clear))
     }
 }
 
 /**
  * Fills what the caption leaves, down to [RULE_MIN_WIDTH]. Sits at the middle of the caption's
- * first line, so a caption that wraps keeps its rules beside line 1.
+ * first line, so a caption that wraps keeps its rules beside line 1. The half next to the caption
+ * is solid and the outer half fades out (node 13591:871, option B).
  */
 @Composable
 private fun RowScope.Rule(brush: Brush) {
@@ -430,7 +432,9 @@ private val NameStyle = SpanStyle(fontWeight = FontWeight.SemiBold)
 
 private val RULE_GAP = 8.dp
 private val RULE_MIN_WIDTH = 16.dp
-private const val RULE_ALPHA = 0.28f
+private const val RULE_ALPHA = 0.6f
+/** Where a rule turns solid, as a fraction of its length from the outer end. */
+private const val RULE_SOLID_FROM = 0.5f
 private val RING_SIZE = 14.dp
 private val RING_GAP = 4.dp
 
