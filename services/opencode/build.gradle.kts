@@ -23,8 +23,12 @@ kotlin {
     }
 
     sourceSets {
+        all {
+            languageSettings.optIn("com.getcode.opencode.annotations.InternalOpenCodeApi")
+        }
         commonMain.dependencies {
             implementation(libs.ocp.client.protocol)
+            api(project(":services:opencode-solana"))
             api(project(":libs:currency-math"))
             api(project(":libs:datetime"))
             api(project(":libs:encryption:base58"))
