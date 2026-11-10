@@ -72,7 +72,6 @@ import com.flipcash.services.user.AuthState
 import com.flipcash.shared.chat.share.LocalPendingChatShares
 import com.getcode.animation.LocalSharedTransitionScope
 import com.getcode.utils.trace
-import com.getcode.libs.biometrics.BiometricsError
 import com.getcode.libs.qr.rememberQrBitmapPainter
 import com.getcode.navigation.AppNavHost
 import com.getcode.navigation.Sheet
@@ -109,11 +108,13 @@ internal fun App(
     val canSwitchAccounts by viewModel.canSwitchAccounts.collectAsStateWithLifecycle()
     val biometricsState = rememberBiometricsState(
         requireBiometrics = requireBiometrics,
-        onError = { error ->
-            if (error == BiometricsError.NoBiometrics) {
-                viewModel.onMissingBiometrics()
+        onUnavailable = viewModel::onMissingBiometrics,
+        onError = { exception ->
+            // Without this a failed prompt left the Unlock button looking dead.
+            if (!exception.error.isDismissal && exception.messageString.isNotBlank()) {
+                viewModel.onBiometricsError(exception.messageString)
             }
-        }
+        },
     )
 
     OnLifecycleEvent { _, event ->

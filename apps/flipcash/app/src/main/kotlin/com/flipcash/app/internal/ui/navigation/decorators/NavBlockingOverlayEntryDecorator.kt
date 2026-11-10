@@ -46,3 +46,14 @@ fun NavBlockingOverlayEntryDecorator(): NavEntryDecorator<NavKey> {
 
 @Composable
 fun rememberNavBlockingOverlayEntryDecorator() = remember { NavBlockingOverlayEntryDecorator() }
+
+/**
+ * Whether the biometrics overlay is up. The overlay is drawn per entry, but the tab bar sits outside
+ * the entries, so it reads this to stay out of the way: otherwise it floats above the overlay and
+ * switches tabs on a locked app.
+ */
+@Composable
+internal fun isBiometricsLocked(): Boolean {
+    val userState by LocalUserManager.current!!.state.collectAsStateWithLifecycle()
+    return userState.authState is AuthState.LoggedIn && LocalBiometricsState.current.isLocked
+}

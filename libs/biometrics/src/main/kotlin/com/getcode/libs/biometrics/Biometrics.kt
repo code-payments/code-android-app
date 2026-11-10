@@ -16,7 +16,7 @@ import kotlin.coroutines.resume
 
 class BiometricsException(
     val error: BiometricsError,
-    private val messageString: CharSequence = ""
+    val messageString: CharSequence = ""
 ) : Exception(Throwable("$messageString (${error.ordinal})")) {
     override val message: String
         get() = "${error.javaClass.simpleName} $messageString"
@@ -40,9 +40,35 @@ enum class BiometricsError {
     NegativeButton,
     NoDeviceCredential;
 
+    /**
+     * True when the device has no way left to authenticate the user, so prompting again can never
+     * succeed. A lockout is not one of these: the device credential clears it.
+     */
+    val isUnrecoverable: Boolean
+        get() = this == NoBiometrics || this == HardwareNotPresent || this == NoDeviceCredential
+
+    /** True when the user dismissed the prompt, which needs no message. */
+    val isDismissal: Boolean
+        get() = this == Cancelled || this == UserCancelled || this == NegativeButton
+
     companion object {
-        fun fromValue(code: Int): BiometricsError {
-            return entries.toList().getOrNull(code - 1) ?: Unknown
+        // Mapped by name: the prompt's codes skip 6, so indexing into entries misread codes 1-5
+        // (ERROR_CANCELED came back as NoSpace).
+        fun fromValue(code: Int): BiometricsError = when (code) {
+            BiometricPrompt.ERROR_HW_UNAVAILABLE -> HardwareUnavailable
+            BiometricPrompt.ERROR_UNABLE_TO_PROCESS -> UnableToProcess
+            BiometricPrompt.ERROR_TIMEOUT -> Timeout
+            BiometricPrompt.ERROR_NO_SPACE -> NoSpace
+            BiometricPrompt.ERROR_CANCELED -> Cancelled
+            BiometricPrompt.ERROR_LOCKOUT -> Lockout
+            BiometricPrompt.ERROR_VENDOR -> Vendor
+            BiometricPrompt.ERROR_LOCKOUT_PERMANENT -> LockoutPermanent
+            BiometricPrompt.ERROR_USER_CANCELED -> UserCancelled
+            BiometricPrompt.ERROR_NO_BIOMETRICS -> NoBiometrics
+            BiometricPrompt.ERROR_HW_NOT_PRESENT -> HardwareNotPresent
+            BiometricPrompt.ERROR_NEGATIVE_BUTTON -> NegativeButton
+            BiometricPrompt.ERROR_NO_DEVICE_CREDENTIAL -> NoDeviceCredential
+            else -> Unknown
         }
     }
 }
@@ -65,6 +91,26 @@ object Biometrics {
                 state == BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ||
                 state == BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED ||
                 state == BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED)
+    }
+
+    /**
+     * Whether [prompt] can authenticate the user with the authenticators it allows: a biometric or
+     * the device credential. [canAuthenticate] only tests biometrics, so it is false on a device whose
+     * sensor is unavailable but whose PIN still works.
+     */
+    fun canPrompt(context: Context): Boolean =
+        canPromptWith(BiometricManager.from(context).canAuthenticate(AUTHENTICATORS))
+
+    /**
+     * Maps a `canAuthenticate(AUTHENTICATORS)` status to whether a prompt can succeed. Only states
+     * that leave no authenticator at all return false. A transient one, such as an unavailable sensor
+     * or an unknown status, still prompts, since the device credential can carry it.
+     */
+    fun canPromptWith(status: Int): Boolean = when (status) {
+        BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE,
+        BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED,
+        BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED -> false
+        else -> true
     }
 
     fun hasNoneEnrolled(context: Context): Boolean {
