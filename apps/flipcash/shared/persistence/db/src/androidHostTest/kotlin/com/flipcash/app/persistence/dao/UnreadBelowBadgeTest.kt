@@ -60,7 +60,7 @@ class UnreadBelowBadgeTest {
             .distinctUntilChanged()
             .flatMapLatest { readThrough ->
                 if (readThrough == null) flowOf(0)
-                else messages.observeInboundCountAfter(CHAT_HEX, SELF_HEX, readThrough)
+                else messages.observeInboundCountAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, readThrough)
             }
             .distinctUntilChanged()
 
@@ -85,7 +85,7 @@ class UnreadBelowBadgeTest {
             listOf(message(OTHER_HEX, 1), message(OTHER_HEX, 2), message(SELF_HEX, 3), message(OTHER_HEX, 4), message(OTHER_HEX, 5)),
         )
         open(readThrough = 2)
-        val dividerCount = messages.countInboundAfter(CHAT_HEX, SELF_HEX, 2)
+        val dividerCount = messages.countInboundAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, 2)
 
         badge().test {
             assertEquals(dividerCount, awaitItem())
@@ -159,6 +159,8 @@ class UnreadBelowBadgeTest {
     private companion object {
         const val CHAT_HEX = "c1"
         const val SELF_HEX = "aa"
+        /** The viewer as a cash message names its receiver: base58, where the sender column is hex. */
+        const val SELF_RECEIVER = "SelfBase58"
         const val OTHER_HEX = "bb"
     }
 }

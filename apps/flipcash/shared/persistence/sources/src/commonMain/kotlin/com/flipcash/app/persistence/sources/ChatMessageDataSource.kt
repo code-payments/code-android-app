@@ -18,6 +18,7 @@ import com.flipcash.services.persistence.PagingDataSource
 import com.flipcash.services.user.UserManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.RandomId
+import com.getcode.utils.base58
 import com.getcode.utils.hexEncodedString
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -134,6 +135,19 @@ class ChatMessageDataSource @Inject constructor(
     suspend fun getLatestVisible(chatIdHex: String): ChatMessage? =
         db?.chatMessageDao()?.getLatestVisible(chatIdHex)?.let { toChatMessage(it) }
 
+    /**
+     * The newest message the unread check may read for [selfId]: [getLatestVisible] less the share
+     * payments someone else received.
+     */
+    suspend fun getLatestCountable(chatIdHex: String, selfId: ID): ChatMessage? =
+        db?.chatMessageDao()?.getLatestCountable(chatIdHex, selfId.base58)?.let { toChatMessage(it) }
+
+    /** Ids of the share payments past [afterId], up to [throughId], that [selfId] did not receive. */
+    suspend fun getUncountedShareIds(chatIdHex: String, selfId: ID, afterId: Long, throughId: Long): List<Long> =
+        db?.chatMessageDao()?.getUncountedShareIds(chatIdHex, selfId.base58, afterId, throughId)
+            ?.map { it.messageId }
+            .orEmpty()
+
     /** [getLatestVisible] for every chat, keyed by chat id hex; chats with none are absent. */
     suspend fun getLatestVisibleByChat(): Map<String, ChatMessage> =
         db?.chatMessageDao()?.getLatestVisibleForAllChats()
@@ -189,6 +203,7 @@ class ChatMessageDataSource @Inject constructor(
         db?.chatMessageDao()?.countInboundAfter(
             chatIdHex = mapper.chatIdHex(chatId),
             selfIdHex = mapper.userIdHex(selfId),
+            selfReceiver = selfId.base58,
             afterId = afterId,
         ) ?: 0
 
@@ -202,6 +217,7 @@ class ChatMessageDataSource @Inject constructor(
         db?.chatMessageDao()?.newestInboundId(
             chatIdHex = mapper.chatIdHex(chatId),
             selfIdHex = mapper.userIdHex(selfId),
+            selfReceiver = selfId.base58,
         )
 
     /**
@@ -215,6 +231,7 @@ class ChatMessageDataSource @Inject constructor(
             database?.chatMessageDao()?.observeInboundCountAfter(
                 chatIdHex = mapper.chatIdHex(chatId),
                 selfIdHex = mapper.userIdHex(selfId),
+                selfReceiver = selfId.base58,
                 afterId = afterId,
             ) ?: flowOf(0)
         }.distinctUntilChanged()
@@ -224,6 +241,7 @@ class ChatMessageDataSource @Inject constructor(
         db?.chatMessageDao()?.firstNotSentByAfter(
             chatIdHex = mapper.chatIdHex(chatId),
             selfIdHex = mapper.userIdHex(selfId),
+            selfReceiver = selfId.base58,
             afterId = afterId,
         )
 

@@ -38,6 +38,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.flipcash.app.messenger.internal.request.sharePaymentRun
 import com.flipcash.shared.chat.ui.BubblePosition
 import com.getcode.ui.components.chat.TypingDots
 import androidx.compose.ui.Modifier
@@ -152,14 +153,21 @@ internal fun MessageRow(
     // A stack's middle rows, and its last row when the set has no caption, draw nothing: the front
     // row's cards stand for them. Such a row has nothing to swipe and must take no height beyond
     // its gap, or consecutive stacks sit an empty row apart.
-    val drawsNothing = stack?.role == PhotoStack.Role.Middle ||
+    // The share payments this row draws: its own and the older ones of its run. Null for a share
+    // payment a newer row of the run draws, which then takes no height, like a stack's middle.
+    val shareRun = (item as? ChatListItem.SharePayment)?.let { share ->
+        sharePaymentRun(index, share, messages.itemCount) { messages.peek(it) }
+    }
+    val foldedShare = item is ChatListItem.SharePayment && shareRun == null
+    val drawsNothing = foldedShare || stack?.role == PhotoStack.Role.Middle ||
         (stack?.role == PhotoStack.Role.Last && (item as? ChatListItem.ContentBubble)?.plainText.isNullOrEmpty())
     val showReceipt = item is ChatListItem.ContentBubble && carriesReceipt(index)
     val receiptAbove = index + 1 < messages.itemCount && carriesReceipt(index + 1)
     // Animated so the gap closes with the line leaving it, instead of snapping a frame ahead of it.
     val bottomSpacing by animateDpAsState(
-        targetValue = if (stack != null && stack.role != PhotoStack.Role.Last) {
-            // The members of a stack close up: the cards and the caption read as one message.
+        targetValue = if (foldedShare || (stack != null && stack.role != PhotoStack.Role.Last)) {
+            // The members of a stack close up: the cards and the caption read as one message. A
+            // share payment its run's row draws leaves no gap of its own either.
             0.dp
         } else {
             bottomSpacingFor(index, item, messages, separatorConfig, showReceipt)
@@ -313,6 +321,14 @@ internal fun MessageRow(
                         onAction(ChatAction.OpenUserById(userId, isOwn = false))
                     },
                 )
+            }
+
+            is ChatListItem.SharePayment -> if (shareRun != null) {
+                Box(insertionModifier) { SharePaymentRow(run = shareRun) }
+            }
+
+            is ChatListItem.RequestNotice -> Box(insertionModifier) {
+                RequestNoticeRow(item)
             }
 
             // A photo in the middle of a stack has nothing of its own to draw: the front row's

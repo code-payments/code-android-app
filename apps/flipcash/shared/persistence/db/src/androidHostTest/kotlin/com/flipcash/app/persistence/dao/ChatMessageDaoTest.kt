@@ -284,28 +284,28 @@ class ChatMessageDaoTest {
      */
     private fun from(sender: String, messageId: Long) = text(messageId, "m$messageId").copy(senderIdHex = sender)
 
-    private suspend fun unread(pointer: Long) = dao.countInboundAfter(CHAT_HEX, SELF_HEX, pointer)
+    private suspend fun unread(pointer: Long) = dao.countInboundAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, pointer)
 
     @Test
     fun `newestInboundId is the highest id among others' messages`() = runTest {
         dao.upsert(listOf(from(SENDER_HEX, 3), from(SENDER_HEX, 15), from(SENDER_HEX, 7)))
 
-        assertEquals(15L, dao.newestInboundId(CHAT_HEX, SELF_HEX))
+        assertEquals(15L, dao.newestInboundId(CHAT_HEX, SELF_HEX, SELF_RECEIVER))
     }
 
     @Test
     fun `newestInboundId ignores the viewer's own and deleted rows`() = runTest {
         dao.upsert(listOf(from(SENDER_HEX, 3), from(SELF_HEX, 20), tombstone(30).copy(senderIdHex = SENDER_HEX)))
 
-        assertEquals(3L, dao.newestInboundId(CHAT_HEX, SELF_HEX))
+        assertEquals(3L, dao.newestInboundId(CHAT_HEX, SELF_HEX, SELF_RECEIVER))
     }
 
     @Test
     fun `newestInboundId is null for an empty chat`() = runTest {
         dao.upsert(listOf(from(SELF_HEX, 1)))
 
-        assertNull(dao.newestInboundId(CHAT_HEX, SELF_HEX))
-        assertNull(dao.newestInboundId(OTHER_HEX, SELF_HEX))
+        assertNull(dao.newestInboundId(CHAT_HEX, SELF_HEX, SELF_RECEIVER))
+        assertNull(dao.newestInboundId(OTHER_HEX, SELF_HEX, SELF_RECEIVER))
     }
 
     @Test
@@ -364,9 +364,9 @@ class ChatMessageDaoTest {
         dao.upsert(listOf(from(SENDER_HEX, 1), from(SENDER_HEX, 2)))
         val before = listOf(
             unread(pointer = 1),
-            dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, 1).first(),
-            dao.newestInboundId(CHAT_HEX, SELF_HEX),
-            dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1),
+            dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, 1).first(),
+            dao.newestInboundId(CHAT_HEX, SELF_HEX, SELF_RECEIVER),
+            dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, 1),
             dao.getInboundMessagesInRange(CHAT_HEX, SELF_HEX, 0, 10).map { it.messageId },
         )
 
@@ -379,16 +379,16 @@ class ChatMessageDaoTest {
 
         val after = listOf(
             unread(pointer = 1),
-            dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, 1).first(),
-            dao.newestInboundId(CHAT_HEX, SELF_HEX),
-            dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1),
+            dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, 1).first(),
+            dao.newestInboundId(CHAT_HEX, SELF_HEX, SELF_RECEIVER),
+            dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, 1),
             dao.getInboundMessagesInRange(CHAT_HEX, SELF_HEX, 0, 10).map { it.messageId },
         )
         assertEquals(before, after)
         assertEquals(listOf<Any?>(1, 1, 2L, 2L, listOf(1L, 2L)), after)
     }
 
-    private suspend fun firstNotOwn(pointer: Long) = dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, pointer)
+    private suspend fun firstNotOwn(pointer: Long) = dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, pointer)
 
     @Test
     fun `firstNotSentByAfter is the first message past the pointer`() = runTest {
@@ -975,6 +975,8 @@ class ChatMessageDaoTest {
         const val NO_METADATA_HEX = "eeff"
         const val SENDER_HEX = "1122"
         const val SELF_HEX = "3344"
+        /** The viewer as a cash message names its receiver: base58, where the sender column is hex. */
+        const val SELF_RECEIVER = "SelfBase58"
         const val CLIENT_HEX = "eeff"
         const val SECOND_CLIENT_HEX = "ef01"
     }
@@ -1037,7 +1039,7 @@ class ChatMessageDaoTest {
     fun `firstNotSentByAfter skips a senderless row`() = runTest {
         dao.upsert(listOf(from(SENDER_HEX, 1), text(2, "system").copy(senderIdHex = null), from(SENDER_HEX, 3)))
 
-        assertEquals(3L, dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1))
+        assertEquals(3L, dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, 1))
     }
 
     @Test
@@ -1059,47 +1061,101 @@ class ChatMessageDaoTest {
     fun `the divider lands below a senderless row that follows the pointer`() = runTest {
         dao.upsert(listOf(from(SELF_HEX, 1), text(2, "system").copy(senderIdHex = null), from(SENDER_HEX, 3)))
 
-        assertEquals(3L, dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1))
+        assertEquals(3L, dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, 1))
         assertEquals(1, unread(pointer = 1))
     }
 
-    private fun cash(messageId: Long, paymentRequestId: String?) = from(SENDER_HEX, messageId).copy(
-        contentJson = listOf(
-            MessageContentSerialized.Cash(intentId = "intent", quarks = 5, paymentRequestId = paymentRequestId),
-        ),
-    )
+    private fun cash(messageId: Long, paymentRequestId: String?, receiver: String? = null) =
+        from(SENDER_HEX, messageId).copy(
+            contentJson = listOf(
+                MessageContentSerialized.Cash(
+                    intentId = "intent",
+                    quarks = 5,
+                    receiver = receiver,
+                    paymentRequestId = paymentRequestId,
+                ),
+            ),
+        )
 
     private fun requestWidget(messageId: Long) = from(SENDER_HEX, messageId).copy(
         contentJson = listOf(MessageContentSerialized.WidgetPaymentRequest(paymentRequestId = "req")),
     )
 
+    // Spec case 72: the preview for everyone, unread for no one but its receiver.
     @Test
-    fun `the preview falls back past a cash message that pays a request share`() = runTest {
-        dao.upsert(listOf(text(1, "one"), cash(2, paymentRequestId = "req")))
+    fun `a share payment someone else received is the preview and is not unread`() = runTest {
+        dao.upsert(listOf(text(1, "one"), cash(2, paymentRequestId = "req", receiver = "CreatorBase58")))
 
-        assertEquals(1L, dao.getLatestVisible(CHAT_HEX)?.messageId)
-        assertEquals(listOf(1L), dao.getLatestVisibleForAllChats().map { it.messageId })
-        assertEquals(listOf(1L), dao.observeLatestVisibleForAllChats().first().map { it.messageId })
+        assertEquals(2L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+        assertEquals(listOf(2L), dao.getLatestVisibleForAllChats().map { it.messageId })
+        assertEquals(listOf(2L), dao.observeLatestVisibleForAllChats().first().map { it.messageId })
+        // The unread check reads the message before it.
+        assertEquals(1L, dao.getLatestCountable(CHAT_HEX, SELF_RECEIVER)?.messageId)
+        assertEquals(0, unread(pointer = 1))
+        assertNull(dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, 1))
+        assertEquals(1L, dao.newestInboundId(CHAT_HEX, SELF_HEX, SELF_RECEIVER))
+        assertEquals(0, dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, 1).first())
         // The anchors that mark read still see it, so the pointer is never rewound.
         assertEquals(2L, dao.getLatest(CHAT_HEX)?.messageId)
     }
 
+    // Spec case 71: the creator received it, so it counts like any message.
     @Test
-    fun `a cash message without a request id and a request widget are still previewed`() = runTest {
-        dao.upsert(listOf(text(1, "one"), cash(2, paymentRequestId = null)))
-        assertEquals(2L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+    fun `a share payment the viewer received is the preview and is unread`() = runTest {
+        dao.upsert(listOf(text(1, "one"), cash(2, paymentRequestId = "req", receiver = SELF_RECEIVER)))
 
-        dao.upsert(listOf(requestWidget(3)))
-        assertEquals(3L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+        assertEquals(2L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+        assertEquals(2L, dao.getLatestCountable(CHAT_HEX, SELF_RECEIVER)?.messageId)
+        assertEquals(1, unread(pointer = 1))
+        assertEquals(2L, dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, 1))
+        assertEquals(2L, dao.newestInboundId(CHAT_HEX, SELF_HEX, SELF_RECEIVER))
+        assertEquals(1, dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, SELF_RECEIVER, 1).first())
     }
 
     @Test
-    fun `a request share payment is not unread, an arrival or the divider's message`() = runTest {
-        dao.upsert(listOf(from(SELF_HEX, 1), cash(2, paymentRequestId = "req"), cash(3, paymentRequestId = null)))
+    fun `a share payment naming no receiver is not unread`() = runTest {
+        dao.upsert(listOf(text(1, "one"), cash(2, paymentRequestId = "req")))
 
+        assertEquals(2L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+        assertEquals(0, unread(pointer = 1))
+    }
+
+    @Test
+    fun `a receiver id that only starts with the viewer's does not count`() = runTest {
+        dao.upsert(listOf(text(1, "one"), cash(2, paymentRequestId = "req", receiver = SELF_RECEIVER + "x")))
+
+        assertEquals(0, unread(pointer = 1))
+    }
+
+    @Test
+    fun `a cash message without a request id and a request widget are previewed and unread`() = runTest {
+        dao.upsert(listOf(text(1, "one"), cash(2, paymentRequestId = null, receiver = "CreatorBase58")))
+        assertEquals(2L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+        assertEquals(2L, dao.getLatestCountable(CHAT_HEX, SELF_RECEIVER)?.messageId)
         assertEquals(1, unread(pointer = 1))
-        assertEquals(3L, dao.firstNotSentByAfter(CHAT_HEX, SELF_HEX, 1))
-        assertEquals(3L, dao.newestInboundId(CHAT_HEX, SELF_HEX))
-        assertEquals(1, dao.observeInboundCountAfter(CHAT_HEX, SELF_HEX, 1).first())
+
+        dao.upsert(listOf(requestWidget(3)))
+        assertEquals(3L, dao.getLatestVisible(CHAT_HEX)?.messageId)
+        assertEquals(2, unread(pointer = 1))
+    }
+
+    @Test
+    fun `the share payments someone else received are listed between two ids`() = runTest {
+        dao.upsert(
+            listOf(
+                cash(1, paymentRequestId = "req", receiver = "CreatorBase58"),
+                cash(2, paymentRequestId = "req", receiver = "CreatorBase58"),
+                cash(3, paymentRequestId = "req", receiver = SELF_RECEIVER),
+                cash(4, paymentRequestId = null, receiver = "CreatorBase58"),
+                cash(5, paymentRequestId = "req", receiver = "CreatorBase58"),
+                cash(6, paymentRequestId = "req", receiver = "CreatorBase58"),
+            ),
+        )
+
+        // Past 1, through 5: the viewer's own receipt and the plain cash message stay counted.
+        assertEquals(
+            listOf(2L, 5L),
+            dao.getUncountedShareIds(CHAT_HEX, SELF_RECEIVER, afterId = 1, throughId = 5).map { it.messageId }.sorted(),
+        )
     }
 }
