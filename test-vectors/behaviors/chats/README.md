@@ -10,7 +10,7 @@ The chat list.
 | `0202…` | Ava | TIP_DM | 0 | no |
 | `0303…` | Book club | GROUP | 0 | no |
 | `0404…` | Sam | TIP_DM | 1 | no |
-| — | Old crew | GROUP | 2 | yes |
+| `0505…` | Old crew | GROUP | 2 | yes |
 
 Ids repeat their two-digit prefix sixteen times, e.g. `01010101010101010101010101010101`.
 
@@ -51,11 +51,11 @@ Ids repeat their two-digit prefix sixteen times, e.g. `0101010101010101010101010
 Pushed by `ArchivedOpened`, and hosted: a view model of its own over the same seeded chats, so a
 change made here shows on Chats after `Back`.
 
-| State key | Type | Meaning |
+| Key | Type | Means |
 |---|---|---|
 | `loading` | boolean | The archived chats haven't loaded yet. |
 | `chatIds` | string[] | The archived chats, newest first, the order the screen lists them in. |
-| `chats` | object[] | The same chats: `id`, `name`, `unreadCount`. |
+| `chats` | object[] | The same chats: `id`, `name`, `unreadCount`. Android only; see below. |
 
 | Action | Input |
 |---|---|
@@ -80,3 +80,6 @@ muting from a row, and tapping a row in select mode.
   picked (`SelectionStarted` with `chatId`). On iOS a long-press opens the row's context menu, and
   select mode only opens from the More menu with nothing picked. Shared files send
   `SelectionStarted` without `chatId`; Android's `ChatListSelectionTest` covers the row case.
+- **Row details.** The iOS host works on chat ids: rows, names and the Read all state need
+  `Conversation` and `ConversationController`, which live in the app. So Chats' `chats` and
+  `canReadAll`, and the archive's `chats`, are Android only, and no shared file asserts them.
