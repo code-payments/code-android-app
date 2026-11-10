@@ -2,7 +2,7 @@ package com.flipcash.services.models
 
 import com.codeinc.flipcash.gen.intent.v1.Model as FlipcashIntentModel
 import com.flipcash.services.models.chat.ChatId
-import com.getcode.utils.toByteString
+import com.flipcash.services.internal.network.extensions.toByteString
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals

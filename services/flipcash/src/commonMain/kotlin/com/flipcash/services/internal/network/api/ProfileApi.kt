@@ -16,7 +16,7 @@ import com.flipcash.services.models.chat.BlobId
 import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.opencode.model.financial.Fiat
-import com.getcode.utils.toByteString
+import com.flipcash.services.internal.network.extensions.toByteString
 import com.codeinc.flipcash.gen.profile.v1.validate
 import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel

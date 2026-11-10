@@ -8,7 +8,7 @@ import com.flipcash.services.internal.network.extensions.authenticate
 import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.core.GrpcApi
 import com.getcode.solana.keys.Mint
-import com.getcode.utils.toByteString
+import com.flipcash.services.internal.network.extensions.toByteString
 import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers

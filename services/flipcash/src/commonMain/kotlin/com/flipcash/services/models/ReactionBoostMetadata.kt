@@ -6,7 +6,7 @@ import com.flipcash.services.internal.network.extensions.asEmoji
 import com.flipcash.services.internal.network.extensions.asMessageId
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.Emoji
-import com.getcode.utils.toByteString
+import com.flipcash.services.internal.network.extensions.toByteString
 
 /**
  * Builds the serialized Flipcash `AppMetadata` proto bytes for a payment that boosts a reaction

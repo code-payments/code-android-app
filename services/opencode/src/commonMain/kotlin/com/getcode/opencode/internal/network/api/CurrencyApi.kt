@@ -19,7 +19,7 @@ import com.getcode.opencode.model.moderation.ModerationAttestation
 import com.getcode.opencode.model.ui.TokenBillCustomizations
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
-import com.getcode.utils.toByteString
+import com.getcode.opencode.internal.network.extensions.toByteString
 import dev.bmcreations.protovalidate.orThrow
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers

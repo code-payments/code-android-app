@@ -7,7 +7,7 @@ plugins {
 
 @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
 kotlin {
-    // jvmShared: code for both JVM targets (Android and desktop) that needs java.* or protobuf.
+    // jvmShared: code for both JVM targets (Android and desktop) that needs java.*.
     // jvmAndJs: jvmShared plus JS, for the base64 helpers :libs:encryption:keys needs on Node.
     applyDefaultHierarchyTemplate {
         common {
@@ -34,7 +34,6 @@ kotlin {
         }
         getByName("jvmSharedMain") {
             dependencies {
-                implementation(libs.protobuf.kotlin.lite)
                 implementation(project(":libs:encryption:ed25519"))
             }
         }

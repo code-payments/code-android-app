@@ -39,7 +39,7 @@ import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.models.chat.ViewMode
-import com.getcode.utils.toByteString
+import com.flipcash.services.internal.network.extensions.toByteString
 import kotlin.time.Instant
 import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.model.core.ID
