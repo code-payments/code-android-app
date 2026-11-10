@@ -1,5 +1,8 @@
 package com.flipcash.app.puppet.chats
 
+import com.flipcash.app.puppet.FixtureGuard
+import com.flipcash.app.puppet.FixtureViolation
+import com.flipcash.app.puppet.flipcashHost
 import com.flipcash.app.tipping.internal.ChatsViewModel
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.chat.ChatKeySource
@@ -52,7 +55,7 @@ class ChatsPuppetTest {
             override val Main: CoroutineDispatcher = dispatcher
             override val IO: CoroutineDispatcher = dispatcher
         }
-        val host = chatsHost({ ChatListFixture(dispatchers).also(fixtures::add) }) { advanceUntilIdle() }
+        val host = flipcashHost(dispatchers, settle = { advanceUntilIdle() }) { ChatListFixture(dispatchers).also(fixtures::add) }
         return fixtures.first() to { line -> Json.parseToJsonElement(host.handle(line)).jsonObject }
     }
 

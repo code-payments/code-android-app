@@ -1,4 +1,4 @@
-package com.flipcash.app.puppet.chats
+package com.flipcash.app.puppet
 
 import io.grpc.CallOptions
 import io.grpc.MethodDescriptor

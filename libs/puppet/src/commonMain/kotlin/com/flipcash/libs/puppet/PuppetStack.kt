@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 /**
  * The screens a host has pushed on top of its root, in order. A view model's navigation request
  * pushes a node here; the host shows the top one as focused and lends it [Back], which pops it.
- * `launch` clears it.
+ * `launch` clears it. A host has one stack, shared by every route it launches.
  */
 class PuppetStack {
     private val screens = mutableListOf<PuppetNode>()

@@ -94,7 +94,7 @@ Tests for gestures and pointer input replay the sequence a finger makes on the d
 
 ## Headless screens (puppet)
 
-`libs/puppet` and each screen's test sources (Chats: `chat-list`'s `jvmTest`, `ChatsBehaviorTest`) are this repo's host for Puppet, which runs real view models over seeded data with no device and replays the shared behavior files in `test-vectors/behaviors/`. `ChatsPuppetMain` runs the same host as a process for the orchestrator's `puppet` CLI (`:apps:flipcash:features:chat-list:puppetLauncher` writes its launcher). The protocol, CLI and canonical behavior files live in the orchestrator repo; `/puppet` points to its skill. A change to a screen with a host (Chats today) also has to pass `scripts/puppet/puppet test android` there.
+`:apps:flipcash:puppet` is this repo's host for Puppet: one JVM process for the app that runs real view models over seeded data with no device. `FlipcashPuppet` maps each hosted route (`/tab/chats` today) to the screen that serves it, and `libs/puppet` holds the protocol loop and the shared stack. `ChatsBehaviorTest` replays the shared behavior files in `test-vectors/behaviors/` through the same host, and `:apps:flipcash:puppet:puppetLauncher` writes the launcher the orchestrator's `puppet` CLI runs. To host another screen, add its route to `FlipcashPuppet`, not a new process. The protocol, CLI and canonical behavior files live in the orchestrator repo; `/puppet` points to its skill. A change to a hosted screen (Chats today) also has to pass `scripts/puppet/puppet test android` there.
 
 ## Namespaces
 

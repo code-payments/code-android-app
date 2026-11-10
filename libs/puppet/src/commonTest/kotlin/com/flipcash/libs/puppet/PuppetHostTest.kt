@@ -27,17 +27,21 @@ class PuppetHostTest {
 
     private var size = Size.Small
 
-    private val host = PuppetHost(
-        root = {
-            PuppetNode(
-                name = "Box",
-                state = { JsonObject(mapOf("size" to JsonPrimitive(size.name))) },
-                actions = listOf(
-                    PuppetAction(Resize.serializer()) { size = it.size },
-                    PuppetAction(Reset.serializer()) { size = Size.Small },
-                ),
-            )
-        },
+    private fun single(session: PuppetSession) = PuppetHost(mapOf("/box" to { _ -> session }))
+
+    private val host = single(
+        PuppetSession(
+            root = {
+                PuppetNode(
+                    name = "Box",
+                    state = { JsonObject(mapOf("size" to JsonPrimitive(size.name))) },
+                    actions = listOf(
+                        PuppetAction(Resize.serializer()) { size = it.size },
+                        PuppetAction(Reset.serializer()) { size = Size.Small },
+                    ),
+                )
+            },
+        ),
     )
 
     private suspend fun send(line: String): JsonObject = Json.parseToJsonElement(host.handle(line)).jsonObject
@@ -98,45 +102,60 @@ class PuppetHostTest {
     }
 
     @Test
-    fun `reset runs the host's reset and returns the focused node`() = runTest {
-        var resets = 0
+    fun `reset relaunches the first route and returns the focused node`() = runTest {
+        var starts = 0
+        var closes = 0
         val resettable = PuppetHost(
-            root = { PuppetNode("Box", { JsonObject(mapOf("size" to JsonPrimitive(size.name))) }, emptyList()) },
-            reset = { resets++; size = Size.Small },
+            mapOf(
+                "/box" to { _ ->
+                    starts++
+                    size = Size.Small
+                    PuppetSession(
+                        root = { PuppetNode("Box", { JsonObject(mapOf("size" to JsonPrimitive(size.name))) }, emptyList()) },
+                        close = { closes++ },
+                    )
+                },
+            ),
         )
         size = Size.Large
         val response = Json.parseToJsonElement(resettable.handle("""{"cmd":"reset"}""")).jsonObject
-        assertEquals(1, resets)
+        assertEquals(2, starts)
+        assertEquals(1, closes)
         assertEquals("Small", response["node"]!!.jsonObject["state"]!!.jsonObject["size"]!!.jsonPrimitive.content)
     }
 
     @Test
-    fun `reset on a host without one is bad_request`() = runTest {
-        assertEquals("bad_request", send("""{"cmd":"reset"}""")["error"]!!.jsonObject["code"]!!.jsonPrimitive.content)
-    }
-
-    @Test
     fun `a fixture guard violation turns the response into an error`() = runTest {
-        val guarded = PuppetHost(root = { PuppetNode("Box", { JsonObject(emptyMap()) }, emptyList()) }, violations = { listOf("network: ChatRepository.getChat") })
+        val guarded = PuppetHost(
+            mapOf("/box" to { _ -> PuppetSession(root = { PuppetNode("Box", { JsonObject(emptyMap()) }, emptyList()) }, violations = { listOf("network: ChatRepository.getChat") }) }),
+            violations = { listOf("network: chat.example") },
+        )
         val error = Json.parseToJsonElement(guarded.handle("""{"cmd":"ls"}""")).jsonObject["error"]!!.jsonObject
         assertEquals("fixture_violation", error["code"]!!.jsonPrimitive.content)
-        assertEquals(listOf("network: ChatRepository.getChat"), error["calls"]!!.jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(listOf("network: ChatRepository.getChat", "network: chat.example"), error["calls"]!!.jsonArray.map { it.jsonPrimitive.content })
     }
 
+    /** Two routes: a list that pushes a detail screen, and a settings screen. */
     private class Navigating {
-        val stack = PuppetStack()
-        var resets = 0
+        var listStarts = 0
+        var closes = 0
         val host = PuppetHost(
-            root = {
-                PuppetNode(
-                    name = "List",
-                    state = { JsonObject(emptyMap()) },
-                    actions = listOf(PuppetAction(Reset.serializer()) { stack.push(PuppetNode("Detail", { JsonObject(mapOf("id" to JsonPrimitive("7"))) }, emptyList())) }),
-                )
-            },
-            stack = stack,
-            launchRoutes = setOf("/tab/list"),
-            reset = { resets++ },
+            mapOf(
+                "/tab/list" to { stack ->
+                    listStarts++
+                    PuppetSession(
+                        root = {
+                            PuppetNode(
+                                name = "List",
+                                state = { JsonObject(emptyMap()) },
+                                actions = listOf(PuppetAction(Reset.serializer()) { stack.push(PuppetNode("Detail", { JsonObject(mapOf("id" to JsonPrimitive("7"))) }, emptyList())) }),
+                            )
+                        },
+                        close = { closes++ },
+                    )
+                },
+                "/tab/settings" to { _ -> PuppetSession(root = { PuppetNode("Settings", { JsonObject(emptyMap()) }, emptyList()) }, close = { closes++ }) },
+            ),
         )
 
         suspend fun send(line: String): JsonObject = Json.parseToJsonElement(host.handle(line)).jsonObject
@@ -165,14 +184,22 @@ class PuppetHostTest {
     }
 
     @Test
-    fun `launch resets, clears the stack and accepts only the hosted route`() = runTest {
+    fun `launch starts the route's session, closes the last one and clears the stack`() = runTest {
         val nav = Navigating()
         nav.send("""{"cmd":"do","action":"Reset"}""")
-        val launched = nav.send("""{"cmd":"launch","route":"/tab/list"}""")
-        assertEquals(listOf("List"), launched.path())
-        assertEquals(1, nav.resets)
+        assertEquals(listOf("List"), nav.send("""{"cmd":"launch","route":"/tab/list"}""").path())
+        assertEquals(2, nav.listStarts)
+        assertEquals(listOf("Settings"), nav.send("""{"cmd":"launch","route":"/tab/settings"}""").path())
         assertEquals(listOf("List"), nav.send("""{"cmd":"launch"}""").path())
+        assertEquals(3, nav.closes)
+    }
+
+    @Test
+    fun `launch of a route the host doesn't serve is bad_input and keeps the session`() = runTest {
+        val nav = Navigating()
+        nav.send("""{"cmd":"do","action":"Reset"}""")
         assertEquals("bad_input", nav.send("""{"cmd":"launch","route":"/tab/elsewhere"}""").errorCode())
-        assertEquals(2, nav.resets)
+        assertEquals(0, nav.closes)
+        assertEquals(listOf("List", "Detail"), nav.send("""{"cmd":"ls"}""").path())
     }
 }

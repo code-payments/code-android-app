@@ -1,5 +1,6 @@
 package com.flipcash.app.puppet.chats
 
+import com.flipcash.app.puppet.flipcashHost
 import com.flipcash.libs.coroutines.DispatcherProvider
 import java.io.File
 import kotlinx.coroutines.CoroutineDispatcher
@@ -25,8 +26,9 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
- * Replays the shared behavior files for the Chats screen (`test-vectors/behaviors/chats/`) against
- * the real view model over the seeded fixture. The iOS app runs the same files against its own
+ * Replays the shared behavior files for the Chats screen (`test-vectors/behaviors/chats/`) through
+ * the app host, the same `handle()` the CLI's process calls, against the real view model over the
+ * seeded fixture. The iOS app runs the same files against its own
  * view model, so a field or decision that drifts fails on whichever side changed.
  *
  * Each file starts from the seed. A step sends `ls` or `do` through the Puppet protocol and checks
@@ -55,7 +57,6 @@ class ChatsBehaviorTest {
     private fun replay(file: File): List<String> {
         val spec = Json.parseToJsonElement(file.readText()).jsonObject
         val failures = mutableListOf<String>()
-        val fixtures = mutableListOf<ChatListFixture>()
         runTest(main) {
             val dispatcher = UnconfinedTestDispatcher(testScheduler)
             val dispatchers = object : DispatcherProvider {
@@ -63,7 +64,7 @@ class ChatsBehaviorTest {
                 override val Main: CoroutineDispatcher = dispatcher
                 override val IO: CoroutineDispatcher = dispatcher
             }
-            val host = chatsHost({ ChatListFixture(dispatchers).also(fixtures::add) }) { advanceUntilIdle() }
+            val host = flipcashHost(dispatchers, settle = { advanceUntilIdle() })
             val launch = buildJsonObject {
                 put("cmd", "launch")
                 spec["route"]?.let { put("route", it) }
@@ -73,7 +74,7 @@ class ChatsBehaviorTest {
             when {
                 !launched.getValue("ok").jsonPrimitive.boolean -> {
                     failures += "launch: ${launched["error"]}"
-                    fixtures.forEach(ChatListFixture::close)
+                    host.close()
                     return@runTest
                 }
                 screen != null && launched.getValue("node").jsonObject.getValue("name").jsonPrimitive.content != screen ->
@@ -93,7 +94,7 @@ class ChatsBehaviorTest {
                     }
                     !ok -> {
                         failures += "$label: ${error?.get("code")}: ${error?.get("message")}"
-                        fixtures.forEach(ChatListFixture::close)
+                        host.close()
                         return@runTest
                     }
                     else -> {
@@ -106,7 +107,7 @@ class ChatsBehaviorTest {
                     }
                 }
             }
-            fixtures.forEach(ChatListFixture::close)
+            host.close()
         }
         return failures
     }

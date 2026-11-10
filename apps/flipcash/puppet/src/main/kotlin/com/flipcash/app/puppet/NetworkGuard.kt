@@ -1,4 +1,4 @@
-package com.flipcash.app.puppet.chats
+package com.flipcash.app.puppet
 
 import java.io.IOException
 import java.net.Proxy
@@ -11,7 +11,7 @@ import java.net.URI
  *
  * OkHttp and grpc-okhttp both ask before they connect, so this catches a client the fixture
  * didn't replace, which [FixtureGuard] can't see. Raw sockets (ktor's `aSocket`, used by device
- * link) don't ask and get past it; the Chats host builds none.
+ * link) don't ask and get past it; the hosted screens build none.
  *
  * The selector is process-wide. [install] is idempotent, and attempts are reported through the
  * host's `violations` as a `fixture_violation`, like [FixtureGuard]'s.

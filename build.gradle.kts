@@ -89,8 +89,6 @@ tasks.register("flipcashTestDebug") {
     dependsOn(androidUnitTestModules.map { "$it:testDebugUnitTest" })
     dependsOn(jvmUnitTestModules.map { "$it:test" })
     dependsOn(kmpUnitTestModules.map { "$it:testAndroidHostTest" })
-    // Puppet: chat-list replays the shared Chats behavior files on the JVM (ChatsBehaviorTest).
-    dependsOn(":apps:flipcash:features:chat-list:jvmTest")
     // build-logic's own tests, which cover the analytics catalogue generator.
     dependsOn(gradle.includedBuild("build-logic").task(":convention:test"))
     // EVENTS.md is generated from events.toml but checked in; fail when someone edits one alone.

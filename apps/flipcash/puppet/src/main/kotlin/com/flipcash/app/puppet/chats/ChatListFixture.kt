@@ -1,5 +1,6 @@
 package com.flipcash.app.puppet.chats
 
+import com.flipcash.app.puppet.FixtureGuard
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.core.storage.DirectoryPreferencesFiles
 import com.flipcash.app.persistence.sources.PaymentRequestDataSource

@@ -21,15 +21,28 @@ internal object PuppetJson {
 }
 
 /**
- * Answers the Puppet line protocol for the screen tree under [root]. One request per line, one
- * response per line:
+ * What a launched route runs until the next `launch`: its root screen and the hooks the host calls
+ * around each request. [settle] runs after each action and before each listing, so the state
+ * reflects the work the action started. [violations] returns the calls the route's fixture guard
+ * caught since the last request. [close] runs when another `launch` replaces the session.
+ */
+class PuppetSession(
+    val root: () -> PuppetNode,
+    val settle: suspend () -> Unit = {},
+    val violations: () -> List<String> = { emptyList() },
+    val close: () -> Unit = {},
+)
+
+/**
+ * Answers the Puppet line protocol for one app: every screen it hosts, keyed by route. One request
+ * per line, one response per line:
  *
  * - `{"cmd":"ls"}` returns the focused screen.
- * - `{"cmd":"launch","route":"/tab/chats"}` runs [reset], which re-seeds the fixture, clears [stack]
- *   and returns the focused screen. A runner uses it to reuse one host for many behavior files.
- *   `route` may be left out; a route outside [launchRoutes] is `bad_input`.
- * - `{"cmd":"reset"}` is `launch` without a route, kept for runners that predate it. Without
- *   [reset] it is a bad request.
+ * - `{"cmd":"launch","route":"/tab/chats"}` closes the current session, empties [stack] and starts
+ *   the route's session from [routes], then returns the focused screen. A runner uses it to reuse
+ *   one host for many behavior files. `route` may be left out for the first route; a route not in
+ *   [routes] is `bad_input`.
+ * - `{"cmd":"reset"}` is `launch` without a route, kept for runners that predate it.
  * - `{"cmd":"do","action":"<name>","input":{...}}` sends an action to the focused screen and returns
  *   the focused screen after it. `input` may be left out for an action that takes none.
  *
@@ -38,23 +51,30 @@ internal object PuppetJson {
  * `"error"` with a `code` (`bad_request`, `unknown_action`, `bad_input`, `fixture_violation`) and a
  * `message`; `unknown_action` also lists the focused screen's actions.
  *
- * [settle] runs after each action and before each listing, so the state reflects the work the
- * action started. [violations] returns the calls the host's fixture guard caught since the last
- * request (a repository call is a network attempt); any entry turns the response into a
- * `fixture_violation` error listing them under `calls`.
+ * Calls caught by the session's guard or by the app-wide [violations] (such as blocked network
+ * connections) turn the response into a `fixture_violation` error listing them under `calls`.
  *
- * Screens a view model navigates to are pushed onto [stack]. They follow the root's own [PuppetNode.child]
- * chain in `path`, the top one is focused, and the host adds `Back` to its actions.
+ * A session's view models push the screens they navigate to onto [stack], which it receives when it
+ * starts. They follow the root's own [PuppetNode.child] chain in `path`, the top one is focused, and
+ * the host adds `Back` to its actions.
+ *
+ * The first session starts when the host is built.
  */
 class PuppetHost(
-    private val root: () -> PuppetNode,
-    private val settle: suspend () -> Unit = {},
+    private val routes: Map<String, (PuppetStack) -> PuppetSession>,
     private val violations: () -> List<String> = { emptyList() },
-    private val reset: (suspend () -> Unit)? = null,
-    private val stack: PuppetStack? = null,
-    private val launchRoutes: Set<String> = emptySet(),
 ) {
-    private val back = PuppetAction(Back.serializer()) { stack?.pop() }
+    init {
+        require(routes.isNotEmpty()) { "A Puppet host needs at least one route" }
+    }
+
+    private val stack = PuppetStack()
+    private var session: PuppetSession = routes.values.first()(stack)
+
+    private val back = PuppetAction(Back.serializer()) { stack.pop() }
+
+    /** Closes the current session, for a caller that is done with the host. */
+    fun close() = session.close()
 
     suspend fun handle(line: String): String = PuppetJson.output.encodeToString(JsonObject.serializer(), respond(line))
 
@@ -68,11 +88,11 @@ class PuppetHost(
         val response = when (request.string("cmd")) {
             "ls" -> focusedResponse()
             "do" -> perform(request)
-            "launch" -> launch(request)
-            "reset" -> reset?.let { it(); stack?.clear(); focusedResponse() } ?: error("bad_request", "This host can't reset")
+            "launch" -> launch(request.string("route"))
+            "reset" -> launch(null)
             else -> error("bad_request", "Unknown cmd ${request["cmd"]}; expected \"ls\", \"do\", \"launch\" or \"reset\"")
         }
-        val caught = violations()
+        val caught = session.violations() + violations()
         if (caught.isNotEmpty()) {
             return error("fixture_violation", "The screen reached past its fixture: ${caught.joinToString()}") {
                 putJsonArray("calls") { caught.forEach { add(it) } }
@@ -81,13 +101,12 @@ class PuppetHost(
         return response
     }
 
-    private suspend fun launch(request: JsonObject): JsonObject {
-        val route = request.string("route")
-        if (route != null && route !in launchRoutes) {
-            return error("bad_input", "This host launches only ${launchRoutes.joinToString()}, not $route")
-        }
-        reset?.invoke()
-        stack?.clear()
+    private suspend fun launch(route: String?): JsonObject {
+        val start = routes[route ?: routes.keys.first()]
+            ?: return error("bad_input", "This host launches ${routes.keys.joinToString()}, not $route")
+        session.close()
+        stack.clear()
+        session = start(stack)
         return focusedResponse()
     }
 
@@ -117,7 +136,7 @@ class PuppetHost(
     }
 
     private suspend fun focusedResponse(): JsonObject {
-        settle()
+        session.settle()
         val path = screens()
         val node = path.last()
         val actions = actionsOf(node)
@@ -139,11 +158,11 @@ class PuppetHost(
         }
     }
 
-    private fun screens(): List<PuppetNode> = generateSequence(root()) { it.child() }.toList() + stack?.pushed.orEmpty()
+    private fun screens(): List<PuppetNode> = generateSequence(session.root()) { it.child() }.toList() + stack.pushed
 
     // Back is lent only while the stack has a screen; the root chain has nowhere to go back to.
     private fun actionsOf(node: PuppetNode): List<PuppetAction<*>> =
-        if (stack?.pushed.orEmpty().isNotEmpty()) node.actions + back else node.actions
+        if (stack.pushed.isNotEmpty()) node.actions + back else node.actions
 
     private fun error(
         code: String,

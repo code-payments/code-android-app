@@ -16,15 +16,16 @@ this checkout sits in (`..` from a main checkout). Read and follow
 
 This repo holds the Android side:
 
-- `libs/puppet/`: the request/response loop (`PuppetHost`), platform-neutral.
-- Chats' host is test code in `:apps:flipcash:features:chat-list`'s `jvmTest`
-  (`com.flipcash.app.puppet.chats`): the seeded fixture and guard, the node, and
-  `ChatsBehaviorTest`, which replays `test-vectors/behaviors/chats/` (a synced copy).
-  `-Ppuppet.behaviors=<dir or file>` points it at other files.
-- `flipcashTestDebug` runs that `jvmTest`, so CI replays the behavior files.
+- `libs/puppet/`: the request/response loop (`PuppetHost`) and the shared stack, platform-neutral.
+- `:apps:flipcash:puppet`: the app host, one JVM process. `FlipcashPuppet` maps each hosted
+  route (`/tab/chats` today) to its screen; `chats/` holds the seeded fixture and the Chats node,
+  and `ChatsBehaviorTest` replays `test-vectors/behaviors/chats/` (a synced copy).
+  `-Ppuppet.behaviors=<dir or file>` points it at other files. A new hosted screen is a new
+  route here, not a new process.
+- `flipcashTestDebug` runs that module's `test`, so CI replays the behavior files.
 
 From a worktree, set `PUPPET_ANDROID_ROOT` to this checkout's root; otherwise the orchestrator's
 `scripts/puppet/puppet` uses the sibling `code-android-app/`.
 
-A change to a screen with a host (Chats) is done when `scripts/puppet/puppet test android` passes
+A change to a hosted screen (Chats) is done when `scripts/puppet/puppet test android` passes
 against this checkout and `sync --check` is clean.

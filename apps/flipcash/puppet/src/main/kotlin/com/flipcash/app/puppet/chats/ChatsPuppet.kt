@@ -7,7 +7,7 @@ import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.tipping.internal.ChatsViewModel
 import com.flipcash.app.tipping.internal.ChatsViewModel.Event
 import com.flipcash.libs.puppet.PuppetAction
-import com.flipcash.libs.puppet.PuppetHost
+import com.flipcash.libs.puppet.PuppetSession
 import com.flipcash.libs.puppet.PuppetNode
 import com.flipcash.libs.puppet.PuppetStack
 import com.flipcash.services.models.chat.ChatId
@@ -109,39 +109,28 @@ internal fun chatsState(state: ChatsViewModel.State): JsonElement {
 }
 
 /**
- * The Puppet host over a Chats fixture from [newFixture]. `launch` (or `reset`) closes the current
- * fixture, builds a fresh one and empties the stack. Each `OpenScreen` the view model emits pushes
- * that route's node, standing in for the screen's `navigator.push`; the collector runs on the view
- * model's scope, so closing the fixture stops it. [settle] runs before each response; tests pass `advanceUntilIdle`, so the
- * view model's work has landed without a wall-clock wait.
+ * The Chats tab as a session of the app host, over [fixture]. Each `OpenScreen` the view model
+ * emits pushes that route's node onto [stack], standing in for the screen's `navigator.push`; the
+ * collector runs on the view model's scope, so closing the fixture stops it. [settle] runs before
+ * each response; tests pass `advanceUntilIdle`, so the view model's work has landed without a
+ * wall-clock wait.
  */
-fun chatsHost(
-    newFixture: () -> ChatListFixture,
-    settle: suspend (ChatListFixture) -> Unit,
-): PuppetHost {
-    NetworkGuard.install()
-    val stack = PuppetStack()
-    // A session never inherits blocked calls from an earlier one in the same JVM.
-    fun start(): ChatListFixture = newFixture().also { fixture ->
-        NetworkGuard.drain()
-        fixture.viewModel.eventFlow
-            .filterIsInstance<Event.OpenScreen>()
-            .onEach { stack.push(routeNode(it.screen)) }
-            .launchIn(fixture.viewModel.viewModelScope)
-    }
-    var fixture = start()
-    return PuppetHost(
+fun chatsSession(
+    stack: PuppetStack,
+    fixture: ChatListFixture,
+    settle: suspend () -> Unit,
+): PuppetSession {
+    fixture.viewModel.eventFlow
+        .filterIsInstance<Event.OpenScreen>()
+        .onEach { stack.push(routeNode(it.screen)) }
+        .launchIn(fixture.viewModel.viewModelScope)
+    return PuppetSession(
         root = { chatsNode(fixture.viewModel) },
-        settle = { settle(fixture) },
-        violations = { fixture.guard.drain() + NetworkGuard.drain() },
-        reset = {
-            fixture.close()
-            fixture = start()
-        },
-        stack = stack,
-        launchRoutes = setOf(CHATS_ROUTE),
+        settle = settle,
+        violations = fixture.guard::drain,
+        close = fixture::close,
     )
 }
 
-/** The Chats tab in both apps' deep-link form, the only route this host launches. */
+/** The Chats tab in both apps' deep-link form. */
 const val CHATS_ROUTE = "/tab/chats"
