@@ -104,6 +104,14 @@ dependencyResolutionManagement {
             }
         }
         maven(url = "https://central.sonatype.com/repository/maven-snapshots/")
+        // Node.js for Kotlin/JS (`flipcash.kmp.js`). KGP adds this repository to the project, which
+        // PREFER_SETTINGS ignores, so it is declared here.
+        ivy(url = "https://nodejs.org/dist") {
+            name = "Node.js distributions"
+            patternLayout { artifact("v[revision]/[artifact](-v[revision]-[classifier]).[ext]") }
+            metadataSources { artifact() }
+            content { includeModule("org.nodejs", "node") }
+        }
     }
 }
 
