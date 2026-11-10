@@ -27,7 +27,7 @@ class PuppetHostTest {
 
     private var size = Size.Small
 
-    private fun single(session: PuppetSession) = PuppetHost(mapOf("/box" to { _ -> session }))
+    private fun single(session: PuppetSession) = PuppetHost(mapOf("/box" to { _, _ -> session }))
 
     private val host = single(
         PuppetSession(
@@ -107,7 +107,7 @@ class PuppetHostTest {
         var closes = 0
         val resettable = PuppetHost(
             mapOf(
-                "/box" to { _ ->
+                "/box" to { _, _ ->
                     starts++
                     size = Size.Small
                     PuppetSession(
@@ -127,7 +127,7 @@ class PuppetHostTest {
     @Test
     fun `a fixture guard violation turns the response into an error`() = runTest {
         val guarded = PuppetHost(
-            mapOf("/box" to { _ -> PuppetSession(root = { PuppetNode("Box", { JsonObject(emptyMap()) }, emptyList()) }, violations = { listOf("network: ChatRepository.getChat") }) }),
+            mapOf("/box" to { _, _ -> PuppetSession(root = { PuppetNode("Box", { JsonObject(emptyMap()) }, emptyList()) }, violations = { listOf("network: ChatRepository.getChat") }) }),
             violations = { listOf("network: chat.example") },
         )
         val error = Json.parseToJsonElement(guarded.handle("""{"cmd":"ls"}""")).jsonObject["error"]!!.jsonObject
@@ -141,7 +141,7 @@ class PuppetHostTest {
         var closes = 0
         val host = PuppetHost(
             mapOf(
-                "/tab/list" to { stack ->
+                "/tab/list" to { stack, _ ->
                     listStarts++
                     PuppetSession(
                         root = {
@@ -154,7 +154,7 @@ class PuppetHostTest {
                         close = { closes++ },
                     )
                 },
-                "/tab/settings" to { _ -> PuppetSession(root = { PuppetNode("Settings", { JsonObject(emptyMap()) }, emptyList()) }, close = { closes++ }) },
+                "/tab/settings" to { _, _ -> PuppetSession(root = { PuppetNode("Settings", { JsonObject(emptyMap()) }, emptyList()) }, close = { closes++ }) },
             ),
         )
 
@@ -201,5 +201,34 @@ class PuppetHostTest {
         assertEquals("bad_input", nav.send("""{"cmd":"launch","route":"/tab/elsewhere"}""").errorCode())
         assertEquals(0, nav.closes)
         assertEquals(listOf("List", "Detail"), nav.send("""{"cmd":"ls"}""").path())
+    }
+
+    /** A host whose one route shows the seed it was launched with. */
+    private fun seeded(): PuppetHost = PuppetHost(
+        routes = mapOf(
+            "/box" to { _, seed -> PuppetSession(root = { PuppetNode("Box", { JsonObject(mapOf("seed" to JsonPrimitive(seed))) }, emptyList()) }) },
+        ),
+        seeds = listOf("default", "full"),
+    )
+
+    private suspend fun PuppetHost.seedShown(line: String): String =
+        Json.parseToJsonElement(handle(line)).jsonObject["node"]!!.jsonObject["state"]!!.jsonObject["seed"]!!.jsonPrimitive.content
+
+    @Test
+    fun `launch passes its seed to the route, and the first seed when it names none`() = runTest {
+        val host = seeded()
+        assertEquals("full", host.seedShown("""{"cmd":"launch","seed":"full"}"""))
+        assertEquals("default", host.seedShown("""{"cmd":"launch"}"""))
+        assertEquals("full", host.seedShown("""{"cmd":"launch","route":"/box","seed":"full"}"""))
+        assertEquals("default", host.seedShown("""{"cmd":"reset"}"""))
+    }
+
+    @Test
+    fun `launch of a seed the host doesn't have is bad_input, and a non-string seed is bad_request`() = runTest {
+        val host = seeded()
+        host.handle("""{"cmd":"launch","seed":"full"}""")
+        assertEquals("bad_input", Json.parseToJsonElement(host.handle("""{"cmd":"launch","seed":"empty"}""")).jsonObject.errorCode())
+        assertEquals("bad_request", Json.parseToJsonElement(host.handle("""{"cmd":"launch","seed":3}""")).jsonObject.errorCode())
+        assertEquals("full", host.seedShown("""{"cmd":"ls"}"""))
     }
 }

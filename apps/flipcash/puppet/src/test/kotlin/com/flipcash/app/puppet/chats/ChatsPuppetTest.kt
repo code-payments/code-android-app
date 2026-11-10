@@ -55,7 +55,7 @@ class ChatsPuppetTest {
             override val Main: CoroutineDispatcher = dispatcher
             override val IO: CoroutineDispatcher = dispatcher
         }
-        val host = flipcashHost(dispatchers, settle = { advanceUntilIdle() }) { ChatListFixture(dispatchers).also(fixtures::add) }
+        val host = flipcashHost(dispatchers, settle = { advanceUntilIdle() }) { ChatListFixture(dispatchers, balances = it).also(fixtures::add) }
         return fixtures.first() to { line -> Json.parseToJsonElement(host.handle(line)).jsonObject }
     }
 

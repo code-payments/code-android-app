@@ -81,6 +81,8 @@ import kotlin.time.Instant
 class ChatListFixture(
     private val dispatchers: DispatcherProvider,
     seed: ChatFeeds = defaultSeed,
+    /** The account's balances as New Chat reads them; [dollarsOnly] unless a launch seeds others. */
+    val balances: List<TokenWithBalance> = dollarsOnly,
     val guard: FixtureGuard = FixtureGuard(),
     private val dataDir: File = Files.createTempDirectory("puppet-chats").toFile(),
 ) {
@@ -199,11 +201,6 @@ class ChatListFixture(
         rowActions = rowActions,
     ).also { store.put("archived-${archivedOpened++}", it) }
 
-    /**
-     * The account's balances as New Chat reads them: $25 of dollars and no community currency, so
-     * the community row's gate depends on the app leaving dollars out.
-     */
-    val balances: List<TokenWithBalance> = listOf(TokenWithBalance(dollarsToken(), Fiat(25.0)))
     private var newChatOpened = 0
 
     /** A new New Chat screen's view model, as each push of the New Chat route builds one. */
@@ -220,6 +217,15 @@ class ChatListFixture(
 
     companion object {
         val selfId: ID = List(32) { 1 }
+
+        /**
+         * The default seed's balances: $25 of dollars and no community currency, so the community
+         * row's gate depends on the app leaving dollars out.
+         */
+        val dollarsOnly: List<TokenWithBalance> = listOf(TokenWithBalance(dollarsToken(), Fiat(25.0)))
+
+        /** The `community-holder` seed's balances: [dollarsOnly] and $5 of one community currency. */
+        val holdingCommunity: List<TokenWithBalance> = dollarsOnly + TokenWithBalance(communityToken(), Fiat(5.0))
 
         fun chatId(n: Int) = ChatId(ByteArray(16) { n.toByte() })
 
@@ -272,11 +278,15 @@ class ChatListFixture(
 }
 
 // Built by hand: `Token.usdf` derives its VM account, and the fixture needs only the address.
-private fun dollarsToken() = MintMetadata(
-    address = Mint.usdf,
+private fun dollarsToken() = token(Mint.usdf, "USDF")
+
+private fun communityToken() = token(Mint(ByteArray(32) { 7 }.toList()), "PUPPET")
+
+private fun token(address: Mint, symbol: String) = MintMetadata(
+    address = address,
     decimals = 6,
-    name = "USDF",
-    symbol = "USDF",
+    name = symbol,
+    symbol = symbol,
     createdAt = null,
     description = "",
     imageUrl = "",

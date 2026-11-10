@@ -38,11 +38,12 @@ class PuppetSession(
  * per line, one response per line:
  *
  * - `{"cmd":"ls"}` returns the focused screen.
- * - `{"cmd":"launch","route":"/tab/chats"}` closes the current session, empties [stack] and starts
- *   the route's session from [routes], then returns the focused screen. A runner uses it to reuse
- *   one host for many behavior files. `route` may be left out for the first route; a route not in
- *   [routes] is `bad_input`.
- * - `{"cmd":"reset"}` is `launch` without a route, kept for runners that predate it.
+ * - `{"cmd":"launch","route":"/tab/chats","seed":"default"}` closes the current session, empties
+ *   [stack] and starts the route's session from [routes] over the named seed, then returns the
+ *   focused screen. A runner uses it to reuse one host for many behavior files. `route` may be left
+ *   out for the first route and `seed` for the first of [seeds]; a route not in [routes] or a seed
+ *   not in [seeds] is `bad_input`.
+ * - `{"cmd":"reset"}` is `launch` without a route or seed, kept for runners that predate it.
  * - `{"cmd":"do","action":"<name>","input":{...}}` sends an action to the focused screen and returns
  *   the focused screen after it. `input` may be left out for an action that takes none.
  *
@@ -58,18 +59,23 @@ class PuppetSession(
  * starts. They follow the root's own [PuppetNode.child] chain in `path`, the top one is focused, and
  * the host adds `Back` to its actions.
  *
- * The first session starts when the host is built.
+ * A route's factory receives the seed by name and builds its fixture from it. Each launch names its
+ * own seed, so one never carries into the next.
+ *
+ * The first session starts, over the first seed, when the host is built.
  */
 class PuppetHost(
-    private val routes: Map<String, (PuppetStack) -> PuppetSession>,
+    private val routes: Map<String, (stack: PuppetStack, seed: String) -> PuppetSession>,
     private val violations: () -> List<String> = { emptyList() },
+    private val seeds: List<String> = listOf(DEFAULT_SEED),
 ) {
     init {
         require(routes.isNotEmpty()) { "A Puppet host needs at least one route" }
+        require(seeds.isNotEmpty()) { "A Puppet host needs at least one seed" }
     }
 
     private val stack = PuppetStack()
-    private var session: PuppetSession = routes.values.first()(stack)
+    private var session: PuppetSession = routes.values.first()(stack, seeds.first())
 
     private val back = PuppetAction(Back.serializer()) { stack.pop() }
 
@@ -88,8 +94,12 @@ class PuppetHost(
         val response = when (request.string("cmd")) {
             "ls" -> focusedResponse()
             "do" -> perform(request)
-            "launch" -> launch(request.string("route"))
-            "reset" -> launch(null)
+            "launch" -> when {
+                request["seed"].let { it != null && it !is JsonNull && request.string("seed") == null } ->
+                    error("bad_request", "\"seed\" must be a string")
+                else -> launch(request.string("route"), request.string("seed"))
+            }
+            "reset" -> launch(null, null)
             else -> error("bad_request", "Unknown cmd ${request["cmd"]}; expected \"ls\", \"do\", \"launch\" or \"reset\"")
         }
         val caught = session.violations() + violations()
@@ -101,12 +111,15 @@ class PuppetHost(
         return response
     }
 
-    private suspend fun launch(route: String?): JsonObject {
+    private suspend fun launch(route: String?, seed: String?): JsonObject {
         val start = routes[route ?: routes.keys.first()]
             ?: return error("bad_input", "This host launches ${routes.keys.joinToString()}, not $route")
+        if (seed != null && seed !in seeds) {
+            return error("bad_input", "This host seeds ${seeds.joinToString()}, not $seed")
+        }
         session.close()
         stack.clear()
-        session = start(stack)
+        session = start(stack, seed ?: seeds.first())
         return focusedResponse()
     }
 
@@ -179,3 +192,6 @@ class PuppetHost(
 
     private fun JsonObject.string(key: String): String? = (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
 }
+
+/** The seed a host launches when a request names none, for a host that has only one. */
+const val DEFAULT_SEED = "default"

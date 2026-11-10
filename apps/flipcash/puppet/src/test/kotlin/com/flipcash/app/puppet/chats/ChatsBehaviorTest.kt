@@ -68,6 +68,7 @@ class ChatsBehaviorTest {
             val launch = buildJsonObject {
                 put("cmd", "launch")
                 spec["route"]?.let { put("route", it) }
+                spec["seed"]?.let { put("seed", it) }
             }
             val launched = Json.parseToJsonElement(host.handle(launch.toString())).jsonObject
             val screen = spec["screen"]?.jsonPrimitive?.content
