@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.flipcash.kmp.apple)
     alias(libs.plugins.flipcash.kmp.js)
 }
 
@@ -24,9 +25,6 @@ kotlin {
     }
 
     sourceSets {
-        commonMain.dependencies {
-            implementation(libs.androidx.annotation)
-        }
         getByName("jvmSharedMain").dependencies {
             implementation(project(":libs:messaging"))
         }

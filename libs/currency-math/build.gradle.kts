@@ -1,7 +1,10 @@
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest
 
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.flipcash.kmp.apple)
     alias(libs.plugins.flipcash.kmp.js)
     alias(libs.plugins.flipcash.kmp.test.fixtures)
 }
@@ -22,6 +25,11 @@ kotlin {
             group("jvmShared") {
                 withJvm()
                 withCompilations { it.platformType == KotlinPlatformType.androidJvm }
+            }
+            // nonJvm: Node and Apple, where the decimal type is CommonBigDecimal.
+            group("nonJvm") {
+                withJs()
+                withApple()
             }
         }
     }
@@ -53,6 +61,9 @@ kotlin {
             implementation(libs.junit)
             implementation(libs.androidx.test.runner)
         }
+        appleMain.dependencies {
+            implementation(libs.ionspin.bignum)
+        }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
@@ -75,4 +86,12 @@ val generateCurveTables by tasks.registering(GenerateCurveTables::class) {
 // preBuild task, so hook the compilations instead.
 tasks.matching { it.name == "compileAndroidMain" || it.name == "jvmProcessResources" }.configureEach {
     dependsOn(generateCurveTables)
+}
+
+// The iOS simulator runs the test binary from an unrelated working directory, so tell the Native
+// table loader where the tables are. Simulator tests only see variables prefixed SIMCTL_CHILD_.
+tasks.withType<KotlinNativeTest>().configureEach {
+    val assets = layout.projectDirectory.dir("src/androidMain/assets").asFile.absolutePath
+    environment("FLIPCASH_CURVE_ASSETS", assets)
+    if (this is KotlinNativeSimulatorTest) environment("SIMCTL_CHILD_FLIPCASH_CURVE_ASSETS", assets)
 }

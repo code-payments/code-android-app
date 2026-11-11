@@ -97,7 +97,7 @@ class ContinuousBondingCurveTests {
     }
 
     @Test
-    fun `selling tokens decreases value as expected (conceptual)`() {
+    fun `selling tokens decreases value as expected conceptual`() {
         // This test is more conceptual and harder to get exact without pre-calculated values
         // It aims to verify the logic that selling more tokens should yield more value,
         // but the rate might change.
@@ -159,7 +159,7 @@ class ContinuousBondingCurveTests {
     }
 
     @Test
-    fun `exchanging more value should require more tokens (conceptual)`() {
+    fun `exchanging more value should require more tokens conceptual`() {
         val curve = ContinuousBondingCurve.getOrThrow()
         val currentSupply = MAX_SUPPLY.multiply(BigDecimal("0.25"), mc) // Some supply
         val valueLess = BigDecimal("100")

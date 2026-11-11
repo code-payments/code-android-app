@@ -159,7 +159,6 @@ object TraceManager {
     }
 
     /** Tears down all state. Intended for tests only. */
-    @androidx.annotation.VisibleForTesting
     internal fun reset() {
         logFile?.close()
         logFile = null

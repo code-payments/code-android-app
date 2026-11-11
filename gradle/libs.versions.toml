@@ -389,6 +389,7 @@ flipcash-kmp-library = { id = "flipcash.kmp.library" }
 flipcash-kmp-app-library = { id = "flipcash.kmp.app.library" }
 flipcash-kmp-test-fixtures = { id = "flipcash.kmp.test.fixtures" }
 flipcash-kmp-js = { id = "flipcash.kmp.js" }
+flipcash-kmp-apple = { id = "flipcash.kmp.apple" }
 flipcash-analytics-catalogue = { id = "flipcash.analytics.catalogue" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }

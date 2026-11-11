@@ -3,7 +3,7 @@ package com.getcode.opencode.internal.format
 /**
  * The currency symbol table Android builds from its locales (see the jvmShared
  * buildCurrencySymbolTable), in Android's order, for the targets that can't list locales. Captured on
- * Android 16 (API 36) on the flipcash_blockstore AVD. The host JVM builds a different table; see HostJdkDeviationTest.
+ * Android 16 (API 36) on the flipcash_blockstore AVD. The host JVM builds a different table; pinned in host-jdk.txt.
  */
 internal object AndroidCurrencySymbols {
     val table: Map<String, List<String>> = mapOf(

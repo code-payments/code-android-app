@@ -1,7 +1,6 @@
 package com.getcode.opencode.internal.format
 
 import com.flipcash.libs.currency.math.decimal.BigDecimal
-import com.getcode.opencode.model.financial.CurrencyCode
 
 // Intl.NumberFormat rounds half away from zero (halfExpand), which is HALF_UP. Unlike DecimalFormat,
 // it rounds the shortest decimal of a Double rather than its exact binary value, so a tie such as
@@ -58,13 +57,6 @@ internal actual fun formatUsQuantity(value: BigDecimal, maxFractionDigits: Int):
     return format.format(value.toPlainString()) as String
 }
 
-internal actual fun parseUsDecimal(text: String): Double? =
-    icuParseDecimal(text, IcuSymbols.US, groupingUsed = true)
-        ?: throw IllegalArgumentException("Unparseable number: \"$text\"")
-
-internal actual fun parseLocaleDecimal(text: String, decimalPlaces: Int, localeTag: String?): Double? =
-    icuParseDecimal(text, IcuSymbols.forLocale(localeTag), groupingUsed = false)
-
 internal actual fun decimalSeparator(localeTag: String?): Char {
     val parts = numberFormat(localeTag, options { }).formatToParts(1.5)
     val length = parts.length as Int
@@ -73,10 +65,3 @@ internal actual fun decimalSeparator(localeTag: String?): Char {
     }
     return '.'
 }
-
-internal actual fun isoFractionDigits(code: String): Int = AndroidFractionDigits.of(code)
-
-// Intl can't list its locales, and the symbols it gives disagree with the JVM's for 18 currencies,
-// so this uses the JVM's table.
-internal actual fun buildCurrencySymbolTable(): Map<CurrencyCode, Set<String>> =
-    CurrencyCode.entries.mapNotNull { code -> AndroidCurrencySymbols.table[code.name]?.let { code to it.toSet() } }.toMap()

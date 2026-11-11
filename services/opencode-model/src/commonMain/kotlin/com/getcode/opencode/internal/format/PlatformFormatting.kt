@@ -4,8 +4,8 @@ import com.flipcash.libs.currency.math.decimal.BigDecimal
 import com.getcode.opencode.model.financial.CurrencyCode
 
 // The locale-dependent number formatting and parsing this module does. On the JVM targets each
-// actual is the DecimalFormat code that used to sit at its call site, unchanged; on JS it goes
-// through Intl. A null [localeTag] means the platform's default locale.
+// actual is the DecimalFormat code that used to sit at its call site, unchanged; on Node and Apple it goes
+// through Intl or NSNumberFormatter, and parsing through an ICU port. A null [localeTag] means the platform's default locale.
 
 /** [com.getcode.opencode.model.financial.Fiat.formatted]: exactly [fractionDigits], HALF_UP; a negative value prints `-` before [prefix]. */
 internal expect fun formatFiat(

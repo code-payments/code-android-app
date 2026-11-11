@@ -1,5 +1,8 @@
 package com.flipcash.libs.currency.math.decimal
 
+import kotlin.math.nextDown
+import kotlin.math.nextUp
+
 /**
  * The part of `java.math.BigDecimal` this codebase uses, written over an exact big integer ([BigInt],
  * native `BigInt` on Node) so it runs on Node. [BigDecimal] is this class on JS; on Android and the JVM it is `java.math.BigDecimal`
@@ -287,6 +290,57 @@ open class CommonBigDecimal private constructor(
             if (value == 0.0) return CommonBigDecimal(BigInt.ZERO, 1)
             val parsed = CommonBigDecimal(shortest)
             require(parsed.toDouble() == value) { "$shortest is not a rendering of $value" }
+            return javaLayout(value, parsed)
+        }
+
+        /**
+         * `java.math.BigDecimal.valueOf(double)` without a platform rendering: the digits come from
+         * [shortestDecimal]. For platforms whose `Double.toString` isn't the shortest round trip
+         * (Kotlin/Native prints 17 digits for some values).
+         */
+        fun valueOf(value: Double): CommonBigDecimal {
+            if (value.isNaN() || value.isInfinite()) throw NumberFormatException("Character array is missing \"exponent\" mark 'e' or 'E'.")
+            if (value == 0.0) return CommonBigDecimal(BigInt.ZERO, 1)
+            return javaLayout(value, shortestDecimal(value))
+        }
+
+        /**
+         * The digits Java's `Double.toString` picks (JDK 19+ javadoc): of the decimals that round to
+         * [value], those of minimal length m (or of length 1 or 2 when m is 1); of those, the one
+         * closest to [value]; on a tie, the one whose last digit is even. "Rounds to" is decided
+         * against the exact midpoints to the neighbouring doubles, not by parsing the candidate.
+         */
+        internal fun shortestDecimal(value: Double): CommonBigDecimal {
+            require(!value.isNaN() && !value.isInfinite() && value != 0.0)
+            val magnitude = kotlin.math.abs(value)
+            val x = CommonBigDecimal(exactDouble(magnitude))
+            val below = CommonBigDecimal(exactDouble(magnitude.nextDown()))
+            val gapAbove = if (magnitude == Double.MAX_VALUE) x.subtract(below) else CommonBigDecimal(exactDouble(magnitude.nextUp())).subtract(x)
+            val half = CommonBigDecimal(BigInt.fromInt(5), 1)
+            val low = x.subtract(x.subtract(below).multiply(half))
+            val high = x.add(gapAbove.multiply(half))
+            // Round-half-even: a decimal exactly on a midpoint rounds to the double with the even significand.
+            val inclusive = (magnitude.toRawBits() and 1L) == 0L
+            fun roundsToValue(c: CommonBigDecimal): Boolean {
+                val lo = c.compareTo(low)
+                val hi = c.compareTo(high)
+                return if (inclusive) lo >= 0 && hi <= 0 else lo > 0 && hi < 0
+            }
+            fun candidates(length: Int): List<CommonBigDecimal> {
+                val newScale = x.scl - (x.precision() - length)
+                return listOf(RoundingMode.DOWN, RoundingMode.UP).map { x.setScale(newScale, it) }.filter(::roundsToValue)
+            }
+            var length = 1
+            while (candidates(length).isEmpty()) length++
+            val pool = if (length == 1) candidates(1) + candidates(2) else candidates(length)
+            val best = pool.minWith(
+                compareBy<CommonBigDecimal> { it.subtract(x).abs() }
+                    .thenBy { if (it.stripTrailingZeros().intVal.divideAndRemainder(BigInt.TWO).second.isZero()) 0 else 1 },
+            )
+            return if (value < 0) best.negate() else best
+        }
+
+        private fun javaLayout(value: Double, parsed: CommonBigDecimal): CommonBigDecimal {
             val minimal = parsed.stripTrailingZeros()
             val exponent = -minimal.scl
             val digits = minimal.precision()

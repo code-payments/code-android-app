@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     alias(libs.plugins.flipcash.kmp.library)
@@ -14,20 +13,6 @@ testFixtures {
 
 @OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
 kotlin {
-    // jvmAndJs: key and phrase types for Android, the desktop JVM and Node. They need base64 and the
-    // string-keyed Ed25519 API, which have no iOS actuals yet.
-    applyDefaultHierarchyTemplate {
-        common {
-            group("jvmAndJs") {
-                group("jvmShared") {
-                    withJvm()
-                    withCompilations { it.platformType == KotlinPlatformType.androidJvm }
-                }
-                withJs()
-            }
-        }
-    }
-
     android {
         namespace = "com.getcode.encryption.mnemonic"
         withHostTest {}
@@ -45,6 +30,8 @@ kotlin {
                 implementation(project(":libs:encryption:sha256"))
                 implementation(project(":libs:encryption:sha512"))
                 implementation(project(":libs:encryption:utils"))
+                // Legacy vendored Base58 codec (fromEntropyB58/getBase58EncodedEntropy).
+                implementation(project(":libs:encryption:base58"))
             }
         }
         commonTest {
@@ -53,22 +40,17 @@ kotlin {
                 implementation(libs.kotlinx.serialization.json)
             }
         }
-        getByName("jvmAndJsMain") {
-            dependencies {
-                // Legacy vendored Base58 codec (fromEntropyB58/getBase58EncodedEntropy).
-                implementation(project(":libs:encryption:base58"))
-            }
-        }
         androidMain {
             dependencies {
                 // Domain.kt uses android.net.Uri.
                 implementation(libs.androidx.core)
             }
         }
-        // MnemonicPhraseVectorTest: the full phrase -> keypair path on the JVM and Node. Android runs
-        // the same check as a device test, since the host can't run android.util.Base64 or JNI Ed25519.
+        // MnemonicPhraseVectorTest: the full phrase -> keypair path on the JVM, Node and Apple. Android
+        // runs the same check as a device test, since the host can't run android.util.Base64 or JNI Ed25519.
         jvmTest { kotlin.srcDir("src/phraseVectorTest/kotlin") }
         jsTest { kotlin.srcDir("src/phraseVectorTest/kotlin") }
+        appleTest { kotlin.srcDir("src/phraseVectorTest/kotlin") }
         getByName("androidDeviceTest") {
             dependencies {
                 // Cross-platform derivation test-vector gate (instrumented: JNI ed25519 pipeline).

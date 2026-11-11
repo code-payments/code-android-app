@@ -1,6 +1,9 @@
 package com.flipcash.libs.currency.math.decimal
 
 import java.math.BigInteger
+import kotlin.math.nextDown
+import kotlin.math.nextUp
+import kotlin.math.pow
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -234,5 +237,36 @@ class CommonBigDecimalDifferentialTest {
             else -> Double.fromBits(random.nextLong()).takeIf { it.isFinite() } ?: 0.25
         }
         check("valueOf($double)", { JBigDecimal.valueOf(double) }, { CommonBigDecimal.valueOf(double, double.toString()) })
+    }
+
+    /**
+     * `valueOf(double)` with the digits picked in common code, the path Node and Apple take. Java's
+     * `Double.toString` (JDK 19+) is the reference for the shortest-digits rule.
+     */
+    @Test
+    fun valueOfDoubleWithoutPlatformRendering() {
+        val edges = listOf(
+            Double.MIN_VALUE, Double.MAX_VALUE, -Double.MIN_VALUE, 2.2250738585072014E-308, 2.225073858507201E-308,
+            1.0, 0.1, 0.3, 2.0E23, 9.007199254740993E15, 4.6581448458524176E16, 1e-3, 1e7, 9.999999999999999E6,
+            5e-324, 1.7976931348623157E308, 123456789.0, 0.001, 100.0, 1e21, 1e22, 1e23, 8.41E21, 5.0E-310,
+        )
+        for (double in edges + edges.map { -it } + edges.map { it.nextUp() } + edges.map { it.nextDown() }) {
+            if (double.isFinite()) check("valueOf($double)", { JBigDecimal.valueOf(double) }, { CommonBigDecimal.valueOf(double) })
+        }
+        repeatCases(times = 40_000) {
+            val double = when (random.nextInt(5)) {
+                0 -> random.nextDouble()
+                1 -> random.nextDouble(-1e9, 1e9)
+                2 -> random.nextInt(-10_000, 10_000) / 100.0
+                3 -> Double.fromBits(random.nextLong(0, 1L shl 53))
+                else -> Double.fromBits(random.nextLong()).takeIf { it.isFinite() } ?: 0.25
+            }
+            check("valueOf($double)", { JBigDecimal.valueOf(double) }, { CommonBigDecimal.valueOf(double) })
+        }
+        // Powers of two, where the gap below is half the gap above.
+        for (e in -1074..1023) {
+            val double = 2.0.pow(e)
+            if (double.isFinite() && double != 0.0) check("valueOf(2^$e)", { JBigDecimal.valueOf(double) }, { CommonBigDecimal.valueOf(double) })
+        }
     }
 }

@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.flipcash.kmp.apple)
     alias(libs.plugins.flipcash.kmp.js)
     alias(libs.plugins.flipcash.kmp.test.fixtures)
 }
@@ -26,6 +27,12 @@ kotlin {
             group("jvmShared") {
                 withJvm()
                 withCompilations { it.platformType == KotlinPlatformType.androidJvm }
+            }
+            // nonJvm: Node and Apple share the ICU parser port and the Android 16 tables.
+            group("nonJvm") {
+                withJs()
+                // appleMain itself, not only the Apple leaves, so the Apple actuals can use the shared parser.
+                group("apple")
             }
         }
     }

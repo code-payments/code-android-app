@@ -36,7 +36,7 @@ class DiscreteSpotPriceTests {
     }
 
     @Test
-    fun `1-2 Supply 50 uses same price as supply 0 (within step 0)`() {
+    fun `1-2 Supply 50 uses same price as supply 0 within step 0`() {
         val price0 = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val price50 = curve.spotPriceAtSupply(supply = BigDecimal(50)).getOrThrow()
         assertEquals(price0, price50)
@@ -50,7 +50,7 @@ class DiscreteSpotPriceTests {
     }
 
     @Test
-    fun `1-4 Prices change at step boundaries 0, 100, 200 to 900`() {
+    fun `1-4 Prices change at step boundaries 0 100 200 to 900`() {
         var previousPrice: BigDecimal? = null
         for (step in 0 until 10) {
             val supply = step * 100
@@ -210,7 +210,7 @@ class DiscreteTokensToValueTests {
     }
 
     @Test
-    fun `2-11 350 tokens from 75 (complex partial case)`() {
+    fun `2-11 350 tokens from 75 complex partial case`() {
         val cost = curve.tokensToValue(currentSupply = BigDecimal(75), tokens = BigDecimal(350)).getOrThrow()
 
         // 25 tokens in step 0, 100 tokens each in steps 1-3, 25 tokens in step 4
@@ -254,7 +254,7 @@ class DiscreteTokensToValueTests {
     }
 
     @Test
-    fun `2-15 cost(A+B) = cost(A) + cost(B from A's end)`() {
+    fun `2-15 cost A+B = cost A + cost B from A's end`() {
         val costA = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(200)).getOrThrow()
         val costB = curve.tokensToValue(currentSupply = BigDecimal(200), tokens = BigDecimal(150)).getOrThrow()
         val costTotal = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(350)).getOrThrow()
@@ -274,7 +274,7 @@ class DiscreteTokensToValueTests {
     }
 
     @Test
-    fun `2-17 tokensToValue(0, step times 100) matches cumulative table pattern`() {
+    fun `2-17 tokensToValue 0 step times 100 matches cumulative table pattern`() {
         val cost0 = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = Decimals.ZERO).getOrThrow()
         assertEquals(Decimals.ZERO, cost0)
 
@@ -345,21 +345,21 @@ class DiscreteValueToTokensTests {
     }
 
     @Test
-    fun `3-7 From partial step, value for 150 tokens`() {
+    fun `3-7 From partial step value for 150 tokens`() {
         val cost = curve.tokensToValue(currentSupply = BigDecimal(50), tokens = BigDecimal(150)).getOrThrow()
         val tokens = curve.valueToTokens(currentSupply = BigDecimal(50), value = cost).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal(150)))
     }
 
     @Test
-    fun `3-8 Value for 500 tokens (5 steps)`() {
+    fun `3-8 Value for 500 tokens 5 steps`() {
         val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(500)).getOrThrow()
         val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = cost).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal(500)))
     }
 
     @Test
-    fun `3-9 50 tokens at high supply (step 10000)`() {
+    fun `3-9 50 tokens at high supply step 10000`() {
         val supply = BigDecimal(1_000_000)
         val cost = curve.tokensToValue(currentSupply = supply, tokens = BigDecimal(50)).getOrThrow()
         val tokens = curve.valueToTokens(currentSupply = supply, value = cost).getOrThrow()
@@ -396,7 +396,7 @@ class DiscreteValueToTokensTests {
     }
 
     @Test
-    fun `3-14 Value for 175 tokens (partial end step)`() {
+    fun `3-14 Value for 175 tokens partial end step`() {
         val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(175)).getOrThrow()
         val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = cost).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal(175)))
@@ -437,7 +437,7 @@ class DiscreteRoundtripTests {
     }
 
     @Test
-    fun `4-3 spotPrice(S) equals tokensToValue(S, 1)`() {
+    fun `4-3 spotPrice S equals tokensToValue S 1`() {
         for (step in listOf(0, 10, 100, 1000)) {
             val supply = BigDecimal(step * 100)
             val price = curve.spotPriceAtSupply(supply = supply).getOrThrow()

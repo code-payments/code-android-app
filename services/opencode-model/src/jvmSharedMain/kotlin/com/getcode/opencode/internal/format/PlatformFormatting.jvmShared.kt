@@ -88,8 +88,6 @@ internal actual fun decimalSeparator(localeTag: String?): Char {
     return (if (locale == null) DecimalFormatSymbols.getInstance() else DecimalFormatSymbols.getInstance(locale)).decimalSeparator
 }
 
-internal actual fun isoFractionDigits(code: String): Int = Currency.getInstance(code).defaultFractionDigits
-
 internal actual fun buildCurrencySymbolTable(): Map<CurrencyCode, Set<String>> = buildMap {
     CurrencyCode.entries.forEach { currency ->
         try {

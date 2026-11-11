@@ -4,7 +4,7 @@ package com.getcode.opencode.internal.format
  * The decimal places Android reports (`java.util.Currency.getDefaultFractionDigits`, which Android
  * backs with ICU) for every [com.getcode.opencode.model.financial.CurrencyCode], for the targets with
  * no Android runtime. Captured on Android 16 (API 36) on the flipcash_blockstore AVD. The host JVM's JDK table differs on
- * 21 codes; see HostJdkDeviationTest.
+ * 21 codes; pinned in host-jdk.txt.
  */
 internal object AndroidFractionDigits {
     private val notTwo: Map<String, Int> = mapOf(

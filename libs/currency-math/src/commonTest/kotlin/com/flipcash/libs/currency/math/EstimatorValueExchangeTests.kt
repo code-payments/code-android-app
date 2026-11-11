@@ -211,7 +211,7 @@ class EstimatorMultipleMintDecimalsTests {
     }
 
     @Test
-    fun `buy with mintDecimals 9 (SOL-like) returns positive tokens`() {
+    fun `buy with mintDecimals 9 SOL-like returns positive tokens`() {
         val result = Estimator.buy(
             amountInQuarks = 1_000_000_000, // 1 SOL (9 decimals)
             currentSupplyInQuarks = 1_000_000_000_000, // some supply
