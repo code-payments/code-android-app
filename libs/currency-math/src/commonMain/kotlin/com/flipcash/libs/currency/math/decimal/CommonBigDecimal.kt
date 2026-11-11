@@ -1,10 +1,8 @@
 package com.flipcash.libs.currency.math.decimal
 
-import com.ionspin.kotlin.bignum.integer.BigInteger as BigInt
-
 /**
- * The part of `java.math.BigDecimal` this codebase uses, written over an exact big integer so it
- * runs on Node. [BigDecimal] is this class on JS; on Android and the JVM it is `java.math.BigDecimal`
+ * The part of `java.math.BigDecimal` this codebase uses, written over an exact big integer ([BigInt],
+ * native `BigInt` on Node) so it runs on Node. [BigDecimal] is this class on JS; on Android and the JVM it is `java.math.BigDecimal`
  * and this class is unused there except by the differential test that checks it against
  * `java.math` (`CommonBigDecimalDifferentialTest`).
  *
@@ -107,7 +105,7 @@ open class CommonBigDecimal private constructor(
 
     open fun pow(n: Int): CommonBigDecimal {
         if (n < 0 || n > 999_999_999) throw ArithmeticException("Invalid operation")
-        // x^0 is 1 even for zero; ionspin's BigInteger gives 0 for ZERO.pow(0).
+        // x^0 is 1 even for zero.
         if (n == 0) return ONE
         return of(intVal.pow(n), checkScale(scl.toLong() * n))
     }
@@ -313,8 +311,8 @@ open class CommonBigDecimal private constructor(
 
         /**
          * Decimal digits in [value], as OpenJDK's `bigDigitLength`: estimate from the bit length,
-         * then correct with one comparison. Not `toString().length`: ionspin's `toString` costs
-         * about 2 ms per call on Node, and precision is taken several times per operation.
+         * then correct with one comparison. Not `toString().length`, which allocates a string on
+         * every call, and precision is taken several times per operation.
          */
         private fun digitLength(value: BigInt): Int {
             if (value.isZero()) return 1
@@ -337,12 +335,8 @@ open class CommonBigDecimal private constructor(
         private fun saturateScale(value: Long): Int = value.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
 
         /** Truncating division with a remainder that takes the dividend's sign, as `java.math.BigInteger` does. */
-        private fun truncatingDivide(dividend: BigInt, divisor: BigInt): Pair<BigInt, BigInt> {
-            val (q, r) = dividend.abs().divideAndRemainder(divisor.abs())
-            val quotient = if ((dividend.signum() < 0) != (divisor.signum() < 0)) -q else q
-            val remainder = if (dividend.signum() < 0) -r else r
-            return quotient to remainder
-        }
+        private fun truncatingDivide(dividend: BigInt, divisor: BigInt): Pair<BigInt, BigInt> =
+            dividend.divideAndRemainder(divisor)
 
         private fun divideAndRound(
             dividend: BigInt,
@@ -354,13 +348,13 @@ open class CommonBigDecimal private constructor(
             val (q, r) = truncatingDivide(dividend, divisor)
             if (!r.isZero()) {
                 val qsign = if ((dividend.signum() < 0) == (divisor.signum() < 0)) 1 else -1
-                return of(if (needIncrement(divisor, mode, qsign, q, r)) q + qsign else q, scale)
+                return of(if (needIncrement(divisor, mode, qsign, q, r)) q + BigInt.fromInt(qsign) else q, scale)
             }
             return if (preferredScale != scale) stripZerosToMatchScale(q, scale, preferredScale.toLong()) else of(q, scale)
         }
 
         private fun needIncrement(divisor: BigInt, mode: RoundingMode, qsign: Int, q: BigInt, r: BigInt): Boolean {
-            val cmpFracHalf = (r.abs() * 2).compareTo(divisor.abs())
+            val cmpFracHalf = (r.abs() * BigInt.TWO).compareTo(divisor.abs())
             val oddQuot = !truncatingDivide(q, BigInt.TWO).second.isZero()
             return when (mode) {
                 RoundingMode.UNNECESSARY -> throw ArithmeticException("Rounding necessary")
@@ -477,7 +471,7 @@ open class CommonBigDecimal private constructor(
                 if (exponentText.isEmpty() || exponentText == "+" || exponentText == "-") fail()
                 exponent = exponentText.removePrefix("+").toLongOrNull() ?: fail()
             }
-            val magnitude = BigInt.parseString(digits.toString(), 10)
+            val magnitude = BigInt.parseDigits(digits.toString())
             return Parts(if (negative) -magnitude else magnitude, checkScale(fractionDigits - exponent))
         }
     }

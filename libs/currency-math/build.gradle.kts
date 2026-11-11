@@ -39,8 +39,6 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":libs:currency-math:discrete-curve"))
-            // CommonBigDecimal, the decimal type on Node, is built on its exact BigInteger.
-            implementation(libs.ionspin.bignum)
         }
         // The desktop build ships the same table files Android packs as assets.
         jvmMain {
