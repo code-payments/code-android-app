@@ -12,7 +12,7 @@ sealed interface ModerationAttestation {
     data class Image(val imageBytes: ByteArray, override val attestation: List<Byte>): ModerationAttestation {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
-            if (javaClass != other?.javaClass) return false
+            if (this::class != other?.let { it::class }) return false
 
             other as Image
 

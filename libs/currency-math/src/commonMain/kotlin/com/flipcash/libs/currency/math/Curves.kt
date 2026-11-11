@@ -2,26 +2,23 @@ package com.flipcash.libs.currency.math
 
 import com.flipcash.libs.currency.math.internal.DefaultMintMaxTokenSupply
 import com.flipcash.libs.currency.math.internal.curves.DiscreteBondingCurve
-import com.flipcash.libs.currency.math.internal.loader.FileTableLoader
+import com.flipcash.libs.currency.math.internal.loader.sourceTreeTableLoader
 import com.flipcash.libs.currency.math.internal.loader.TableByteLoader
-import java.math.BigDecimal
-import java.math.MathContext
-import java.math.RoundingMode
-import java.text.DecimalFormat
+import com.flipcash.libs.currency.math.decimal.BigDecimal
+import com.flipcash.libs.currency.math.decimal.MathContext
+import com.flipcash.libs.currency.math.decimal.RoundingMode
 
-@org.jetbrains.annotations.VisibleForTesting
 internal val mc: MathContext = MathContext(50, RoundingMode.HALF_EVEN)
 
 internal const val PRECISION = 18
 
-internal val formatter: DecimalFormat by lazy {
-    val pattern = "0." + "0".repeat(PRECISION)
-    DecimalFormat(pattern).apply {
-        // Optional: configure additional behavior
-        roundingMode = RoundingMode.HALF_UP
-        isGroupingUsed = false
-    }
-}
+/**
+ * Prints [value] with [PRECISION] fraction digits, rounding half up and without grouping. This is
+ * what `DecimalFormat("0.000000000000000000")` with `HALF_UP` printed before this code moved to
+ * common code; `ContinuousTablePinTest` pins the table it feeds.
+ */
+internal fun formatFixed(value: BigDecimal): String = value.setScale(PRECISION, RoundingMode.HALF_UP).toPlainString()
+
 internal val START_PRICE = BigDecimal("0.01")
 internal val END_PRICE = BigDecimal("1000000")
 internal val MAX_SUPPLY = BigDecimal("$DefaultMintMaxTokenSupply")
@@ -51,5 +48,5 @@ object Curves {
     }
 
     /** For host tests: reads the tables from this repo's source tree, found by walking up from the working directory. */
-    suspend fun initializeFromSourceTree() = initialize(FileTableLoader())
+    suspend fun initializeFromSourceTree() = initialize(sourceTreeTableLoader())
 }

@@ -1,11 +1,11 @@
 package com.getcode.opencode.utils
 
-import java.math.BigDecimal
-import java.math.RoundingMode
+import com.flipcash.libs.currency.math.decimal.Decimals
+import com.flipcash.libs.currency.math.decimal.RoundingMode
 
 
 fun Double.toByteArray(): ByteArray {
-    val longBits = java.lang.Double.doubleToLongBits(this)
+    val longBits = toBits()
     val byteArray = ByteArray(8)
 
     for (i in 0 until 8) {
@@ -23,5 +23,5 @@ fun Double.toByteArray(): ByteArray {
  * @return The rounded Double value.
  */
 fun Double.roundTo(decimals: Int, mode: RoundingMode = RoundingMode.HALF_UP): Double {
-    return BigDecimal.valueOf(this).setScale(decimals, mode).toDouble()
+    return Decimals.valueOf(this).setScale(decimals, mode).toDouble()
 }

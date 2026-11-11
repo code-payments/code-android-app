@@ -57,6 +57,10 @@ gradlePlugin {
             id = "flipcash.kmp.js"
             implementationClass = "KmpJsConventionPlugin"
         }
+        register("kmpApple") {
+            id = "flipcash.kmp.apple"
+            implementationClass = "KmpAppleConventionPlugin"
+        }
         register("kmpTestFixtures") {
             id = "flipcash.kmp.test.fixtures"
             implementationClass = "KmpTestFixturesConventionPlugin"

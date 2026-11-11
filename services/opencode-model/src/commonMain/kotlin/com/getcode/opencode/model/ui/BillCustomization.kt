@@ -13,7 +13,7 @@ data class TokenBillCustomizations(
 ) : Parcelable {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+        if (this::class != other?.let { it::class }) return false
 
         other as TokenBillCustomizations
 
@@ -46,7 +46,7 @@ sealed interface BillBackground : Parcelable {
     data class Solid(val colorHex: String) : BillBackground {
         companion object {
             fun from(colorInt: Int): Solid {
-                return Solid(String.format("#%06X", 0xFFFFFF and colorInt))
+                return Solid(hexColor(colorInt))
             }
         }
     }
@@ -55,7 +55,7 @@ sealed interface BillBackground : Parcelable {
     data class Gradient(val colors: List<String>) : BillBackground {
         companion object {
             fun from(colorInts: List<Int>): Gradient {
-                return Gradient(colorInts.map { String.format("#%06X", 0xFFFFFF and it) })
+                return Gradient(colorInts.map { hexColor(it) })
             }
         }
     }
@@ -79,3 +79,6 @@ enum class BlendMode {
     PlusLighter,
     ;
 }
+
+/** `String.format("#%06X", 0xFFFFFF and colorInt)`. */
+private fun hexColor(colorInt: Int): String = "#" + (0xFFFFFF and colorInt).toString(16).uppercase().padStart(6, '0')

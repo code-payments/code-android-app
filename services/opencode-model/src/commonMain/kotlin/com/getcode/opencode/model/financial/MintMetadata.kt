@@ -13,10 +13,8 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.libs.parcelable.IgnoredOnParcel
 import com.getcode.libs.parcelable.Parcelize
-import java.math.BigDecimal
-import java.math.RoundingMode
-import java.text.DecimalFormat
-import java.util.Locale
+import com.flipcash.libs.currency.math.decimal.Decimals
+import com.getcode.opencode.internal.format.formatUsQuantity
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -145,12 +143,7 @@ data class MintMetadata(
  * "1,204.9050000000" states no more than "1,204.905".
  */
 fun Token.formattedQuantity(quarks: Long): String {
-    val formatter = DecimalFormat.getInstance(Locale.US).apply {
-        maximumFractionDigits = decimals
-        minimumFractionDigits = 0
-        roundingMode = RoundingMode.HALF_UP
-    }
-    return formatter.format(BigDecimal.valueOf(quarks).movePointLeft(decimals))
+    return formatUsQuantity(Decimals.valueOf(quarks).movePointLeft(decimals), maxFractionDigits = decimals)
 }
 
 /**

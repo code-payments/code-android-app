@@ -6,6 +6,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.serializer.ByteListAsBase64Serializer
 import com.getcode.libs.parcelable.Parcelize
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmInline
 
 @Serializable
 @JvmInline

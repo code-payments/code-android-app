@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.flipcash.kmp.library)
+    alias(libs.plugins.flipcash.kmp.js)
     alias(libs.plugins.flipcash.kmp.test.fixtures)
 }
 

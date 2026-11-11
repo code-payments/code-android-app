@@ -1,10 +1,7 @@
 package com.getcode.opencode.internal.extensions
 
-import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.model.financial.CurrencyCode
-import com.getcode.utils.trace
-import java.util.Currency
-import java.util.Locale
+import com.getcode.opencode.internal.format.isoFractionDigits
 
 val CurrencyCode.fractionDigits: Int
     get() = when (this) {
@@ -16,42 +13,5 @@ val CurrencyCode.fractionDigits: Int
         CurrencyCode.MRU -> 0 // Non-decimal 5:1 ratio; khoum coins rare and unused in transactions since 1970s, despite a 2017 commemorative issue.
         CurrencyCode.TZS -> 0 // Senti coins withdrawn in the 1980s; no circulation since, with whole shillings used exclusively.
         CurrencyCode.UYU -> 0 // Centésimo coins withdrawn in 1998; prices rounded to nearest peso in retail and payments.
-        else -> Currency.getInstance(name).defaultFractionDigits
+        else -> isoFractionDigits(name)
     }
-
-@InternalOpenCodeApi public fun CurrencyCode.getClosestLocale(): Locale {
-    val currency = Currency.getInstance(name.uppercase())
-
-    val locales = Locale.getAvailableLocales()
-    var matchedLocale: Locale? = null
-
-    val customLanguageMap = mapOf(
-        "csw" to "en", // Map Swampy Cree (csw) to English for locale purposes
-    )
-
-    for (locale in locales) {
-        if (locale.country.equals(getRegion()?.name, ignoreCase = true)) {
-            try {
-                val localeCurrency = Currency.getInstance(locale)
-                if (localeCurrency.currencyCode.equals(currency.currencyCode, ignoreCase = true)) {
-                    matchedLocale = locale
-                    break
-                }
-            } catch (e: IllegalArgumentException) {
-                // Some locales may not have a currency; skip them
-                continue
-            }
-        }
-    }
-
-    val language = customLanguageMap[matchedLocale?.language] ?: matchedLocale?.language
-    val country = matchedLocale?.country
-    return try {
-        Locale("${language}_${country}")
-    } catch (e: IllegalArgumentException) {
-        trace("Failed to get locale for $name")
-        locale()
-    }
-}
-
-private fun CurrencyCode.locale() = Locale(Locale.getDefault().language, getRegion()?.name.orEmpty())
