@@ -6,7 +6,6 @@ import com.codeinc.opencode.wire.common.v1.Signature
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.ed25519kmp.Ed25519
 import kotlinx.coroutines.test.runTest
 import okio.ByteString.Companion.toByteString
 import kotlin.test.Test
@@ -18,7 +17,7 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * Signed calls from Node to the production OCP server, over [NodeGrpcTransport].
  *
- * Skipped unless `OCP_LIVE=1`. Keys are generated per run, except the optional
+ * Skipped unless `OCP_LIVE=1`. Phrases and keys are generated per run, except the optional
  * `FLIPCASH_TEST_MNEMONIC` account, whose phrase and keys are never printed.
  */
 class LiveAccountCallTest {
@@ -30,7 +29,9 @@ class LiveAccountCallTest {
         if (!live) return@runTest
         val transport = NodeGrpcTransport(OCP_HOST)
         try {
-            val owner = Ed25519.createKeyPair()
+            // The owner key comes from a new recovery phrase through the same derivation the app
+            // uses (m/44'/501'/0'/0'), so this exercises mnemonic + Ed25519 on Node.
+            val owner = MnemonicPhrase.generate().getSolanaKeyPair(DerivePath.primary)
 
             // A fresh key is not an OCP account; NOT_FOUND means the server accepted the signature.
             val response = AccountClient(transport).isOcpAccount(owner)
