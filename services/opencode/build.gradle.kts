@@ -108,4 +108,10 @@ dependencies {
 tasks.named<Test>("jvmTest") {
     val mnemonic = tryReadProperty(rootProject.rootDir, "flipcash.test.mnemonic", "")
     if (mnemonic.isNotBlank()) systemProperty("flipcash.test.mnemonic", mnemonic)
+    // SignedRequestFixtureTest pins Android's signed request bytes to the fixture the Wire builders
+    // in :services:opencode-transport are checked against.
+    val fixture = rootProject.file("services/opencode-transport/src/commonTest/resources/signed_requests.json")
+    systemProperty("signedRequestFixture", fixture.absolutePath)
+    inputs.file(fixture)
+    providers.systemProperty("fixture.update").orNull?.let { systemProperty("fixture.update", it) }
 }
