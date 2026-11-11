@@ -1,6 +1,6 @@
 package com.getcode.opencode.model.financial
 
-import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
+import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.time.Duration.Companion.hours
 
@@ -19,7 +19,7 @@ data class Limits(
 ) {
     val isStale: Boolean
         get() {
-            val now = System.currentTimeMillis()
+            val now = Clock.System.now().toEpochMilliseconds()
             return now - fetchDate > 1.hours.inWholeMilliseconds
         }
 
@@ -35,22 +35,17 @@ data class Limits(
             amountUsdTransactedSinceConsumption = Fiat.Zero
         )
 
+        /** [sendLimits] is keyed by the server's lowercase ISO 4217 code; unknown codes are dropped. */
         fun newInstance(
             sinceDate: Long,
             fetchDate: Long,
-            sendLimits: Map<String, OcpTransactionService.SendLimit>,
+            sendLimits: Map<String, SendLimit>,
             usdTransactedSinceConsumption: Double
         ): Limits {
             val sends = sendLimits
                 .mapNotNull { (k, v) ->
                     val code = CurrencyCode.tryValueOf(k) ?: return@mapNotNull null
-                    val limit = SendLimit(
-                        nextTransaction = v.nextTransaction.toDouble(),
-                        maxPerDay = v.maxPerDay.toDouble(),
-                        maxPerTransaction = v.maxPerTransaction.toDouble(),
-                    )
-
-                    code to limit
+                    code to v
                 }.toMap()
 
             return Limits(

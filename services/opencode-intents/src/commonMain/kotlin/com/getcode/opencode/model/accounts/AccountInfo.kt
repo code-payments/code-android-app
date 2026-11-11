@@ -1,10 +1,5 @@
 package com.getcode.opencode.model.accounts
 
-import com.getcode.opencode.internal.network.extensions.newInstance
-import com.codeinc.opencode.gen.account.v1.OcpAccountService
-import com.getcode.opencode.internal.network.extensions.toMint
-import com.getcode.opencode.internal.network.extensions.toModel
-import com.getcode.opencode.internal.network.extensions.toPublicKey
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -62,13 +57,13 @@ data class AccountInfo(
 
     /**
      * Whether an account is claimed. This only applies to relevant account types
-     * (e.g. [com.codeinc.opencode.gen.common.v1.Model.AccountType.REMOTE_SEND_GIFT_CARD]
+     * (e.g. [AccountType.RemoteSend]
      */
     val claimState: ClaimState,
 
     /**
      * For account types used as an intermediary for sending money between two
-     * users (eg. [com.codeinc.opencode.gen.common.v1.Model.AccountType.REMOTE_SEND_GIFT_CARD]),
+     * users (eg. [AccountType.RemoteSend]),
      * this represents the original exchange data used to fund the account.
      * Over time, this value will become stale:
      *  1. Exchange rates will fluctuate, so the total fiat amount will differ.
@@ -103,42 +98,9 @@ data class AccountInfo(
      */
     val usdCostBasis: Double,
 ) {
-    companion object {
-        fun newInstance(info: OcpAccountService.TokenAccountInfo): AccountInfo? {
-            val accountType =
-                AccountType.newInstance(info.accountType) ?: return null
-            val address = PublicKey(info.address.value.toByteArray().toList())
-            val balanceSource = BalanceSource.getInstance(info.balanceSource) ?: return null
-            val managementState = ManagementState.getInstance(info.managementState) ?: return null
-            val blockchainState = BlockchainState.getInstance(info.blockchainState) ?: return null
-            val claimState = ClaimState.getInstance(info.claimState) ?: return null
-
-            val owner = PublicKey(info.owner.value.toByteArray().toList())
-            val authority =
-                PublicKey(info.authority.value.toByteArray().toList())
-
-            val exchangeData = info.originalExchangeData.toModel()
-
-            return AccountInfo(
-                index = info.index.toInt(),
-                accountType = accountType,
-                address = address,
-                owner = owner,
-                authority = authority,
-                balanceSource = balanceSource,
-                balance = info.balance,
-                managementState = managementState,
-                blockchainState = blockchainState,
-                claimState = claimState,
-                originalExchangeData = exchangeData,
-                mint = info.mint.toMint(),
-                createdAt = info.createdAt.seconds * 1000L,
-                isGiftCardIssuer = info.isGiftCardIssuer,
-                usdCostBasis = info.usdCostBasis,
-
-            )
-        }
-    }
+    // Built from the wire by protobuf-java extensions in :services:opencode and by Wire in
+    // :services:opencode-client.
+    companion object {}
 
     enum class ManagementState {
         /**
@@ -186,22 +148,7 @@ data class AccountInfo(
          */
         Closed;
 
-        companion object {
-            fun getInstance(state: OcpAccountService.TokenAccountInfo.ManagementState): ManagementState? {
-                return when (state) {
-                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_UNKNOWN -> Unknown
-                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_NONE -> None
-                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_LOCKING -> Locking
-                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_LOCKED -> Locked
-                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_UNLOCKING -> Unlocking
-                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_UNLOCKED -> Unlocked
-                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_CLOSING -> Closing
-                    OcpAccountService.TokenAccountInfo.ManagementState.MANAGEMENT_STATE_CLOSED -> Closed
-                    OcpAccountService.TokenAccountInfo.ManagementState.UNRECOGNIZED -> null
-                }
-
-            }
-        }
+        companion object {}
     }
 
     enum class BlockchainState {
@@ -215,16 +162,7 @@ data class AccountInfo(
         /// The account is created and exists on the blockchain.
         Exists;
 
-        companion object {
-            fun getInstance(state: OcpAccountService.TokenAccountInfo.BlockchainState): BlockchainState? {
-                return when (state) {
-                    OcpAccountService.TokenAccountInfo.BlockchainState.BLOCKCHAIN_STATE_UNKNOWN -> Unknown
-                    OcpAccountService.TokenAccountInfo.BlockchainState.BLOCKCHAIN_STATE_DOES_NOT_EXIST -> DoesntExist
-                    OcpAccountService.TokenAccountInfo.BlockchainState.BLOCKCHAIN_STATE_EXISTS -> Exists
-                    OcpAccountService.TokenAccountInfo.BlockchainState.UNRECOGNIZED -> null
-                }
-            }
-        }
+        companion object {}
     }
 
     enum class ClaimState {
@@ -250,17 +188,7 @@ data class AccountInfo(
          */
         Expired;
 
-        companion object {
-            fun getInstance(state: OcpAccountService.TokenAccountInfo.ClaimState): ClaimState? {
-                return when (state) {
-                    OcpAccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_UNKNOWN -> Unknown
-                    OcpAccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_NOT_CLAIMED -> NotClaimed
-                    OcpAccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_CLAIMED -> Claimed
-                    OcpAccountService.TokenAccountInfo.ClaimState.CLAIM_STATE_EXPIRED -> Expired
-                    OcpAccountService.TokenAccountInfo.ClaimState.UNRECOGNIZED -> null
-                }
-            }
-        }
+        companion object {}
     }
 
     enum class BalanceSource {
@@ -282,17 +210,7 @@ data class AccountInfo(
          */
         Cache;
 
-        companion object {
-            fun getInstance(source: OcpAccountService.TokenAccountInfo.BalanceSource): BalanceSource? {
-                return when (source) {
-                    OcpAccountService.TokenAccountInfo.BalanceSource.BALANCE_SOURCE_UNKNOWN -> Unknown
-                    OcpAccountService.TokenAccountInfo.BalanceSource.BALANCE_SOURCE_BLOCKCHAIN -> Blockchain
-                    OcpAccountService.TokenAccountInfo.BalanceSource.BALANCE_SOURCE_CACHE -> Cache
-                    OcpAccountService.TokenAccountInfo.BalanceSource.UNRECOGNIZED -> null
-                }
-            }
-
-        }
+        companion object {}
     }
 }
 
