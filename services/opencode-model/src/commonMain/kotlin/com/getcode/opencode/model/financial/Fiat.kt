@@ -11,10 +11,12 @@ import com.getcode.opencode.utils.toLocaleAwareDoubleOrNull
 import com.getcode.solana.keys.Mint
 import com.getcode.libs.parcelable.Parcelize
 import kotlinx.serialization.Serializable
-import java.math.BigDecimal
-import java.math.RoundingMode
-import java.text.DecimalFormat
-import java.util.Locale
+import com.flipcash.libs.currency.math.decimal.BigDecimal
+import com.flipcash.libs.currency.math.decimal.Decimals
+import com.flipcash.libs.currency.math.decimal.RoundingMode
+import com.getcode.opencode.internal.format.formatFiat
+import com.getcode.opencode.internal.format.formatUsDecimal
+import com.getcode.opencode.internal.format.parseUsDecimal
 import kotlin.math.roundToLong
 
 @Serializable
@@ -99,41 +101,32 @@ data class Fiat(
             false
         }
 
-        val formatter = DecimalFormat.getInstance().apply {
-            val decimalDigits = currencyCode.fractionDigits
-            val preferredDigits = when (rule) {
-                is FormattingRule.Length -> rule.decimalPlaces
-                FormattingRule.None -> decimalDigits
-                FormattingRule.Truncated -> {
-                    if (shouldTruncate) 0 else decimalDigits
-                }
+        val decimalDigits = currencyCode.fractionDigits
+        val preferredDigits = when (rule) {
+            is FormattingRule.Length -> rule.decimalPlaces
+            FormattingRule.None -> decimalDigits
+            FormattingRule.Truncated -> {
+                if (shouldTruncate) 0 else decimalDigits
             }
-            minimumFractionDigits = preferredDigits
-            maximumFractionDigits = preferredDigits
-            roundingMode = ROUNDING_MODE
-            (this as DecimalFormat).decimalFormatSymbols =
-                decimalFormatSymbols.apply {
-                    currencySymbol = ""
-                }
-
-            val prefix = currencyCode.singleCharacterCurrencySymbol
-                .takeIf { showPrefix }
-                .orEmpty()
-
-            val fullPrefix = if (extraPrefix != null) {
-                "$extraPrefix$prefix"
-            } else {
-                prefix
-            }
-
-            positivePrefix = fullPrefix
-            positiveSuffix = suffix?.let { " $it" }.orEmpty()
-            negativePrefix = "-$fullPrefix"
-            negativeSuffix = suffix?.let { " $it" }.orEmpty()
-            isGroupingUsed = includeCommas
         }
 
-        return formatter.format(decimalValue)
+        val prefix = currencyCode.singleCharacterCurrencySymbol
+            .takeIf { showPrefix }
+            .orEmpty()
+
+        val fullPrefix = if (extraPrefix != null) {
+            "$extraPrefix$prefix"
+        } else {
+            prefix
+        }
+
+        return formatFiat(
+            value = decimalValue,
+            fractionDigits = preferredDigits,
+            prefix = fullPrefix,
+            suffix = suffix?.let { " $it" }.orEmpty(),
+            grouping = includeCommas,
+        )
     }
 
     // String representation
@@ -171,7 +164,7 @@ data class Fiat(
     /** The smallest displayable unit for this currency (e.g. $0.01 USD, ¥1 JPY). */
     val smallestUnit: Fiat
         get() {
-            val step = BigDecimal.ONE.movePointLeft(currencyCode.fractionDigits).toDouble()
+            val step = Decimals.ONE.movePointLeft(currencyCode.fractionDigits).toDouble()
             return Fiat(fiat = step, currencyCode = currencyCode)
         }
 
@@ -183,7 +176,7 @@ data class Fiat(
     fun flooredToSmallestUnit(): Fiat {
         val step = smallestUnit.quarks
         if (step <= 1L) return this
-        return Fiat(quarks = Math.floorDiv(quarks, step) * step, currencyCode = currencyCode)
+        return Fiat(quarks = quarks.floorDiv(step) * step, currencyCode = currencyCode)
     }
 
     /** Whether this value would format as non-zero in its currency. */
@@ -206,15 +199,7 @@ data class Fiat(
             mintDecimals = 6,
         ).getOrNull() ?: Valuation.Tokens.Zero)
 
-        val formatter = DecimalFormat.getInstance(Locale.US).apply {
-            if (fractionDigits != null) {
-                maximumFractionDigits = fractionDigits
-                minimumFractionDigits = fractionDigits
-            }
-            roundingMode = ROUNDING_MODE
-        }
-
-        return formatter.format(valuation.tokens.toDouble())
+        return formatUsDecimal(valuation.tokens.toDouble(), fractionDigits)
     }
 
     companion object {
@@ -227,12 +212,7 @@ data class Fiat(
         val MAX_VALUE = Fiat(Int.MAX_VALUE, CurrencyCode.USD)
 
         private fun parseStringToDouble(stringAmount: String, decimalPlaces: Int = 6): Double {
-            val formatter = DecimalFormat.getNumberInstance(Locale.US).apply {
-                isParseIntegerOnly = false
-                minimumFractionDigits = decimalPlaces
-                maximumFractionDigits = decimalPlaces
-            }
-            val amount = formatter.parse(stringAmount)?.toDouble()
+            val amount = parseUsDecimal(stringAmount)
                 ?: throw IllegalArgumentException("Invalid amount format: $stringAmount")
             return amount
         }

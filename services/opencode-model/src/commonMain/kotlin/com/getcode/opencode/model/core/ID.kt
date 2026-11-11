@@ -1,26 +1,18 @@
 package com.getcode.opencode.model.core
 
 import com.getcode.utils.hexEncodedString
-import java.nio.ByteBuffer
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 typealias ID = List<Byte>
 
 val NoId: ID = emptyList()
 
-val RandomId: ID get() = UUID.randomUUID().bytes
-
-val ID.uuid: UUID?
-    get() {
-        if (size != 16) return null
-
-        val byteBuffer = ByteBuffer.wrap(this.toByteArray())
-        val high = byteBuffer.getLong()
-        val low = byteBuffer.getLong()
-        return UUID(high, low)
-    }
+@OptIn(ExperimentalUuidApi::class)
+val RandomId: ID get() = Uuid.random().toByteArray().toList()
 
 val ID.description: String
-    get() = uuid?.toString() ?: hexEncodedString()
+    @OptIn(ExperimentalUuidApi::class)
+    get() = if (size == 16) Uuid.fromByteArray(toByteArray()).toString() else hexEncodedString()
 
 

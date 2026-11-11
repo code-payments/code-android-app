@@ -7,6 +7,16 @@ import java.nio.ByteOrder
 import java.util.UUID
 
 
+val ID.uuid: UUID?
+    get() {
+        if (size != 16) return null
+
+        val byteBuffer = ByteBuffer.wrap(this.toByteArray())
+        val high = byteBuffer.getLong()
+        val low = byteBuffer.getLong()
+        return UUID(high, low)
+    }
+
 val UUID.bytes: List<Byte>
     get() {
         val bb = ByteBuffer.wrap(ByteArray(16))
