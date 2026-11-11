@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal
 
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.reporting.ReportReason
+import com.flipcash.libs.coroutines.TestDispatcherProvider
 import com.flipcash.services.controllers.ReportingController
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SelectedBottomBarAction
@@ -47,9 +48,11 @@ class ReportViewModelTest {
     // the test advances. A dispatcher on its own scheduler would make that delay real time.
     private val scheduler = TestCoroutineScheduler()
 
+    private val main = UnconfinedTestDispatcher(scheduler)
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher(scheduler))
+        Dispatchers.setMain(main)
         BottomBarManager.clear()
     }
 
@@ -59,13 +62,13 @@ class ReportViewModelTest {
         BottomBarManager.clear()
     }
 
-    private fun viewModel() = ReportViewModel(reporting, resources)
+    private fun viewModel() = ReportViewModel(reporting, resources, TestDispatcherProvider(main))
 
     @Test
     fun `a sent report is confirmed, not mentioned in passing`() = runTest(scheduler) {
         coEvery { reporting.report(any(), any()) } returns Result.success(Unit)
 
-        viewModel().submit(subject, ReportReason.Spam, details = null)
+        viewModel().dispatchEvent(ReportViewModel.Event.Submit(subject, ReportReason.Spam, details = null))
         advanceUntilIdle()
 
         val shown = BottomBarManager.messages.value.last()
@@ -79,13 +82,13 @@ class ReportViewModelTest {
         coEvery { reporting.report(any(), any()) } returns Result.success(Unit)
         val model = viewModel()
 
-        model.submit(subject, ReportReason.Spam, details = null)
+        model.dispatchEvent(ReportViewModel.Event.Submit(subject, ReportReason.Spam, details = null))
 
-        assertTrue(model.state.value.loading)
+        assertTrue(model.stateFlow.value.loading)
         advanceTimeBy(MinimumLoadingDuration.inWholeMilliseconds - 1)
-        assertTrue(model.state.value.loading)
+        assertTrue(model.stateFlow.value.loading)
         advanceTimeBy(2)
-        assertTrue(model.state.value.success)
+        assertTrue(model.stateFlow.value.success)
     }
 
     @Test
@@ -96,14 +99,14 @@ class ReportViewModelTest {
         coEvery { reporting.report(any(), any()) } coAnswers { answer.await() }
         val model = viewModel()
 
-        model.submit(subject, ReportReason.Spam, details = null)
+        model.dispatchEvent(ReportViewModel.Event.Submit(subject, ReportReason.Spam, details = null))
         advanceTimeBy(MinimumLoadingDuration.inWholeMilliseconds * 2)
-        assertTrue(model.state.value.loading)
+        assertTrue(model.stateFlow.value.loading)
 
         answer.complete(Result.success(Unit))
         advanceTimeBy(1)
 
-        assertTrue(model.state.value.success)
+        assertTrue(model.stateFlow.value.success)
     }
 
     @Test
@@ -111,12 +114,12 @@ class ReportViewModelTest {
         coEvery { reporting.report(any(), any()) } returns Result.success(Unit)
         val viewModel = viewModel()
 
-        viewModel.submit(subject, ReportReason.Spam, details = null)
+        viewModel.dispatchEvent(ReportViewModel.Event.Submit(subject, ReportReason.Spam, details = null))
         // Past the spinner's floor, which is where the checkmark's own hold starts.
         // `advanceTimeBy` stops short of the endpoint, so the floor's own instant needs the +1.
         advanceTimeBy(MinimumLoadingDuration.inWholeMilliseconds + 1)
 
-        assertTrue("the button never showed the send succeeded", viewModel.state.value.success)
+        assertTrue("the button never showed the send succeeded", viewModel.stateFlow.value.success)
         assertTrue(
             "the confirmation covered the checkmark before it could be read",
             BottomBarManager.messages.value.isEmpty(),
@@ -135,12 +138,12 @@ class ReportViewModelTest {
         coEvery { reporting.report(any(), any()) } returns Result.success(Unit)
         val viewModel = viewModel()
 
-        viewModel.submit(subject, ReportReason.Spam, details = null)
+        viewModel.dispatchEvent(ReportViewModel.Event.Submit(subject, ReportReason.Spam, details = null))
         advanceUntilIdle()
 
         assertTrue(
             "the button went back to inviting a second report of the same thing",
-            viewModel.state.value.success,
+            viewModel.stateFlow.value.success,
         )
     }
 
@@ -154,7 +157,7 @@ class ReportViewModelTest {
             viewModel.confirmed.collect { closed = true }
         }
 
-        viewModel.submit(subject, ReportReason.Spam, details = null)
+        viewModel.dispatchEvent(ReportViewModel.Event.Submit(subject, ReportReason.Spam, details = null))
         advanceUntilIdle()
         assertFalse("the flow closed before anyone saw the confirmation", closed)
 
@@ -174,7 +177,7 @@ class ReportViewModelTest {
             viewModel.confirmed.collect { closed = true }
         }
 
-        viewModel.submit(subject, ReportReason.Spam, details = null)
+        viewModel.dispatchEvent(ReportViewModel.Event.Submit(subject, ReportReason.Spam, details = null))
         advanceUntilIdle()
 
         assertEquals(
@@ -182,7 +185,7 @@ class ReportViewModelTest {
             BottomBarManager.messages.value.last().type,
         )
         assertFalse("a failed report closed the flow", closed)
-        assertTrue("the retry was left disabled", viewModel.state.value.isIdle)
+        assertTrue("the retry was left disabled", viewModel.stateFlow.value.isIdle)
 
         collector.cancel()
     }
@@ -193,14 +196,14 @@ class ReportViewModelTest {
         coEvery { reporting.report(any(), any()) } coAnswers { inFlight.await() }
         val viewModel = viewModel()
 
-        assertTrue(viewModel.state.value.isIdle)
+        assertTrue(viewModel.stateFlow.value.isIdle)
 
-        viewModel.submit(subject, ReportReason.Spam, details = null)
-        assertTrue("the button gives no sign the report is being sent", viewModel.state.value.loading)
+        viewModel.dispatchEvent(ReportViewModel.Event.Submit(subject, ReportReason.Spam, details = null))
+        assertTrue("the button gives no sign the report is being sent", viewModel.stateFlow.value.loading)
 
         inFlight.complete(Result.success(Unit))
         advanceUntilIdle()
-        assertFalse("the button was still spinning after the report landed", viewModel.state.value.loading)
+        assertFalse("the button was still spinning after the report landed", viewModel.stateFlow.value.loading)
     }
 
     @Test
@@ -209,8 +212,8 @@ class ReportViewModelTest {
         coEvery { reporting.report(any(), any()) } coAnswers { inFlight.await() }
         val viewModel = viewModel()
 
-        viewModel.submit(subject, ReportReason.Spam, details = null)
-        viewModel.submit(subject, ReportReason.Spam, details = null)
+        viewModel.dispatchEvent(ReportViewModel.Event.Submit(subject, ReportReason.Spam, details = null))
+        viewModel.dispatchEvent(ReportViewModel.Event.Submit(subject, ReportReason.Spam, details = null))
 
         inFlight.complete(Result.success(Unit))
         advanceUntilIdle()

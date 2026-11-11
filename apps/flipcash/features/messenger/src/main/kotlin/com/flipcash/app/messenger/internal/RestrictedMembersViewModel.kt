@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.features.messenger.R
@@ -13,11 +12,11 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.model.core.ID
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.trace
+import com.getcode.view.BaseViewModel
+import com.flipcash.libs.coroutines.DispatcherProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -37,7 +36,12 @@ internal class RestrictedMembersViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val toastController: SystemToastController,
     private val restrictionWrites: GroupRestrictionWrites,
-) : ViewModel() {
+    dispatchers: DispatcherProvider,
+) : BaseViewModel<RestrictedMembersViewModel.State, RestrictedMembersViewModel.Event>(
+    initialState = State(),
+    updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
+) {
 
     data class State(
         val loading: Boolean = true,
@@ -45,6 +49,11 @@ internal class RestrictedMembersViewModel @Inject constructor(
         val users: List<RestrictedUser> = emptyList(),
         /** Users whose Unsilence or Unban is in flight. */
         val pending: Set<ID> = emptySet(),
+        /**
+         * The chat the last read was for. A repeat [Event.Load] for it is dropped, since the flow's
+         * back stack reopens this screen; a failed read clears it so the next open retries.
+         */
+        val loadedFor: ChatId? = null,
     ) {
         fun rows(kind: RestrictedKind): List<RestrictedUser> = when (kind) {
             RestrictedKind.Silenced -> users.filter { it.ban == null && it.silence.isActiveAt() }
@@ -52,24 +61,67 @@ internal class RestrictedMembersViewModel @Inject constructor(
         }
     }
 
-    private val _state = MutableStateFlow(State())
-    val state: StateFlow<State> = _state.asStateFlow()
+    sealed interface Event {
+        /** Read every page for [chatId], once per view model; the flow's back stack reopens this one. */
+        data class Load(val chatId: ChatId) : Event
 
-    private var loadedFor: ChatId? = null
+        /** Lift [userId]'s silence. [name] goes in the success toast. */
+        data class Unsilence(val chatId: ChatId, val userId: ID, val name: String) : Event
 
-    /** Reads every page for [chatId] once per view model; the flow's back stack reopens this one. */
-    fun load(chatId: ChatId) {
-        if (loadedFor == chatId) return
-        loadedFor = chatId
-        _state.update { State() }
+        /** Lift [userId]'s ban. */
+        data class Unban(val chatId: ChatId, val userId: ID) : Event
+
+        /** A new read for [chatId] started; drops whatever the last one showed. */
+        data class LoadStarted(val chatId: ChatId) : Event
+        data class Loaded(val users: List<RestrictedUser>) : Event
+        data object LoadFailed : Event
+
+        data class RestrictionPending(val userId: ID) : Event
+        data class Unsilenced(val userId: ID) : Event
+        data class Unbanned(val userId: ID) : Event
+        data class RestrictionFailed(val userId: ID) : Event
+    }
+
+    init {
+        // One collector, so a second tap on a row sees the first one's pending entry.
+        eventFlow
+            .onEach { event ->
+                when (event) {
+                    is Event.Load -> load(event.chatId)
+                    is Event.Unsilence -> run(
+                        userId = event.userId,
+                        call = { chatController.unsilenceUser(event.chatId, event.userId) },
+                        done = Event.Unsilenced(event.userId),
+                        onSuccess = {
+                            restrictionWrites.lifted(event.chatId, event.userId)
+                            toastController.showToast(R.string.toast_unsilenced, event.name, replacePrevious = true)
+                        },
+                        titleRes = R.string.error_title_failedToUnsilence,
+                        messageRes = R.string.error_description_failedToUnsilence,
+                    )
+                    is Event.Unban -> run(
+                        userId = event.userId,
+                        call = { chatController.unbanUser(event.chatId, event.userId) },
+                        done = Event.Unbanned(event.userId),
+                        titleRes = R.string.error_title_failedToUnban,
+                        messageRes = R.string.error_description_failedToUnban,
+                    )
+                    else -> Unit
+                }
+            }
+            .launchIn(viewModelScope)
+    }
+
+    private fun load(chatId: ChatId) {
+        if (stateFlow.value.loadedFor == chatId) return
+        dispatchEvent(Event.LoadStarted(chatId))
         viewModelScope.launch {
             val all = mutableListOf<RestrictedUser>()
             var options = QueryOptions()
             while (true) {
                 val page = chatController.getRestrictedUsers(chatId, options).getOrElse {
                     trace("failed to load restricted users - ${it.localizedMessage}")
-                    loadedFor = null
-                    _state.update { s -> s.copy(loading = false, failed = true) }
+                    dispatchEvent(Event.LoadFailed)
                     BottomBarManager.showError(
                         title = resources.getString(R.string.error_title_failedToLoadRestricted),
                         message = resources.getString(R.string.error_description_failedToLoadRestricted),
@@ -80,63 +132,64 @@ internal class RestrictedMembersViewModel @Inject constructor(
                 if (!page.hasMore || page.pagingToken == null) break
                 options = options.copy(token = page.pagingToken)
             }
-            _state.update { it.copy(loading = false, users = all) }
+            dispatchEvent(Event.Loaded(all))
         }
     }
-
-    fun unsilence(chatId: ChatId, userId: ID, name: String) = run(
-        userId = userId,
-        call = { chatController.unsilenceUser(chatId, userId) },
-        // A removed member who is also silenced stays in Removed, now without the silence.
-        apply = { u -> if (u.ban != null) u.copy(silence = null) else null },
-        onSuccess = {
-            restrictionWrites.lifted(chatId, userId)
-            toastController.showToast(R.string.toast_unsilenced, name, replacePrevious = true)
-        },
-        titleRes = R.string.error_title_failedToUnsilence,
-        messageRes = R.string.error_description_failedToUnsilence,
-    )
-
-    fun unban(chatId: ChatId, userId: ID) = run(
-        userId = userId,
-        call = { chatController.unbanUser(chatId, userId) },
-        // Unbanning leaves any silence in place, so they move back to Silenced if they had one.
-        apply = { u -> u.copy(ban = null).takeIf { it.silence.isActiveAt() } },
-        titleRes = R.string.error_title_failedToUnban,
-        messageRes = R.string.error_description_failedToUnban,
-    )
 
     private fun run(
         userId: ID,
         call: suspend () -> Result<Unit>,
-        apply: (RestrictedUser) -> RestrictedUser?,
+        done: Event,
         onSuccess: () -> Unit = {},
         titleRes: Int,
         messageRes: Int,
     ) {
-        if (userId in _state.value.pending) return
-        _state.update { it.copy(pending = it.pending + setOf(userId)) }
+        if (userId in stateFlow.value.pending) return
+        dispatchEvent(Event.RestrictionPending(userId))
         viewModelScope.launch {
             call()
                 .onSuccess {
-                    _state.update { s ->
-                        s.copy(
-                            pending = s.pending - setOf(userId),
-                            users = s.users.mapNotNull { u ->
-                                if (u.userProfile.userId == userId) apply(u) else u
-                            },
-                        )
-                    }
+                    dispatchEvent(done)
                     onSuccess()
                 }
                 .onFailure {
                     trace("failed to update restriction - ${it.localizedMessage}")
-                    _state.update { s -> s.copy(pending = s.pending - setOf(userId)) }
+                    dispatchEvent(Event.RestrictionFailed(userId))
                     BottomBarManager.showError(
                         title = resources.getString(titleRes),
                         message = resources.getString(messageRes),
                     )
                 }
         }
+    }
+
+    companion object {
+        val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
+            when (event) {
+                is Event.Load,
+                is Event.Unsilence,
+                is Event.Unban -> { state -> state }
+
+                is Event.LoadStarted -> { _ -> State(loadedFor = event.chatId) }
+                is Event.Loaded -> { state -> state.copy(loading = false, users = event.users) }
+                Event.LoadFailed -> { state -> state.copy(loading = false, failed = true, loadedFor = null) }
+
+                is Event.RestrictionPending -> { state -> state.copy(pending = state.pending + setOf(event.userId)) }
+                is Event.RestrictionFailed -> { state -> state.copy(pending = state.pending - setOf(event.userId)) }
+                // A removed member who is also silenced stays in Removed, now without the silence.
+                is Event.Unsilenced -> { state ->
+                    state.lifted(event.userId) { u -> if (u.ban != null) u.copy(silence = null) else null }
+                }
+                // Unbanning leaves any silence in place, so they move back to Silenced if they had one.
+                is Event.Unbanned -> { state ->
+                    state.lifted(event.userId) { u -> u.copy(ban = null).takeIf { it.silence.isActiveAt() } }
+                }
+            }
+        }
+
+        private fun State.lifted(userId: ID, apply: (RestrictedUser) -> RestrictedUser?): State = copy(
+            pending = pending - setOf(userId),
+            users = users.mapNotNull { u -> if (u.userProfile.userId == userId) apply(u) else u },
+        )
     }
 }
