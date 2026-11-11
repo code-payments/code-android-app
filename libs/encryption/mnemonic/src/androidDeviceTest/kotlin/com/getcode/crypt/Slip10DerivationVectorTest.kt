@@ -14,7 +14,7 @@ import org.junit.runner.RunWith
  * sides guarantees the apps derive the SAME account from a mnemonic (divergence would mean a user's
  * key differs by platform). Anchored to the official BIP39 + SLIP-0010 test vectors.
  *
- * Instrumented: derivation loads the BIP-39 wordlist from res/raw (MnemonicCache) and finishes with
+ * Instrumented: derivation finishes with
  * the JNI ed25519 keypair — both need the Android runtime. Fixture synced from `code/test-vectors/`.
  */
 @RunWith(AndroidJUnit4::class)
@@ -23,7 +23,6 @@ class Slip10DerivationVectorTest {
     @Test
     fun derivation_matches_canonical_vectors() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        MnemonicCache.init(instrumentation.targetContext) // load BIP-39 wordlist (res/raw/english.txt)
 
         val json = instrumentation.context.assets.open("slip10.json").bufferedReader().use { it.readText() }
         val vectors = JSONObject(json).getJSONArray("vectors")

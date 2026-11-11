@@ -31,6 +31,9 @@ kotlin {
     android {
         namespace = "com.getcode.encryption.mnemonic"
         withHostTest {}
+        // Packages src/androidDeviceTest/assets (slip10.json) into the device-test APK. The module
+        // has no res/, so the library itself gains nothing but an empty R class.
+        androidResources { enable = true }
         withDeviceTest {}
     }
 
