@@ -91,9 +91,14 @@ kotlin {
             // formatProto tests render a flipcash2 response that carries a payment_intent_id.
             implementation(libs.flipcash2.client.protocol)
         }
-        jvmTest.dependencies {
-            implementation(kotlin("test"))
-            implementation(libs.kotlinx.coroutines.test)
+        jvmTest {
+            // The domain rendering OcpClientFixtureTest pins; :services:opencode-client's
+            // OcpClientParityTest compiles the same file.
+            kotlin.srcDir(rootProject.file("services/opencode-client/src/parityShared/kotlin"))
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinx.coroutines.test)
+            }
         }
     }
 }
@@ -114,5 +119,10 @@ tasks.named<Test>("jvmTest") {
     val fixture = rootProject.file("services/opencode-transport/src/commonTest/resources/signed_requests.json")
     systemProperty("signedRequestFixture", fixture.absolutePath)
     inputs.file(fixture)
+    // OcpClientFixtureTest pins Android's OCP request bytes and response mappings for
+    // :services:opencode-client's Wire encoding.
+    val clientFixture = rootProject.file("services/opencode-client/src/commonTest/resources/ocp_client_parity.json")
+    systemProperty("ocpClientFixture", clientFixture.absolutePath)
+    inputs.file(clientFixture)
     providers.systemProperty("fixture.update").orNull?.let { systemProperty("fixture.update", it) }
 }

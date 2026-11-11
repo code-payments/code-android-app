@@ -55,6 +55,7 @@ class IntentMultiTransfer(
             sourceCluster: AccountCluster,
             verifiedState: VerifiedExchangeState,
             appMetadata: ByteArray? = null,
+            intentId: PublicKey? = null,
         ): IntentMultiTransfer {
             require(shares.size in MIN_PAYMENTS..MAX_PAYMENTS) {
                 "SendPublicMultiPayment requires $MIN_PAYMENTS..$MAX_PAYMENTS payments, got ${shares.size}"
@@ -99,7 +100,7 @@ class IntentMultiTransfer(
             }
 
             return IntentMultiTransfer(
-                id = PublicKey.generate(),
+                id = intentId ?: PublicKey.generate(),
                 metadata = TransactionMetadata.SendPublicMultiPayment(
                     source = sourceCluster.vaultPublicKey,
                     mint = mint,

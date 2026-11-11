@@ -272,6 +272,7 @@ include(
     ":services:opencode-intents",
     ":services:opencode-solana",
     ":services:opencode-transport",
+    ":services:opencode-client",
     ":services:opencode-compose",
     ":services:flipcash",
     ":services:flipcash:test-fixtures",

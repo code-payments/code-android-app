@@ -2,6 +2,7 @@ package com.getcode.opencode.internal.network.extensions
 
 import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
+import com.getcode.solana.keys.Mint
 import com.codeinc.opencode.gen.messaging.v1.OcpMessagingService
 import com.codeinc.opencode.gen.messaging.v1.requestToGiveBill
 import com.codeinc.opencode.gen.messaging.v1.requestToGrabBill
@@ -98,6 +99,21 @@ internal fun clientPongWith(timestampInMillis: Long): Model.ClientPong {
             timestampInMillis.asProtobufTimestamp()
         ).build()
 }
+
+/** The first message on `StreamLiveMintData`: the mints to stream. */
+internal fun streamLiveMintDataOpenRequest(mints: List<Mint>): OcpCurrencyService.StreamLiveMintDataRequest =
+    OcpCurrencyService.StreamLiveMintDataRequest.newBuilder()
+        .setRequest(
+            OcpCurrencyService.StreamLiveMintDataRequest.Request.newBuilder()
+                .addAllMints(mints.map { it.asSolanaAccountId() })
+                .build()
+        ).build()
+
+/** The answer to a `StreamLiveMintData` server ping, stamped in whole seconds. */
+internal fun streamLiveMintDataPongRequest(nowMillis: Long): OcpCurrencyService.StreamLiveMintDataRequest =
+    OcpCurrencyService.StreamLiveMintDataRequest.newBuilder()
+        .setPong(clientPongWith(nowMillis))
+        .build()
 
 internal fun Long.asProtobufTimestamp(): Timestamp =
     Timestamp.newBuilder().setSeconds(this / 1_000).build()
