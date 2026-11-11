@@ -21,9 +21,13 @@ class IntentCreateAccount(
 
 
     companion object {
-        fun createUserAccount(owner: AccountCluster, mint: Mint): IntentCreateAccount {
+        fun createUserAccount(
+            owner: AccountCluster,
+            mint: Mint,
+            intentId: PublicKey? = null,
+        ): IntentCreateAccount {
             return IntentCreateAccount(
-                id = PublicKey.generate(),
+                id = intentId ?: PublicKey.generate(),
                 metadata = TransactionMetadata.OpenAccount(AccountType.Primary, mint),
                 actionGroup = ActionGroup().apply {
                     actions = listOf(ActionOpenAccount.createPrimary(owner, mint))

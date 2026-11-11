@@ -33,6 +33,7 @@ class IntentWithdraw(
             destinationOwner: PublicKey?,
             fee: Fee? = null,
             verifiedState: VerifiedExchangeState,
+            intentId: PublicKey? = null,
         ): IntentWithdraw {
             // transfer the amount less any fee
             val feeAmount = fee?.fiat ?: Fiat.Zero
@@ -61,7 +62,7 @@ class IntentWithdraw(
             }
 
             return IntentWithdraw(
-                id = PublicKey.generate(),
+                id = intentId ?: PublicKey.generate(),
                 metadata = TransactionMetadata.SendPublicPayment(
                     source = sourceCluster.vaultPublicKey,
                     destination = destination,

@@ -11,6 +11,8 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.parity.parityIntents
+import com.getcode.opencode.parity.parityServerParameters
 import com.getcode.opencode.parity.renderAccountInfos
 import com.getcode.opencode.parity.renderLimits
 import com.getcode.opencode.parity.renderLiveMintData
@@ -101,6 +103,17 @@ class OcpClientParityTest {
     }
 
     @Test
+    fun everyIntentBranchEncodesLikeAndroid() {
+        val intents = parityIntents(owner, mints[0], verifiedState())
+        assertEquals(6, intents.size)
+        for ((name, intent) in intents) {
+            assertEquals(requests.text("${name}SubmitActions"), SubmitIntentCodec.submitActions(intent, owner).hex(), name)
+            intent.apply(parityServerParameters(intent))
+            assertEquals(requests.text("${name}SubmitSignatures"), SubmitIntentCodec.submitSignatures(intent).hex(), name)
+        }
+    }
+
+    @Test
     fun submitIntentResponsesDecodeLikeAndroid() {
         val names = listOf(
             "submitIntentServerParameters", "submitIntentSuccess", "submitIntentDenied",
@@ -122,11 +135,15 @@ class OcpClientParityTest {
      * The intent `OcpClientFixtureTest` builds, but with the verified rate and reserve state taken
      * from the recorded StreamLiveMintData responses, as the app re-embeds what the server signed.
      */
-    private fun multiPaymentIntent(): IntentMultiTransfer {
+    private fun verifiedState(): WireVerifiedState {
         val rates = StreamLiveMintDataResponse.ADAPTER.decode(responses.section("liveMintDataRates").hex("bytes"))
         val reserves = StreamLiveMintDataResponse.ADAPTER.decode(responses.section("liveMintDataReserves").hex("bytes"))
         val cad = rates.data_!!.core_mint_fiat_exchange_rates!!.exchange_rates.single { it.exchange_rate?.currency_code == "cad" }
         val reserve = reserves.data_!!.launchpad_currency_reserve_states!!.reserve_states.single()
+        return WireVerifiedState(cad, reserve)
+    }
+
+    private fun multiPaymentIntent(): IntentMultiTransfer {
 
         val authority = PublicKey(owner.publicKeyBytes.toList())
         val cluster = AccountCluster(
@@ -152,7 +169,7 @@ class OcpClientParityTest {
             shares = listOf(share(33, 49, 800_000, 1_096_000), share(34, 50, 200_000, 274_000)),
             mint = mints[0],
             sourceCluster = cluster,
-            verifiedState = WireVerifiedState(cad, reserve),
+            verifiedState = verifiedState(),
             intentId = key(0x77),
         )
     }

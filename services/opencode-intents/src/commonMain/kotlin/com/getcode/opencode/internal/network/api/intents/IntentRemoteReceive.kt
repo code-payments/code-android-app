@@ -25,6 +25,7 @@ class IntentRemoteReceive(
             owner: AccountCluster,
             amount: LocalFiat,
             mint: Mint,
+            intentId: PublicKey? = null,
         ): IntentRemoteReceive {
 
             // 1. Move all funds from the gift card to the primary account
@@ -38,7 +39,7 @@ class IntentRemoteReceive(
             )
 
             return IntentRemoteReceive(
-                id = PublicKey.generate(),
+                id = intentId ?: PublicKey.generate(),
                 metadata = TransactionMetadata.ReceivePublicPayment(
                     source = giftCard.cluster.vaultPublicKey,
                     amount = amount,

@@ -37,6 +37,7 @@ class IntentDistribution(
             source: AccountCluster,
             distributions: List<Distribution>,
             mint: Mint,
+            intentId: PublicKey? = null,
         ): IntentDistribution {
             val distroActions = buildActionGroup {
                 distributions.dropLast(1).forEach { dist ->
@@ -65,7 +66,7 @@ class IntentDistribution(
             }
 
             return IntentDistribution(
-                id = PublicKey.generate(),
+                id = intentId ?: PublicKey.generate(),
                 metadata = TransactionMetadata.PublicDistribution(
                     source = source.vaultPublicKey,
                     distributions = distributions,

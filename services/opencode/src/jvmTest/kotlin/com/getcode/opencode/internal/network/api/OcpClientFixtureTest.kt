@@ -23,6 +23,8 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.parity.parityIntents
+import com.getcode.opencode.parity.parityServerParameters
 import com.getcode.opencode.parity.renderAccountInfos
 import com.getcode.opencode.parity.renderLimits
 import com.getcode.opencode.parity.renderLiveMintData
@@ -51,7 +53,7 @@ import kotlin.test.assertEquals
 /**
  * Pins what Android sends and decodes for the calls `:services:opencode-client` makes over Wire:
  * StreamLiveMintData (open and pong), GetLimits, GetTokenAccountInfos responses, and the SubmitIntent
- * messages for a SendPublicMultiPayment intent. Its `OcpClientParityTest` asserts the same file on
+ * messages for a SendPublicMultiPayment intent and for each intent in `parityIntents`. Its `OcpClientParityTest` asserts the same file on
  * the JVM, Node and the iOS simulator.
  *
  * Requests go through the protobuf-java builders Android uses. Responses are protobuf-java messages
@@ -104,6 +106,12 @@ class OcpClientFixtureTest {
         put("submitActions", intent.requestToSubmitActions(owner).toByteArray().hex())
         intent.apply(serverParameters().serverParametersList.map { ServerParameter.newInstance(it) })
         put("submitSignatures", intent.requestToSubmitSignatures().toByteArray().hex())
+
+        parityIntents(owner, mints[0], verifiedState()).forEach { (name, other) ->
+            put("${name}SubmitActions", other.requestToSubmitActions(owner).toByteArray().hex())
+            other.apply(parityServerParameters(other))
+            put("${name}SubmitSignatures", other.requestToSubmitSignatures().toByteArray().hex())
+        }
     }
 
     private fun JsonObjectBuilder.responses() {
@@ -200,10 +208,13 @@ class OcpClientFixtureTest {
             shares = listOf(share(33, 49, 800_000, 1_096_000), share(34, 50, 200_000, 274_000)),
             mint = mints[0],
             sourceCluster = cluster,
-            verifiedState = VerifiedState(rateProto = verifiedRate("cad", 1.37, 0xA1), reserveProto = verifiedReserve()),
+            verifiedState = verifiedState(),
             intentId = intentId,
         )
     }
+
+    private fun verifiedState() =
+        VerifiedState(rateProto = verifiedRate("cad", 1.37, 0xA1), reserveProto = verifiedReserve())
 
     private fun verifiedRate(code: String, fx: Double, signatureSeed: Int) =
         OcpCurrencyService.VerifiedCoreMintFiatExchangeRate.newBuilder()
