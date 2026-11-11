@@ -117,13 +117,13 @@ class ChatSilenceLiftedToastTest {
     )
 
     private fun silenced(silence: SilenceState) =
-        ChatViewModel.Event.OnViewerStateResolved(ViewerState(restrictions = ViewerState.Restrictions(silence)))
+        ViewerEvent.OnViewerStateResolved(ViewerState(restrictions = ViewerState.Restrictions(silence)))
 
     /** Collects the lift events the screen turns into a floating toast. */
-    private fun TestScope.liftsOf(viewModel: ChatViewModel): List<ChatViewModel.Event.SilenceLifted> {
-        val lifts = mutableListOf<ChatViewModel.Event.SilenceLifted>()
+    private fun TestScope.liftsOf(viewModel: ChatViewModel): List<ViewerEvent.SilenceLifted> {
+        val lifts = mutableListOf<ViewerEvent.SilenceLifted>()
         backgroundScope.launch(mainCoroutineRule.dispatcher) {
-            viewModel.eventFlow.filterIsInstance<ChatViewModel.Event.SilenceLifted>().toList(lifts)
+            viewModel.eventFlow.filterIsInstance<ViewerEvent.SilenceLifted>().toList(lifts)
         }
         return lifts
     }
@@ -136,7 +136,7 @@ class ChatSilenceLiftedToastTest {
         viewModel.dispatchEvent(silenced(SilenceState.Forever))
         advanceUntilIdle()
 
-        viewModel.dispatchEvent(ChatViewModel.Event.OnViewerStateResolved(ViewerState()))
+        viewModel.dispatchEvent(ViewerEvent.OnViewerStateResolved(ViewerState()))
         advanceUntilIdle()
 
         assertEquals(1, lifts.size)
@@ -147,8 +147,8 @@ class ChatSilenceLiftedToastTest {
         val viewModel = createViewModel()
         val lifts = liftsOf(viewModel)
         viewModel.dispatchEvent(openChat)
-        viewModel.dispatchEvent(ChatViewModel.Event.OnViewerStateResolved(ViewerState()))
-        viewModel.dispatchEvent(ChatViewModel.Event.OnViewerStateResolved(null))
+        viewModel.dispatchEvent(ViewerEvent.OnViewerStateResolved(ViewerState()))
+        viewModel.dispatchEvent(ViewerEvent.OnViewerStateResolved(null))
         advanceUntilIdle()
 
         assertEquals(0, lifts.size)
@@ -164,8 +164,8 @@ class ChatSilenceLiftedToastTest {
         // The state reads the deadline against the wall clock, so let it pass before the timer's event.
         Thread.sleep(80)
 
-        viewModel.dispatchEvent(ChatViewModel.Event.SilenceLapsed)
-        viewModel.dispatchEvent(ChatViewModel.Event.OnViewerStateResolved(ViewerState()))
+        viewModel.dispatchEvent(ViewerEvent.SilenceLapsed)
+        viewModel.dispatchEvent(ViewerEvent.OnViewerStateResolved(ViewerState()))
         advanceUntilIdle()
 
         assertEquals(1, lifts.size)
@@ -179,7 +179,7 @@ class ChatSilenceLiftedToastTest {
         repeat(2) {
             viewModel.dispatchEvent(silenced(SilenceState.Forever))
             advanceUntilIdle()
-            viewModel.dispatchEvent(ChatViewModel.Event.OnViewerStateResolved(ViewerState()))
+            viewModel.dispatchEvent(ViewerEvent.OnViewerStateResolved(ViewerState()))
             advanceUntilIdle()
         }
 

@@ -43,6 +43,7 @@ import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.MemberModerationViewModel
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.app.messenger.internal.ChatViewModel
+import com.flipcash.app.messenger.internal.ViewerEvent
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.core.chat.InviteHostAction
 import com.flipcash.app.core.chat.InviteLinkAction
@@ -402,7 +403,7 @@ private fun FlowConversationScreen(
     LaunchedEffect(viewModel, floatingToasts) {
         val toasts = floatingToasts ?: return@LaunchedEffect
         viewModel.eventFlow
-            .filterIsInstance<ChatViewModel.Event.SilenceLifted>()
+            .filterIsInstance<ViewerEvent.SilenceLifted>()
             .collect { toastScope.launch { toasts.show(liftedMessage) } }
     }
 

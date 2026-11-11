@@ -75,7 +75,7 @@ class ConversationTitleBarTest {
                     state = ChatViewModel.State(
                         chatType = ChatType.GROUP,
                         subject = subject,
-                        viewerState = viewerState,
+                        viewer = ViewerSlice(viewerState = viewerState),
                     ),
                     onBarHeightChange = {},
                     chatActionHandler = onAction,

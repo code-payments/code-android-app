@@ -88,6 +88,7 @@ internal fun chatViewModel(
     lobbyRequests: LobbyRequests = mockk(relaxed = true),
     hostLobbies: HostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
     groupRosters: GroupRosters = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
+    viewer: DefaultViewerScope = DefaultViewerScope(chatCoordinator),
     linkCardMemory: LinkCardMemory? = null,
     composerLinkPreview: ComposerLinkPreview? = null,
 ): ChatViewModel = ChatViewModel(
@@ -126,6 +127,7 @@ internal fun chatViewModel(
     hostLobbies = hostLobbies,
     groupRosters = groupRosters,
     dispatchers = TestDispatcherProvider(dispatcher),
+    viewer = viewer,
     linkCardMemory = linkCardMemory,
     composerLinkPreview = composerLinkPreview,
 )
