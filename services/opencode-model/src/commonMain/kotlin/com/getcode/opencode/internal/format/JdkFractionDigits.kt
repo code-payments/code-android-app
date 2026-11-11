@@ -2,7 +2,7 @@ package com.getcode.opencode.internal.format
 
 /**
  * `java.util.Currency.getDefaultFractionDigits` as JDK 21 reports it for every [CurrencyCode], for
- * the targets with no JDK. Kept equal to the JDK by JdkFractionDigitsTest on the JVM. ICU (Node's
+ * the targets with no JDK. Kept equal to the JDK by JvmFormattingParityTest on the JVM. ICU (Node's
  * Intl, and Android's runtime) disagrees on 31 codes; the JDK values are the ones the host tests and
  * the amount math were built against.
  */
