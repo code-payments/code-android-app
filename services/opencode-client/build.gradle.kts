@@ -26,6 +26,8 @@ kotlin {
     }
     js {
         nodejs()
+        // CI's Node smoke test (node-smoke/smoke.cjs) imports this. sdk-js replaces it in step 5.
+        binaries.library()
     }
     iosArm64()
     iosSimulatorArm64()
@@ -33,6 +35,7 @@ kotlin {
     sourceSets {
         all {
             languageSettings.optIn("com.getcode.opencode.annotations.InternalOpenCodeApi")
+            languageSettings.optIn("kotlin.js.ExperimentalJsExport")
         }
         commonMain.dependencies {
             api(project(":services:opencode-transport"))
