@@ -30,8 +30,8 @@ class KmpJsConventionPlugin : Plugin<Project> {
                         nodejs {
                             testTask {
                                 useMocha {
-                                    // The vector suites walk every fixture in one test; mocha's 2s
-                                    // default is too short for Long-limb crypto on Node.
+                                    // The vector suites walk every fixture in one test, and Kotlin/JS
+                                    // emulates Long; mocha's 2s default is too short for them.
                                     timeout = "60s"
                                 }
                             }

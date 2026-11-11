@@ -130,12 +130,6 @@ kotlin {
     }
 
     sourceSets {
-        commonMain {
-            dependencies {
-                // SHA-512 for Ed25519Reference, the pure-Kotlin port the JS target uses.
-                implementation(project(":libs:encryption:sha512"))
-            }
-        }
         getByName("jvmAndJsMain") {
             dependencies {
                 api(project(":libs:parcelable"))
@@ -150,6 +144,14 @@ kotlin {
                 api(project(":libs:encryption:ed25519-native"))
             }
         }
+        jsMain {
+            dependencies {
+                // The JS actual. Exact pin, recorded in kotlin-js-store/package-lock.json.
+                implementation(npm("@noble/ed25519", "3.2.0"))
+                // SHA-512 for noble's sync API (`hashes.sha512`) and the signing steps.
+                implementation(project(":libs:encryption:sha512"))
+            }
+        }
         jvmMain {
             dependencies {
                 // Pure-Java Ed25519 for desktop -- no per-OS native library to build or ship.
@@ -160,6 +162,8 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.kotlinx.serialization.json)
+                // Ed25519ConsistencyTest digests its outputs.
+                implementation(project(":libs:encryption:sha512"))
             }
         }
     }
