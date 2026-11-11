@@ -463,39 +463,3 @@ class ChatEnvelopeFixtureTest {
 
     private fun json(name: String): JsonObject = Json.parseToJsonElement(File(vectors, name).readText()).jsonObject
 }
-
-private fun JsonObject.str(key: String): String = getValue(key).jsonPrimitive.content
-private fun JsonObject.obj(key: String): JsonObject = getValue(key).jsonObject
-private fun JsonObject.list(key: String): List<JsonObject> = getValue(key).jsonArray.map { it.jsonObject }
-private fun ByteArray.hex(): String = joinToString("") { "%02x".format(it) }
-private fun List<Byte>.hex(): String = toByteArray().hex()
-private fun ByteArray.bs(): ByteString = ByteString.copyFrom(this)
-private fun String.unhex(): ByteArray = chunked(2).map { it.toInt(16).toByte() }.toByteArray()
-
-/** Records each message's serialized bytes and closes the call with UNAVAILABLE, so nothing is sent. */
-private class CapturingChannel : ManagedChannel() {
-    private val captured = mutableListOf<ByteArray>()
-
-    fun takeOnly(): ByteArray = captured.single().also { captured.clear() }
-
-    override fun <Req, Resp> newCall(method: MethodDescriptor<Req, Resp>, options: CallOptions): ClientCall<Req, Resp> =
-        object : ClientCall<Req, Resp>() {
-            private var listener: Listener<Resp>? = null
-            override fun start(responseListener: Listener<Resp>, headers: Metadata) { listener = responseListener }
-            override fun request(numMessages: Int) = Unit
-            override fun cancel(message: String?, cause: Throwable?) = Unit
-            override fun sendMessage(message: Req) {
-                captured += method.streamRequest(message).readBytes()
-            }
-            override fun halfClose() {
-                listener?.onClose(Status.UNAVAILABLE.withDescription("captured, not sent"), Metadata())
-            }
-        }
-
-    override fun authority(): String = "capture.invalid"
-    override fun shutdown(): ManagedChannel = this
-    override fun isShutdown(): Boolean = false
-    override fun isTerminated(): Boolean = false
-    override fun shutdownNow(): ManagedChannel = this
-    override fun awaitTermination(timeout: Long, unit: TimeUnit): Boolean = true
-}
