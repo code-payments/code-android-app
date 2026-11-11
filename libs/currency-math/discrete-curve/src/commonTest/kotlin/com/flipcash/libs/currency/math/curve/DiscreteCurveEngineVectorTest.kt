@@ -83,6 +83,8 @@ class DiscreteCurveEngineVectorTest {
 
             val value = DiscreteCurveEngine.tokensToValue(supply, tokens)
             assertEquals(0, BigDecimal.parseString(v["value"]!!.jsonPrimitive.content).compareTo(value!!), "tokensToValue mismatch for $name")
+            // The on-chain amount: the 18-dp fixed-point integer must match exactly.
+            assertEquals(v["valueScaled"]!!.jsonPrimitive.content, toScaledBigInteger(value).toString(), "valueScaled mismatch for $name")
         }
     }
 
