@@ -118,6 +118,7 @@ include(
     // flipcash modules
     ":apps:flipcash:core",
     ":apps:flipcash:core-ui",
+    ":apps:flipcash:puppet",
     ":apps:flipcash:card-expand",
     ":apps:flipcash:startup-contract",
     ":apps:flipcash:shared:device-link",
@@ -208,6 +209,7 @@ include(
     ":libs:coroutines",
     ":libs:coroutines:test-fixtures",
     ":libs:parcelable",
+    ":libs:puppet",
     ":libs:currency-math:test-fixtures",
     ":libs:crypto:kin",
     ":libs:crypto:solana",
@@ -325,6 +327,7 @@ val koverPaths = listOf(":apps:flipcash", ":libs", ":ui", ":services:flipcash", 
 val nonKoverModules = setOf(
     ":apps:flipcash:benchmark",      // com.android.test — no Kover
     ":apps:flipcash:shared:ksp",     // pure-JVM helper — no Kover
+    ":apps:flipcash:puppet",         // pure-JVM Puppet host — no Kover
 )
 val koverModules = includedProjectPaths.filter { path ->
     koverPaths.any { path == it || path.startsWith("$it:") } && path !in nonKoverModules
@@ -336,7 +339,7 @@ val koverModules = includedProjectPaths.filter { path ->
 // `testAndroidHostTest`; pure-JVM modules expose `test`; `:benchmark` is androidTest-only and the
 // `:kmp:shared-core` umbrella has no tests of its own.
 val unitTestPaths = listOf(":apps:flipcash", ":services:flipcash", ":services:opencode", ":libs", ":kmp")
-val jvmUnitTestModules = setOf(":apps:flipcash:shared:ksp")
+val jvmUnitTestModules = setOf(":apps:flipcash:shared:ksp", ":apps:flipcash:puppet")
 // KMP modules run their host tests via `testAndroidHostTest`, not `testDebugUnitTest`.
 val kmpUnitTestModules = setOf(
     ":libs:codes:kikcode",

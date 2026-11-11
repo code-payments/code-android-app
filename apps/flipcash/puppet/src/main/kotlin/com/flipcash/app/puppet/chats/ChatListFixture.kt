@@ -1,0 +1,302 @@
+package com.flipcash.app.puppet.chats
+
+import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Mint
+import com.getcode.opencode.model.financial.VmMetadata
+import com.getcode.opencode.model.financial.TokenWithBalance
+import com.getcode.opencode.model.financial.MintMetadata
+import com.getcode.opencode.model.financial.HolderMetrics
+import com.getcode.opencode.model.financial.Fiat
+import com.flipcash.app.tipping.internal.NewChatViewModel
+import com.flipcash.app.puppet.FixtureGuard
+import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.app.core.storage.DirectoryPreferencesFiles
+import com.flipcash.app.persistence.sources.PaymentRequestDataSource
+import com.flipcash.app.persistence.sources.TokenDataSource
+import com.flipcash.app.persistence.sources.mapper.tokens.EntityToTokenMapper
+import com.flipcash.app.persistence.sources.mapper.tokens.RelationToTokenWithBalanceMapper
+import com.flipcash.app.persistence.sources.mapper.tokens.TokenToEntityMapper
+import com.flipcash.app.tipping.internal.ArchivedChatsViewModel
+import com.flipcash.app.tipping.internal.ChatRowActions
+import com.flipcash.app.tipping.internal.ChatsViewModel
+import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.libs.coroutines.DispatcherProvider
+import com.flipcash.services.chat.GroupContentCrypto
+import com.flipcash.services.chat.GroupKeyEnvelopes
+import com.flipcash.services.chat.WrongKeyChats
+import com.flipcash.services.controllers.ChatController
+import com.flipcash.services.controllers.PaymentRequestController
+import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatMember
+import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.user.AnalyticsIdentifier
+import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.ChatArchiveStore
+import com.flipcash.shared.chat.ChatCoordinator
+import com.flipcash.shared.chat.ChatFeeds
+import com.flipcash.shared.chat.ChatMarkedUnreadStore
+import com.flipcash.shared.chat.ChatReadActions
+import com.flipcash.shared.chat.ChatSummary
+import com.flipcash.shared.chat.HostLobbies
+import com.flipcash.shared.chat.LobbyRequestStore
+import com.flipcash.shared.chat.LobbyRequests
+import com.flipcash.shared.chat.PaymentRequests
+import com.getcode.chatcipher.DefaultChatCipher
+import com.getcode.chatcipher.DefaultInviteCipher
+import com.getcode.opencode.controllers.AccountController
+import com.getcode.opencode.controllers.CurrencyController
+import com.getcode.opencode.controllers.TokenController
+import com.getcode.opencode.controllers.TransactionController
+import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.generators.MnemonicGenerator
+import com.getcode.opencode.managers.MnemonicManager
+import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Rate
+import com.getcode.util.resources.ComposeResourceHelper
+import com.hoc081098.channeleventbus.ChannelEventBus
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
+import androidx.lifecycle.ViewModelStore
+import java.io.File
+import java.nio.file.Files
+import kotlin.time.Instant
+
+/**
+ * A [ChatsViewModel] over seeded chats, for the Puppet host, and the [ArchivedChatsViewModel]s
+ * Chats opens over the same chats. Nothing here reaches the backend:
+ * the chat list comes from a [ChatCoordinator] holding [seed], and every repository under the
+ * view model's other dependencies is a [FixtureGuard.network] stand-in.
+ *
+ * The coordinator is the seam because it is what the view model reads its feeds from. Faking
+ * `ChatRepository` instead would mean running the real coordinator, which needs a signed-in
+ * account's Room database and group keys to decrypt. The view model's other dependencies are
+ * the real classes, built by hand rather than from a DI graph: the graphs bind the real
+ * coordinator in `ChatModule`, whose bindings are internal to that module, so they can't swap it.
+ */
+class ChatListFixture(
+    private val dispatchers: DispatcherProvider,
+    seed: ChatFeeds = defaultSeed,
+    /** The account's balances as New Chat reads them; [dollarsOnly] unless a launch seeds others. */
+    val balances: List<TokenWithBalance> = dollarsOnly,
+    val guard: FixtureGuard = FixtureGuard(),
+    private val dataDir: File = Files.createTempDirectory("puppet-chats").toFile(),
+) {
+    val feeds = MutableStateFlow(seed)
+
+    private val chatCoordinator: ChatCoordinator = object : ChatCoordinator by guard.unfaked() {
+        override fun feedWithArchived(vararg chatTypes: ChatType): Flow<ChatFeeds> = feeds
+        override fun currentFeedWithArchived(vararg chatTypes: ChatType): ChatFeeds = feeds.value
+        override fun archivedFeed(vararg chatTypes: ChatType): Flow<List<ChatSummary>> = feeds.map { it.archived }
+        override fun currentArchivedFeed(vararg chatTypes: ChatType): List<ChatSummary> = feeds.value.archived
+        override fun observeSenderProfiles(): Flow<Map<String, UserProfile>> = flowOf(emptyMap())
+        override fun currentSenderProfiles(): Map<String, UserProfile> = emptyMap()
+    }
+
+    private val exchange: Exchange = object : Exchange by guard.unfaked() {
+        override fun observePreferredRate(): Flow<Rate> = flowOf(Rate.oneToOne)
+        override fun observeRates() = flowOf(emptyMap<com.getcode.opencode.model.financial.CurrencyCode, Rate>())
+    }
+
+    /**
+     * Archiving moves a chat between [feeds]' lists, which is what the real coordinator's feeds do
+     * once the real store records it. Both screens read [feeds], so an unarchive on Archived shows
+     * up on Chats.
+     */
+    private val archiveStore = object : ChatArchiveStore {
+        override fun observeArchived(): Flow<Set<ChatId>> = feeds.map { f -> f.archived.mapTo(mutableSetOf()) { it.metadata.chatId } }
+        override suspend fun isArchived(chatId: ChatId) = feeds.value.archived.any { it.metadata.chatId == chatId }
+        override suspend fun archive(chatId: ChatId) = feeds.update { f ->
+            val chat = f.main.firstOrNull { it.metadata.chatId == chatId } ?: return@update f
+            f.copy(main = f.main - chat, archived = f.archived + chat)
+        }
+        override suspend fun unarchive(chatId: ChatId) = feeds.update { f ->
+            val chat = f.archived.firstOrNull { it.metadata.chatId == chatId } ?: return@update f
+            f.copy(main = f.main + chat, archived = f.archived - chat)
+        }
+        override suspend fun clearAll() = Unit
+    }
+
+    private val accountController = AccountController(guard.network(), guard.unfaked())
+
+    private val userManager = UserManager(
+        mnemonicManager = MnemonicManager(MnemonicGenerator()),
+        analyticsIdentifier = AnalyticsIdentifier { },
+        eventBus = ChannelEventBus(),
+        accountController = accountController,
+    ).apply { set(selfId) }
+
+    private val tokenCoordinator = TokenCoordinator(
+        preferencesFiles = DirectoryPreferencesFiles(dataDir),
+        tokenController = TokenController(
+            accountController,
+            CurrencyController(guard.network(), TransactionController(guard.network(), guard.network(), accountController)),
+        ),
+        accountController = accountController,
+        networkObserver = guard.unfaked(),
+        exchange = exchange,
+        dataSource = TokenDataSource(TokenToEntityMapper(), EntityToTokenMapper(), RelationToTokenWithBalanceMapper(EntityToTokenMapper())),
+        dispatchers = dispatchers,
+    )
+
+    private val chatController = ChatController(guard.network(), userManager)
+
+    private val lobbyStore = object : LobbyRequestStore {
+        override fun observe(): Flow<Map<ChatId, Instant>> = flowOf(emptyMap())
+        override suspend fun put(chatId: ChatId, enteredAt: Instant) = Unit
+        override suspend fun remove(chatId: ChatId) = Unit
+    }
+
+    private val hostLobbies = HostLobbies(
+        chatController,
+        GroupKeyEnvelopes(DefaultChatCipher, DefaultInviteCipher, guard.unfaked(), chatController, WrongKeyChats(), guard.unfaked()),
+    )
+
+    private val paymentRequests = PaymentRequests(
+        PaymentRequestController(guard.network(), userManager),
+        GroupContentCrypto(DefaultChatCipher, guard.unfaked()),
+        PaymentRequestDataSource(),
+    )
+
+    private val rowActions = ChatRowActions(
+        chatCoordinator,
+        ChatReadActions(chatCoordinator, ChatMarkedUnreadStore.None),
+        archiveStore,
+        FlipcashAnalytics.None,
+    )
+
+    val viewModel = ChatsViewModel(
+        exchange = exchange,
+        chatCoordinator = chatCoordinator,
+        userManager = userManager,
+        tokenCoordinator = tokenCoordinator,
+        resources = ComposeResourceHelper(),
+        dispatchers = dispatchers,
+        archiveStore = archiveStore,
+        lobbyRequests = LobbyRequests(chatController, lobbyStore, chatCoordinator),
+        hostLobbies = hostLobbies,
+        paymentRequests = paymentRequests,
+        rowActions = rowActions,
+    )
+
+    // Owns the view models so close() can cancel their viewModelScopes.
+    private val store = ViewModelStore().apply { put("chats", viewModel) }
+    private var archivedOpened = 0
+
+    /** A new Archived screen's view model, as each push of the Archived route builds one. */
+    fun archivedViewModel(): ArchivedChatsViewModel = ArchivedChatsViewModel(
+        exchange = exchange,
+        chatCoordinator = chatCoordinator,
+        archiveStore = archiveStore,
+        userManager = userManager,
+        tokenCoordinator = tokenCoordinator,
+        resources = ComposeResourceHelper(),
+        dispatchers = dispatchers,
+        paymentRequests = paymentRequests,
+        hostLobbies = hostLobbies,
+        rowActions = rowActions,
+    ).also { store.put("archived-${archivedOpened++}", it) }
+
+    private var newChatOpened = 0
+
+    /** A new New Chat screen's view model, as each push of the New Chat route builds one. */
+    fun newChatViewModel(): NewChatViewModel = NewChatViewModel(
+        tokenBalances = flowOf(balances),
+        preferredRate = exchange.observePreferredRate(),
+    ).also { store.put("new-chat-${newChatOpened++}", it) }
+
+    /** Cancels the view model's work and deletes the data directory. */
+    fun close() {
+        store.clear()
+        dataDir.deleteRecursively()
+    }
+
+    companion object {
+        val selfId: ID = List(32) { 1 }
+
+        /**
+         * The default seed's balances: $25 of dollars and no community currency, so the community
+         * row's gate depends on the app leaving dollars out.
+         */
+        val dollarsOnly: List<TokenWithBalance> = listOf(TokenWithBalance(dollarsToken(), Fiat(25.0)))
+
+        /** The `community-holder` seed's balances: [dollarsOnly] and $5 of one community currency. */
+        val holdingCommunity: List<TokenWithBalance> = dollarsOnly + TokenWithBalance(communityToken(), Fiat(5.0))
+
+        fun chatId(n: Int) = ChatId(ByteArray(16) { n.toByte() })
+
+        private fun group(n: Int, title: String, activity: Long, unread: Int, markedUnread: Boolean = false) = ChatSummary(
+            metadata = ChatMetadata(
+                chatId = chatId(n),
+                type = ChatType.GROUP,
+                members = emptyList(),
+                lastMessage = null,
+                lastActivity = Instant.fromEpochSeconds(activity),
+                title = title,
+            ),
+            unreadCount = unread,
+            markedUnread = markedUnread,
+        )
+
+        private fun tipDm(n: Int, name: String, activity: Long, unread: Int): ChatSummary {
+            fun member(id: ID, displayName: String) = ChatMember(
+                userId = id,
+                userProfile = UserProfile(displayName = displayName, socialAccounts = emptyList(), phoneNumber = null, email = null),
+                pointers = emptyList(),
+            )
+            return ChatSummary(
+                metadata = ChatMetadata(
+                    chatId = chatId(n),
+                    type = ChatType.TIP_DM,
+                    members = listOf(member(selfId, "Me"), member(List(32) { n.toByte() }, name)),
+                    lastMessage = null,
+                    lastActivity = Instant.fromEpochSeconds(activity),
+                ),
+                unreadCount = unread,
+            )
+        }
+
+        /**
+         * Four main-list chats (two unread, two groups) and one unread archived group. No private group
+         * the fixture user hosts (its lobby would be fetched), no payment requests (each would be
+         * fetched), no mutes (muting reads the clock).
+         */
+        val defaultSeed = ChatFeeds(
+            main = listOf(
+                group(1, "Ballers", activity = 4_000, unread = 3),
+                tipDm(2, "Ava", activity = 3_000, unread = 0),
+                group(3, "Book club", activity = 2_000, unread = 0),
+                tipDm(4, "Sam", activity = 1_000, unread = 1),
+            ),
+            archived = listOf(group(5, "Old crew", activity = 500, unread = 2)),
+        )
+    }
+}
+
+// Built by hand: `Token.usdf` derives its VM account, and the fixture needs only the address.
+private fun dollarsToken() = token(Mint.usdf, "USDF")
+
+private fun communityToken() = token(Mint(ByteArray(32) { 7 }.toList()), "PUPPET")
+
+private fun token(address: Mint, symbol: String) = MintMetadata(
+    address = address,
+    decimals = 6,
+    name = symbol,
+    symbol = symbol,
+    createdAt = null,
+    description = "",
+    imageUrl = "",
+    vmMetadata = VmMetadata(
+        vm = PublicKey.fromBase58("11111111111111111111111111111111"),
+        authority = PublicKey.fromBase58("11111111111111111111111111111111"),
+        lockDurationInDays = 21,
+    ),
+    launchpadMetadata = null,
+    billCustomizations = null,
+    socialLinks = emptyList(),
+    holderMetrics = HolderMetrics.None,
+)

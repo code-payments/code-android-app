@@ -2,6 +2,8 @@ package com.flipcash.app.tipping.internal
 
 import com.getcode.opencode.exchange.Exchange
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.app.tokens.TokenCoordinator
@@ -32,11 +34,15 @@ import com.flipcash.shared.chat.ui.ConversationReference
 import com.getcode.opencode.model.financial.Token
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
+import com.getcode.view.PublicAction
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.coroutines.flow.combine
 import com.flipcash.shared.chat.PaymentRequests
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -60,6 +66,7 @@ open class ChatsViewModel @Inject constructor(
 ) : BaseViewModel<ChatsViewModel.State, ChatsViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent,
+    defaultDispatcher = dispatchers.Default,
 ) {
 
     data class State(
@@ -118,16 +125,51 @@ open class ChatsViewModel @Inject constructor(
             val projection: ChatListProjection,
         ) : Event
 
-        data class FilterSelected(val filter: ChatListFilter) : Event
+        // The events below are what the screen sends. They are serializable, under short names, so the
+        // Puppet host in `:apps:flipcash:puppet` can list them and decode their input; the names are
+        // shared with the iOS host.
+        @Serializable
+        @SerialName("FilterSelected")
+        data class FilterSelected(val filter: ChatListFilter) : Event, PublicAction
 
-        data object ChipsRevealed : Event
+        @Serializable
+        @SerialName("ChipsRevealed")
+        data object ChipsRevealed : Event, PublicAction
 
-        data class SelectionStarted(val chatId: ChatId?) : Event
+        @Serializable
+        @SerialName("SelectionStarted")
+        data class SelectionStarted(val chatId: ChatId? = null) : Event, PublicAction
 
-        data class SelectionToggled(val chatId: ChatId) : Event
+        @Serializable
+        @SerialName("SelectionToggled")
+        data class SelectionToggled(val chatId: ChatId) : Event, PublicAction
 
-        data object SelectionEnded : Event
+        @Serializable
+        @SerialName("SelectionEnded")
+        data object SelectionEnded : Event, PublicAction
+
+        // The three ways off the list. The view model turns each into an [OpenScreen] for the
+        // screen to push, so the route a tap leads to is decided here rather than in the UI.
+        @Serializable
+        @SerialName("ChatOpened")
+        data class ChatOpened(val chatId: ChatId) : Event, PublicAction
+
+        @Serializable
+        @SerialName("ArchivedOpened")
+        data object ArchivedOpened : Event, PublicAction
+
+        @Serializable
+        @SerialName("NewChatOpened")
+        data object NewChatOpened : Event, PublicAction
+
+        data class OpenScreen(val screen: AppRoute) : Event
     }
+
+    fun openChat(chatId: ChatId) = dispatchEvent(Event.ChatOpened(chatId))
+
+    fun openArchived() = dispatchEvent(Event.ArchivedOpened)
+
+    fun openNewChat() = dispatchEvent(Event.NewChatOpened)
 
     fun selectFilter(filter: ChatListFilter) = dispatchEvent(Event.FilterSelected(filter))
 
@@ -281,6 +323,18 @@ open class ChatsViewModel @Inject constructor(
         hostedGroups
             .onEach { groups -> groups.keys.forEach { chatId -> viewModelScope.launch { hostLobbies.load(chatId) } } }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .mapNotNull { event ->
+                when (event) {
+                    is Event.ChatOpened -> AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(event.chatId))
+                    Event.ArchivedOpened -> AppRoute.Messaging.ArchivedChats
+                    Event.NewChatOpened -> AppRoute.Messaging.NewChat
+                    else -> null
+                }
+            }
+            .onEach { route -> dispatchEvent(Event.OpenScreen(route)) }
+            .launchIn(viewModelScope)
     }
 
     companion object {
@@ -297,6 +351,7 @@ open class ChatsViewModel @Inject constructor(
                     state.copy(selection = state.selection?.toggledSelection(event.chatId))
                 }
                 Event.SelectionEnded -> { state -> state.copy(selection = null) }
+                is Event.ChatOpened, Event.ArchivedOpened, Event.NewChatOpened, is Event.OpenScreen -> { state -> state }
             }
         }
     }

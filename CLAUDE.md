@@ -92,6 +92,10 @@ A code change is done when the touched modules' unit tests pass and `./gradlew :
 
 Tests for gestures and pointer input replay the sequence a finger makes on the device, such as a partial reveal followed by a full swipe. A semantics action or a single fling can pass while the real gesture fails: the leading swipe's reset and the desktop peek toggle both did.
 
+## Headless screens (puppet)
+
+`:apps:flipcash:puppet` is this repo's host for Puppet: one JVM process for the app that runs real view models over seeded data with no device. `FlipcashPuppet` maps each hosted route (`/tab/chats` today) to the screen that serves it, and `libs/puppet` holds the protocol loop and the shared stack. `ChatsBehaviorTest` replays the shared behavior files in `test-vectors/behaviors/` through the same host, and `:apps:flipcash:puppet:puppetLauncher` writes the launcher the orchestrator's `puppet` CLI runs. To host another screen, add its route to `FlipcashPuppet` (a root) or its node to `HostedRoutes` (a screen reached by a push, from any feature module: Chats opens New Chat from `:features:tipping` this way), not a new process. A seed a file can launch with (`"seed"`) is an entry in `SEEDS` in `FlipcashPuppet.kt`; the shared Chats README lists what each holds. The protocol, CLI and canonical behavior files live in the orchestrator repo; `/puppet` points to its skill. A change to a hosted screen (Chats, Archived, New Chat) also has to pass `scripts/puppet/puppet test android` there.
+
 ## Namespaces
 
 - App: `com.flipcash.app.android` (no `applicationIdSuffix` — debug and release share the ID, so installing one replaces the other)
