@@ -152,24 +152,24 @@ internal fun TransactionMetadata.asProtobufMetadata(): OcpTransactionService.Met
                     .setSource(source.asSolanaAccountId())
                     .setMint(exchangeData.mint.asSolanaAccountId())
                     .apply {
-                        if (verifiedExchangeData != null) {
-                            setClientExchangeData(verifiedExchangeData.asProtobufExchangeData())
+                        this@asProtobufMetadata.verifiedExchangeData?.let {
+                            setClientExchangeData(it.asProtobufExchangeData())
                         }
                     }
                     .setDestination(destination.asSolanaAccountId())
                     .apply {
-                        if (this@asProtobufMetadata.destinationOwner != null) {
-                            setDestinationOwner(this@asProtobufMetadata.destinationOwner.asSolanaAccountId())
+                        this@asProtobufMetadata.destinationOwner?.let {
+                            setDestinationOwner(it.asSolanaAccountId())
                         }
                     }
                     .setIsIndirectSend(isIndirect)
                     .setIsWithdrawal(isWithdrawal)
                     .build()
             )
-            if (appMetadata != null) {
+            appMetadata?.let {
                 builder.setAppMetadata(
                     OcpTransactionService.AppMetadata.newBuilder()
-                        .setValue(appMetadata.toByteString())
+                        .setValue(it.toByteString())
                 )
             }
         }
@@ -196,10 +196,10 @@ internal fun TransactionMetadata.asProtobufMetadata(): OcpTransactionService.Met
                     }
                     .build()
             )
-            if (appMetadata != null) {
+            appMetadata?.let {
                 builder.setAppMetadata(
                     OcpTransactionService.AppMetadata.newBuilder()
-                        .setValue(appMetadata.toByteString())
+                        .setValue(it.toByteString())
                 )
             }
         }

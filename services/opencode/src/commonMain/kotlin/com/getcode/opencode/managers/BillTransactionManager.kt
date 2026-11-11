@@ -1,5 +1,6 @@
 package com.getcode.opencode.managers
 
+import com.getcode.opencode.internal.network.extensions.asVerifiedState
 import com.getcode.opencode.controllers.AccountController
 import com.getcode.opencode.controllers.MessagingController
 import com.getcode.opencode.controllers.TransactionController
@@ -185,7 +186,7 @@ class BillTransactionManager @Inject constructor(
                         message = "Grabbed ${amount.nativeAmount.formatted()} of ${token.symbol} from sender"
                     )
 
-                    val verifiedState = metadata.verifiedExchangeData?.verifiedState
+                    val verifiedState = metadata.verifiedExchangeData?.verifiedState?.asVerifiedState()
                     onGrabbed(token, amount, verifiedState)
                     sharedScope.launch {
                         transactionController.updateLimits(owner, force = true)

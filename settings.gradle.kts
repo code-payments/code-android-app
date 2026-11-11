@@ -269,6 +269,7 @@ include(
     // Services definition for app and lib access
     ":services:opencode",
     ":services:opencode-model",
+    ":services:opencode-intents",
     ":services:opencode-solana",
     ":services:opencode-transport",
     ":services:opencode-compose",

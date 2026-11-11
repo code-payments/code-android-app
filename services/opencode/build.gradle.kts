@@ -29,6 +29,7 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.ocp.client.protocol)
             api(project(":services:opencode-model"))
+            api(project(":services:opencode-intents"))
             api(project(":services:opencode-solana"))
             api(project(":libs:currency-math"))
             api(project(":libs:datetime"))

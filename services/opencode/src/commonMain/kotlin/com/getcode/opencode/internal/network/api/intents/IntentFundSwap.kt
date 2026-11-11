@@ -20,10 +20,6 @@ internal class IntentFundSwap(
     override val actionGroup: ActionGroup,
 ) : IntentType() {
 
-    override fun metadata(): OcpTransactionService.Metadata {
-        return metadata.asProtobufMetadata()
-    }
-
     companion object {
         fun create(
             intentId: PublicKey,

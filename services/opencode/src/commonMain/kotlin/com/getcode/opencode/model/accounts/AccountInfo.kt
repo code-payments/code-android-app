@@ -1,5 +1,6 @@
 package com.getcode.opencode.model.accounts
 
+import com.getcode.opencode.internal.network.extensions.newInstance
 import com.codeinc.opencode.gen.account.v1.OcpAccountService
 import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.internal.network.extensions.toModel
