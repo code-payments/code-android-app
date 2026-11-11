@@ -79,6 +79,9 @@ flipcash2-client-protocol = "0.25.0"
 # :services:opencode-transport. Released alongside the javalite artifact from the same build, so
 # 0.10.0 also exists for ocp-client-protocol; Android stays on 0.9.0 above.
 ocp-client-protocol-wire = "0.10.0"
+# Wire messages for flipcash2 (com.codeinc.flipcash.wire.*), consumed only by :services:flipcash-chat
+# and :services:flipcash-client. Android stays on the protobuf-java artifact above.
+flipcash2-client-protocol-wire = "0.26.0"
 
 # The Android port is the ONLY libphonenumber this app depends on, deliberately. Google's
 # `com.googlecode` artifact used to sit alongside it; the two ship separate copies of the metadata,
@@ -250,6 +253,7 @@ protobuf-validate-runtime = { module = "dev.bmcreations:protovalidate-runtime", 
 ocp-client-protocol = { module = "com.flipcash:ocp-client-protocol", version.ref = "ocp-client-protocol" }
 flipcash2-client-protocol = { module = "com.flipcash:flipcash2-client-protocol", version.ref = "flipcash2-client-protocol" }
 ocp-client-protocol-wire = { module = "com.flipcash:ocp-client-protocol-wire", version.ref = "ocp-client-protocol-wire" }
+flipcash2-client-protocol-wire = { module = "com.flipcash:flipcash2-client-protocol-wire", version.ref = "flipcash2-client-protocol-wire" }
 
 # Retrofit
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }

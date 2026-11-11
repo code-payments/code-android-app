@@ -1,0 +1,125 @@
+package com.flipcash.chat
+
+import com.codeinc.flipcash.wire.chat.v1.GetKeyEnvelopeRequest
+import com.codeinc.flipcash.wire.chat.v1.GetKeyEnvelopeResponse
+import com.codeinc.flipcash.wire.chat.v1.SetKeyEnvelopeRequest
+import com.codeinc.flipcash.wire.chat.v1.SetKeyEnvelopeResponse
+import com.codeinc.flipcash.wire.common.v1.ChatId
+import com.getcode.chatcipher.EncryptedPayload
+import com.getcode.chatcipher.InviteKeyEnvelope
+import com.getcode.ed25519kmp.Ed25519
+import okio.ByteString.Companion.toByteString
+import com.codeinc.flipcash.wire.chat.v1.KeyEnvelope as WireKeyEnvelope
+
+/** What `GetKeyEnvelope` returned, as Android's `InternalChatRepository.getKeyEnvelope` reads it. */
+sealed interface KeyEnvelopeLookup {
+    /** The viewer's own envelope. [wrappedBy] is the user id that wrapped it, when the server says. */
+    class Own(val envelope: KeyEnvelope, val wrappedBy: ByteArray?, val wrappedByPublicKey: ByteArray?) : KeyEnvelopeLookup
+
+    /** Only the invite's copy exists: the viewer joined by link and has not stored an envelope yet. */
+    class InviteOnly(val bundle: InviteKeyBundle, val wrappedBy: ByteArray?, val wrappedByPublicKey: ByteArray?) : KeyEnvelopeLookup
+
+    /** OK with nothing stored, or an envelope case this build does not know. */
+    data object NoEnvelope : KeyEnvelopeLookup
+
+    data object Denied : KeyEnvelopeLookup
+
+    data object NotFound : KeyEnvelopeLookup
+}
+
+/** What `SetKeyEnvelope` returned. A result number this build does not know is [UNKNOWN]. */
+enum class SetKeyEnvelopeResult { OK, DENIED, NOT_FOUND, ALREADY_SET, UNKNOWN }
+
+/**
+ * `chat.v1` key-envelope messages: `KeyEnvelope`, and the Set/GetKeyEnvelope request and response
+ * bodies. Requests come back as the bytes to send, signed the way Android's `ChatApi` signs them.
+ * `SetKeyEnvelope` is a mutating call; building its request sends nothing.
+ */
+object KeyEnvelopeCodec {
+
+    /** `chat.v1.KeyEnvelope` bytes for [envelope]. */
+    fun encode(envelope: KeyEnvelope): ByteArray = envelope.toWire().encode()
+
+    /** Parses `chat.v1.KeyEnvelope` bytes, keeping an unknown scheme's raw number. */
+    fun decode(bytes: ByteArray): KeyEnvelope = WireKeyEnvelope.ADAPTER.decode(bytes).toDomain()
+
+    /** A signed `GetKeyEnvelopeRequest` for [chatId]. */
+    fun getKeyEnvelopeRequest(owner: Ed25519.KeyPair, chatId: ByteArray): ByteArray {
+        val unsigned = GetKeyEnvelopeRequest(chat_id = ChatId(value_ = chatId.toByteString()))
+        return unsigned.copy(auth = authFor(unsigned.encode(), owner)).encode()
+    }
+
+    /** A signed `SetKeyEnvelopeRequest` storing [envelope] for the viewer in [chatId]. */
+    fun setKeyEnvelopeRequest(owner: Ed25519.KeyPair, chatId: ByteArray, envelope: KeyEnvelope): ByteArray {
+        val unsigned = SetKeyEnvelopeRequest(
+            chat_id = ChatId(value_ = chatId.toByteString()),
+            key_envelope = envelope.toWire(),
+        )
+        return unsigned.copy(auth = authFor(unsigned.encode(), owner)).encode()
+    }
+
+    fun decodeSetKeyEnvelopeResponse(bytes: ByteArray): SetKeyEnvelopeResult {
+        val response = SetKeyEnvelopeResponse.ADAPTER.decode(bytes)
+        if (rawEnum(response.unknownFields, tag = 1) != null) return SetKeyEnvelopeResult.UNKNOWN
+        return when (response.result) {
+            SetKeyEnvelopeResponse.Result.OK -> SetKeyEnvelopeResult.OK
+            SetKeyEnvelopeResponse.Result.DENIED -> SetKeyEnvelopeResult.DENIED
+            SetKeyEnvelopeResponse.Result.NOT_FOUND -> SetKeyEnvelopeResult.NOT_FOUND
+            SetKeyEnvelopeResponse.Result.ALREADY_SET -> SetKeyEnvelopeResult.ALREADY_SET
+        }
+    }
+
+    /**
+     * Reads a `GetKeyEnvelopeResponse`. An unknown result number reads as [KeyEnvelopeLookup.NoEnvelope],
+     * which Android reaches through its `else` branch too.
+     */
+    fun decodeGetKeyEnvelopeResponse(bytes: ByteArray): KeyEnvelopeLookup {
+        val response = GetKeyEnvelopeResponse.ADAPTER.decode(bytes)
+        val result = if (rawEnum(response.unknownFields, tag = 1) != null) null else response.result
+        val wrappedBy = response.wrapped_by?.value_?.toByteArray()
+        val wrappedByPk = response.wrapped_by_public_key?.value_?.toByteArray()
+        return when (result) {
+            GetKeyEnvelopeResponse.Result.DENIED -> KeyEnvelopeLookup.Denied
+            GetKeyEnvelopeResponse.Result.NOT_FOUND -> KeyEnvelopeLookup.NotFound
+            GetKeyEnvelopeResponse.Result.OK -> {
+                val own = response.key_envelope
+                val invite = response.invite_key_bundle
+                when {
+                    own != null -> KeyEnvelopeLookup.Own(own.toDomain(), wrappedBy, wrappedByPk)
+                    invite != null -> KeyEnvelopeLookup.InviteOnly(
+                        bundle = InviteKeyBundle(
+                            inviteId = invite.invite_id?.value_?.toByteArray() ?: ByteArray(0),
+                            keyEnvelopeScheme = invite.key_envelope?.let { rawEnum(it.unknownFields, 1) ?: it.scheme.value } ?: 0,
+                            keyEnvelope = InviteKeyEnvelope(
+                                nonce = invite.key_envelope?.nonce?.toByteArray() ?: ByteArray(0),
+                                ciphertext = invite.key_envelope?.ciphertext?.toByteArray() ?: ByteArray(0),
+                                signature = invite.key_envelope?.signature?.toByteArray() ?: ByteArray(0),
+                            ),
+                            secretEnvelopeScheme = invite.secret_envelope?.let { rawEnum(it.unknownFields, 1) ?: it.scheme.value } ?: 0,
+                            secretEnvelope = EncryptedPayload(
+                                nonce = invite.secret_envelope?.nonce?.toByteArray() ?: ByteArray(0),
+                                ciphertext = invite.secret_envelope?.ciphertext?.toByteArray() ?: ByteArray(0),
+                            ),
+                        ),
+                        wrappedBy = wrappedBy,
+                        wrappedByPublicKey = wrappedByPk,
+                    )
+                    else -> KeyEnvelopeLookup.NoEnvelope
+                }
+            }
+            GetKeyEnvelopeResponse.Result.NO_ENVELOPE, null -> KeyEnvelopeLookup.NoEnvelope
+        }
+    }
+}
+
+internal fun KeyEnvelope.toWire(): WireKeyEnvelope = WireKeyEnvelope(
+    scheme = requireNotNull(WireKeyEnvelope.Scheme.fromValue(scheme)) { "Unknown KeyEnvelope scheme $scheme" },
+    nonce = nonce.toByteString(),
+    ciphertext = ciphertext.toByteString(),
+)
+
+internal fun WireKeyEnvelope.toDomain(): KeyEnvelope = KeyEnvelope(
+    scheme = rawEnum(unknownFields, tag = 1) ?: scheme.value,
+    nonce = nonce.toByteArray(),
+    ciphertext = ciphertext.toByteArray(),
+)

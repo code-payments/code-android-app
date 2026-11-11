@@ -57,7 +57,22 @@ kotlin {
             implementation(libs.bundles.unit.testing)
             implementation(project(":services:flipcash:test-fixtures"))
         }
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.core)
+        }
     }
+}
+
+tasks.named<Test>("jvmTest") {
+    // ChatEnvelopeFixtureTest records Android's chat bytes into the fixture :services:flipcash-chat
+    // checks its Wire codec against. Run with -Dfixture.update=true to rewrite it.
+    val vectors = rootProject.file("libs/encryption/chat-cipher/src/commonTest/resources")
+    val fixture = rootProject.file("services/flipcash-chat/src/commonTest/resources/chat_envelopes.json")
+    systemProperty("chatCipherVectors", vectors.absolutePath)
+    systemProperty("chatEnvelopeFixture", fixture.absolutePath)
+    inputs.dir(vectors)
+    providers.systemProperty("fixture.update").orNull?.let { systemProperty("fixture.update", it) }
 }
 
 dependencies {

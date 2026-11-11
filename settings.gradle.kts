@@ -277,6 +277,7 @@ include(
     ":services:flipcash",
     ":services:flipcash:test-fixtures",
     ":services:flipcash-compose",
+    ":services:flipcash-chat",
 
     // common UI
     ":ui:biometrics",
