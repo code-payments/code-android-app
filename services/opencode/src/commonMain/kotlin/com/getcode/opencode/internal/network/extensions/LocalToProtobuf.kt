@@ -284,7 +284,7 @@ internal fun Message.asProtobufMessage(): OcpMessagingService.Message {
     val builder = OcpMessagingService.Message.newBuilder()
         .setId(id.asMessageId())
 
-    when (kind) {
+    when (val kind = kind) {
         is MessageKind.RequestToGrabBill -> {
             builder.requestToGrabBill = requestToGrabBill {
                 requestorAccount = kind.requestor.asSolanaAccountId()
@@ -397,7 +397,7 @@ internal fun StatefulSwapRequest.verifiedMetadata(): OcpTransactionService.Verif
 internal fun TokenBillCustomizations.asProto(): OcpCurrencyService.BillCustomization {
     return OcpCurrencyService.BillCustomization.newBuilder()
         .apply {
-            when (background) {
+            when (val background = background) {
                 is BillBackground.Gradient -> addAllColors(
                     background.colors.map { color ->
                         OcpCurrencyService.Color.newBuilder().setHex(color).build()

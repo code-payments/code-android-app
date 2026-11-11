@@ -259,6 +259,8 @@ include(
 
     // Services definition for app and lib access
     ":services:opencode",
+    ":services:opencode-model",
+    ":services:opencode-solana",
     ":services:opencode-compose",
     ":services:flipcash",
     ":services:flipcash:test-fixtures",

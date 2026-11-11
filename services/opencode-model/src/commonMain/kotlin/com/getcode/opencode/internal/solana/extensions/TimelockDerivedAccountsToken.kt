@@ -1,0 +1,44 @@
+package com.getcode.opencode.internal.solana.extensions
+
+import com.getcode.opencode.annotations.InternalOpenCodeApi
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.solana.keys.ProgramDerivedAccount
+import com.getcode.opencode.solana.keys.TimelockDerivedAccounts
+import com.getcode.opencode.solana.keys.TimelockVmSwapAccounts
+import com.getcode.solana.keys.PublicKey
+
+@InternalOpenCodeApi public fun TimelockDerivedAccounts.Companion.newInstance(owner: PublicKey, token: Token): TimelockDerivedAccounts {
+    val state: ProgramDerivedAccount = PublicKey.deriveTimelockStateAccount(
+        mint = token.address,
+        owner = owner,
+        authority = token.vmMetadata.authority,
+        lockout = token.vmMetadata.lockDurationInDays.toUByte()
+    )
+
+    val vault: ProgramDerivedAccount = PublicKey.deriveTimelockVaultAccount(
+        stateAccount = state.publicKey,
+        version = dataVersion
+    )
+
+    return TimelockDerivedAccounts(
+        owner = owner,
+        state = state,
+        vault = vault,
+    )
+}
+
+@InternalOpenCodeApi public fun TimelockVmSwapAccounts.Companion.newInstance(owner: PublicKey, token: Token): TimelockVmSwapAccounts {
+    val pda = PublicKey.deriveSwapAddress(
+        owner = owner,
+        mint = token.address,
+        authority = token.vmMetadata.authority,
+        lockout = token.vmMetadata.lockDurationInDays.toUByte()
+    )
+
+    val ata = PublicKey.deriveAssociatedAccount(
+        owner = pda.publicKey,
+        mint = token.address
+    )
+
+    return TimelockVmSwapAccounts(pda, ata)
+}
