@@ -69,8 +69,11 @@ jobs:
           coinbase-onramp-api-key: ${{ secrets.COINBASE_ONRAMP_API_KEY }}
 
       # Same tasks as the `flipcash_tests` fastlane lane minus lint, without the Ruby setup.
+      # kotlinStorePackageLock fails when kotlin-js-store/package-lock.json no longer matches the
+      # JS dependencies. jsNodeTest runs every module's common tests on Node (the Kotlin Gradle
+      # plugin downloads Node from nodejs.org on first use).
       - name: Run unit tests
-        run: ./gradlew generateEmojiList flipcashTestDebug
+        run: ./gradlew generateEmojiList kotlinStorePackageLock jsNodeTest flipcashTestDebug
 
   lint:
     name: Lint
@@ -117,11 +120,6 @@ jobs:
     if: github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    # Not blocking yet: :libs:encryption:mnemonic:connectedAndroidDeviceTest currently fails with
-    # FileNotFoundException: slip10.json (Slip10DerivationVectorTest cannot find its vector file in
-    # the device test assets). The emulator boots and :libs:currency-math passes. Remove this line
-    # once the mnemonic asset packaging is fixed.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:

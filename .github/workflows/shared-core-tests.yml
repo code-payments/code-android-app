@@ -15,6 +15,11 @@ on:
       - 'libs/reporting/**'
       - 'libs/analytics-events/**'
       - 'libs/text-format/**'
+      - 'libs/logging/**'
+      - 'libs/parcelable/**'
+      - 'services/opencode-model/**'
+      - 'services/opencode-solana/**'
+      - 'build-logic/convention/src/main/kotlin/KmpAppleConventionPlugin.kt'
       - 'build-logic/convention/src/main/kotlin/AnalyticsCatalogueConventionPlugin.kt'
       - 'build-logic/convention/src/main/kotlin/com/getcode/buildlogic/analytics/**'
       - 'gradle/libs.versions.toml'
@@ -72,17 +77,24 @@ jobs:
           ./gradlew \
             :libs:analytics-events:iosSimulatorArm64Test \
             :libs:codes:kikcode:iosSimulatorArm64Test \
+            :libs:currency-math:iosSimulatorArm64Test \
             :libs:currency-math:discrete-curve:iosSimulatorArm64Test \
             :libs:device-link:iosSimulatorArm64Test \
             :libs:encryption:base58:iosSimulatorArm64Test \
             :libs:encryption:chat-cipher:iosSimulatorArm64Test \
             :libs:encryption:ed25519:iosSimulatorArm64Test \
             :libs:encryption:hmac:iosSimulatorArm64Test \
+            :libs:encryption:keys:iosSimulatorArm64Test \
             :libs:encryption:mnemonic:iosSimulatorArm64Test \
             :libs:encryption:sha256:iosSimulatorArm64Test \
             :libs:encryption:sha512:iosSimulatorArm64Test \
+            :libs:encryption:utils:iosSimulatorArm64Test \
+            :libs:logging:iosSimulatorArm64Test \
+            :libs:parcelable:iosSimulatorArm64Test \
             :libs:reporting:iosSimulatorArm64Test \
-            :libs:text-format:iosSimulatorArm64Test
+            :libs:text-format:iosSimulatorArm64Test \
+            :services:opencode-model:iosSimulatorArm64Test \
+            :services:opencode-solana:iosSimulatorArm64Test
 
       # The facade suite has to run against the Kotlin in this checkout, not against the last
       # published release, or a facade written for an unreleased Kotlin change is untested until
