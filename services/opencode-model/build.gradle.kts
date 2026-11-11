@@ -27,5 +27,8 @@ kotlin {
             api(project(":libs:logging"))
             implementation(libs.kotlinx.serialization.json)
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
 }

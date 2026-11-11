@@ -1,0 +1,72 @@
+en-US|1234.5 USD|$1,234.50
+en-US|tie 1.005 USD|$1.00
+en-US|tie 2.675 USD|$2.67
+en-US|tie 0.5 JPY|¥1
+en-US|-0.001 USD|-$0.00
+en-US|zero USD|$0.00
+en-US|1234567.891 EUR|€1,234,567.89
+en-US|1234567.891 EUR no commas|€1234567.89
+en-US|-42.5 GBP suffix|-+£42.50 USDF
+en-US|12345.678 INR|₹12,345.68
+en-US|1000 KWD|1,000.123
+en-US|5 USD truncated|$5
+en-US|1.23456 Length(4)|$1.2346
+en-US|parse '1,234.5'|1234500000
+en-US|parse '0.000001'|1
+en-US|localeAware '1.5'|1.5
+en-US|localeAware '1,5'|1.0
+en-US|localeAware '1,234.5'|1.0
+en-US|localeAware '1.234,5'|1.234
+en-US|localeAware '1,'|1.0
+en-US|localeAware '1.'|1.0
+en-US|localeAware ''|null
+en-US|localeAware 'abc'|null
+en-US|localeAware '-2.25'|-2.25
+de-DE|1234.5 USD|$1.234,50
+de-DE|tie 1.005 USD|$1,00
+de-DE|tie 2.675 USD|$2,67
+de-DE|tie 0.5 JPY|¥1
+de-DE|-0.001 USD|-$0,00
+de-DE|zero USD|$0,00
+de-DE|1234567.891 EUR|€1.234.567,89
+de-DE|1234567.891 EUR no commas|€1234567,89
+de-DE|-42.5 GBP suffix|-+£42,50 USDF
+de-DE|12345.678 INR|₹12.345,68
+de-DE|1000 KWD|1.000,123
+de-DE|5 USD truncated|$5
+de-DE|1.23456 Length(4)|$1,2346
+de-DE|parse '1,234.5'|1234500000
+de-DE|parse '0.000001'|1
+de-DE|localeAware '1.5'|1.0
+de-DE|localeAware '1,5'|1.5
+de-DE|localeAware '1,234.5'|1.234
+de-DE|localeAware '1.234,5'|1.0
+de-DE|localeAware '1,'|1.0
+de-DE|localeAware '1.'|1.0
+de-DE|localeAware ''|null
+de-DE|localeAware 'abc'|null
+de-DE|localeAware '-2.25'|-2.0
+en-IN|1234.5 USD|$1,234.50
+en-IN|tie 1.005 USD|$1.00
+en-IN|tie 2.675 USD|$2.67
+en-IN|tie 0.5 JPY|¥1
+en-IN|-0.001 USD|-$0.00
+en-IN|zero USD|$0.00
+en-IN|1234567.891 EUR|€1,234,567.89
+en-IN|1234567.891 EUR no commas|€1234567.89
+en-IN|-42.5 GBP suffix|-+£42.50 USDF
+en-IN|12345.678 INR|₹12,345.68
+en-IN|1000 KWD|1,000.123
+en-IN|5 USD truncated|$5
+en-IN|1.23456 Length(4)|$1.2346
+en-IN|parse '1,234.5'|1234500000
+en-IN|parse '0.000001'|1
+en-IN|localeAware '1.5'|1.5
+en-IN|localeAware '1,5'|1.0
+en-IN|localeAware '1,234.5'|1.0
+en-IN|localeAware '1.234,5'|1.234
+en-IN|localeAware '1,'|1.0
+en-IN|localeAware '1.'|1.0
+en-IN|localeAware ''|null
+en-IN|localeAware 'abc'|null
+en-IN|localeAware '-2.25'|-2.25
