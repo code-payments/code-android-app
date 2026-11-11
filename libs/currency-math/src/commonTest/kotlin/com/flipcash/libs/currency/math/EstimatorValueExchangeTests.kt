@@ -1,6 +1,7 @@
 package com.flipcash.libs.currency.math
 
-import java.math.BigDecimal
+import com.flipcash.libs.currency.math.decimal.Decimals
+import com.flipcash.libs.currency.math.decimal.BigDecimal
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -12,7 +13,7 @@ class EstimatorValueExchangeAsTokensTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
     }
 
     // -- valueExchangeAsTokens --
@@ -164,7 +165,7 @@ class EstimatorValueExchangeAsTokensTests {
         ).getOrThrow()
 
         // quarks should be tokens * 10^10
-        val tokenScale = BigDecimal.TEN.pow(10, mc)
+        val tokenScale = Decimals.TEN.pow(10, mc)
         val expectedQuarks = tokensResult.tokens.multiply(tokenScale, mc)
 
         assertTrue(
@@ -206,7 +207,7 @@ class EstimatorMultipleMintDecimalsTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
     }
 
     @Test
@@ -311,7 +312,7 @@ class EstimatorEdgeCaseTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
     }
 
     // -- Zero amount edge cases --
@@ -339,11 +340,11 @@ class EstimatorEdgeCaseTests {
         ).getOrThrow()
 
         assertTrue(
-            result.netAmountToReceive.compareTo(BigDecimal.ZERO) == 0,
+            result.netAmountToReceive.compareTo(Decimals.ZERO) == 0,
             "Selling zero should return zero"
         )
         assertTrue(
-            result.fees.compareTo(BigDecimal.ZERO) == 0,
+            result.fees.compareTo(Decimals.ZERO) == 0,
             "Selling zero should have zero fees"
         )
     }
@@ -507,7 +508,7 @@ class EstimatorEdgeCaseTests {
         ).getOrThrow()
 
         assertTrue(
-            result.netTokensToReceive.compareTo(BigDecimal.ZERO) == 0,
+            result.netTokensToReceive.compareTo(Decimals.ZERO) == 0,
             "100% fee should yield zero net tokens"
         )
     }
@@ -523,7 +524,7 @@ class EstimatorEdgeCaseTests {
         ).getOrThrow()
 
         assertTrue(
-            result.netAmountToReceive.compareTo(BigDecimal.ZERO) == 0,
+            result.netAmountToReceive.compareTo(Decimals.ZERO) == 0,
             "100% fee should yield zero net amount"
         )
     }
@@ -642,7 +643,7 @@ class ContinuousCurveValueExchangeTests {
         ).getOrThrow()
 
         // fx = scaledValue / tokens
-        val valueScale = BigDecimal.TEN.pow(6, mc)
+        val valueScale = Decimals.TEN.pow(6, mc)
         val scaledValue = BigDecimal(value).divide(valueScale, mc)
         val expectedFx = scaledValue.divideWithHighPrecision(result.tokens)
 

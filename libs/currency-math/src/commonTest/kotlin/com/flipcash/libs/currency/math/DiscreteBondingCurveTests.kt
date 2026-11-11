@@ -1,9 +1,11 @@
 package com.flipcash.libs.currency.math
 
+import com.flipcash.libs.currency.math.decimal.Decimals
 import com.flipcash.libs.currency.math.internal.curves.DiscreteBondingCurve
 import kotlin.test.BeforeTest
-import java.math.BigDecimal
-import java.math.RoundingMode
+import com.flipcash.libs.currency.math.decimal.BigDecimal
+import com.flipcash.libs.currency.math.decimal.RoundingMode
+import com.flipcash.libs.currency.math.decimal.toDecimal
 import kotlin.test.*
 
 private val MAX_SUPPLY = BigDecimal("21000000")
@@ -16,7 +18,7 @@ class DiscreteSpotPriceTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -28,14 +30,14 @@ class DiscreteSpotPriceTests {
 
     @Test
     fun `1-1 Spot price at supply 0 equals first table entry`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         assertNotNull(price)
         assertTrue(isApproximatelyEqual(price, expectedPriceStep0))
     }
 
     @Test
     fun `1-2 Supply 50 uses same price as supply 0 (within step 0)`() {
-        val price0 = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price0 = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val price50 = curve.spotPriceAtSupply(supply = BigDecimal(50)).getOrThrow()
         assertEquals(price0, price50)
     }
@@ -52,7 +54,7 @@ class DiscreteSpotPriceTests {
         var previousPrice: BigDecimal? = null
         for (step in 0 until 10) {
             val supply = step * 100
-            val price = curve.spotPriceAtSupply(supply = supply.toBigDecimal()).getOrThrow()
+            val price = curve.spotPriceAtSupply(supply = supply.toDecimal()).getOrThrow()
             assertNotNull(price)
             if (previousPrice != null) {
                 assertTrue(price > previousPrice, "Price should increase at step $step")
@@ -63,7 +65,7 @@ class DiscreteSpotPriceTests {
 
     @Test
     fun `1-5 Supply 99 still uses step 0 price`() {
-        val price0 = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price0 = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val price99 = curve.spotPriceAtSupply(supply = BigDecimal(99)).getOrThrow()
         assertEquals(price0, price99)
     }
@@ -72,18 +74,18 @@ class DiscreteSpotPriceTests {
     fun `1-6 Various positions within step 5 all return same price`() {
         val step5Start = 500
         val offsets = listOf(0, 1, 25, 50, 75, 99)
-        val basePrice = curve.spotPriceAtSupply(supply = step5Start.toBigDecimal()).getOrThrow()
+        val basePrice = curve.spotPriceAtSupply(supply = step5Start.toDecimal()).getOrThrow()
         assertNotNull(basePrice)
 
         for (offset in offsets) {
-            val price = curve.spotPriceAtSupply(supply = (step5Start + offset).toBigDecimal()).getOrThrow()
+            val price = curve.spotPriceAtSupply(supply = (step5Start + offset).toDecimal()).getOrThrow()
             assertEquals(basePrice, price, "Supply ${step5Start + offset} should have same price as supply $step5Start")
         }
     }
 
     @Test
     fun `1-7 Supply beyond table returns failure`() {
-        val result = curve.spotPriceAtSupply(supply = MAX_SUPPLY.add(BigDecimal.ONE))
+        val result = curve.spotPriceAtSupply(supply = MAX_SUPPLY.add(Decimals.ONE))
         assertTrue(result.isFailure)
     }
 
@@ -102,23 +104,23 @@ class DiscreteTokensToValueTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
     @Test
     fun `2-1 Buying 0 tokens costs 0 from any supply`() {
-        val cost = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal.ZERO).getOrThrow()
-        assertEquals(BigDecimal.ZERO, cost)
+        val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = Decimals.ZERO).getOrThrow()
+        assertEquals(Decimals.ZERO, cost)
 
-        val cost2 = curve.tokensToValue(currentSupply = BigDecimal(1000), tokens = BigDecimal.ZERO).getOrThrow()
-        assertEquals(BigDecimal.ZERO, cost2)
+        val cost2 = curve.tokensToValue(currentSupply = BigDecimal(1000), tokens = Decimals.ZERO).getOrThrow()
+        assertEquals(Decimals.ZERO, cost2)
     }
 
     @Test
     fun `2-2 50 tokens from supply 0 = 50 times price at 0`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
-        val cost = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(50)).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
+        val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(50)).getOrThrow()
 
         val expected = BigDecimal(50).multiplyWithHighPrecision(price)
         assertTrue(isApproximatelyEqual(cost, expected))
@@ -126,7 +128,7 @@ class DiscreteTokensToValueTests {
 
     @Test
     fun `2-3 75 tokens from supply 25 = 75 times price at 0`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val cost = curve.tokensToValue(currentSupply = BigDecimal(25), tokens = BigDecimal(75)).getOrThrow()
 
         val expected = BigDecimal(75).multiplyWithHighPrecision(price)
@@ -135,8 +137,8 @@ class DiscreteTokensToValueTests {
 
     @Test
     fun `2-4 30 tokens from supply 10 = 30 times price at 0`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
-        val cost = curve.tokensToValue(currentSupply = BigDecimal.TEN, tokens = BigDecimal(30)).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
+        val cost = curve.tokensToValue(currentSupply = Decimals.TEN, tokens = BigDecimal(30)).getOrThrow()
 
         val expected = BigDecimal(30).multiplyWithHighPrecision(price)
         assertTrue(isApproximatelyEqual(cost, expected))
@@ -144,8 +146,8 @@ class DiscreteTokensToValueTests {
 
     @Test
     fun `2-5 100 tokens from supply 0 = 100 times price at 0`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
-        val cost = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(100)).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
+        val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(100)).getOrThrow()
 
         val expected = BigDecimal(100).multiplyWithHighPrecision(price)
         assertTrue(isApproximatelyEqual(cost, expected))
@@ -153,9 +155,9 @@ class DiscreteTokensToValueTests {
 
     @Test
     fun `2-6 200 tokens from 0 = 100 times price0 + 100 times price1`() {
-        val price0 = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price0 = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val price1 = curve.spotPriceAtSupply(supply = BigDecimal(100)).getOrThrow()
-        val cost = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(200)).getOrThrow()
+        val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(200)).getOrThrow()
 
         val expected = BigDecimal(100).multiplyWithHighPrecision(price0)
             .addWithHighPrecision(BigDecimal(100).multiplyWithHighPrecision(price1))
@@ -164,7 +166,7 @@ class DiscreteTokensToValueTests {
 
     @Test
     fun `2-7 150 tokens from 50 = 50 times price0 + 100 times price1`() {
-        val price0 = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price0 = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val price1 = curve.spotPriceAtSupply(supply = BigDecimal(100)).getOrThrow()
         val cost = curve.tokensToValue(currentSupply = BigDecimal(50), tokens = BigDecimal(150)).getOrThrow()
 
@@ -175,9 +177,9 @@ class DiscreteTokensToValueTests {
 
     @Test
     fun `2-8 175 tokens from 0 = 100 times price0 + 75 times price1`() {
-        val price0 = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price0 = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val price1 = curve.spotPriceAtSupply(supply = BigDecimal(100)).getOrThrow()
-        val cost = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(175)).getOrThrow()
+        val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(175)).getOrThrow()
 
         val expected = BigDecimal(100).multiplyWithHighPrecision(price0)
             .addWithHighPrecision(BigDecimal(75).multiplyWithHighPrecision(price1))
@@ -186,7 +188,7 @@ class DiscreteTokensToValueTests {
 
     @Test
     fun `2-9 125 tokens from 50 = 50 times price0 + 75 times price1`() {
-        val price0 = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price0 = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val price1 = curve.spotPriceAtSupply(supply = BigDecimal(100)).getOrThrow()
         val cost = curve.tokensToValue(currentSupply = BigDecimal(50), tokens = BigDecimal(125)).getOrThrow()
 
@@ -197,9 +199,9 @@ class DiscreteTokensToValueTests {
 
     @Test
     fun `2-10 500 tokens from 0 spans 5 complete steps`() {
-        val cost = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(500)).getOrThrow()
+        val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(500)).getOrThrow()
 
-        var expected = BigDecimal.ZERO
+        var expected = Decimals.ZERO
         for (step in 0 until 5) {
             val price = curve.spotPriceAtSupply(supply = BigDecimal(step * 100)).getOrThrow()
             expected = expected.addWithHighPrecision(BigDecimal(100).multiplyWithHighPrecision(price))
@@ -212,8 +214,8 @@ class DiscreteTokensToValueTests {
         val cost = curve.tokensToValue(currentSupply = BigDecimal(75), tokens = BigDecimal(350)).getOrThrow()
 
         // 25 tokens in step 0, 100 tokens each in steps 1-3, 25 tokens in step 4
-        var expected = BigDecimal.ZERO
-        val p0 = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        var expected = Decimals.ZERO
+        val p0 = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         expected = expected.addWithHighPrecision(BigDecimal(25).multiplyWithHighPrecision(p0))
 
         for (step in 1..3) {
@@ -248,14 +250,14 @@ class DiscreteTokensToValueTests {
     fun `2-14 500 tokens from supply 1000000`() {
         val cost = curve.tokensToValue(currentSupply = BigDecimal(1_000_000), tokens = BigDecimal(500)).getOrThrow()
         assertNotNull(cost)
-        assertTrue(cost > BigDecimal.ZERO)
+        assertTrue(cost > Decimals.ZERO)
     }
 
     @Test
     fun `2-15 cost(A+B) = cost(A) + cost(B from A's end)`() {
-        val costA = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(200)).getOrThrow()
+        val costA = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(200)).getOrThrow()
         val costB = curve.tokensToValue(currentSupply = BigDecimal(200), tokens = BigDecimal(150)).getOrThrow()
-        val costTotal = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(350)).getOrThrow()
+        val costTotal = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(350)).getOrThrow()
 
         val sum = costA.addWithHighPrecision(costB)
         assertTrue(isApproximatelyEqual(costTotal, sum))
@@ -266,17 +268,17 @@ class DiscreteTokensToValueTests {
         for (step in listOf(0, 5, 10, 50, 100)) {
             val supply = BigDecimal(step * 100)
             val price = curve.spotPriceAtSupply(supply = supply).getOrThrow()
-            val cost = curve.tokensToValue(currentSupply = supply, tokens = BigDecimal.ONE).getOrThrow()
+            val cost = curve.tokensToValue(currentSupply = supply, tokens = Decimals.ONE).getOrThrow()
             assertTrue(isApproximatelyEqual(cost, price), "1 token cost should equal spot price at step $step")
         }
     }
 
     @Test
     fun `2-17 tokensToValue(0, step times 100) matches cumulative table pattern`() {
-        val cost0 = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal.ZERO).getOrThrow()
-        assertEquals(BigDecimal.ZERO, cost0)
+        val cost0 = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = Decimals.ZERO).getOrThrow()
+        assertEquals(Decimals.ZERO, cost0)
 
-        val cost100 = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(100)).getOrThrow()
+        val cost100 = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(100)).getOrThrow()
         val expectedApprox = BigDecimal("1.0")
 
         assertTrue(isApproximatelyEqual(cost100, expectedApprox, tolerance = BigDecimal("0.001")))
@@ -291,54 +293,54 @@ class DiscreteValueToTokensTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
     @Test
     fun `3-1 0 value yields 0 tokens from any supply`() {
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = BigDecimal.ZERO).getOrThrow()
-        assertEquals(BigDecimal.ZERO, tokens)
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = Decimals.ZERO).getOrThrow()
+        assertEquals(Decimals.ZERO, tokens)
 
-        val tokens2 = curve.valueToTokens(currentSupply = BigDecimal(1000), value = BigDecimal.ZERO).getOrThrow()
-        assertEquals(BigDecimal.ZERO, tokens2)
+        val tokens2 = curve.valueToTokens(currentSupply = BigDecimal(1000), value = Decimals.ZERO).getOrThrow()
+        assertEquals(Decimals.ZERO, tokens2)
     }
 
     @Test
     fun `3-2 Value for 50 tokens yields approximately 50 tokens`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val value = BigDecimal(50).multiplyWithHighPrecision(price)
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = value).getOrThrow()
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = value).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal(50)))
     }
 
     @Test
     fun `3-3 Value for 25 tokens yields approximately 25 tokens`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val value = BigDecimal(25).multiplyWithHighPrecision(price)
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = value).getOrThrow()
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = value).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal(25)))
     }
 
     @Test
     fun `3-4 Value for 99 tokens yields approximately 99 tokens`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val value = BigDecimal(99).multiplyWithHighPrecision(price)
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = value).getOrThrow()
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = value).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal(99)))
     }
 
     @Test
     fun `3-5 Value for 100 tokens yields approximately 100 tokens`() {
-        val cost = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(100)).getOrThrow()
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = cost).getOrThrow()
+        val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(100)).getOrThrow()
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = cost).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal(100)))
     }
 
     @Test
     fun `3-6 Value crossing boundary yields expected tokens`() {
-        val cost = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(150)).getOrThrow()
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = cost).getOrThrow()
+        val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(150)).getOrThrow()
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = cost).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal(150)))
     }
 
@@ -351,8 +353,8 @@ class DiscreteValueToTokensTests {
 
     @Test
     fun `3-8 Value for 500 tokens (5 steps)`() {
-        val cost = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(500)).getOrThrow()
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = cost).getOrThrow()
+        val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(500)).getOrThrow()
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = cost).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal(500)))
     }
 
@@ -366,15 +368,15 @@ class DiscreteValueToTokensTests {
 
     @Test
     fun `3-10 Small value can't complete a full token`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val smallValue = price.divideWithHighPrecision(BigDecimal(2))
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = smallValue).getOrThrow()
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = smallValue).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal("0.5"), tolerance = BigDecimal("0.01")))
     }
 
     @Test
     fun `3-11 Exactly enough to complete current step`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val value = BigDecimal(50).multiplyWithHighPrecision(price)
         val tokens = curve.valueToTokens(currentSupply = BigDecimal(50), value = value).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal(50)))
@@ -388,15 +390,15 @@ class DiscreteValueToTokensTests {
 
     @Test
     fun `3-13 Value for 1 token`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = price).getOrThrow()
-        assertTrue(isApproximatelyEqual(tokens, BigDecimal.ONE))
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = price).getOrThrow()
+        assertTrue(isApproximatelyEqual(tokens, Decimals.ONE))
     }
 
     @Test
     fun `3-14 Value for 175 tokens (partial end step)`() {
-        val cost = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(175)).getOrThrow()
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = cost).getOrThrow()
+        val cost = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(175)).getOrThrow()
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = cost).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal(175)))
     }
 }
@@ -409,7 +411,7 @@ class DiscreteRoundtripTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -424,10 +426,10 @@ class DiscreteRoundtripTests {
     @Test
     fun `4-2 value to tokens to value approximately equals original`() {
         val originalValue = BigDecimal(5 * 1_000_000)
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = originalValue).getOrThrow()
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = originalValue).getOrThrow()
 
         val wholeTokens = tokens.setScale(0, RoundingMode.DOWN)
-        val recoveredValue = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = wholeTokens).getOrThrow()
+        val recoveredValue = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = wholeTokens).getOrThrow()
 
         assertTrue(recoveredValue <= originalValue)
         val diff = originalValue.subtractWithHighPrecision(recoveredValue)
@@ -439,7 +441,7 @@ class DiscreteRoundtripTests {
         for (step in listOf(0, 10, 100, 1000)) {
             val supply = BigDecimal(step * 100)
             val price = curve.spotPriceAtSupply(supply = supply).getOrThrow()
-            val cost = curve.tokensToValue(currentSupply = supply, tokens = BigDecimal.ONE).getOrThrow()
+            val cost = curve.tokensToValue(currentSupply = supply, tokens = Decimals.ONE).getOrThrow()
             assertTrue(isApproximatelyEqual(price, cost), "Step $step: spotPrice should equal cost of 1 token")
         }
     }
@@ -447,7 +449,7 @@ class DiscreteRoundtripTests {
     @Test
     fun `4-4 Methods handle step boundaries consistently`() {
         val price99 = curve.spotPriceAtSupply(supply = BigDecimal(99)).getOrThrow()
-        val price0 = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price0 = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val price100 = curve.spotPriceAtSupply(supply = BigDecimal(100)).getOrThrow()
 
         assertEquals(price99, price0)
@@ -456,10 +458,10 @@ class DiscreteRoundtripTests {
 
     @Test
     fun `4-5 Buying in parts equals buying all at once`() {
-        val costA = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(100)).getOrThrow()
+        val costA = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(100)).getOrThrow()
         val costB = curve.tokensToValue(currentSupply = BigDecimal(100), tokens = BigDecimal(200)).getOrThrow()
         val costC = curve.tokensToValue(currentSupply = BigDecimal(300), tokens = BigDecimal(150)).getOrThrow()
-        val costAll = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(450)).getOrThrow()
+        val costAll = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(450)).getOrThrow()
 
         val sumParts = costA.addWithHighPrecision(costB).addWithHighPrecision(costC)
         assertTrue(isApproximatelyEqual(costAll, sumParts))
@@ -469,14 +471,14 @@ class DiscreteRoundtripTests {
     fun `4-6 Large purchase across many steps`() {
         val cost = curve.tokensToValue(currentSupply = BigDecimal(1_234_500), tokens = BigDecimal(10_000)).getOrThrow()
         assertNotNull(cost)
-        assertTrue(cost > BigDecimal.ZERO)
+        assertTrue(cost > Decimals.ZERO)
     }
 
     @Test
     fun `4-7 Fractional tokens handling`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val value = BigDecimal("10.5").multiplyWithHighPrecision(price)
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = value).getOrThrow()
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = value).getOrThrow()
         assertTrue(isApproximatelyEqual(tokens, BigDecimal("10.5"), tolerance = BigDecimal("0.01")))
     }
 }
@@ -489,7 +491,7 @@ class DiscreteTableValidationTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -505,7 +507,7 @@ class DiscreteTableValidationTests {
 
     @Test
     fun `5-3 Pricing table first entry is approximately 0-01`() {
-        val price = curve.spotPriceAtSupply(supply = BigDecimal.ZERO).getOrThrow()
+        val price = curve.spotPriceAtSupply(supply = Decimals.ZERO).getOrThrow()
         val onePenny = BigDecimal("0.01")
         assertTrue(isApproximatelyEqual(price, onePenny, tolerance = BigDecimal("0.0001")))
     }
@@ -513,7 +515,7 @@ class DiscreteTableValidationTests {
     @Test
     fun `5-4 Cumulative table first entry is zero`() {
         val first = curve.cumulativeTable.getRaw(0)
-        assertEquals(BigDecimal.ZERO, first)
+        assertEquals(Decimals.ZERO, first)
     }
 
     @Test
@@ -546,7 +548,7 @@ class DiscreteTableValidationTests {
 
         for ((i, expected) in expectedRaw.withIndex()) {
             val actual = curve.pricingTable.getRaw(i)
-            assertEquals(expected.toLong().toBigDecimal(), actual, "Mismatch at index $i")
+            assertEquals(expected.toLong().toDecimal(), actual, "Mismatch at index $i")
         }
     }
 
@@ -562,7 +564,7 @@ class DiscreteTableValidationTests {
 
         for ((i, expected) in expectedRaw.withIndex()) {
             val actual = curve.cumulativeTable.getRaw(i)
-            assertEquals(expected.toLong().toBigDecimal(), actual, "Mismatch at index $i")
+            assertEquals(expected.toLong().toDecimal(), actual, "Mismatch at index $i")
         }
     }
 
@@ -580,7 +582,7 @@ class DiscreteEdgeCaseTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -592,20 +594,20 @@ class DiscreteEdgeCaseTests {
 
     @Test
     fun `6-2 Negative tokens handling`() {
-        val result = curve.tokensToValue(currentSupply = BigDecimal.ZERO, tokens = BigDecimal(-1))
+        val result = curve.tokensToValue(currentSupply = Decimals.ZERO, tokens = BigDecimal(-1))
         assertTrue(result.isFailure)
     }
 
     @Test
     fun `6-3 Negative value handling`() {
-        val result = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = BigDecimal(-1))
+        val result = curve.valueToTokens(currentSupply = Decimals.ZERO, value = BigDecimal(-1))
         assertTrue(result.isFailure)
     }
 
     @Test
     fun `6-4 Very large value doesn't crash`() {
         val hugeValue = BigDecimal("999999999999999999999999999999")
-        val result = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = hugeValue)
+        val result = curve.valueToTokens(currentSupply = Decimals.ZERO, value = hugeValue)
         // Should either return failure or a valid (possibly capped) result - just checking it doesn't crash
         assertTrue(result.isSuccess || result.isFailure)
     }
@@ -613,8 +615,8 @@ class DiscreteEdgeCaseTests {
     @Test
     fun `6-5 Very small values handled correctly`() {
         val tinyValue = BigDecimal("0.0000000001")
-        val tokens = curve.valueToTokens(currentSupply = BigDecimal.ZERO, value = tinyValue).getOrThrow()
-        assertTrue(tokens >= BigDecimal.ZERO)
+        val tokens = curve.valueToTokens(currentSupply = Decimals.ZERO, value = tinyValue).getOrThrow()
+        assertTrue(tokens >= Decimals.ZERO)
     }
 
     @Test
@@ -644,7 +646,7 @@ class DiscreteTokensForValueExchangeTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
@@ -652,7 +654,7 @@ class DiscreteTokensForValueExchangeTests {
     fun `7-1 Zero value fails`() {
         val result = curve.tokensForValueExchange(
             currentValue = BigDecimal("10.0"),
-            value = BigDecimal.ZERO
+            value = Decimals.ZERO
         )
         assertTrue(result.isFailure)
     }
@@ -754,7 +756,7 @@ class DiscreteTokensForValueExchangeTests {
     @Test
     fun `7-9 Zero current value fails`() {
         val result = curve.tokensForValueExchange(
-            currentValue = BigDecimal.ZERO,
+            currentValue = Decimals.ZERO,
             value = BigDecimal("1.0")
         )
         assertTrue(result.isFailure)
@@ -808,13 +810,13 @@ class DiscreteRealWorldTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
         curve = DiscreteBondingCurve.getOrThrow()
     }
 
     @Test
     fun `9-1 BigDecimal ten pow 18 equals 10 to 18 string`() {
-        val powVersion = BigDecimal.TEN.pow(18, mc)
+        val powVersion = Decimals.TEN.pow(18, mc)
         val stringVersion = BigDecimal("1000000000000000000")
 
         val powStr = powVersion.toPlainString()
@@ -830,7 +832,7 @@ class DiscreteRealWorldTests {
         val scale18String = BigDecimal("1000000000000000000")
         val scaled1 = tvl.multiplyWithHighPrecision(scale18String)
 
-        val scale18Pow = BigDecimal.TEN.pow(18, mc)
+        val scale18Pow = Decimals.TEN.pow(18, mc)
         val scaled2 = tvl.multiplyWithHighPrecision(scale18Pow)
 
         val str1 = scaled1.toPlainString()
@@ -844,7 +846,7 @@ class DiscreteRealWorldTests {
     @Test
     fun `9-3 setScale with RoundingMode DOWN works correctly`() {
         val tvl = BigDecimal("231.804283")
-        val scaleFactor = BigDecimal.TEN.pow(18, mc)
+        val scaleFactor = Decimals.TEN.pow(18, mc)
         val scaled = tvl.multiplyWithHighPrecision(scaleFactor)
 
         val intPart = scaled.setScale(0, RoundingMode.DOWN)
@@ -865,9 +867,9 @@ class DiscreteRealWorldTests {
     fun `9-6 Cumulative at step 230 should be around 232`() {
         val step230 = curve.cumulativeTable.getRaw(230)
 
-        val step230BigInt = step230.toBigInteger()
+        // getRaw already returns the raw integer as a scale-0 decimal.
         val scale18 = BigDecimal("1000000000000000000")
-        val step230Decimal = BigDecimal(step230BigInt).divideWithHighPrecision(scale18)
+        val step230Decimal = step230.divideWithHighPrecision(scale18)
 
         val step230Double = step230Decimal.toDouble()
         assertTrue(step230Double > 225, "Cumulative at step 230 should be > \$225")

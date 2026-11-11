@@ -1,7 +1,8 @@
 package com.flipcash.libs.currency.math
 
+import com.flipcash.libs.currency.math.decimal.Decimals
 import com.flipcash.libs.currency.math.internal.curves.ContinuousBondingCurve
-import java.math.BigDecimal
+import com.flipcash.libs.currency.math.decimal.BigDecimal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -14,13 +15,13 @@ class ContinuousBondingCurveTests {
         val curve = ContinuousBondingCurve.getOrThrow()
 
         // Check R'(0) with tolerance
-        val spot0 = curve.spotPriceAtSupply(BigDecimal.ZERO).getOrThrow()
+        val spot0 = curve.spotPriceAtSupply(Decimals.ZERO).getOrThrow()
         val expectedStart = START_PRICE
         var diff = spot0.subtract(expectedStart, mc)
         var threshold = BigDecimal("0.0000000001")
 
         if (diff.abs(mc) > threshold) {
-            fail("Spot at 0: got ${formatter.format(spot0)}, expected 0.01")
+            fail("Spot at 0: got ${formatFixed(spot0)}, expected 0.01")
         }
 
         // Check R'(21000000) with tolerance
@@ -30,7 +31,7 @@ class ContinuousBondingCurveTests {
         diff = spotEnd.subtract(expectedEnd, mc)
         threshold = BigDecimal("0.0001")
         if (diff.abs(mc) > threshold) {
-            fail("Spot at end: got ${formatter.format(spotEnd)}, expected 1000000")
+            fail("Spot at end: got ${formatFixed(spotEnd)}, expected 1000000")
         }
     }
 
@@ -68,7 +69,7 @@ class ContinuousBondingCurveTests {
     fun `selling zero tokens should return zero value`() {
         val curve = ContinuousBondingCurve.getOrThrow()
         val currentValue = BigDecimal("1000")
-        val tokensToSell = BigDecimal.ZERO
+        val tokensToSell = Decimals.ZERO
         val result = curve.tokensToValue(currentValue, tokensToSell)
 
         assertTrue(result.isSuccess)
@@ -92,7 +93,7 @@ class ContinuousBondingCurveTests {
 
         val result = curve.tokensToValue(currentValue, tokensToSell)
         assertTrue(result.isSuccess)
-        assertTrue(result.getOrThrow() > BigDecimal.ZERO)
+        assertTrue(result.getOrThrow() > Decimals.ZERO)
     }
 
     @Test
@@ -154,7 +155,7 @@ class ContinuousBondingCurveTests {
         val result = curve.tokensForValueExchange(currentSupply, valueToReceive)
             .onFailure { it.printStackTrace() }
         assertTrue(result.isSuccess)
-        assertTrue(result.getOrThrow().tokens > BigDecimal.ZERO)
+        assertTrue(result.getOrThrow().tokens > Decimals.ZERO)
     }
 
     @Test

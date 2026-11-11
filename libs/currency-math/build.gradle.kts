@@ -1,8 +1,31 @@
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.flipcash.kmp.js)
+    alias(libs.plugins.flipcash.kmp.test.fixtures)
 }
 
+// The gate vectors live once, in the device-test assets; compile those into commonTest so the same
+// files gate every target.
+testFixtures {
+    packageName = "com.flipcash.libs.currency.math"
+    fixtures = layout.projectDirectory.dir("src/androidDeviceTest/assets")
+}
+
+@OptIn(org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi::class)
 kotlin {
+    // jvmShared: both JVM targets (Android and desktop), where the decimal type is java.math.BigDecimal
+    // and the tables are read with java.io. On JS the decimal type is CommonBigDecimal.
+    applyDefaultHierarchyTemplate {
+        common {
+            group("jvmShared") {
+                withJvm()
+                withCompilations { it.platformType == KotlinPlatformType.androidJvm }
+            }
+        }
+    }
+
     android {
         namespace = "${Gradle.codeNamespace}.libs.currency.math"
         // The KMP android target skips res and assets unless this is on, and the curve tables
@@ -15,11 +38,9 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(libs.javax.inject)
             implementation(project(":libs:currency-math:discrete-curve"))
-        }
-        androidMain.dependencies {
-            implementation(libs.bundles.hilt)
+            // CommonBigDecimal, the decimal type on Node, is built on its exact BigInteger.
+            implementation(libs.ionspin.bignum)
         }
         // The desktop build ships the same table files Android packs as assets.
         jvmMain {
@@ -34,8 +55,10 @@ kotlin {
             implementation(libs.junit)
             implementation(libs.androidx.test.runner)
         }
-        jvmTest.dependencies {
+        commonTest.dependencies {
             implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.kotlinx.serialization.json)
         }
     }
 }

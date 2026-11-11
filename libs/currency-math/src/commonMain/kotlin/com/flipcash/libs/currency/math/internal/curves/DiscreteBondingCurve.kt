@@ -6,8 +6,11 @@ import com.flipcash.libs.currency.math.curve.SharedBondingCurve
 import com.flipcash.libs.currency.math.internal.loader.TableByteLoader
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import java.math.BigDecimal
-import java.math.RoundingMode
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlin.concurrent.Volatile
+import com.flipcash.libs.currency.math.decimal.BigDecimal
+import com.flipcash.libs.currency.math.decimal.RoundingMode
 
 /**
  * Thin wrapper over a raw scaled-integer table's size and per-index raw value as [BigDecimal] --
@@ -42,6 +45,9 @@ internal object DiscreteBondingCurve : BondingCurve {
     @Volatile
     private var initialized = false
 
+    // Was synchronized(this); initialize is suspend, so a Mutex serialises it the same way on every target.
+    private val initLock = Mutex()
+
     suspend fun initialize(tableLoader: TableByteLoader) {
         if (initialized) return
         val (pricingBytes, cumulativeBytes) = coroutineScope {
@@ -49,7 +55,7 @@ internal object DiscreteBondingCurve : BondingCurve {
             val cumulative = async { tableLoader.loadTableBytes("discrete_cumulative_table") }
             pricing.await() to cumulative.await()
         }
-        synchronized(this) {
+        initLock.withLock {
             if (!initialized) {
                 SharedBondingCurve.initialize(pricingBytes, cumulativeBytes)
                 initialized = true

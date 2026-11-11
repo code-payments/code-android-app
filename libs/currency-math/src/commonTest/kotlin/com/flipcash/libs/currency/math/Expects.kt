@@ -1,6 +1,6 @@
 package com.flipcash.libs.currency.math
 
-import java.math.BigDecimal
+import com.flipcash.libs.currency.math.decimal.BigDecimal
 
 internal val EXPECTED_TABLE_OUTPUT = """
 |------|----------------|----------------------------------|----------------------------|

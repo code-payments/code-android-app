@@ -1,46 +1,21 @@
 package com.flipcash.libs.currency.math.internal
 
-import java.math.BigDecimal
-import java.math.BigInteger
-import java.math.MathContext
+import com.flipcash.libs.currency.math.decimal.BigDecimal
+import com.flipcash.libs.currency.math.decimal.Decimals
+import com.flipcash.libs.currency.math.decimal.MathContext
 import kotlin.math.ln
-
-internal const val FIXED_SCALE = 18
-internal const val BYTE_SIZE = 24
-
-// Extension functions for serialization/deserialization
-internal fun BigDecimal.toFixedBytes(): ByteArray {
-    val unscaled = this.unscaledValue()
-    val bytes = unscaled.toByteArray()
-    if (bytes.size > BYTE_SIZE) {
-        throw IllegalArgumentException("Value too large for fixed byte size")
-    }
-    // Pad with zeros at the beginning (big-endian positive)
-    val padded = ByteArray(BYTE_SIZE)
-    System.arraycopy(bytes, 0, padded, BYTE_SIZE - bytes.size, bytes.size)
-    return padded
-}
-
-internal fun fromFixedBytes(bytes: ByteArray, scale: Int): BigDecimal {
-    if (bytes.size != BYTE_SIZE) {
-        throw IllegalArgumentException("Invalid byte array size")
-    }
-    // Interpret as unsigned BigInteger
-    val bigInt = BigInteger(1, bytes)
-    return BigDecimal(bigInt, scale)
-}
 
 // Custom exp extension for BigDecimal
 @Throws(ArithmeticException::class, IllegalStateException::class)
 internal fun BigDecimal.exp(mc: MathContext): BigDecimal {
-    if (compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ONE
-    var result = BigDecimal.ONE
-    var term = BigDecimal.ONE
+    if (compareTo(Decimals.ZERO) == 0) return Decimals.ONE
+    var result = Decimals.ONE
+    var term = Decimals.ONE
     for (i in 1 until 1000) {
-        term = term.multiply(this).divide(BigDecimal.valueOf(i.toLong()), mc)
+        term = term.multiply(this).divide(Decimals.valueOf(i.toLong()), mc)
         val old = result
         result = result.add(term, mc)
-        if (term.compareTo(BigDecimal.ZERO) == 0) {
+        if (term.compareTo(Decimals.ZERO) == 0) {
             break
         }
         if (old.compareTo(result) == 0) {
@@ -62,9 +37,9 @@ internal fun BigDecimal.exp(mc: MathContext): BigDecimal {
  */
 @Throws(ArithmeticException::class)
 internal fun BigDecimal.ln(mc: MathContext): BigDecimal {
-    require(this > BigDecimal.ZERO) { "Argument must be positive" }
+    require(this > Decimals.ZERO) { "Argument must be positive" }
 
-    if (this == BigDecimal.ONE) return BigDecimal.ZERO
+    if (this == Decimals.ONE) return Decimals.ZERO
 
     if (signum() <= 0) {
         throw IllegalArgumentException("log of non-positive number")
@@ -75,7 +50,7 @@ internal fun BigDecimal.ln(mc: MathContext): BigDecimal {
     repeat(50) {
         val expZ = z.exp(mc)
         val adjustment = divide(expZ, mc)
-        val delta = adjustment.subtract(BigDecimal.ONE, mc)
+        val delta = adjustment.subtract(Decimals.ONE, mc)
         z = z.add(delta, mc)
     }
     return z

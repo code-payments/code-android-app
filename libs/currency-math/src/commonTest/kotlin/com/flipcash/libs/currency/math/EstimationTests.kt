@@ -1,8 +1,7 @@
 package com.flipcash.libs.currency.math
 
-import java.math.BigDecimal
-import java.math.MathContext
-import java.math.RoundingMode
+import com.flipcash.libs.currency.math.decimal.Decimals
+import com.flipcash.libs.currency.math.decimal.BigDecimal
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,7 +11,7 @@ class EstimationTests {
 
     @BeforeTest
     fun initializeCurve() {
-        CurveTestInitializer.initialize()
+        initializeCurveForTest()
     }
 
     @Test
@@ -45,7 +44,7 @@ class EstimationTests {
             feeBps = 0, // 0%
         ).getOrThrow()
 
-        assertEquals(received, received + fees)
+        assertEquals(received, received.add(fees))
         assertEquals(0, fees.toInt())
     }
 
@@ -58,8 +57,8 @@ class EstimationTests {
             feeBps = 100, // 1%
         ).getOrThrow()
 
-        assertTrue { received < received + fees }
-        assertTrue { fees > BigDecimal.ZERO }
+        assertTrue { received < received.add(fees) }
+        assertTrue { fees > Decimals.ZERO }
     }
 
     @Test
@@ -72,8 +71,8 @@ class EstimationTests {
         ).getOrThrow()
 
         // Net should be approximately 90% of gross
-        val ratio = received.divideWithHighPrecision(received + fees)
-        assertTrue { isApproximatelyEqual(ratio, BigDecimal(0.9), BigDecimal("0.001")) }
+        val ratio = received.divideWithHighPrecision(received.add(fees))
+        assertTrue { isApproximatelyEqual(ratio, BigDecimal("0.9"), BigDecimal("0.001")) }
     }
 
     @Test
@@ -86,7 +85,7 @@ class EstimationTests {
             feeBps = 0, // 0%
         ).getOrThrow()
 
-        assertEquals(received, received + fees)
+        assertEquals(received, received.add(fees))
         assertEquals(0, fees.toInt())
     }
 
@@ -99,8 +98,8 @@ class EstimationTests {
             feeBps = 100, // 1%
         ).getOrThrow()
 
-        assertTrue { received < received + fees }
-        assertTrue { fees > BigDecimal.ZERO }
+        assertTrue { received < received.add(fees) }
+        assertTrue { fees > Decimals.ZERO }
     }
 
     @Test
@@ -113,8 +112,8 @@ class EstimationTests {
         ).getOrThrow()
 
         // Net should be approximately 90% of gross
-        val ratio = received.divideWithHighPrecision(received + fees)
-        assertTrue { isApproximatelyEqual(ratio, BigDecimal(0.9), BigDecimal("0.001")) }
+        val ratio = received.divideWithHighPrecision(received.add(fees))
+        assertTrue { isApproximatelyEqual(ratio, BigDecimal("0.9"), BigDecimal("0.001")) }
     }
 
     @Test
@@ -133,7 +132,6 @@ class EstimationTests {
         // Sell the tokens we bought
         val tokenQuarks = buyEstimate.netTokensToReceive
             .multiplyWithHighPrecision(BigDecimal(10_000_000_000))
-            .round(MathContext(0, RoundingMode.DOWN))
             .toLong()
 
         val newSupply = initialSupply + tokenQuarks
@@ -153,7 +151,7 @@ class EstimationTests {
         // because each step is 100 tokens and we're right at the boundary.
         // For larger amounts (10+ steps) the loss would be much smaller.
         // Allow 15% loss for this small-amount test case.
-        val minRecovery = BigDecimal(usdfToSpend).multiplyWithHighPrecision(BigDecimal(0.85))
+        val minRecovery = BigDecimal(usdfToSpend).multiplyWithHighPrecision(BigDecimal("0.85"))
         assertTrue(usdfRecovered >= minRecovery, message = "Should recover at least 85% of original for small amounts")
     }
 }

@@ -2,11 +2,13 @@ package com.flipcash.libs.currency.math.internal.curves
 
 import com.flipcash.libs.currency.math.BondingCurve
 import com.flipcash.libs.currency.math.Valuation
-import com.flipcash.libs.currency.math.formatter
+import com.flipcash.libs.currency.math.formatFixed
 import com.flipcash.libs.currency.math.internal.exp
 import com.flipcash.libs.currency.math.internal.ln
 import com.flipcash.libs.currency.math.mc
-import java.math.BigDecimal
+import com.flipcash.libs.currency.math.decimal.BigDecimal
+import com.flipcash.libs.currency.math.decimal.RoundingMode
+import com.flipcash.libs.currency.math.decimal.Decimals
 
 // Constants for the default curve from $0.01 to $1_000_000 over 21_000_000 tokens
 private val CURVE_A = BigDecimal("11400.230149967394933471")
@@ -91,7 +93,7 @@ internal class ContinuousBondingCurve(
             val cTimesTokensToSell = c.multiply(tokens, mc)
             val negCTimesTokensToSell = cTimesTokensToSell.negate(mc)
             val exp = negCTimesTokensToSell.exp(mc)
-            val oneMinsExp = BigDecimal.ONE.subtract(exp, mc)
+            val oneMinsExp = Decimals.ONE.subtract(exp, mc)
             cvPlusAbOverC.multiply(oneMinsExp, mc)
         }
     }
@@ -132,12 +134,12 @@ internal class ContinuousBondingCurve(
     ): Result<Valuation.Tokens> {
         return runCatching {
             val abOverC = a.multiply(b, mc).divide(c, mc)
-            val newValue = currentValue - value
+            val newValue = currentValue.subtract(value)
             val currentValueOverAbOverC = currentValue.divide(abOverC, mc)
             val newValueOverAbOverC = newValue.divide(abOverC, mc)
 
-            val lnTerm1 = (BigDecimal.ONE.add(currentValueOverAbOverC)).ln(mc)
-            val lnTerm2 = (BigDecimal.ONE.add(newValueOverAbOverC)).ln(mc)
+            val lnTerm1 = (Decimals.ONE.add(currentValueOverAbOverC)).ln(mc)
+            val lnTerm2 = (Decimals.ONE.add(newValueOverAbOverC)).ln(mc)
             val diffLnTerms = lnTerm1.subtract(lnTerm2, mc)
 
             val tokens = diffLnTerms.divide(c, mc)
@@ -152,20 +154,17 @@ internal class ContinuousBondingCurve(
             appendLine("| %    | S              | R(S)                             | R'(S)                      |")
             appendLine("|------|----------------|----------------------------------|----------------------------|")
 
-            val zero = BigDecimal.ZERO
+            val zero = Decimals.ZERO
             val buyAmount = BigDecimal("210000") // Adjusted for unscaled
             var supply = zero
 
             for (i in 0..100) {
                 val cost = costToBuyTokens(zero, supply).getOrThrow()
                 val spotPrice = spotPriceAtSupply(supply).getOrThrow()
+                // Was "| %3d%% | %14s | %32s | %26s |".format(...); right-aligned the same way.
                 appendLine(
-                    "| %3d%% | %14s | %32s | %26s |".format(
-                        i,
-                        supply.toBigInteger().toString(),
-                        formatter.format(cost),
-                        formatter.format(spotPrice)
-                    )
+                    "| ${"$i".padStart(3)}% | ${supply.setScale(0, RoundingMode.DOWN).toPlainString().padStart(14)} | " +
+                        "${formatFixed(cost).padStart(32)} | ${formatFixed(spotPrice).padStart(26)} |"
                 )
 
                 supply = supply.add(buyAmount)
