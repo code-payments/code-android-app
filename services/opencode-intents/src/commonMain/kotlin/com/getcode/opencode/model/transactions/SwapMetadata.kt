@@ -1,6 +1,5 @@
 package com.getcode.opencode.model.transactions
 
-import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.utils.Base58String
@@ -74,9 +73,6 @@ enum class SwapState {
     ;
 
     companion object {
-        fun tryValueOf(value: OcpTransactionService.SwapMetadata): SwapState {
-            return entries.getOrNull(value.stateValue) ?: UNKNOWN
-        }
     }
 }
 

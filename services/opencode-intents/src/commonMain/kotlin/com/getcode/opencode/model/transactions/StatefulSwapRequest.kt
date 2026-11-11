@@ -1,7 +1,6 @@
 package com.getcode.opencode.model.transactions
 
 import com.getcode.ed25519kmp.Ed25519.KeyPair
-import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.LocalFiat
@@ -16,7 +15,7 @@ data class StatefulSwapRequest(
     val swapAmount: LocalFiat,
     val feeAmount: LocalFiat?,
     val swapId: SwapId,
-    val verifiedState: VerifiedState,
+    val verifiedState: VerifiedExchangeState,
     /**
      * Verified exchange data over the full amount (swap + fee), keyed to the source mint. Required
      * by the server when initializing a new reserve currency from a source mint other than the core

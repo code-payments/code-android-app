@@ -385,7 +385,7 @@ internal fun StatefulSwapRequest.stablecoinParams(): OcpTransactionService.State
                 .setFromMint(details.fromMint.asSolanaAccountId())
                 .setToMint(details.toMint.asSolanaAccountId())
                 .setSwapAmount(this@stablecoinParams.swapAmount.underlyingTokenAmount.quarks)
-                .setDestinationOwner(this@stablecoinParams.program.destinationOwner.asSolanaAccountId())
+                .setDestinationOwner(details.destinationOwner.asSolanaAccountId())
                 .setFeeAmount(this@stablecoinParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
                 .setFundingSource(OcpTransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
                 .setFundingId(details.fundingSource.id.base58)

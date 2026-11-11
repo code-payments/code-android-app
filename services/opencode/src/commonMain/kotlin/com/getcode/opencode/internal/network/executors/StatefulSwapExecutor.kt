@@ -1,5 +1,8 @@
 package com.getcode.opencode.internal.network.executors
 
+import com.getcode.opencode.internal.network.extensions.initiate
+import com.getcode.opencode.internal.network.extensions.requestToSubmitSignatures
+
 import com.getcode.utils.BuildFlags
 import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
@@ -61,14 +64,14 @@ internal class SwapExecutor(
 
         streamReference.retain()
 
-        val metadata = when (request.program) {
+        val metadata = when (val program = request.program) {
             is SwapProgram.Reserve -> VerifiedSwapMetadata.Reserve(
                 id = request.swapId,
                 fromMint = request.route.sourceMint.address,
                 toMint = request.route.destinationMint.address,
                 swapAmount = request.swapAmount.underlyingTokenAmount,
                 feeAmount = request.feeAmount?.underlyingTokenAmount,
-                fundingSource = request.program.fundingSource
+                fundingSource = program.fundingSource
             )
 
             is SwapProgram.Stablecoin -> VerifiedSwapMetadata.StableCoin(
@@ -77,8 +80,8 @@ internal class SwapExecutor(
                 toMint = request.route.destinationMint.address,
                 swapAmount = request.swapAmount.underlyingTokenAmount,
                 feeAmount = request.feeAmount?.underlyingTokenAmount,
-                fundingSource = request.program.fundingSource,
-                destinationOwner = request.program.destinationOwner
+                fundingSource = program.fundingSource,
+                destinationOwner = program.destinationOwner
             )
         }
 

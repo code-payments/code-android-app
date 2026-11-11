@@ -1,9 +1,8 @@
 package com.getcode.opencode.internal.network.api.intents
 
-import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
-import com.getcode.opencode.internal.manager.VerifiedState
+import com.getcode.opencode.model.transactions.VerifiedExchangeState
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
-import com.getcode.opencode.internal.network.extensions.asProtobufMetadata
 import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.LocalFiat
@@ -14,7 +13,8 @@ import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.opencode.solana.intents.buildActionGroup
 import com.getcode.solana.keys.PublicKey
 
-internal class IntentFundSwap(
+@InternalOpenCodeApi
+class IntentFundSwap(
     override val id: PublicKey,
     override val metadata: TransactionMetadata,
     override val actionGroup: ActionGroup,
@@ -26,7 +26,7 @@ internal class IntentFundSwap(
             sourceCluster: AccountCluster,
             amount: LocalFiat,
             fromMint: Token,
-            verifiedState: VerifiedState,
+            verifiedState: VerifiedExchangeState,
         ): IntentFundSwap {
             val timelockAccounts = fromMint.timelockSwapAccounts(sourceCluster.authorityPublicKey)
 

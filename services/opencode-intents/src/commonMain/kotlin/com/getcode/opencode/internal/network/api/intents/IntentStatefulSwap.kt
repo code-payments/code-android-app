@@ -1,13 +1,7 @@
 package com.getcode.opencode.internal.network.api.intents
 
-import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
+import com.getcode.opencode.annotations.InternalOpenCodeApi
 import com.getcode.opencode.internal.extensions.toPublicKey
-import com.getcode.opencode.internal.network.extensions.asSignature
-import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
-import com.getcode.opencode.internal.network.extensions.currencyCreatorParams
-import com.getcode.opencode.internal.network.extensions.sign
-import com.getcode.opencode.internal.network.extensions.stablecoinParams
-import com.getcode.opencode.internal.network.extensions.verifiedMetadata
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.StatefulSwapRequest
@@ -18,7 +12,8 @@ import com.getcode.opencode.solana.SolanaTransaction
 import com.getcode.opencode.solana.TransactionBuilder
 import com.getcode.solana.keys.Signature
 
-internal class IntentStatefulSwap(
+@InternalOpenCodeApi
+class IntentStatefulSwap(
     val request: StatefulSwapRequest,
     val metadata: VerifiedSwapMetadata,
 ){
@@ -75,38 +70,5 @@ internal class IntentStatefulSwap(
                 minOutput = request.swapAmount.underlyingTokenAmount.quarks,
             )
         }
-    }
-
-    fun initiate(): OcpTransactionService.StatefulSwapRequest {
-        val signer = request.owner.authority.keyPair
-        return OcpTransactionService.StatefulSwapRequest.newBuilder()
-            .setInitiate(
-                OcpTransactionService.StatefulSwapRequest.Initiate.newBuilder()
-                    .setOwner(request.owner.authorityPublicKey.asSolanaAccountId())
-                    .setSwapAuthority(request.swapAuthority.toPublicKey().asSolanaAccountId())
-                    .apply {
-                        when (request.program) {
-                            is SwapProgram.Reserve -> setReserve(request.currencyCreatorParams())
-                            is SwapProgram.Stablecoin -> setStablecoin(request.stablecoinParams())
-                        }
-                        val proofSignature = request.verifiedMetadata().sign(signer)
-                        setProofSignature(proofSignature)
-                    }
-                    .apply { setSignature(sign(signer)) }
-            ).build()
-
-    }
-
-    fun requestToSubmitSignatures(): OcpTransactionService.StatefulSwapRequest {
-        val params = parameters ?: throw IllegalStateException("parameters not set")
-
-        return OcpTransactionService.StatefulSwapRequest.newBuilder()
-            .setSubmitSignatures(
-                OcpTransactionService.StatefulSwapRequest.SubmitSignatures.newBuilder()
-                    .addAllTransactionSignatures(
-                        sign(params).map { key -> key.asSignature() }
-                    )
-                    .build()
-            ).build()
     }
 }
