@@ -4,6 +4,7 @@ import com.getcode.libs.parcelable.parcelableCreator
 import com.getcode.utils.serializer.MintAsStringSerializer
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmField
 
 @Serializable(with = MintAsStringSerializer::class)
 class Mint(bytes: List<Byte>): PublicKey(bytes) {

@@ -5,8 +5,8 @@ import com.getcode.libs.parcelable.ManualParcelable
 import com.getcode.libs.parcelable.parcelableCreator
 import com.getcode.utils.serializer.PublicKeyAsStringSerializer
 import com.getcode.vendor.Base58
-import com.google.protobuf.ByteString
 import kotlinx.serialization.Serializable
+import kotlin.jvm.JvmField
 
 @Serializable(with = PublicKeyAsStringSerializer::class)
 open class PublicKey(bytes: List<Byte>) : Key32(bytes), ManualParcelable {
@@ -23,10 +23,6 @@ open class PublicKey(bytes: List<Byte>) : Key32(bytes), ManualParcelable {
 
         fun fromBase58(base58: String): PublicKey {
             return PublicKey(base58)
-        }
-
-        fun fromByteString(byteString: ByteString): PublicKey {
-            return PublicKey(byteString.toByteArray().toList())
         }
 
         // Not Key32.zero: Key32's companion constructs PublicKeys, so when Key32 initializes

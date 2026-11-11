@@ -39,6 +39,7 @@ dependencies {
     implementation(project(":services:flipcash"))
     implementation(project(":libs:coroutines"))
     implementation(project(":libs:logging"))
+    implementation(project(":libs:logging:grpc"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
     implementation(project(":apps:flipcash:shared:theme"))

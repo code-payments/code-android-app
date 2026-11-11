@@ -26,7 +26,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.PublicKey
-import com.getcode.utils.toByteString
+import com.flipcash.services.internal.network.extensions.toByteString
 import com.flipcash.services.models.paymentrequest.NewSplitRequest
 import com.google.protobuf.Timestamp
 import kotlin.time.Instant

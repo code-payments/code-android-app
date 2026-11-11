@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
+    alias(libs.plugins.flipcash.kmp.js)
 }
 
 kotlin {
@@ -14,9 +15,6 @@ kotlin {
             implementation(project(":libs:encryption:utils"))
             api(project(":libs:parcelable"))
 
-            implementation(libs.protobuf.kotlin.lite)
-            implementation(libs.grpc.okhttp)
-            implementation(libs.grpc.kotlin)
             implementation(libs.bundles.kotlinx.serialization)
         }
         getByName("androidHostTest").dependencies {

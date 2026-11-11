@@ -1,10 +1,10 @@
 package com.getcode.utils
 
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlin.concurrent.Volatile
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import java.io.File
 import kotlin.time.Duration
 import kotlin.time.TimeSource
 import kotlin.time.measureTime
@@ -138,7 +138,7 @@ object TraceManager {
     }
 
     /** Returns the current log file, or `null` if not yet initialized. */
-    fun getLogFile(includeHeader: Boolean = true): File? = logFile?.getLogFile(includeHeader)
+    fun getLogFile(includeHeader: Boolean = true): LogFile? = logFile?.getLogFile(includeHeader)
 
     /**
      * Hot stream of processed log lines for live in-app viewers. Emits only
@@ -199,7 +199,8 @@ enum class ClockSource {
  * @param message Human-readable description of the event.
  * @param tag Optional tag rendered as `[tag]` prefix in the log line.
  * @param metadata Builder for structured key-value pairs appended to the log line.
- * @param error If non-null, forwarded to [ErrorUtils.handleError] after logging.
+ * @param error If non-null, forwarded to `ErrorUtils.handleError` on Android and the desktop JVM, and to
+ *   the platform log elsewhere.
  * @param type Categorization that determines the Timber log level.
  */
 fun trace(
@@ -245,7 +246,7 @@ fun trace(
         }
     }
 
-    error?.let(ErrorUtils::handleError)
+    error?.let(::reportTraceError)
 }
 
 /**

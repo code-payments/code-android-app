@@ -16,7 +16,7 @@ import io.mockk.unmockkObject
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import com.flipcash.services.internal.network.extensions.authenticate
-import com.getcode.utils.toByteString
+import com.flipcash.services.internal.network.extensions.toByteString
 import org.junit.After
 import org.junit.Before
 import org.junit.Test

@@ -3,10 +3,10 @@ package com.getcode.ed25519kmp
 import com.getcode.libs.parcelable.ManualParcelable
 import com.getcode.libs.parcelable.Parcel
 import com.getcode.libs.parcelable.parcelableCreator
-import java.util.Base64
+import kotlin.jvm.JvmField
 
 /**
- * The string-keyed Ed25519 API the app was written against, shared by Android and desktop.
+ * The string-keyed Ed25519 API the app was written against, shared by Android, desktop and Node.
  *
  * Mirrors the JNI class `com.getcode.ed25519.Ed25519` member for member, so callers only change
  * the import. Key strings keep the JNI's format (unwrapped base64), and a seed made from bytes keeps
@@ -57,7 +57,8 @@ object Ed25519 {
         override fun equals(other: Any?): Boolean =
             other is KeyPair && publicKey == other.publicKey && privateKey == other.privateKey
 
-        override fun hashCode(): Int = java.util.Objects.hash(publicKey, privateKey)
+        // Same value java.util.Objects.hash(publicKey, privateKey) gave before this left the JVM.
+        override fun hashCode(): Int = 31 * (31 + publicKey.hashCode()) + privateKey.hashCode()
 
         override fun describeContents(): Int = 0
 
@@ -78,10 +79,11 @@ object Ed25519 {
 
 internal expect fun randomSeed(size: Int): ByteArray
 
-private fun encode(bytes: ByteArray): String = Base64.getEncoder().encodeToString(bytes)
+/** Unwrapped, padded base64: `java.util.Base64.getEncoder()`. */
+internal expect fun encode(bytes: ByteArray): String
 
-// android.util.Base64.DEFAULT: 76-character lines, each ending in "\n".
-private fun encodeDefault(bytes: ByteArray): String =
-    Base64.getMimeEncoder(76, byteArrayOf('\n'.code.toByte())).encodeToString(bytes) + "\n"
+/** `android.util.Base64.DEFAULT`: 76-character lines, each ending in "\n". */
+internal expect fun encodeDefault(bytes: ByteArray): String
 
-private fun decode(base64: String): ByteArray = Base64.getMimeDecoder().decode(base64)
+/** `java.util.Base64.getMimeDecoder()`: skips characters outside the alphabet, padding optional. */
+internal expect fun decode(base64: String): ByteArray

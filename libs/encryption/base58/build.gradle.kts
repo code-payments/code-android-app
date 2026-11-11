@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.flipcash.kmp.library)
     alias(libs.plugins.flipcash.kmp.test.fixtures)
+    alias(libs.plugins.flipcash.kmp.js)
 }
 
 // Compiles `src/commonTest/resources` into a generated `TestFixtures.kt` on `commonTest`, readable

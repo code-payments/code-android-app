@@ -54,9 +54,10 @@ plugins {
 // project from configuring other projects, and that hook is its isolated
 // replacement.
 
-tasks.register("clean", Delete::class) {
-    delete(rootProject.layout.buildDirectory)
-}
+// `clean` comes from lifecycle-base and deletes the root build directory. Registering it by hand
+// collides with Kotlin/JS (`flipcash.kmp.js`), which applies lifecycle-base to the root project
+// for its Node and npm setup.
+pluginManager.apply(LifecycleBasePlugin::class)
 
 // ---- Coverage aggregation (Kover) ----
 // The set of modules whose coverage is merged is computed in `settings.gradle.kts`

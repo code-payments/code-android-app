@@ -31,7 +31,7 @@ import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
 import com.getcode.utils.base58
-import com.getcode.utils.toByteString
+import com.getcode.opencode.internal.network.extensions.toByteString
 import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
 

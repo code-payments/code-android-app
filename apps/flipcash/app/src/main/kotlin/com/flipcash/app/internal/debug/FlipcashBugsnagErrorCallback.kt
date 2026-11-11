@@ -1,8 +1,8 @@
 package com.flipcash.app.internal.debug
 
 import com.bugsnag.android.OnErrorCallback
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceManager
+import com.getcode.utils.grpc.GrpcErrorClassifier
 import io.grpc.StatusException
 
 internal val FlipcashErrorCallback = OnErrorCallback onError@{ event ->
@@ -10,7 +10,7 @@ internal val FlipcashErrorCallback = OnErrorCallback onError@{ event ->
     val cause = error.cause ?: error
 
     // Discard gRPC client-error / validation status codes — these are not bugs
-    if (cause is StatusException && cause.status.code in ErrorUtils.ignoredGrpcStatusCodes) {
+    if (cause is StatusException && cause.status.code in GrpcErrorClassifier.ignoredStatusCodes) {
         return@onError false
     }
 

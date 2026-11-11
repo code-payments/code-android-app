@@ -50,7 +50,7 @@ interface InstructionType {
 }
 
 inline fun <reified T : Enum<T>> commandByteLength(): Int {
-    return java.lang.Long.SIZE / java.lang.Byte.SIZE
+    return Long.SIZE_BYTES
 }
 
 sealed class CommandParseError : Exception() {

@@ -3,7 +3,7 @@ package com.flipcash.services.models
 import com.codeinc.flipcash.gen.common.v1.Common
 import com.codeinc.flipcash.gen.intent.v1.Model as FlipcashIntentModel
 import com.flipcash.services.models.chat.ChatId
-import com.getcode.utils.toByteString
+import com.flipcash.services.internal.network.extensions.toByteString
 
 /**
  * Builds the serialized Flipcash `AppMetadata` proto bytes for a payment straight to members of the

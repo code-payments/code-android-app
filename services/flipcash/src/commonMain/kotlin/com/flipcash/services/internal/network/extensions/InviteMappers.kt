@@ -9,7 +9,7 @@ import com.flipcash.services.models.chat.InviteKeyEnvelope
 import com.flipcash.services.models.chat.InviteParameters
 import com.flipcash.services.models.chat.InviteSecretEnvelope
 import com.flipcash.services.models.chat.InviteToken
-import com.getcode.utils.toByteString
+import com.flipcash.services.internal.network.extensions.toByteString
 import kotlin.time.Instant
 
 internal fun InviteId.asProtoInviteId(): ChatModel.InviteId =

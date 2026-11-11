@@ -1,5 +1,7 @@
 package com.getcode.utils
 
+import kotlin.concurrent.Volatile
+
 /**
  * Build-type flags the app sets at startup.
  *

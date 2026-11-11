@@ -7,9 +7,13 @@ import com.flipcash.app.startup.contract.StartupContract.Desktop
 import com.flipcash.app.startup.contract.StartupContract.Step
 import com.flipcash.libs.currency.math.Estimator
 import com.getcode.opencode.events.Events
+import com.getcode.utils.BuildFlags
+import com.getcode.utils.ErrorReporter
+import com.getcode.utils.ErrorUtils
 import com.hoc081098.channeleventbus.ChannelEventBusException
 import com.hoc081098.channeleventbus.ValidationBeforeClosing
 import dev.zacsweers.metro.createGraph
+import io.grpc.Status
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
@@ -47,6 +51,7 @@ class DesktopWiringTest {
             // Exhaustive, so a new Step does not compile until it has a check here.
             when (step) {
                 Step.EventRepository -> assertEventRepositoryListening()
+                Step.ErrorClassifiers -> assertGrpcStatusNotReported()
                 Step.CurveTables -> assertTrue(
                     Estimator.reserveAtSupply(BigDecimal.ONE).isSuccess,
                     "curve tables not loaded: ${Estimator.reserveAtSupply(BigDecimal.ONE).exceptionOrNull()}",
@@ -109,6 +114,27 @@ class DesktopWiringTest {
      * REQUIRE_FLOW_IS_NOT_COLLECTING fails only while someone collects it; the subscription is
      * launched on IO, so give it a moment.
      */
+    /** Without the gRPC classifier, ErrorUtils treats a status exception as a plain error and reports it. */
+    private fun assertGrpcStatusNotReported() {
+        val reported = mutableListOf<Throwable>()
+        val reporter = object : ErrorReporter {
+            override fun report(error: Throwable, cause: Throwable, isNotifiable: Boolean) {
+                reported += error
+            }
+        }
+        val notifyErrors = BuildFlags.notifyErrors
+        BuildFlags.notifyErrors = true
+        ErrorUtils.addReporter(reporter)
+        try {
+            ErrorUtils.handleError(Status.NOT_FOUND.asRuntimeException())
+            ErrorUtils.handleError(Status.INTERNAL.asException())
+        } finally {
+            ErrorUtils.removeReporter(reporter)
+            BuildFlags.notifyErrors = notifyErrors
+        }
+        assertTrue(reported.isEmpty(), "gRPC status errors reached a reporter: $reported")
+    }
+
     private suspend fun assertEventRepositoryListening() {
         val collecting = withTimeoutOrNull(5_000) {
             while (true) {
