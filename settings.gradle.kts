@@ -270,6 +270,7 @@ include(
     ":services:opencode",
     ":services:opencode-model",
     ":services:opencode-solana",
+    ":services:opencode-transport",
     ":services:opencode-compose",
     ":services:flipcash",
     ":services:flipcash:test-fixtures",
