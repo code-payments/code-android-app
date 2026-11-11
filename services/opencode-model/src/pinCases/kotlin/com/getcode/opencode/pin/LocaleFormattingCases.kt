@@ -6,8 +6,19 @@ import com.getcode.opencode.utils.toLocaleAwareDoubleOrNull
 
 /** The formatting and parsing cases LocaleFormattingPinTest pins on the JVM, run under the default locale. */
 internal object LocaleFormattingCases {
+    /**
+     * Java prints a whole double as `1.0` and Kotlin/JS as `1`. Below 1e7, Java's form is `N.0`, so
+     * printing that on every target keeps the JVM output (and its pins) unchanged.
+     */
+    private fun show(value: Any?): String =
+        if (value is Double && value.isFinite() && value == kotlin.math.floor(value) && kotlin.math.abs(value) < 1e7) {
+            if (value == 0.0 && 1.0 / value < 0) "-0.0" else "${value.toLong()}.0"
+        } else {
+            value.toString()
+        }
+
     fun cases(): List<Pair<String, String>> = buildList {
-        fun fiat(name: String, block: () -> Any?) = add(name to block().toString())
+        fun fiat(name: String, block: () -> Any?) = add(name to show(block()))
         fiat("1234.5 USD") { Fiat(1_234_500_000L, CurrencyCode.USD).formatted() }
         fiat("tie 1.005 USD") { Fiat(1_005_000L, CurrencyCode.USD).formatted() }
         fiat("tie 2.675 USD") { Fiat(2_675_000L, CurrencyCode.USD).formatted() }

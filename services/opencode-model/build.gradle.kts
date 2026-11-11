@@ -3,6 +3,14 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 plugins {
     alias(libs.plugins.flipcash.kmp.app.library)
     alias(libs.plugins.flipcash.kmp.js)
+    alias(libs.plugins.flipcash.kmp.test.fixtures)
+}
+
+// The pinned outputs live once, in the device-test assets: android-api36.txt is what Android computes
+// (the reference, which Node must match exactly), host-jdk.txt what the host JDK computes.
+testFixtures {
+    packageName = "com.getcode.opencode.pin"
+    fixtures = layout.projectDirectory.dir("src/androidDeviceTest/assets/pins")
 }
 
 // OpenCode domain types (accounts, mints, rates, fiat amounts, swap parameters) with no protos,
@@ -24,6 +32,11 @@ kotlin {
 
     android {
         namespace = "${Gradle.codeNamespace}.services.opencode.model"
+        // Packages src/androidDeviceTest/assets (the pin fixtures) into the device-test APK.
+        androidResources { enable = true }
+        withDeviceTestBuilder {}.configure {
+            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        }
     }
 
     sourceSets {
@@ -44,6 +57,17 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
+        }
+        // The formatting and amount cases, shared with the device test so a device's output can be
+        // compared with the host JVM's and Node's.
+        commonTest { kotlin.srcDir("src/pinCases/kotlin") }
+        getByName("androidDeviceTest") {
+            kotlin.srcDir("src/pinCases/kotlin")
+            dependencies {
+                implementation(libs.androidx.junit)
+                implementation(libs.junit)
+                implementation(libs.androidx.test.runner)
+            }
         }
     }
 }

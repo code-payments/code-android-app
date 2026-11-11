@@ -58,36 +58,12 @@ internal actual fun formatUsQuantity(value: BigDecimal, maxFractionDigits: Int):
     return format.format(value.toPlainString()) as String
 }
 
-/** The leading `-?digits[.digits]` of [text], with [group] characters allowed in the integer part. */
-private fun leadingNumber(text: String, decimal: Char, group: Char?): Double? {
-    val out = StringBuilder()
-    var i = 0
-    if (i < text.length && text[i] == '-') { out.append('-'); i++ }
-    var digits = 0
-    while (i < text.length && (text[i].isAsciiDigit() || (group != null && text[i] == group))) {
-        if (text[i] != group) { out.append(text[i]); digits++ }
-        i++
-    }
-    if (i < text.length && text[i] == decimal) {
-        var fraction = 0
-        val mark = out.length
-        out.append('.')
-        i++
-        while (i < text.length && text[i].isAsciiDigit()) { out.append(text[i]); fraction++; i++ }
-        if (fraction == 0) out.setLength(mark)
-        digits += fraction
-    }
-    if (digits == 0) return null
-    return out.toString().toDouble()
-}
-
-private fun Char.isAsciiDigit() = this in '0'..'9'
-
 internal actual fun parseUsDecimal(text: String): Double? =
-    leadingNumber(text, decimal = '.', group = ',') ?: throw IllegalArgumentException("Unparseable number: \"$text\"")
+    icuParseDecimal(text, IcuSymbols.US, groupingUsed = true)
+        ?: throw IllegalArgumentException("Unparseable number: \"$text\"")
 
 internal actual fun parseLocaleDecimal(text: String, decimalPlaces: Int, localeTag: String?): Double? =
-    leadingNumber(text, decimal = decimalSeparator(localeTag), group = null)
+    icuParseDecimal(text, IcuSymbols.forLocale(localeTag), groupingUsed = false)
 
 internal actual fun decimalSeparator(localeTag: String?): Char {
     val parts = numberFormat(localeTag, options { }).formatToParts(1.5)
@@ -98,9 +74,9 @@ internal actual fun decimalSeparator(localeTag: String?): Char {
     return '.'
 }
 
-internal actual fun isoFractionDigits(code: String): Int = JdkFractionDigits.of(code)
+internal actual fun isoFractionDigits(code: String): Int = AndroidFractionDigits.of(code)
 
 // Intl can't list its locales, and the symbols it gives disagree with the JVM's for 18 currencies,
 // so this uses the JVM's table.
 internal actual fun buildCurrencySymbolTable(): Map<CurrencyCode, Set<String>> =
-    CurrencyCode.entries.mapNotNull { code -> JdkCurrencySymbols.table[code.name]?.let { code to it.toSet() } }.toMap()
+    CurrencyCode.entries.mapNotNull { code -> AndroidCurrencySymbols.table[code.name]?.let { code to it.toSet() } }.toMap()
