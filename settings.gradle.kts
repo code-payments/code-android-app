@@ -429,7 +429,8 @@ run {
     // runs Robolectric from androidHostTest and applies the AGP/KMP plugins directly,
     // so no flipcash convention plugin sees it.
     // The service modules the Android app wires up directly (Hilt/Metro, Room, resources). They
-    // keep their app dependencies; everything else under :services: is checked.
+    // and their subprojects (test fixtures) keep their app dependencies; everything else under
+    // :services: is checked.
     val appFacingServices = setOf(
         ":services:flipcash",
         ":services:flipcash-compose",
@@ -469,7 +470,7 @@ run {
         // Every service module except the app-facing ones must stay free of apps/, ui/, DI,
         // Room, analytics and Firebase (ServiceBoundaryConventionPlugin). Applied after
         // evaluation, once the module's plugins block has put build-logic on its classpath.
-        if (path.startsWith(":services:") && path !in appFacingServices) {
+        if (path.startsWith(":services:") && appFacingServices.none { path == it || path.startsWith("$it:") }) {
             afterEvaluate { pluginManager.apply("flipcash.service.boundary") }
         }
     }
