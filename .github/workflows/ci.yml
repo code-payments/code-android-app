@@ -136,6 +136,17 @@ jobs:
           :services:opencode-transport:jvmTest
           :services:opencode-intents:jvmTest
           :services:opencode-client:jvmTest
+          :services:flipcash-chat:jvmTest
+          :services:flipcash-client:jvmTest
+
+      # The chat cipher and the Flipcash chat and client libraries on Node: libsodium (WASM) and
+      # Ed25519 over @noble/ed25519, the vectors, and canonical signing parity with protobuf-java.
+      - name: Run the Flipcash chat suites on Node
+        run: >-
+          ./gradlew
+          :libs:encryption:chat-cipher:jsNodeTest
+          :services:flipcash-chat:jsNodeTest
+          :services:flipcash-client:jsNodeTest
 
       - name: Build the opencode-client JS library
         run: ./gradlew kotlinNpmInstall :services:opencode-client:jsNodeProductionLibraryDistribution
