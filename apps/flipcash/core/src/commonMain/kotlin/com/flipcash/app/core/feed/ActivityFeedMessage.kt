@@ -28,6 +28,13 @@ data class ActivityFeedMessageWithToken(
      * fetched).
      */
     val boostChatName: String? = null,
+    /**
+     * The display name of the group the entry happened in: the chat a boost was sent in or a
+     * request payment paid into, from the local chat store. Null for every other entry, and for a
+     * chat that is a DM (stored without a title) or isn't stored at all. Unlike [boostChatName] it
+     * covers one-payee boosts and request payments too; the Money tab names its rows by it.
+     */
+    val chatName: String? = null,
 )
 
 data class ActivityFeedMessage(
