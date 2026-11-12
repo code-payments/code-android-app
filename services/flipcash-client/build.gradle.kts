@@ -40,8 +40,32 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
+            implementation(project(":libs:encryption:mnemonic"))
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.kotlinx.serialization.json)
         }
+        jvmTest.dependencies {
+            // Only for LiveChatReadTest's JVM transport; never on the main classpath.
+            implementation(libs.grpc.okhttp)
+            implementation(libs.grpc.stub)
+        }
     }
+}
+
+// LiveChatReadTest calls the production Flipcash server with read calls only, so it runs only when
+// FLIPCASH_LIVE=1 and FLIPCASH_TEST_ACCESS_KEY holds the test account's login entropy.
+// FLIPCASH_LIVE_DUMP names a directory for the raw responses (keep it outside the repo).
+val liveVars: Map<String, String> = listOf("FLIPCASH_LIVE", "FLIPCASH_TEST_ACCESS_KEY", "FLIPCASH_LIVE_DUMP")
+    .mapNotNull { name -> providers.environmentVariable(name).orNull?.let { name to it } }
+    .toMap()
+val liveRun = liveVars["FLIPCASH_LIVE"] == "1"
+tasks.withType<Test>().configureEach {
+    environment(liveVars)
+    val rerun = liveRun // a local, so the lambda below does not capture the build script
+    outputs.upToDateWhen { !rerun }
+}
+tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest>().configureEach {
+    liveVars.forEach { (name, value) -> environment(name, value) }
+    val rerun = liveRun
+    outputs.upToDateWhen { !rerun }
 }

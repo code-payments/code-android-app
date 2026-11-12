@@ -78,6 +78,12 @@ tasks.named<Test>("jvmTest") {
     )
     inputs.dir(vectors)
     providers.systemProperty("fixture.update").orNull?.let { systemProperty("fixture.update", it) }
+    // LiveResponseParityTest compares the responses :services:flipcash-client's LiveChatReadTest
+    // wrote to FLIPCASH_LIVE_DUMP; it skips when that is unset.
+    providers.environmentVariable("FLIPCASH_LIVE_DUMP").orNull?.let {
+        systemProperty("flipcashLiveDump", it)
+        outputs.upToDateWhen { false }
+    }
 }
 
 dependencies {

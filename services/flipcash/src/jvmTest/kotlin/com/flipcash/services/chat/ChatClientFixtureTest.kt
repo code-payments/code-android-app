@@ -281,34 +281,6 @@ class ChatClientFixtureTest {
             .build()
     }
 
-    /** What openStream's response handler does with [response], as values. */
-    private fun describeStream(response: RpcEventStreamingService.StreamEventsResponse): JsonObject = buildJsonObject {
-        when (response.typeCase) {
-            RpcEventStreamingService.StreamEventsResponse.TypeCase.PING -> {
-                put("type", "ping")
-                put("serverTime", Instant.fromEpochSeconds(response.ping.timestamp.seconds, response.ping.timestamp.nanos).describe())
-                put("pingDelaySeconds", response.ping.pingDelay.seconds)
-            }
-            RpcEventStreamingService.StreamEventsResponse.TypeCase.ERROR -> {
-                put("type", "error")
-                put("code", when (response.error.code) {
-                    RpcEventStreamingService.StreamEventsResponse.StreamError.Code.DENIED -> "DENIED"
-                    RpcEventStreamingService.StreamEventsResponse.StreamError.Code.INVALID_TIMESTAMP -> "INVALID_TIMESTAMP"
-                    else -> "UNRECOGNIZED"
-                })
-            }
-            RpcEventStreamingService.StreamEventsResponse.TypeCase.EVENTS -> {
-                put("type", "updates")
-                put("updates", buildJsonArray {
-                    response.events.eventsList
-                        .filter { it.typeCase == EventModel.Event.TypeCase.CHAT_UPDATE }
-                        .forEach { add(it.chatUpdate.toChatUpdate().describe()) }
-                })
-            }
-            else -> put("type", "none")
-        }
-    }
-
     // -- GetReactors responses --
 
     private fun getReactorsResponses(): JsonArray = buildJsonArray {
@@ -333,100 +305,7 @@ class ChatClientFixtureTest {
         }
     }
 
-    /** What `ChatMessagingService.getReactors` returns for [response], as values. */
-    private fun describeGetReactors(response: RpcMessagingService.GetReactorsResponse): JsonObject = buildJsonObject {
-        when (response.result) {
-            RpcMessagingService.GetReactorsResponse.Result.OK -> {
-                put("type", "page")
-                put("reactors", buildJsonArray { response.reactorsList.forEach { add(it.toReactor().describe()) } })
-                put("hasMore", response.hasMore)
-                if (response.hasPagingToken()) put("pagingToken", response.pagingToken.toPagingToken().hex())
-            }
-            RpcMessagingService.GetReactorsResponse.Result.DENIED -> put("type", "denied")
-            RpcMessagingService.GetReactorsResponse.Result.MESSAGE_NOT_FOUND -> put("type", "message-not-found")
-            else -> put("type", "unrecognized")
-        }
-    }
-
-    // -- describing Android's domain values --
-
-    private fun ChatUpdate.describe(): JsonObject = buildJsonObject {
-        put("chatId", chatId.bytes.hex())
-        put("pointers", buildJsonArray {
-            pointerUpdates.forEach { p ->
-                add(buildJsonObject {
-                    put("type", p.type.name); put("userId", p.userId.hex()); put("value", p.value); put("ts", p.timestamp.describe())
-                })
-            }
-        })
-        put("typing", buildJsonArray {
-            typingNotifications.forEach { t ->
-                add(buildJsonObject { put("userId", t.userId.hex()); put("state", t.state.name) })
-            }
-        })
-        put("events", buildJsonArray {
-            events.forEach { e ->
-                add(buildJsonObject {
-                    put("sequence", e.sequence); put("count", e.count); put("ts", e.ts.describe())
-                    put("mutations", buildJsonArray {
-                        e.mutations.forEach { m ->
-                            add(buildJsonObject {
-                                put("kind", when (m) {
-                                    is ChatMutation.MessageSent -> "sent"
-                                    is ChatMutation.MessageEdited -> "edited"
-                                    is ChatMutation.MessageDeleted -> "deleted"
-                                })
-                                put("message", m.message.describe())
-                            })
-                        }
-                    })
-                })
-            }
-        })
-        put("reactionUpdates", buildJsonArray {
-            reactionUpdates.forEach { u ->
-                add(buildJsonObject {
-                    put("messageId", u.messageId); put("emoji", u.emoji.value); put("actor", u.actor.hex())
-                    put("action", u.action.name); put("count", u.count); put("version", u.version)
-                    put("reactedAt", u.reactedAt.describe()); put("boostCents", u.boostCents); put("actorBoostCents", u.actorBoostCents)
-                })
-            }
-        })
-    }
-
-    private fun ChatMessage.describe(): JsonObject = buildJsonObject {
-        put("messageId", messageId)
-        senderId?.let { put("senderId", it.hex()) }
-        // Content decode is gated by :services:flipcash-chat's vectors; here it is compared by its
-        // re-encoded bytes.
-        put("content", buildJsonArray { content.forEach { add(it.asContent().toByteArray().hex()) } })
-        put("ts", timestamp.describe())
-        put("unreadSeq", unreadSeq)
-        lastEditedTs?.let { put("lastEditedTs", it.describe()) }
-        put("eventSequence", eventSequence)
-        reactions?.let { s ->
-            put("reactions", buildJsonObject {
-                put("messageId", s.messageId)
-                put("reactions", buildJsonArray { s.reactions.forEach { add(it.describe()) } })
-            })
-        }
-        put("redacted", redacted)
-    }
-
-    private fun EmojiReaction.describe(): JsonObject = buildJsonObject {
-        put("emoji", emoji.value); put("count", count)
-        selfReactor?.let { put("selfReactor", it.describe()) }
-        put("sampleReactors", buildJsonArray { sampleReactors.forEach { add(it.describe()) } })
-        put("version", version); put("boostCents", boostCents)
-    }
-
-    private fun Reactor.describe(): JsonObject = buildJsonObject {
-        put("userId", userId.hex()); put("reactedAt", reactedAt.describe()); put("version", version); put("boostCents", boostCents)
-    }
-
     // -- builders --
-
-    private fun Instant.describe(): String = "$epochSeconds.${nanosecondsOfSecond.toString().padStart(9, '0')}"
 
     private fun timestamp(seconds: Long, nanos: Int): Timestamp = Timestamp.newBuilder().setSeconds(seconds).setNanos(nanos).build()
 
