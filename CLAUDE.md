@@ -83,6 +83,7 @@ The feature plugin automatically includes `:libs:logging`, `:ui:core`, `:ui:comp
 - **CompositionLocal injection**: `MainActivity` provides dozens of controllers/services via `CompositionLocalProvider` — features access dependencies through `Local*` composition locals rather than direct injection
 - **Feature modules are self-contained**: Each has its own state, controllers, and UI; communicates via shared modules
 - **Protobuf models**: Backend models come from the published `com.flipcash:{ocp,flipcash2}-client-protocol` artifacts, not from protos in this repo; the contracts are generated in their own repos
+- **Checking a proto field**: to decide whether a message has a field, read the `.proto` shipped in the artifact jar, not generated accessor names. Wire names a `bool` accessor `is_typing_notifications()` with no `get` prefix, so a getter grep missed a field that exists.
 - **Dark mode only**: App forces `MODE_NIGHT_YES`
 - **Mode state lives at screen level**: drive mode transitions (select, edit) from screen-level state. A composable whose structure changes with the mode rebuilds its children and drops their running transitions (the chat list's select circle lost its slide-in this way).
 
@@ -91,6 +92,8 @@ The feature plugin automatically includes `:libs:logging`, `:ui:core`, `:ui:comp
 A code change is done when the touched modules' unit tests pass and `./gradlew :apps:flipcash:app:compileDebugKotlin` succeeds.
 
 Tests for gestures and pointer input replay the sequence a finger makes on the device, such as a partial reveal followed by a full swipe. A semantics action or a single fling can pass while the real gesture fails: the leading swipe's reset and the desktop peek toggle both did.
+
+After editing a build script, run one of its tasks with the configuration cache on before any `--no-configuration-cache` run. A run with the cache off says nothing about whether the script is cache-compatible.
 
 ## Namespaces
 
