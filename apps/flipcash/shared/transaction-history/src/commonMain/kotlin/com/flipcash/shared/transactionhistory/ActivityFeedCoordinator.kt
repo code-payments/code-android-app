@@ -26,6 +26,7 @@ import com.flipcash.services.models.UserProfile
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.transactionhistory.internal.TransactionDetailsMapper
 import com.flipcash.shared.transactionhistory.internal.boostedReactionOf
+import com.flipcash.shared.transactionhistory.internal.groupChatIdOf
 import com.flipcash.shared.transactionhistory.internal.isSplitBoost
 import com.flipcash.shared.transactionhistory.internal.TransactionItemMapper
 import com.getcode.opencode.model.core.ID
@@ -232,6 +233,7 @@ class ActivityFeedCoordinator @Inject internal constructor(
                 token = token,
                 toToken = destinationTokenOf(msg.metadata, tokens),
                 boostChatName = boostChatNameOf(msg.metadata, chatNames),
+                chatName = groupChatIdOf(msg.metadata)?.let { chatNames[chats.chatIdHex(it)] },
             ) to profiles
         )
     }
