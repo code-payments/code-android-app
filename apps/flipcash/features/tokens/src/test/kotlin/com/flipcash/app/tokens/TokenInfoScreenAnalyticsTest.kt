@@ -33,6 +33,12 @@ class TokenInfoScreenAnalyticsTest {
     )
 
     @Test
+    fun moneyCurrencyListTracksOpenedFromWallet() = assertTracksSource(
+        entry = TokenInfoEntry.Currencies,
+        expectedName = "Token Info: Opened From Wallet",
+    )
+
+    @Test
     fun discoveryTracksOpenedFromDiscovery() = assertTracksSource(
         entry = TokenInfoEntry.Discovery,
         expectedName = "Token Info: Opened From Discovery",
