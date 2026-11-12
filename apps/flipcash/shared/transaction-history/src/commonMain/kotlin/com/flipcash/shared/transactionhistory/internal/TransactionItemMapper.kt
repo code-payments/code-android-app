@@ -86,6 +86,8 @@ internal class TransactionItemMapper @Inject constructor(
             returnChatId = returnedPaymentOf(meta)?.chatId,
             chatId = chatId,
             chatName = source.chatName?.takeIf { chatId != null && it.isNotBlank() },
+            chatPicture = source.chatPicture
+                ?.takeIf { chatId != null && !source.chatName.isNullOrBlank() },
             counterpartyName = counterparty?.displayName?.takeIf { it.isNotBlank() },
         )
     }

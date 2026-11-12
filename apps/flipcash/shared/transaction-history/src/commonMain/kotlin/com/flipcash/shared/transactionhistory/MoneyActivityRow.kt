@@ -1,6 +1,9 @@
 package com.flipcash.shared.transactionhistory
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,11 +16,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.core.resources.Res as CoreRes
 import com.flipcash.core.resources.label_chatReceipt_yesterday
 import com.flipcash.core.resources.label_chatSeparator_today
 import com.flipcash.core.resources.title_moneyRecentActivity
+import com.flipcash.services.models.chat.BlobAccessContext
+import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 import com.getcode.util.formatLocalized
@@ -110,7 +116,7 @@ fun MoneyActivityRow(
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TransactionAvatarImage(item.avatar)
+        MoneyActivityAvatar(item = item, groupName = groupName)
 
         Column(
             modifier = Modifier.weight(1f),
@@ -154,5 +160,32 @@ private fun ActivityDay.label(timestamp: Instant, now: Instant, timeZone: TimeZo
             date.year == today.year -> timestamp.formatLocalized("MMM d")
             else -> timestamp.formatLocalized("MMM d, yyyy")
         }
+    }
+}
+
+/**
+ * The row's avatar: the group's picture (its initials without one) on a row titled by the group,
+ * in the same slot [TransactionAvatarImage] fills; today's avatar on every other row.
+ */
+@Composable
+private fun MoneyActivityAvatar(item: TransactionListItem, groupName: String?) {
+    val chatId = item.chatId
+    if (groupName == null || chatId == null) {
+        TransactionAvatarImage(item.avatar)
+        return
+    }
+    Box(
+        modifier = Modifier.requiredSize(CodeTheme.dimens.staticGrid.x10),
+        contentAlignment = Alignment.Center,
+    ) {
+        ContactAvatar(
+            image = item.chatPicture,
+            displayName = groupName,
+            // A group's picture hangs off the chat's profile, not a member's.
+            access = BlobAccessContext.ChatProfile(chatId),
+            modifier = Modifier
+                .requiredSize(CodeTheme.dimens.staticGrid.x8)
+                .clip(CircleShape),
+        )
     }
 }

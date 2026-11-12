@@ -54,6 +54,23 @@ class ChatMetadataDataSource @Inject constructor(
             }
             .distinctUntilChanged()
 
+    /**
+     * Pictures of the titled chats the viewer is a member of, keyed by chat-id hex: the same chats
+     * as [observeMemberTitles], less those without a picture. Resolved at collection time for the
+     * same reason.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    fun observeMemberPictures(): Flow<Map<String, MediaItem>> =
+        FlipcashDatabase.observeInstance()
+            .flatMapLatest { database ->
+                database?.chatMetadataDao()?.observeAll()?.map { rows ->
+                    rows.filter { it.isMember && !it.title.isNullOrBlank() }
+                        .mapNotNull { row -> row.pictureJson?.let { row.chatIdHex to it } }
+                        .toMap()
+                } ?: flowOf(emptyMap())
+            }
+            .distinctUntilChanged()
+
     /** One chat's row by [chatId], re-emitted on change; `null` while it is not stored. */
     fun observeById(chatId: ChatId): Flow<ChatMetadataEntity?> =
         db?.chatMetadataDao()?.observeById(mapper.chatIdHex(chatId)) ?: emptyFlow()
