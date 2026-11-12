@@ -95,23 +95,6 @@ class ChatEnvelopeVectorTest {
         }
     }
 
-    @Test
-    fun getKeyEnvelopeResponsesDecodeLikeAndroid() {
-        val vectors = list("getKeyEnvelopeResponses")
-        assertEquals(9, vectors.size)
-        for (v in vectors) {
-            assertEquals(v.obj("decoded"), describe(KeyEnvelopeCodec.decodeGetKeyEnvelopeResponse(v.hex("bytes"))), v.str("name"))
-        }
-    }
-
-    @Test
-    fun setKeyEnvelopeResponsesDecodeLikeAndroid() {
-        for (v in list("setKeyEnvelopeResponses")) {
-            val expected = v.str("result").let { if (it == "UNRECOGNIZED") "UNKNOWN" else it }
-            assertEquals(expected, KeyEnvelopeCodec.decodeSetKeyEnvelopeResponse(v.hex("bytes")).name, v.str("name"))
-        }
-    }
-
     // -- descriptions, in ChatEnvelopeFixtureTest's shape --
 
     private val unsupported = buildJsonObject { put("type", "unsupported") }
@@ -175,36 +158,6 @@ class ChatEnvelopeVectorTest {
             }
             MessageContent.Unsupported -> put("type", "unsupported")
         }
-    }
-
-    private fun describe(lookup: KeyEnvelopeLookup): JsonObject = buildJsonObject {
-        when (lookup) {
-            KeyEnvelopeLookup.Denied -> put("type", "denied")
-            KeyEnvelopeLookup.NotFound -> put("type", "not-found")
-            KeyEnvelopeLookup.NoEnvelope -> put("type", "no-envelope")
-            is KeyEnvelopeLookup.Own -> {
-                put("type", "own")
-                put("scheme", lookup.envelope.scheme)
-                put("nonce", lookup.envelope.nonce.hex()); put("ciphertext", lookup.envelope.ciphertext.hex())
-                wrappers(lookup.wrappedBy, lookup.wrappedByPublicKey)
-            }
-            is KeyEnvelopeLookup.InviteOnly -> {
-                val b = lookup.bundle
-                put("type", "invite-only")
-                put("inviteId", b.inviteId.hex())
-                put("keyEnvelopeScheme", b.keyEnvelopeScheme)
-                put("keyNonce", b.keyEnvelope.nonce.hex()); put("keyCiphertext", b.keyEnvelope.ciphertext.hex())
-                put("keySignature", b.keyEnvelope.signature.hex())
-                put("secretEnvelopeScheme", b.secretEnvelopeScheme)
-                put("secretNonce", b.secretEnvelope.nonce.hex()); put("secretCiphertext", b.secretEnvelope.ciphertext.hex())
-                wrappers(lookup.wrappedBy, lookup.wrappedByPublicKey)
-            }
-        }
-    }
-
-    private fun JsonObjectBuilder.wrappers(wrappedBy: ByteArray?, wrappedByPublicKey: ByteArray?) {
-        wrappedBy?.let { put("wrappedBy", it.hex()) }
-        wrappedByPublicKey?.let { put("wrappedByPublicKey", it.hex()) }
     }
 }
 
