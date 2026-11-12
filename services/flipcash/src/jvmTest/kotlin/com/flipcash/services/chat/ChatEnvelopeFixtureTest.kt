@@ -111,6 +111,17 @@ class ChatEnvelopeFixtureTest {
         encoded("text", MessageContent.Text("hello"))
         encoded("text-unicode", MessageContent.Text("gm ☀️ 💸 café"))
         encoded("text-empty", MessageContent.Text(""))
+        encoded(
+            "text-link-preview",
+            MessageContent.Text(
+                "see https://example.com/a",
+                linkPreview = com.flipcash.services.models.chat.LinkPreview(
+                    url = "https://example.com/a",
+                    title = "Example",
+                    description = "An example page",
+                ),
+            ),
+        )
         encoded("reply-of-text", MessageContent.Reply(42L, listOf(MessageContent.Text("yes"))))
         encoded(
             "cash-single",
@@ -207,6 +218,22 @@ class ChatEnvelopeFixtureTest {
         decoded("empty-content", MessagingModel.Content.getDefaultInstance())
         // Media is not ported: Android decodes it, :services:flipcash-chat reads it as unsupported.
         decoded("media-unported", content { setMedia(MessagingModel.MediaContent.getDefaultInstance()) })
+        // A preview's image is media too: the KMP decode keeps the text and preview and drops the image.
+        decoded(
+            "text-link-preview-image",
+            content {
+                setText(
+                    MessagingModel.TextContent.newBuilder()
+                        .setText("see https://example.com/b")
+                        .addLinkPreviews(
+                            MessagingModel.LinkPreview.newBuilder()
+                                .setUrl("https://example.com/b")
+                                .setTitle("Example B")
+                                .setImage(com.codeinc.flipcash.gen.blob.v1.Model.Media.getDefaultInstance()),
+                        ),
+                )
+            },
+        )
     }
 
     private fun vector(name: String, direction: String, content: MessagingModel.Content) = buildJsonObject {
@@ -222,7 +249,12 @@ class ChatEnvelopeFixtureTest {
     /** Android's decoded value, in the shape `:services:flipcash-chat`'s test describes its own. */
     private fun describe(content: MessageContent): JsonObject = buildJsonObject {
         when (content) {
-            is MessageContent.Text -> { put("type", "text"); put("text", content.text) }
+            is MessageContent.Text -> {
+                put("type", "text"); put("text", content.text)
+                content.linkPreview?.let { p ->
+                    put("linkPreview", buildJsonObject { put("url", p.url); put("title", p.title); put("description", p.description) })
+                }
+            }
             is MessageContent.Cash -> {
                 put("type", "cash")
                 put("intentId", content.intentId.hex())

@@ -4,18 +4,30 @@ package com.flipcash.chat
  * One item of a chat message: `messaging.v1.Content`.
  *
  * Mirrors Android's `com.flipcash.services.models.chat.MessageContent` for the types a client sends
- * or a bot reads. Media, link previews and system events are not ported yet: Media decodes to
- * [Unsupported], a link preview is dropped from [Text], and [System] keeps only its fallback text.
+ * or a bot reads. Media and system events are not ported yet: Media decodes to [Unsupported], as
+ * does a [Text] whose link preview carries an image, and [System] keeps only its fallback text.
  *
  * Ids are raw bytes. `ByteArray` has identity equality, so these classes compare their arrays by
  * content.
  */
 sealed interface MessageContent {
 
-    class Text(val text: String) : MessageContent {
-        override fun equals(other: Any?) = other is Text && text == other.text
-        override fun hashCode() = text.hashCode()
-        override fun toString() = "Text(${text.length} chars)"
+    /** [linkPreview] is the sender-built preview of a link in [text] (`TextContent.link_previews`). */
+    class Text(val text: String, val linkPreview: LinkPreview? = null) : MessageContent {
+        override fun equals(other: Any?) = other is Text && text == other.text && linkPreview == other.linkPreview
+        override fun hashCode() = 31 * text.hashCode() + (linkPreview?.hashCode() ?: 0)
+        override fun toString() = "Text(${text.length} chars${if (linkPreview != null) ", link preview" else ""})"
+    }
+
+    /**
+     * `messaging.v1.LinkPreview` without its image: the sender's claims about the page at [url].
+     * The image is media, which is not ported, so a preview with one makes its [Text] [Unsupported].
+     */
+    class LinkPreview(val url: String, val title: String, val description: String = "") {
+        override fun equals(other: Any?) =
+            other is LinkPreview && url == other.url && title == other.title && description == other.description
+        override fun hashCode() = (url.hashCode() * 31 + title.hashCode()) * 31 + description.hashCode()
+        override fun toString() = "LinkPreview(${url.length}, ${title.length}, ${description.length} chars)"
     }
 
     /**

@@ -30,6 +30,20 @@
             }
         },
         {
+            "name": "text-link-preview",
+            "direction": "encode",
+            "bytes": "0a4e0a197365652068747470733a2f2f6578616d706c652e636f6d2f6112310a1568747470733a2f2f6578616d706c652e636f6d2f6112074578616d706c651a0f416e206578616d706c652070616765",
+            "decoded": {
+                "type": "text",
+                "text": "see https://example.com/a",
+                "linkPreview": {
+                    "url": "https://example.com/a",
+                    "title": "Example",
+                    "description": "An example page"
+                }
+            }
+        },
+        {
             "name": "reply-of-text",
             "direction": "encode",
             "bytes": "1a0d0a02082a12070a050a03796573",
@@ -278,6 +292,20 @@
             "decoded": {
                 "type": "media"
             }
+        },
+        {
+            "name": "text-link-preview-image",
+            "direction": "decode",
+            "bytes": "0a410a197365652068747470733a2f2f6578616d706c652e636f6d2f6212240a1568747470733a2f2f6578616d706c652e636f6d2f6212094578616d706c6520422200",
+            "decoded": {
+                "type": "text",
+                "text": "see https://example.com/b",
+                "linkPreview": {
+                    "url": "https://example.com/b",
+                    "title": "Example B",
+                    "description": ""
+                }
+            }
         }
     ],
     "sealed": [
@@ -288,7 +316,7 @@
             "chatKey": "6c2005541fb82abe2f639ae77e3b146e7f0dd97a9b7d3b2dccef000c69e9df22",
             "senderPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
             "recipientPublicKey": "da29e95b02e00ffa15645775fb1d2ba222a1943395eea06b94e2c057b7be69d0",
-            "bytes": "3a3e08011218bd68a3dab3b43270ca1c7039a5af3e924ef49d2856e404051a20539ce1ad00a18e210018c795a8e3b0ac0d9aa68e3e527a868648fa450b460fd1",
+            "bytes": "3a3e0801121882a6c400622c2f09fd86bf1b7903a6f1ded3065f230032561a201aefee6eb8e73e36a6d9a06e09f8d1b43a906036feddd1d312bb0077bc867a72",
             "opened": {
                 "type": "text",
                 "text": "sealed hello"
@@ -301,7 +329,7 @@
             "chatKey": "6c2005541fb82abe2f639ae77e3b146e7f0dd97a9b7d3b2dccef000c69e9df22",
             "senderPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
             "recipientPublicKey": "da29e95b02e00ffa15645775fb1d2ba222a1943395eea06b94e2c057b7be69d0",
-            "bytes": "3a4608011218a6bdd2d863aa068f4a4025cc0250e6cc42b2676be33e2f9a1a284805d4ea60c3c84874a2317ab375a862e158d066cc8c43c3bb14576e8304806ebab32ddcf731c4cd",
+            "bytes": "3a4608011218276053c6230e3c940a84279d81fc6ff312cbb2b0e92e3dfe1a285f406becc9017a803410d6d1675cf311d84aa2ff258c702a8d7b1379dd8f373f863cfad77a4262db",
             "opened": {
                 "type": "reply",
                 "repliedMessageId": 7,
@@ -319,7 +347,7 @@
             "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
             "groupKey": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf",
             "senderId": "101112131415161718191a1b1c1d1e1f",
-            "bytes": "3a3d0802121899108d2cafa0a01117034aa513a253ab263a38a8b00343e71a1f85631f63943f89ea7e5d3762d34cfa7972bd38ab83fce9dd2c3e90edcdd564",
+            "bytes": "3a3d08021218f97c32c72a583460862cf1401d1d6936247d98bb98bf1afe1a1f45dbfc2be6473aad836abe40fc3b2b404777867286dea69aa4e84304040db4",
             "opened": {
                 "type": "text",
                 "text": "group hello"
@@ -331,7 +359,7 @@
             "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
             "groupKey": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf",
             "senderId": "101112131415161718191a1b1c1d1e1f",
-            "bytes": "3a56080212180132f9ec4b4d4d72ff95836912a7c60f21856a07f805af171a38aae153802b23bd09c8797e744cc159ebeb3174a81c4da313481c39c4e122cfa994e5352064609b97ecbf294f32872d41949c2cfa9ac0f4ad",
+            "bytes": "3a56080212180d5c4e5ae72e7aff93628ce0d046b59d463fb072916661171a38b203ae5ebd3bf9863dd1bee204b136a4225a42cc7e56082874c2ccb2f2cc75e67e3b75c399c9ed7c446f2b29f1b51988529b297b589484a2",
             "opened": {
                 "type": "widget-payment-request",
                 "paymentRequestId": "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"

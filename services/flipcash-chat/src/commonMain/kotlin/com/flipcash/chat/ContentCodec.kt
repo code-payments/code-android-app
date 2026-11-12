@@ -8,6 +8,7 @@ import com.codeinc.flipcash.wire.messaging.v1.CashContent
 import com.codeinc.flipcash.wire.messaging.v1.Content
 import com.codeinc.flipcash.wire.messaging.v1.DeletedContent
 import com.codeinc.flipcash.wire.messaging.v1.EncryptedContent
+import com.codeinc.flipcash.wire.messaging.v1.LinkPreview as WireLinkPreview
 import com.codeinc.flipcash.wire.messaging.v1.MessageId
 import com.codeinc.flipcash.wire.messaging.v1.PaymentRequestWidget
 import com.codeinc.flipcash.wire.messaging.v1.ReplyContent
@@ -52,7 +53,12 @@ private val contentNested: Map<Int, (ByteArray) -> ByteArray> = mapOf(
 )
 
 internal fun MessageContent.toWire(): Content = when (this) {
-    is MessageContent.Text -> Content(text = TextContent(text = text))
+    is MessageContent.Text -> Content(
+        text = TextContent(
+            text = text,
+            link_previews = listOfNotNull(linkPreview?.let { WireLinkPreview(url = it.url, title = it.title, description = it.description) }),
+        ),
+    )
     // As Android's asContent(): total_amount carries only quarks and mint, and payment_return is
     // never sent (the server sets it). currency, nativeAmount and paymentReturn are decode-only.
     is MessageContent.Cash -> Content(
@@ -123,7 +129,15 @@ internal fun MessageContent.toWire(): Content = when (this) {
 }
 
 internal fun Content.toDomain(): MessageContent {
-    text?.let { return MessageContent.Text(it.text) }
+    text?.let { t ->
+        // As Android, only the first preview counts (the proto allows one). Its image is media, which
+        // this port does not carry, so the text and the rest of the preview are kept without it.
+        val preview = t.link_previews.firstOrNull()
+        return MessageContent.Text(
+            t.text,
+            preview?.let { MessageContent.LinkPreview(url = it.url, title = it.title, description = it.description) },
+        )
+    }
     cash?.let { cash ->
         val amount = cash.total_amount
         return MessageContent.Cash(

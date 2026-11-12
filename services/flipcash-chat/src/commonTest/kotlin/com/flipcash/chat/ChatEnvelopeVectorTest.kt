@@ -30,7 +30,7 @@ class ChatEnvelopeVectorTest {
     @Test
     fun contentDecodesLikeAndroid() {
         val vectors = list("contents")
-        assertEquals(23, vectors.size)
+        assertEquals(25, vectors.size)
         for (v in vectors) {
             val expected = if (v.str("name") == "media-unported") unsupported else v.obj("decoded")
             assertEquals(expected, describe(ContentCodec.decode(v.hex("bytes"))), v.str("name"))
@@ -127,7 +127,12 @@ class ChatEnvelopeVectorTest {
 
     private fun describe(content: MessageContent): JsonObject = buildJsonObject {
         when (content) {
-            is MessageContent.Text -> { put("type", "text"); put("text", content.text) }
+            is MessageContent.Text -> {
+                put("type", "text"); put("text", content.text)
+                content.linkPreview?.let { p ->
+                    put("linkPreview", buildJsonObject { put("url", p.url); put("title", p.title); put("description", p.description) })
+                }
+            }
             is MessageContent.Cash -> {
                 put("type", "cash")
                 put("intentId", content.intentId.hex())
