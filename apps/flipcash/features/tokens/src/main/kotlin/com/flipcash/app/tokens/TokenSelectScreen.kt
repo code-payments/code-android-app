@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.AppRoute.Transfers.Deposit
 import com.flipcash.app.core.AppRoute.Transfers.Withdrawal
 import com.flipcash.app.core.tokens.TokenPurpose
@@ -76,7 +77,9 @@ fun TokenSelectScreen(
             .map { it.mint }
             .onEach {
                 when (purpose) {
-                    TokenPurpose.Balance -> Unit
+                    // Only the Money tab's currency count opens the list for Balance, and with the
+                    // card stack gone this list is its way into a currency.
+                    TokenPurpose.Balance -> navigator.push(AppRoute.Token.Info(it))
                     is TokenPurpose.Select -> Unit
                     TokenPurpose.Withdraw -> {
                         navigator.push(Withdrawal())

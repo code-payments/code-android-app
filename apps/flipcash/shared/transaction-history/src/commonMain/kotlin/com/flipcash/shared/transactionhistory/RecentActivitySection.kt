@@ -6,6 +6,7 @@ import com.flipcash.core.resources.Res
 import com.getcode.util.resources.ic_chevron_right
 import com.getcode.util.resources.Res as UiRes
 import com.flipcash.core.resources.title_recentActivity
+import org.jetbrains.compose.resources.StringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -43,7 +44,7 @@ fun LazyListScope.recentActivitySection(
     onItemClick: ((TransactionListItem) -> Unit)? = null,
 ) {
     item(key = "recent_activity_header", contentType = "recent_activity_header") {
-        RecentActivityHeader(modifier = modifier)
+        RecentActivityHeader(title = Res.string.title_recentActivity, modifier = modifier)
     }
     items(transactions, key = { it.id }, contentType = { "recent_activity_row" }) { item ->
         ActivityFeedRow(
@@ -57,7 +58,7 @@ fun LazyListScope.recentActivitySection(
 }
 
 @Composable
-private fun LazyItemScope.RecentActivityHeader(modifier: Modifier) {
+internal fun LazyItemScope.RecentActivityHeader(title: StringResource, modifier: Modifier) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -66,7 +67,7 @@ private fun LazyItemScope.RecentActivityHeader(modifier: Modifier) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(Res.string.title_recentActivity),
+            text = stringResource(title),
             style = CodeTheme.typography.screenTitle,
             color = CodeTheme.colors.textMain,
         )

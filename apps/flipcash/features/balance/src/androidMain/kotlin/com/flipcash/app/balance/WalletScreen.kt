@@ -21,8 +21,17 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
+/**
+ * The wallet tab's home.
+ *
+ * @param money Lays the wallet out as the Money tab of the group money shell (node 13729:744).
+ * @param profileAvatar The viewer's avatar in the Money title; tapping it opens You.
+ */
 @Composable
-fun WalletScreen() {
+fun WalletScreen(
+    money: Boolean = false,
+    profileAvatar: @Composable () -> Unit = {},
+) {
     val navigator = LocalCodeNavigator.current
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -30,7 +39,7 @@ fun WalletScreen() {
     ) {
         val viewModel = hiltViewModel<HiltWalletViewModel>()
         val tokenViewModel = hiltViewModel<HiltSelectTokenViewModel>()
-        WalletScreen(viewModel, tokenViewModel)
+        WalletScreen(viewModel, tokenViewModel, money = money, profileAvatar = profileAvatar)
 
         LaunchedEffect(tokenViewModel) {
             tokenViewModel.dispatchEvent(
