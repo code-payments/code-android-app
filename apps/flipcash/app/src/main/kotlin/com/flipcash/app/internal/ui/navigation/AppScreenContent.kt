@@ -107,6 +107,7 @@ internal fun appEntryProvider(
     deepLink: () -> DeepLink?,
     onPendingAction: (DeeplinkAction) -> Unit = {},
     searchMorph: SearchMorph? = null,
+    offBarTabs: OffBarTabs? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
 
     // Loading / splash
@@ -130,7 +131,10 @@ internal fun appEntryProvider(
     annotatedEntry<AppRoute.Main.InviteContact> { key -> InviteContactScreen(key.phoneNumber) }
 
     // Tabs (nav bar homes — flat on the root backstack, never wrapped in Main.Sheet)
-    annotatedEntry<AppRoute.Tabs.Scanner> { ScannerScreen() }
+    // Under the Group Money shell, Scanner and You have no tab: drawn without the bar, with a close.
+    annotatedEntry<AppRoute.Tabs.Scanner> {
+        ScannerScreen(onClose = offBarTabs?.closeFor(AppRoute.Tabs.Scanner))
+    }
     annotatedEntry<AppRoute.Tabs.Wallet> {
         // The wallet hosts the card-expand overlay in-entry so a pushed action (Give/Convert/Withdraw)
         // covers the expanded currency-info with correct z-order (iOS WalletScreen structure).
@@ -144,7 +148,9 @@ internal fun appEntryProvider(
         }
     }
     annotatedEntry<AppRoute.Tabs.Chats> { ChatsScreen() }
-    annotatedEntry<AppRoute.Tabs.Menu> { MenuScreen() }
+    annotatedEntry<AppRoute.Tabs.Menu> {
+        MenuScreen(onClose = offBarTabs?.closeFor(AppRoute.Tabs.Menu))
+    }
 
     // Sheets (inner content — wrapped in Main.Sheet by navigateTo())
     // Route type is `Give` but the screen is the Cash/Give screen the flows call cash_screen.

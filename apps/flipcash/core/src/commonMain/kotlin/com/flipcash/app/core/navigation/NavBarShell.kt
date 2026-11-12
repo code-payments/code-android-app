@@ -32,5 +32,13 @@ enum class NavBarShell(val tabs: List<NavBarButton>) {
 fun NavBarShell.selectedTab(backStack: List<NavKey>): NavBarButton? =
     backStack.firstNotNullOfOrNull { route -> (route as? AppRoute)?.asNavBarTab()?.takeIf { it in tabs } }
 
+/**
+ * Whether [route] is one of this shell's tab homes, which the bar is drawn over. Under [NavBarShell.Classic]
+ * that is every [AppRoute.Tabs] route; under [NavBarShell.GroupMoney] Scanner and You are not, so they
+ * are drawn without the bar.
+ */
+fun NavBarShell.isTabHome(route: NavKey?): Boolean =
+    (route as? AppRoute)?.asNavBarTab()?.let { it in tabs } == true
+
 /** The shell the app is drawing, for screens that lay out differently under [NavBarShell.GroupMoney]. */
 val LocalNavBarShell = staticCompositionLocalOf { NavBarShell.Classic }

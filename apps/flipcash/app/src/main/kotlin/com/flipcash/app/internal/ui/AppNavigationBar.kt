@@ -33,6 +33,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -43,9 +44,11 @@ import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.openAsSheet
 import dev.chrisbanes.haze.HazeState
 import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.TabBarVisibilityController
 import com.flipcash.app.core.navigation.asNavBarTab
+import com.flipcash.app.core.navigation.isTabHome
 import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.navigation.selectedTab
 import com.flipcash.app.core.ui.NavigationBar
@@ -82,6 +85,7 @@ internal class AppNavigationBarVisibility(
     private val billUp: State<Boolean>,
     private val tabBarVisibility: TabBarVisibilityController,
     private val cardExpansion: CardExpansionController?,
+    private val shell: State<NavBarShell> = mutableStateOf(NavBarShell.Classic),
 ) {
     /**
      * The tab the bar highlights. Selection follows the base of the backstack (the tab "home"), so it
@@ -96,12 +100,15 @@ internal class AppNavigationBarVisibility(
      * visibility. A BottomBar modal (e.g. Add Money) renders in the nav content, above the bar, and a
      * bill/tip card renders at the app root above everything, so the bar hides under either. A tab
      * home can also hide it without leaving its route (the You tab's tip card expanding in place).
+     *
+     * Only the shell's own tab homes count: under [NavBarShell.GroupMoney] Scanner and You have no
+     * tab, so they are drawn without the bar and its search button (see OffBarTabs).
      */
     val shown: Boolean by derivedStateOf {
         // Search keeps the bar: its pill and button hand over to Search's field (SearchMorph), and
         // come back from it, rather than the whole bar sliding away.
         val top = navigator.currentRouteKey
-        ((top as? AppRoute)?.asNavBarTab() != null || top is AppRoute.Messaging.Search) &&
+        (shell.value.isTabHome(top) || top is AppRoute.Messaging.Search) &&
             bottomBarMessages.value.isEmpty() &&
             !billUp.value &&
             !tabBarVisibility.isHidden
@@ -152,8 +159,9 @@ internal fun rememberAppNavigationBarVisibility(
     val billUp = remember(session) {
         session?.billState?.map { it.bill != null } ?: flowOf(false)
     }.collectAsStateWithLifecycle(initialValue = false)
-    return remember(navigator, tabBarVisibility, cardExpansion, bottomBarMessages, billUp) {
-        AppNavigationBarVisibility(navigator, bottomBarMessages, billUp, tabBarVisibility, cardExpansion)
+    val shell = rememberUpdatedState(LocalNavBarShell.current)
+    return remember(navigator, tabBarVisibility, cardExpansion, bottomBarMessages, billUp, shell) {
+        AppNavigationBarVisibility(navigator, bottomBarMessages, billUp, tabBarVisibility, cardExpansion, shell)
     }
 }
 
