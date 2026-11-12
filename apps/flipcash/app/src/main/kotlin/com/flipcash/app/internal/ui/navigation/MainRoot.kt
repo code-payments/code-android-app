@@ -15,7 +15,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -27,6 +29,8 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.navigation.homeRoute
 import com.flipcash.app.core.navigation.launchRoute
 import com.flipcash.app.core.extensions.navigateAll
@@ -34,6 +38,7 @@ import com.flipcash.app.core.extensions.resolveBackStack
 import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
 import com.flipcash.app.core.chat.ChatIdentifier
+import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.services.user.AuthState
 import com.flipcash.shared.chat.share.LocalPendingChatShares
 import com.flipcash.shared.chat.share.PendingChatShares
@@ -44,12 +49,14 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.utils.trace
 import dev.theolm.rinku.DeepLink
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 @Composable
@@ -63,6 +70,8 @@ internal fun MainRoot(
     val router = LocalRouter.current!!
     var showLogo by remember { mutableStateOf(true) }
     val pendingShares = LocalPendingChatShares.current
+    val featureFlags = LocalFeatureFlags.current
+    val composedShell by rememberUpdatedState(LocalNavBarShell.current)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -110,51 +119,38 @@ internal fun MainRoot(
                         "state" to state
                     }
                 )
-                // A launch by a share opens on the picker, so the share has to be known before the
-                // first real route is chosen; waiting here keeps the Loading screen up meanwhile.
-                val shareRoute = if (state == AuthState.Ready) {
-                    pendingShares?.let { claimShareRoute(it) }
-                } else null
-                val launch = buildNavGraphForLaunch(
-                    state = state,
-                    router = router,
-                    deepLink = deepLink,
-                    shareRoute = shareRoute,
-                )
-
                 when (state) {
+                    AuthState.Ready -> {
+                        // A launch by a share opens on the picker, so the share has to be known
+                        // before the first real route is chosen; waiting here keeps the Loading
+                        // screen up meanwhile.
+                        val shareRoute = pendingShares?.let { claimShareRoute(it) }
+                        // The bar's shell starts on Classic until the flag, override and staff
+                        // flows load, so the route also waits for the shell the stored values give:
+                        // a returning user never sees the other shell's tabs before their own.
+                        navigator.routeReadyLaunch(
+                            expectedShell = { featureFlags.launchShell(userManager) },
+                            composedShell = snapshotFlow { composedShell },
+                            graph = {
+                                buildNavGraphForLaunch(
+                                    state = state,
+                                    router = router,
+                                    deepLink = deepLink,
+                                    shareRoute = shareRoute,
+                                )
+                            },
+                            onPendingAction = onPendingAction,
+                        )
+                        showLogo = false
+                    }
+
                     AuthState.Authenticating -> {
                         delay(0.5.seconds)
                         showLoading = true
                     }
 
-                    AuthState.Ready -> {
-                        showLogo = false
-                    }
-
-                    else -> Unit
-                }
-
-                if (launch != null) {
-                    val current = navigator.backStack.toList()
-                    val target = launch.resolvedBackStack()
-
-                    // Skip if the current stack already matches or extends the target.
-                    // This prevents blowing away screens the user has navigated into
-                    // (e.g. a verification code screen) when auth/flags re-emit.
-                    if (!current.startsWith(target)) {
-                        navigator.replaceAll(launch.baseRoutes)
-                        if (launch.deeplinkRoutes.isNotEmpty()) {
-                            navigator.navigateAll(launch.deeplinkRoutes)
-                        }
-                    }
-
-                    // Fire eagerly so the claim/login starts in parallel
-                    // with the nav transition instead of waiting for
-                    // App.kt's LaunchedEffect to see a non-Loading route.
-                    if (launch.pendingAction != null) {
-                        onPendingAction(launch.pendingAction)
-                    }
+                    else -> buildNavGraphForLaunch(state = state, router = router, deepLink = deepLink)
+                        ?.let { navigator.applyLaunch(it, onPendingAction) }
                 }
             }.launchIn(this)
     }
@@ -193,6 +189,44 @@ internal data class LaunchNavGraph(
 private fun List<NavKey>.startsWith(prefix: List<NavKey>): Boolean {
     if (size < prefix.size) return false
     return prefix.indices.all { i -> this[i]::class == prefix[i]::class }
+}
+
+/**
+ * Routes a launch that reached [AuthState.Ready]: holds the Loading route until the bar draws the
+ * shell [expectedShell] reads (see [awaitLaunchShell]), then builds the launch [graph] and applies it.
+ */
+internal suspend fun CodeNavigator.routeReadyLaunch(
+    expectedShell: suspend () -> NavBarShell,
+    composedShell: Flow<NavBarShell>,
+    graph: () -> LaunchNavGraph?,
+    onPendingAction: (DeeplinkAction) -> Unit,
+    timeout: Duration = LaunchShellTimeout,
+) {
+    awaitLaunchShell(expectedShell(), composedShell, timeout)
+    graph()?.let { applyLaunch(it, onPendingAction) }
+}
+
+/**
+ * Puts [launch] on the backstack, unless the stack already matches or extends it: a harmless
+ * auth/flags re-emission must not blow away screens the user has navigated into (e.g. a
+ * verification code screen).
+ */
+internal fun CodeNavigator.applyLaunch(
+    launch: LaunchNavGraph,
+    onPendingAction: (DeeplinkAction) -> Unit,
+) {
+    if (!backStack.toList().startsWith(launch.resolvedBackStack())) {
+        replaceAll(launch.baseRoutes)
+        if (launch.deeplinkRoutes.isNotEmpty()) {
+            navigateAll(launch.deeplinkRoutes)
+        }
+    }
+
+    // Fire eagerly so the claim/login starts in parallel with the nav transition instead of
+    // waiting for App.kt's LaunchedEffect to see a non-Loading route.
+    if (launch.pendingAction != null) {
+        onPendingAction(launch.pendingAction)
+    }
 }
 
 /**

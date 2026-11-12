@@ -8,6 +8,13 @@ interface FeatureFlagController {
     fun enableBetaFeatures()
     fun disableBetaFeatures()
     fun observeOverride(): StateFlow<Boolean>
+
+    /**
+     * The stored beta override, read once. [observeOverride] holds false until the store loads, so
+     * a caller that needs the stored value before then (the launch choosing its shell) reads this.
+     */
+    suspend fun getOverride(): Boolean = observeOverride().value
+
     fun set(flag: FeatureFlag<*>, value: Boolean)
     suspend fun get(flag: FeatureFlag<*>): Boolean
     fun observe(): StateFlow<List<BetaFeature>>
