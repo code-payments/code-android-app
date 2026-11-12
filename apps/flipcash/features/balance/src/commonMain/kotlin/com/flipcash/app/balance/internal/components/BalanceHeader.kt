@@ -1,5 +1,6 @@
 package com.flipcash.app.balance.internal.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +26,10 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
  *
  * [appreciationStyle] defaults to [AppreciationStyle.Classic] (sentiment-tinted fill); pass
  * [AppreciationStyle.Pill] for the v2 neutral bordered treatment.
+ *
+ * [showCurrency] draws the currency flag and chevron that mark the amount as the way into the
+ * currency picker. The Money tab (node 13729:744) turns them off so the amount sits centred;
+ * tapping the amount still calls [onClick], since that is the only way into the picker.
  */
 @Composable
 internal fun BalanceHeader(
@@ -34,6 +39,7 @@ internal fun BalanceHeader(
     topPadding: Dp = CodeTheme.dimens.grid.x9,
     bottomPadding: Dp = CodeTheme.dimens.grid.x9,
     appreciationStyle: AppreciationStyle = AppreciationStyle.Classic,
+    showCurrency: Boolean = true,
     onClick: () -> Unit
 ) {
     val exchange = LocalExchange.current
@@ -49,11 +55,17 @@ internal fun BalanceHeader(
             }
         } else {
             AmountArea(
+                // Without the cue AmountArea drops its own click, so the tap moves out here.
+                modifier = if (showCurrency) Modifier else Modifier.clickable(onClick = onClick),
                 amountText = balance.nativeAmount.formatted(),
                 isAltCaption = false,
                 isAltCaptionKinIcon = false,
-                currencyResId = exchange.getFlagByCurrency(balance.nativeAmount.currencyCode.name),
-                isClickable = true,
+                currencyResId = if (showCurrency) {
+                    exchange.getFlagByCurrency(balance.nativeAmount.currencyCode.name)
+                } else {
+                    null
+                },
+                isClickable = showCurrency,
                 animateDigits = true,
                 textStyle = CodeTheme.typography.displayLarge,
                 onClick = onClick
