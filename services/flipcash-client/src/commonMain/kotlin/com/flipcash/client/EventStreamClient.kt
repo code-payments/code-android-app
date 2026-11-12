@@ -39,12 +39,12 @@ class EventStreamClient(
     fun events(owner: Ed25519.KeyPair): Flow<StreamEvent> = flow {
         val outgoing = Channel<ByteArray>(Channel.UNLIMITED)
         val requests = outgoing.consumeAsFlow().onStart {
-            emit(Requests.streamEventsOpen(owner, clock.now()).encode())
+            emit(Requests.streamEventsOpen(owner, clock.now()).encodeFlipcash())
         }
         try {
             transport.bidiStream(Requests.STREAM_EVENTS, requests).collect { bytes ->
                 val event = decodeStreamEvent(bytes) ?: return@collect
-                if (event is StreamEvent.Ping) outgoing.send(Requests.pong(clock.now()).encode())
+                if (event is StreamEvent.Ping) outgoing.send(Requests.pong(clock.now()).encodeFlipcash())
                 emit(event)
             }
         } finally {

@@ -20,7 +20,7 @@ class MessagingClient(private val transport: GrpcTransport) {
         options: QueryOptions = QueryOptions(),
     ): ReactorsPage {
         val request = Requests.getReactors(owner, chatId, messageId, emoji, options)
-        return decodeGetReactors(transport.unary(Requests.GET_REACTORS, request.encode()))
+        return decodeGetReactors(transport.unary(Requests.GET_REACTORS, request.encodeFlipcash()))
     }
 }
 

@@ -1,5 +1,7 @@
 package com.flipcash.client
 
+import com.getcode.opencode.transport.canonicalize
+
 import com.flipcash.chat.ContentCodec
 import com.flipcash.chat.MessageContent
 import kotlin.time.Instant
@@ -136,12 +138,16 @@ internal fun Instant.describe(): String = "$epochSeconds.${nanosecondsOfSecond.t
 internal fun ByteArray.hex(): String = joinToString("") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
 
 /**
- * Content as its re-encoded bytes. A share-profile widget, which only the server writes and so has
+ * Content as its re-encoded bytes in canonical (protobuf-java) order. A share-profile widget, which only the server writes and so has
  * no client encoder, is described by its username; anything else the encoder rejects is
  * [UNSUPPORTED_CONTENT].
  */
-internal fun describeContent(content: MessageContent): String = runCatching { ContentCodec.encode(content).hex() }
+internal fun describeContent(content: MessageContent): String = runCatching { canonicalContent(ContentCodec.encode(content)).hex() }
     .getOrElse { (content as? MessageContent.Widget.ShareProfile)?.let { "share-profile:${it.username}" } ?: UNSUPPORTED_CONTENT }
 
 /** What [describe] puts for content the port decodes to an Unsupported value. */
 internal const val UNSUPPORTED_CONTENT = "unsupported"
+
+/** `Content` bytes in field-number order under the flipcash2 schema, as protobuf-java writes them. */
+internal fun canonicalContent(bytes: ByteArray): ByteArray =
+    canonicalize(bytes, "flipcash.messaging.v1.Content", FlipcashCanonicalSchema)

@@ -29,7 +29,7 @@ import okio.ByteString.Companion.toByteString
 object ContentCodec {
 
     /** Serializes [content]. [MessageContent.Unsupported] has no wire form and throws. */
-    fun encode(content: MessageContent): ByteArray = content.toWire().encodeInFieldOrder()
+    fun encode(content: MessageContent): ByteArray = content.toWire().encode()
 
     /** Parses [bytes]. Throws [IllegalArgumentException] when they are not a `Content`. */
     fun decode(bytes: ByteArray): MessageContent = parse(bytes).toDomain()
@@ -40,17 +40,6 @@ object ContentCodec {
         throw IllegalArgumentException("Not a messaging.v1.Content", e)
     }
 }
-
-/**
- * `Content` bytes in protobuf-java's field order. Of the messages under `Content`, only
- * `CashContent` has a oneof Wire writes out of order; it can sit at the top or inside a reply.
- */
-internal fun Content.encodeInFieldOrder(): ByteArray = inFieldOrder(encode(), contentNested)
-
-private val contentNested: Map<Int, (ByteArray) -> ByteArray> = mapOf(
-    2 to { cash -> inFieldOrder(cash) },
-    3 to { reply -> inFieldOrder(reply, mapOf(2 to { content -> inFieldOrder(content, contentNested) })) },
-)
 
 internal fun MessageContent.toWire(): Content = when (this) {
     is MessageContent.Text -> Content(

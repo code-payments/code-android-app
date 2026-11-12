@@ -28,6 +28,7 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.transport.GrpcStatusException
 import com.getcode.opencode.transport.GrpcTransport
+import com.getcode.opencode.transport.encodeCanonical
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -54,9 +55,8 @@ import okio.ByteString.Companion.toByteString
  * registration.
  *
  *  1. The chat feeds (DM, and up to [MAX_GROUP_FEED_PAGES] group pages), for visible messages.
- *  2. GetMessages on the group chats, until one holds a message with a reaction. The first call signs
- *     Wire's own byte order on purpose: GetMessagesRequest has a oneof, which Wire writes after
- *     regular fields while the Go server re-marshals in field-number order before verifying.
+ *  2. GetMessages on the group chats, until one holds a message with a reaction. The first chat is
+ *     also read once with a signature over other bytes, which the server must reject.
  *  3. GetReactors on a reacted message (or a plain one if none is found).
  *  4. OCP GetIntentMetadata on the cash messages found, decoding any chat payment metadata.
  *  5. The event stream for [STREAM_WINDOW]: open, answer every ping, take what arrives, close.
@@ -89,7 +89,7 @@ class LiveChatReadTest {
             try {
                 // 1. Chat feeds: the chats the account can see, each with its last message.
                 val dmFeed = GetDmChatFeedResponse.ADAPTER.decode(
-                    flipcash.unary(GET_DM_CHAT_FEED, dmFeedRequest(owner).encode()),
+                    flipcash.unary(GET_DM_CHAT_FEED, dmFeedRequest(owner).encodeFlipcash()),
                 )
                 assertEquals(GetDmChatFeedResponse.Result.OK, dmFeed.result, "GetDmChatFeed")
                 val groupChats = mutableListOf<Metadata>()
@@ -97,7 +97,7 @@ class LiveChatReadTest {
                 var groupPages = 0
                 do {
                     val page = GetGroupChatFeedResponse.ADAPTER.decode(
-                        flipcash.unary(GET_GROUP_CHAT_FEED, groupFeedRequest(owner, token).encode()),
+                        flipcash.unary(GET_GROUP_CHAT_FEED, groupFeedRequest(owner, token).encodeFlipcash()),
                     )
                     assertEquals(GetGroupChatFeedResponse.Result.OK, page.result, "GetGroupChatFeed")
                     groupChats += page.chats
@@ -113,22 +113,17 @@ class LiveChatReadTest {
                 val withIds = groupChats.filter { it.chat_id != null }
                 if (withIds.isNotEmpty()) {
                     val probeId = withIds.first().chat_id!!
-                    val reordered = !messagesRequestBytes(probeId, fieldOrder = false)
-                        .contentEquals(messagesRequestBytes(probeId, fieldOrder = true))
-                    val fieldOrder = getMessages(flipcash, owner, probeId, signFieldOrder = true).first
-                    val wireOrder = getMessages(flipcash, owner, probeId, signFieldOrder = false).first
+                    val signed = getMessages(flipcash, owner, probeId).first
                     // Negative control: a signature over other bytes. If this passes too, the server
-                    // does not check this call's signature, and the two above prove nothing about order.
-                    val tampered = getMessages(flipcash, owner, probeId, signFieldOrder = true, tamper = true).first
-                    println(
-                        "[$livePlatform] GetMessages on one chat, Wire's bytes ${if (reordered) "differ from" else "match"} " +
-                            "field-number order; signed over field-number order: $fieldOrder, over Wire's order: $wireOrder, " +
-                            "over other bytes: $tampered",
-                    )
+                    // does not check this call's signature, and the call above proves nothing.
+                    val tampered = getMessages(flipcash, owner, probeId, tamper = true).first
+                    println("[$livePlatform] GetMessages on one chat, signed over canonical bytes: $signed, over other bytes: $tampered")
+                    assertEquals("OK", signed, "GetMessages signed over canonical bytes")
+                    assertTrue(tampered.contains("status 16"), "a signature over other bytes was not rejected: $tampered")
                     val outcomes = mutableMapOf<String, Int>()
                     var read = 0
                     for (chat in withIds) {
-                        val (outcome, messages) = getMessages(flipcash, owner, chat.chat_id!!, signFieldOrder = true)
+                        val (outcome, messages) = getMessages(flipcash, owner, chat.chat_id!!)
                         outcomes.increment(outcome)
                         messages.forEach { seen += chat to it }
                         read++
@@ -165,7 +160,7 @@ class LiveChatReadTest {
                 val kinds = mutableMapOf<String, Int>()
                 for (intent in intents) {
                     val response = GetIntentMetadataResponse.ADAPTER.decode(
-                        ocp.unary(GET_INTENT_METADATA, intentMetadataRequest(owner, intent).encode()),
+                        ocp.unary(GET_INTENT_METADATA, intentMetadataRequest(owner, intent).encodeCanonical()),
                     )
                     results.increment(response.result.name)
                     val appMetadata = response.metadata?.app_metadata?.value_ ?: continue
@@ -207,21 +202,20 @@ class LiveChatReadTest {
     }
 
     /**
-     * One newest-first page of [chatId]. With [signFieldOrder] the signature covers the request's
-     * fields in field-number order, as protobuf-java and Go write them; without it, Wire's encoding.
+     * One newest-first page of [chatId], signed over its canonical bytes. With [tamper] the signature
+     * covers those bytes plus an extra field, which the server must reject.
      */
     private suspend fun getMessages(
         transport: GrpcTransport,
         owner: Ed25519.KeyPair,
         chatId: WireChatId,
-        signFieldOrder: Boolean,
         tamper: Boolean = false,
     ): Pair<String, List<Message>> {
         val unsigned = messagesRequest(chatId)
-        val signed = messagesRequestBytes(chatId, signFieldOrder).let { if (tamper) it + byteArrayOf(0x50, 0x01) else it }
-        val request = unsigned.copy(auth = authFor(signed, owner))
+        val auth = if (tamper) authOver(unsigned.encodeFlipcash() + byteArrayOf(0x50, 0x01), owner) else authFor(unsigned, owner)
+        val request = unsigned.copy(auth = auth)
         return try {
-            val response = GetMessagesResponse.ADAPTER.decode(transport.unary(GET_MESSAGES, request.encode()))
+            val response = GetMessagesResponse.ADAPTER.decode(transport.unary(GET_MESSAGES, request.encodeFlipcash()))
             response.result.name to response.messages?.messages.orEmpty()
         } catch (e: CancellationException) {
             throw e
@@ -251,10 +245,9 @@ class LiveChatReadTest {
                 chat_id = chat.chat_id,
                 message_ids = MessageIdBatch(message_ids = messages.map { it.message_id!! }),
             )
-            // No auth at signing time, so Wire's bytes are already in field-number order (1, 3).
-            val request = unsigned.copy(auth = authFor(unsigned.encode(), owner))
+            val request = unsigned.copy(auth = authFor(unsigned, owner))
             val response = try {
-                GetReactionSummariesResponse.ADAPTER.decode(transport.unary(GET_REACTION_SUMMARIES, request.encode()))
+                GetReactionSummariesResponse.ADAPTER.decode(transport.unary(GET_REACTION_SUMMARIES, request.encodeFlipcash()))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -278,15 +271,6 @@ class LiveChatReadTest {
         view_mode = ViewMode.FULL_OR_REDACTED,
     )
 
-    /** The unsigned request's bytes: Wire's encoding, or its fields concatenated in field-number order. */
-    private fun messagesRequestBytes(chatId: WireChatId, fieldOrder: Boolean): ByteArray {
-        val request = messagesRequest(chatId)
-        if (!fieldOrder) return request.encode()
-        return GetMessagesRequest(chat_id = request.chat_id).encode() +
-            GetMessagesRequest(options = request.options).encode() +
-            GetMessagesRequest(view_mode = request.view_mode).encode()
-    }
-
     /** Counts the kinds of the messages seen; the content itself is not printed. */
     private fun reportContent(messages: List<Message>) {
         val kinds = messages.flatMap { it.content }
@@ -298,12 +282,12 @@ class LiveChatReadTest {
 
     private fun dmFeedRequest(owner: Ed25519.KeyPair): GetDmChatFeedRequest {
         val unsigned = GetDmChatFeedRequest(query_options = QueryOptions(limit = FEED_PAGE).toWire(), dm_chat_type = ChatType.DM)
-        return unsigned.copy(auth = authFor(unsigned.encode(), owner))
+        return unsigned.copy(auth = authFor(unsigned, owner))
     }
 
     private fun groupFeedRequest(owner: Ed25519.KeyPair, token: Id?): GetGroupChatFeedRequest {
         val unsigned = GetGroupChatFeedRequest(query_options = QueryOptions(limit = FEED_PAGE, token = token).toWire())
-        return unsigned.copy(auth = authFor(unsigned.encode(), owner))
+        return unsigned.copy(auth = authFor(unsigned, owner))
     }
 
     /** Signed as Android's TransactionApi signs it: the request without its signature. */
@@ -312,7 +296,7 @@ class LiveChatReadTest {
             intent_id = IntentId(value_ = intent.toByteString()),
             owner = SolanaAccountId(value_ = owner.publicKeyBytes.toByteString()),
         )
-        return unsigned.copy(signature = Signature(value_ = Ed25519.sign(unsigned.encode(), owner).toByteString()))
+        return unsigned.copy(signature = Signature(value_ = Ed25519.sign(unsigned.encodeCanonical(), owner).toByteString()))
     }
 
     /** The test account, from the key file. */

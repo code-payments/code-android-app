@@ -1,6 +1,7 @@
 package com.flipcash.client
 
 import com.getcode.opencode.transport.GrpcTransport
+import com.getcode.opencode.transport.JvmGrpcTransport
 import java.io.File
 
 internal actual fun liveEnv(name: String): String? = System.getenv(name)

@@ -1,13 +1,9 @@
 package com.flipcash.chat
 
-import com.codeinc.flipcash.wire.chat.v1.GetKeyEnvelopeRequest
 import com.codeinc.flipcash.wire.chat.v1.GetKeyEnvelopeResponse
-import com.codeinc.flipcash.wire.chat.v1.SetKeyEnvelopeRequest
 import com.codeinc.flipcash.wire.chat.v1.SetKeyEnvelopeResponse
-import com.codeinc.flipcash.wire.common.v1.ChatId
 import com.getcode.chatcipher.EncryptedPayload
 import com.getcode.chatcipher.InviteKeyEnvelope
-import com.getcode.ed25519kmp.Ed25519
 import okio.ByteString.Companion.toByteString
 import com.codeinc.flipcash.wire.chat.v1.KeyEnvelope as WireKeyEnvelope
 
@@ -31,9 +27,8 @@ sealed interface KeyEnvelopeLookup {
 enum class SetKeyEnvelopeResult { OK, DENIED, NOT_FOUND, ALREADY_SET, UNKNOWN }
 
 /**
- * `chat.v1` key-envelope messages: `KeyEnvelope`, and the Set/GetKeyEnvelope request and response
- * bodies. Requests come back as the bytes to send, signed the way Android's `ChatApi` signs them.
- * `SetKeyEnvelope` is a mutating call; building its request sends nothing.
+ * `chat.v1` key-envelope messages: `KeyEnvelope`, and the Set/GetKeyEnvelope response bodies.
+ * The signed requests are built in `:services:flipcash-client`, which has the canonical encoder.
  */
 object KeyEnvelopeCodec {
 
@@ -42,21 +37,6 @@ object KeyEnvelopeCodec {
 
     /** Parses `chat.v1.KeyEnvelope` bytes, keeping an unknown scheme's raw number. */
     fun decode(bytes: ByteArray): KeyEnvelope = WireKeyEnvelope.ADAPTER.decode(bytes).toDomain()
-
-    /** A signed `GetKeyEnvelopeRequest` for [chatId]. */
-    fun getKeyEnvelopeRequest(owner: Ed25519.KeyPair, chatId: ByteArray): ByteArray {
-        val unsigned = GetKeyEnvelopeRequest(chat_id = ChatId(value_ = chatId.toByteString()))
-        return unsigned.copy(auth = authFor(unsigned.encode(), owner)).encode()
-    }
-
-    /** A signed `SetKeyEnvelopeRequest` storing [envelope] for the viewer in [chatId]. */
-    fun setKeyEnvelopeRequest(owner: Ed25519.KeyPair, chatId: ByteArray, envelope: KeyEnvelope): ByteArray {
-        val unsigned = SetKeyEnvelopeRequest(
-            chat_id = ChatId(value_ = chatId.toByteString()),
-            key_envelope = envelope.toWire(),
-        )
-        return unsigned.copy(auth = authFor(unsigned.encode(), owner)).encode()
-    }
 
     fun decodeSetKeyEnvelopeResponse(bytes: ByteArray): SetKeyEnvelopeResult {
         val response = SetKeyEnvelopeResponse.ADAPTER.decode(bytes)

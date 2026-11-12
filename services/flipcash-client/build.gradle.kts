@@ -14,8 +14,17 @@ plugins {
     alias(libs.plugins.flipcash.kmp.test.fixtures)
 }
 
+// KeyEnvelopeRequestTest reads flipcash-chat's envelope vectors (their Set/GetKeyEnvelope requests
+// were captured from Android's ChatApi), so they are staged next to this module's own.
+val stageTestVectors = tasks.register<Sync>("stageTestVectors") {
+    from(rootProject.layout.projectDirectory.file("services/flipcash-chat/src/commonTest/resources/chat_envelopes.json"))
+    from(layout.projectDirectory.dir("src/commonTest/resources"))
+    into(layout.buildDirectory.dir("stagedTestVectors"))
+}
+
 testFixtures {
     packageName = "com.flipcash.client"
+    fixtures.set(layout.dir(stageTestVectors.map { it.destinationDir }))
 }
 
 kotlin {
@@ -45,9 +54,9 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
         }
         jvmTest.dependencies {
-            // Only for LiveChatReadTest's JVM transport; never on the main classpath.
-            implementation(libs.grpc.okhttp)
-            implementation(libs.grpc.stub)
+            // SignedRequestFixtureTest re-serializes each signed request with protobuf-java (lite),
+            // the runtime Android sends with.
+            implementation(libs.flipcash2.client.protocol)
         }
     }
 }
@@ -69,4 +78,20 @@ tasks.withType<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest>().co
     liveVars.forEach { (name, value) -> environment(name, value) }
     val rerun = liveRun
     outputs.upToDateWhen { !rerun }
+}
+
+// FlipcashCanonicalSchemaTest compares the schema it rebuilds from the flipcash2 Wire artifact with
+// this file, and the adapter registry the canonical-signing test uses with the second.
+val canonicalSchemaFile = layout.projectDirectory
+    .file("src/commonMain/kotlin/com/flipcash/client/FlipcashCanonicalSchema.kt").asFile.absolutePath
+val signedFixtureFile = layout.projectDirectory
+    .file("src/commonTest/resources/signed_flipcash_requests.json").asFile.absolutePath
+val signedAdaptersFile = layout.projectDirectory
+    .file("src/commonTest/kotlin/com/flipcash/client/SignedMessageAdapters.kt").asFile.absolutePath
+tasks.named<Test>("jvmTest") {
+    systemProperty("canonicalSchemaFile", canonicalSchemaFile)
+    systemProperty("signedAdaptersFile", signedAdaptersFile)
+    systemProperty("signedFixtureFile", signedFixtureFile)
+    providers.environmentVariable("UPDATE_SIGNED_FIXTURE").orNull?.let { environment("UPDATE_SIGNED_FIXTURE", it) }
+    providers.environmentVariable("UPDATE_CANONICAL_SCHEMA").orNull?.let { environment("UPDATE_CANONICAL_SCHEMA", it) }
 }
