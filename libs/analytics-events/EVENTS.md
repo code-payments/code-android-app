@@ -161,7 +161,7 @@ The gate first appeared for a chat. Sent once per visit to the chat.
 
 ### Group: Joined
 
-JoinChat returned. Neither app sends it for a join from an invite link.
+Someone joined a private Group: they tapped Join on a Group invite and the join call returned, on success or failure. A Group with join requests turned on doesn't send this when the host approves. `Gated` is false on every private Group join. Before Community Chat: Joined existed, this event recorded Community Chat joins with `Gated` true, and older app versions still send it that way, so filter on `Gated` is false to count private Group joins only.
 
 | Property | Type | Optional | Values |
 |---|---|---|---|
@@ -243,6 +243,21 @@ A host confirmed Remove on a member and the ban call returned. Both apps remove 
 |---|---|---|---|
 | State | list | no | [State](#state) |
 | Error | text | yes | |
+
+## Community Chat
+
+Group chats gated by a token balance: anyone who holds enough of the gate's currency can join. `Member Count` is the member count before the join. `Gate Mint` is the currency that gates the chat. `Error` follows the Group domain's convention.
+
+### Community Chat: Joined
+
+Someone tapped Join on a Community Chat's balance gate and JoinChat returned, on success or failure. Replaces Group: Joined with `Gated` true, which older app versions still send for these joins.
+
+| Property | Type | Optional | Values |
+|---|---|---|---|
+| State | list | no | [State](#state) |
+| Error | text | yes | |
+| Member Count | count | no | |
+| Gate Mint | text | yes | |
 
 ## Search
 
