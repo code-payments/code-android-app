@@ -124,5 +124,10 @@ tasks.named<Test>("jvmTest") {
     val clientFixture = rootProject.file("services/opencode-client/src/commonTest/resources/ocp_client_parity.json")
     systemProperty("ocpClientFixture", clientFixture.absolutePath)
     inputs.file(clientFixture)
+    // CanonicalOrderFixtureTest pins protobuf-java bytes for requests whose Wire encode() order
+    // differs from field-number order; :services:opencode-transport's canonical encoder must match.
+    val canonicalFixture = rootProject.file("services/opencode-transport/src/commonTest/resources/canonical_order.json")
+    systemProperty("canonicalOrderFixture", canonicalFixture.absolutePath)
+    inputs.file(canonicalFixture)
     providers.systemProperty("fixture.update").orNull?.let { systemProperty("fixture.update", it) }
 }

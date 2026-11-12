@@ -26,9 +26,9 @@ class SignedRequestParityTest {
         val pinned = fixture.section("isOcpAccount")
         val request = SignedRequests.isOcpAccount(owner)
 
-        assertEquals(pinned.text("unsigned"), request.copy(signature = null).encode().hex())
+        assertEquals(pinned.text("unsigned"), request.copy(signature = null).encodeCanonical().hex())
         assertEquals(pinned.text("signature"), request.signature!!.value_.hex())
-        assertEquals(pinned.text("request"), request.encode().hex())
+        assertEquals(pinned.text("request"), request.encodeCanonical().hex())
     }
 
     @Test
@@ -37,10 +37,10 @@ class SignedRequestParityTest {
         val request = SignedRequests.getTokenAccountInfos(owner, requestingOwner, fixture.hex("mint"))
 
         val unsigned = request.copy(signature = null, requesting_owner_signature = null)
-        assertEquals(pinned.text("unsigned"), unsigned.encode().hex())
+        assertEquals(pinned.text("unsigned"), unsigned.encodeCanonical().hex())
         assertEquals(pinned.text("ownerSignature"), request.signature!!.value_.hex())
         assertEquals(pinned.text("requestingOwnerSignature"), request.requesting_owner_signature!!.value_.hex())
-        assertEquals(pinned.text("request"), request.encode().hex())
+        assertEquals(pinned.text("request"), request.encodeCanonical().hex())
     }
 }
 

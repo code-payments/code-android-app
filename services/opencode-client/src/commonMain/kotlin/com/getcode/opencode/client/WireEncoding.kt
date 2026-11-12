@@ -1,5 +1,6 @@
 package com.getcode.opencode.client
 
+import com.getcode.opencode.transport.encodeCanonical
 import com.codeinc.opencode.wire.account.v1.TokenAccountInfo
 import com.codeinc.opencode.wire.common.v1.AccountType as WireAccountType
 import com.codeinc.opencode.wire.common.v1.IntentId
@@ -62,7 +63,7 @@ internal fun PublicKey.accountId() = SolanaAccountId(value_ = byteArray.toByteSt
 internal fun Ed25519.KeyPair.accountId() = SolanaAccountId(value_ = publicKeyBytes.toByteString())
 
 internal fun Message<*, *>.signedBy(signer: Ed25519.KeyPair) =
-    WireSignature(value_ = Ed25519.sign(encode(), signer).toByteString())
+    WireSignature(value_ = Ed25519.sign(encodeCanonical(), signer).toByteString())
 
 internal fun ByteString.toKey(): PublicKey = toByteArray().toPublicKey()
 

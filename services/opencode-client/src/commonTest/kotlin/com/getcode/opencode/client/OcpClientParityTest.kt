@@ -1,5 +1,6 @@
 package com.getcode.opencode.client
 
+import com.getcode.opencode.transport.encodeCanonical
 import com.codeinc.opencode.wire.currency.v1.StreamLiveMintDataResponse
 import com.codeinc.opencode.wire.transaction.v1.GetLimitsResponse
 import com.getcode.crypt.DerivePath
@@ -47,10 +48,10 @@ class OcpClientParityTest {
 
     @Test
     fun streamLiveMintDataRequestsMatchAndroid() {
-        assertEquals(requests.text("streamLiveMintDataOpen"), LiveMintDataRequests.open(mints).encode().hex())
+        assertEquals(requests.text("streamLiveMintDataOpen"), LiveMintDataRequests.open(mints).encodeCanonical().hex())
         assertEquals(
             requests.text("streamLiveMintDataPong"),
-            LiveMintDataRequests.pong(fixture.long("nowMillis")).encode().hex(),
+            LiveMintDataRequests.pong(fixture.long("nowMillis")).encodeCanonical().hex(),
         )
     }
 
@@ -65,7 +66,7 @@ class OcpClientParityTest {
     @Test
     fun getLimitsMatchesAndroid() {
         val since = fixture.long("consumedSinceMillis")
-        assertEquals(requests.text("getLimits"), LimitsRequests.request(owner, since).encode().hex())
+        assertEquals(requests.text("getLimits"), LimitsRequests.request(owner, since).encodeCanonical().hex())
 
         val recorded = responses.section("getLimits")
         val limits = LimitsRequests.limits(

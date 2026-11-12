@@ -1,5 +1,6 @@
 package com.getcode.opencode.client
 
+import com.getcode.opencode.transport.encodeCanonical
 import com.codeinc.opencode.wire.transaction.v1.ErrorDetails
 import com.codeinc.opencode.wire.transaction.v1.SubmitIntentResponse
 import com.getcode.ed25519kmp.Ed25519
@@ -18,10 +19,10 @@ object SubmitIntentCodec {
     const val METHOD = "/ocp.transaction.v1.Transaction/SubmitIntent"
 
     /** `SubmitIntentRequest.submit_actions`, signed by [owner] over the request without its signature. */
-    fun submitActions(intent: IntentType, owner: Ed25519.KeyPair): ByteArray = intent.submitActions(owner).encode()
+    fun submitActions(intent: IntentType, owner: Ed25519.KeyPair): ByteArray = intent.submitActions(owner).encodeCanonical()
 
     /** `SubmitIntentRequest.submit_signatures`, one per action, in action order. */
-    fun submitSignatures(intent: IntentType): ByteArray = intent.submitSignatures().encode()
+    fun submitSignatures(intent: IntentType): ByteArray = intent.submitSignatures().encodeCanonical()
 
     fun decodeResponse(bytes: ByteArray): SubmitIntentResult {
         val response = SubmitIntentResponse.ADAPTER.decode(bytes)

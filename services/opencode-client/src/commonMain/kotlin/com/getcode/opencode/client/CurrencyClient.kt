@@ -1,5 +1,6 @@
 package com.getcode.opencode.client
 
+import com.getcode.opencode.transport.encodeCanonical
 import com.codeinc.opencode.wire.common.v1.ClientPong
 import com.codeinc.opencode.wire.currency.v1.StreamLiveMintDataRequest
 import com.codeinc.opencode.wire.currency.v1.StreamLiveMintDataResponse
@@ -25,12 +26,12 @@ class CurrencyClient(
      */
     fun streamLiveMintData(mints: List<Mint>): Flow<LiveMintDataResponse> = channelFlow {
         val requests = Channel<ByteArray>(Channel.UNLIMITED)
-        requests.send(LiveMintDataRequests.open(mints).encode())
+        requests.send(LiveMintDataRequests.open(mints).encodeCanonical())
         transport.bidiStream(STREAM_LIVE_MINT_DATA, requests.consumeAsFlow()).collect { bytes ->
             val response = StreamLiveMintDataResponse.ADAPTER.decode(bytes)
             response.data_?.toDomain()?.let { send(it) }
             if (response.ping != null) {
-                requests.send(LiveMintDataRequests.pong(clock.now().toEpochMilliseconds()).encode())
+                requests.send(LiveMintDataRequests.pong(clock.now().toEpochMilliseconds()).encodeCanonical())
             }
         }
         requests.close()

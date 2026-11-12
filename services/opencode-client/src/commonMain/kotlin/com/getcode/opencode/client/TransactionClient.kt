@@ -1,5 +1,6 @@
 package com.getcode.opencode.client
 
+import com.getcode.opencode.transport.encodeCanonical
 import com.codeinc.opencode.wire.transaction.v1.GetLimitsRequest
 import com.codeinc.opencode.wire.transaction.v1.GetLimitsResponse
 import com.getcode.ed25519kmp.Ed25519
@@ -19,7 +20,7 @@ class TransactionClient(
     /** The owner's send limits, counting what was sent since [consumedSince]. */
     suspend fun getLimits(owner: Ed25519.KeyPair, consumedSince: Instant): Limits {
         val request = LimitsRequests.request(owner, consumedSince.toEpochMilliseconds())
-        val response = GetLimitsResponse.ADAPTER.decode(transport.unary(GET_LIMITS, request.encode()))
+        val response = GetLimitsResponse.ADAPTER.decode(transport.unary(GET_LIMITS, request.encodeCanonical()))
         return LimitsRequests.limits(response, consumedSince.toEpochMilliseconds(), clock.now().toEpochMilliseconds())
     }
 

@@ -65,3 +65,11 @@ tasks.withType<KotlinJsTest>().configureEach {
         providers.environmentVariable(name).orNull?.let { environment(name, it) }
     }
 }
+
+// CanonicalSchemaTest compares the schema it rebuilds from the Wire artifact with this file.
+val canonicalSchemaFile = layout.projectDirectory
+    .file("src/commonMain/kotlin/com/getcode/opencode/transport/OcpCanonicalSchema.kt").asFile.absolutePath
+tasks.named<Test>("jvmTest") {
+    systemProperty("canonicalSchemaFile", canonicalSchemaFile)
+    providers.environmentVariable("UPDATE_CANONICAL_SCHEMA").orNull?.let { environment("UPDATE_CANONICAL_SCHEMA", it) }
+}
