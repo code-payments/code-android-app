@@ -3,6 +3,7 @@ package com.flipcash.app.core.feed
 import com.flipcash.services.models.BoostedReaction
 import com.flipcash.services.models.RequestedPayment
 import com.flipcash.services.models.ReturnedPayment
+import com.flipcash.services.models.chat.MediaItem
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -35,6 +36,8 @@ data class ActivityFeedMessageWithToken(
      * covers one-payee boosts and request payments too; the Money tab names its rows by it.
      */
     val chatName: String? = null,
+    /** [chatName]'s group picture from the same store; null when the group has none stored. */
+    val chatPicture: MediaItem? = null,
 )
 
 data class ActivityFeedMessage(
