@@ -24,6 +24,7 @@ class TokenInfoEntryTest {
         assertEquals(
             mapOf(
                 TokenInfoEntry.Wallet to TokenInfoPresentation.CardExpand,
+                TokenInfoEntry.Currencies to TokenInfoPresentation.Push,
                 TokenInfoEntry.Deeplink to TokenInfoPresentation.CardExpand,
                 TokenInfoEntry.Discovery to TokenInfoPresentation.Push,
                 TokenInfoEntry.Search to TokenInfoPresentation.Push,
@@ -39,6 +40,7 @@ class TokenInfoEntryTest {
         assertEquals(
             mapOf(
                 TokenInfoEntry.Wallet to TokenInfoSwapOutcome.Stay,
+                TokenInfoEntry.Currencies to TokenInfoSwapOutcome.Stay,
                 TokenInfoEntry.Deeplink to TokenInfoSwapOutcome.Stay,
                 TokenInfoEntry.Discovery to TokenInfoSwapOutcome.Stay,
                 TokenInfoEntry.Search to TokenInfoSwapOutcome.Stay,

@@ -23,6 +23,16 @@ sealed interface TokenInfoEntry : Parcelable {
         override val afterBuy get() = AfterBuy.Stay
     }
 
+    /**
+     * The Money tab's currency list (its "N currencies" link, node 13729:744). The list is pushed
+     * over the wallet with no card to grow out of, so the currency is pushed too.
+     */
+    @Serializable
+    data object Currencies : TokenInfoEntry {
+        override val presentation get() = TokenInfoPresentation.Push
+        override val afterBuy get() = AfterBuy.Stay
+    }
+
     /** A token deeplink, opened or scanned. */
     @Serializable
     data object Deeplink : TokenInfoEntry {
@@ -63,7 +73,7 @@ sealed interface TokenInfoEntry : Parcelable {
 
     companion object {
         /** Every origin. Covered by a test against the serializer's subclass list. */
-        val all: List<TokenInfoEntry> = listOf(Wallet, Deeplink, Discovery, Search, Chat, ChatGate)
+        val all: List<TokenInfoEntry> = listOf(Wallet, Currencies, Deeplink, Discovery, Search, Chat, ChatGate)
     }
 }
 
