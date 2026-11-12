@@ -2005,6 +2005,8 @@
     <string name="title_tabChat">Chat</string>
     <string name="title_tabWallet">Wallet</string>
     <string name="title_tabYou">You</string>
+    <string name="title_tabGroups">Groups</string>
+    <string name="title_tabMoney">Money</string>
 
 
     <string name="title_howTokenPriceWorks">How %1$s\'s Price Works</string>

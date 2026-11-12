@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import com.flipcash.app.core.navigation.NavBarButton
+import com.flipcash.app.core.navigation.NavBarShell
 import dev.chrisbanes.haze.HazeState
 import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R
@@ -104,8 +105,10 @@ fun NavigationBar(
     // long-press at all — no haptic, and a long hold still selects it — which is what a caller
     // passes while the switcher's gate is closed. The other tabs never take a long-press.
     onYouTabLongClick: (() -> Unit)? = null,
+    // The tab set to draw. Classic is today's four tabs; GroupMoney draws Groups and Money only.
+    shell: NavBarShell = NavBarShell.Classic,
 ) {
-    val order = NavBarButton.tabs
+    val order = shell.tabs
     if (order.isEmpty()) return
 
     // The design frames glyph and name with 5pt above and below in an 86.5 x 50pt item (node
@@ -189,9 +192,10 @@ fun NavigationBar(
                         badgeCount = badgeCount,
                         avatar = avatar,
                         avatarAlpha = { iconAlpha },
+                        shell = shell,
                     )
                     Text(
-                        text = stringResource(button.label),
+                        text = stringResource(button.label(shell)),
                         style = labelStyle,
                         color = Color.White,
                         textAlign = TextAlign.Center,
@@ -222,6 +226,7 @@ fun NavBarGlyph(
     modifier: Modifier = Modifier,
     avatar: (@Composable (Modifier) -> Unit)? = null,
     avatarAlpha: () -> Float = { 1f },
+    shell: NavBarShell = NavBarShell.Classic,
 ) {
     // Sized to the glyph so a wide badge overflows it instead of widening it,
     // which would pull the glyph off the item's centre.
@@ -263,7 +268,7 @@ fun NavBarGlyph(
         } else {
             Image(
                 modifier = Modifier.fillMaxSize(),
-                painter = button.icon(selected),
+                painter = button.icon(selected, shell),
                 colorFilter = ColorFilter.tint(Color.White),
                 contentDescription = null,
             )
@@ -311,6 +316,19 @@ val NavBarButton.label: Int
     }
 
 /**
+ * The tab's name under [shell]. The Group Money shell renames Chats to Groups and Wallet to Money
+ * (node 13729:413); every other tab, and every tab of the classic shell, keeps [label].
+ */
+fun NavBarButton.label(shell: NavBarShell): Int = when (shell) {
+    NavBarShell.Classic -> label
+    NavBarShell.GroupMoney -> when (this) {
+        NavBarButton.Chats -> R.string.title_tabGroups
+        NavBarButton.Wallet -> R.string.title_tabMoney
+        else -> label
+    }
+}
+
+/**
  * The glyph for [this] tab at the weight its selection calls for (node 10000:111297). Every tab is
  * drawn as an outline until it is selected, where it fills in, white in both states. The unsuffixed
  * drawable is the outline.
@@ -325,6 +343,15 @@ val NavBarButton.label: Int
  * plus a 1.5 stroke), and knocking the person out of a solid body is what `ic_nav_wallet_selected`
  * and `ic_nav_tipcard_selected` already do. The head is the one thing that moves, 0.5 smaller.
  */
+@Composable
+private fun NavBarButton.icon(selected: Boolean, shell: NavBarShell): Painter =
+    if (shell == NavBarShell.GroupMoney && this == NavBarButton.Chats) {
+        // Groups wears the two-people glyph (node 13729:413). Money keeps the wallet glyph.
+        painterResource(if (selected) R.drawable.ic_nav_groups_selected else R.drawable.ic_nav_groups)
+    } else {
+        icon(selected)
+    }
+
 @Composable
 private fun NavBarButton.icon(selected: Boolean): Painter = when (this) {
     NavBarButton.Scanner ->
