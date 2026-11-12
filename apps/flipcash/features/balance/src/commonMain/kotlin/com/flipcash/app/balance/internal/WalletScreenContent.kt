@@ -470,6 +470,7 @@ private fun LazyListScope.moneyHeader(
             balance = balance,
             appreciation = null,
             bottomPadding = CodeTheme.dimens.grid.x1,
+            showCurrency = false,
         ) {
             dispatchEvent(WalletViewModel.Event.OpenCurrencySelection)
         }
