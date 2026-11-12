@@ -21,6 +21,11 @@ sealed interface FeatureFlag<T: Any> {
     val persistLogOut: Boolean
     val minTrack: FeatureTrack get() = FeatureTrack.Internal
     val onboarding: Boolean get() = false
+    /**
+     * Labs lists this flag to staff even without the beta override, which otherwise hides every flag
+     * below [FeatureTrack.Production]. For staff-only UI that staff turn on for themselves.
+     */
+    val staffVisible: Boolean get() = false
     val options: List<FlagOption> get() = emptyList()
     val defaultOption: String
         get() = if (default is Enum<*>) (default as Enum<*>).name else ""
@@ -109,6 +114,20 @@ sealed interface FeatureFlag<T: Any> {
         override val minTrack: FeatureTrack = FeatureTrack.Production
     }
 
+    /**
+     * The Group Money redesign's two-tab shell (frames node 13729:413 and node 13729:744): Groups and
+     * Money in place of today's four tabs. Takes effect only for staff or with the beta override.
+     */
+    @FeatureFlagMarker
+    data object GroupMoneyUi: FeatureFlag<Boolean> {
+        override val key: String = "group_money_ui_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+        override val staffVisible: Boolean = true
+    }
+
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -130,6 +149,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.ShowNetworkState -> "Network Offline Indicator"
         FeatureFlag.LinkDesktop -> "Link a Desktop"
         FeatureFlag.ChatCashBill -> "Chat Cash Bill"
+        FeatureFlag.GroupMoneyUi -> "Groups and Money"
     }
 
 val FeatureFlag<*>.message: String
@@ -142,4 +162,16 @@ val FeatureFlag<*>.message: String
         FeatureFlag.ShowNetworkState -> "When enabled, you'll gain the ability to see the network state on the Scanner when offline"
         FeatureFlag.LinkDesktop -> "When enabled, Settings shows Link a Desktop, which sends this account to the Flipcash desktop app over your local network"
         FeatureFlag.ChatCashBill -> "Show the bill when someone sends you cash in the chat you have open."
+        FeatureFlag.GroupMoneyUi -> "When enabled, the tab bar has two tabs, Groups and Money, in place of Scan, Chat, Wallet and You"
     }
+
+/**
+ * Whether Labs lists this flag. [showAllFlags] is the beta override (Labs keeps it on until the
+ * screen is left), which lists everything. Without it, Labs lists [FeatureTrack.Production] flags,
+ * onboarding flags on the onboarding Labs, and [FeatureFlag.staffVisible] flags to staff.
+ */
+fun FeatureFlag<*>.isShownInLabs(showAllFlags: Boolean, isStaff: Boolean, onboarding: Boolean): Boolean =
+    showAllFlags ||
+        minTrack == FeatureTrack.Production ||
+        (onboarding && this.onboarding) ||
+        (isStaff && staffVisible)

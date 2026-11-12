@@ -6,6 +6,8 @@ import com.flipcash.app.android.R
 import com.flipcash.app.appsettings.AppSettingValue
 import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.AuthManager
+import com.flipcash.app.core.navigation.NavBarShell
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.shareable.ShareSheetController
 import com.flipcash.app.userflags.UserFlagsCoordinator
@@ -46,6 +48,23 @@ internal class HomeViewModel @Inject constructor(
         userFlags.resolvedFlags,
     ) { override, flags -> override || flags.isStaff.effectiveValue }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initialValue = false)
+
+    /**
+     * Which tab set the bar draws: [NavBarShell.GroupMoney] when its flag is on and the user is
+     * staff or has the beta override (the gate [canSwitchAccounts] uses), else today's
+     * [NavBarShell.Classic]. Starts on Classic, so a user it does not apply to never sees it.
+     */
+    val navBarShell: StateFlow<NavBarShell> = combine(
+        featureFlagController.observe(FeatureFlag.GroupMoneyUi),
+        featureFlagController.observeOverride(),
+        userFlags.resolvedFlags,
+    ) { groupMoneyUi, override, flags ->
+        NavBarShell.resolve(
+            groupMoneyUi = groupMoneyUi,
+            betaOverride = override,
+            isStaff = flags.isStaff.effectiveValue,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initialValue = NavBarShell.Classic)
 
     private val _requireBiometrics = MutableStateFlow<Boolean?>(null)
     val requireBiometrics = _requireBiometrics.stateIn(
