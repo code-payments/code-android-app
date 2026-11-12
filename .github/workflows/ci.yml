@@ -81,8 +81,17 @@ jobs:
       # kotlinStorePackageLock fails when kotlin-js-store/package-lock.json no longer matches the
       # JS dependencies. jsNodeTest runs every module's common tests on Node (the Kotlin Gradle
       # plugin downloads Node from nodejs.org on first use).
+      #
+      # Heap caps for this job. The runner has 16 GB. With gradle.properties' -Xmx6g, the Gradle
+      # daemon and each Kotlin daemon (which inherits it) may grow to 6 GB, beside up to four 2 GB
+      # test JVMs. On #1996 that filled RAM and swap: the runner was shut down twice and a third run
+      # swapped until a timing-sensitive test failed. These caps keep the peak inside the runner.
       - name: Run unit tests
-        run: ./gradlew generateEmojiList kotlinStorePackageLock jsNodeTest flipcashTestDebug
+        run: >-
+          ./gradlew
+          -Dorg.gradle.jvmargs="-Xmx4g -XX:+HeapDumpOnOutOfMemoryError -XX:+UseParallelGC -XX:MaxMetaspaceSize=1024m -Dkotlin.daemon.jvm.options=-XX:MaxMetaspaceSize=1g -Dlint.nullness.ignore-deprecated=true"
+          "-Pkotlin.daemon.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g"
+          generateEmojiList kotlinStorePackageLock jsNodeTest flipcashTestDebug
 
   # Not proposed as required: the smoke step calls the production OCP server, so a server blip
   # must not block merges. Covers the platform-neutral OCP modules outside "Unit tests":
