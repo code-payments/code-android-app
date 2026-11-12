@@ -26,6 +26,7 @@ import com.flipcash.chat.MessageContent
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519kmp.Ed25519
+import com.getcode.opencode.transport.GrpcStatusException
 import com.getcode.opencode.transport.GrpcTransport
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
@@ -224,6 +225,8 @@ class LiveChatReadTest {
             response.result.name to response.messages?.messages.orEmpty()
         } catch (e: CancellationException) {
             throw e
+        } catch (e: GrpcStatusException) {
+            "rpc failed (gRPC status ${e.code})" to emptyList()
         } catch (e: Exception) {
             "rpc failed (${e::class.simpleName})" to emptyList()
         }
