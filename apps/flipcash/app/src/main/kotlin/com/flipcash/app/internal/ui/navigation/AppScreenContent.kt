@@ -1,5 +1,6 @@
 package com.flipcash.app.internal.ui.navigation
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -28,6 +29,7 @@ import com.flipcash.app.balance.WalletScreen
 import com.flipcash.app.cash.CashScreen
 import com.flipcash.app.contact.verification.VerificationFlowScreen
 import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
+import com.flipcash.app.internal.ui.MoneyProfileAvatar
 import com.flipcash.app.internal.ui.SearchMorph
 import com.flipcash.app.internal.ui.SearchOriginTabButton
 import com.flipcash.app.search.SearchScreen
@@ -43,6 +45,8 @@ import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.ProfileAddress
 import com.flipcash.app.core.chat.ProfileOrigin
 import com.flipcash.app.core.navigation.DeeplinkAction
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.currency.RegionSelectionScreen
 import com.flipcash.app.deposit.DepositFlowScreen
 import com.flipcash.app.invite.InviteContactScreen
@@ -130,7 +134,14 @@ internal fun appEntryProvider(
     annotatedEntry<AppRoute.Tabs.Wallet> {
         // The wallet hosts the card-expand overlay in-entry so a pushed action (Give/Convert/Withdraw)
         // covers the expanded currency-info with correct z-order (iOS WalletScreen structure).
-        CardExpandHost { WalletScreen() }
+        // The Group Money shell lays the wallet out as its Money tab (node 13729:744).
+        val money = LocalNavBarShell.current == NavBarShell.GroupMoney
+        CardExpandHost {
+            WalletScreen(
+                money = money,
+                profileAvatar = { MoneyProfileAvatar(Modifier.fillMaxSize()) },
+            )
+        }
     }
     annotatedEntry<AppRoute.Tabs.Chats> { ChatsScreen() }
     annotatedEntry<AppRoute.Tabs.Menu> { MenuScreen() }

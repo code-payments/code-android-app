@@ -40,6 +40,7 @@ import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.analytics.GroupInviteSource
 import com.flipcash.analytics.events.DeeplinkEvents
 import com.flipcash.analytics.events.GroupEvents
+import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.analytics.withoutQueryOrFragment
 import com.flipcash.app.android.BuildConfig
@@ -106,6 +107,7 @@ internal fun App(
     val viewModel = getActivityScopedViewModel<HomeViewModel>()
     val requireBiometrics by viewModel.requireBiometrics.collectAsStateWithLifecycle()
     val canSwitchAccounts by viewModel.canSwitchAccounts.collectAsStateWithLifecycle()
+    val navBarShell by viewModel.navBarShell.collectAsStateWithLifecycle()
     val biometricsState = rememberBiometricsState(
         requireBiometrics = requireBiometrics,
         onUnavailable = viewModel::onMissingBiometrics,
@@ -194,6 +196,7 @@ internal fun App(
                         SharedTransitionLayout {
                             CompositionLocalProvider(
                                 LocalCodeNavigator provides codeNavigator,
+                                LocalNavBarShell provides navBarShell,
                                 LocalBiometricsState provides biometricsState,
                                 LocalScrimController provides scrimController,
                                 LocalTransactionNotificationPrompt provides viewModel.notificationPrompt,
