@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,6 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.core.resources.Res as CoreRes
 import com.flipcash.core.resources.label_chatReceipt_yesterday
 import com.flipcash.core.resources.label_chatSeparator_today
+import com.flipcash.core.resources.title_moneyRecentActivity
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.core.addIf
 import com.getcode.util.formatLocalized
@@ -23,6 +27,31 @@ import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 import kotlin.time.Instant
+
+/**
+ * The Money tab's Recent Activity (node 13729:744): today's tappable header under the Money title,
+ * then a [MoneyActivityRow] per entry. The Money counterpart of [recentActivitySection], with the
+ * same parameters.
+ */
+fun LazyListScope.moneyActivitySection(
+    transactions: List<TransactionListItem>,
+    modifier: Modifier = Modifier,
+    itemPadding: PaddingValues = PaddingValues(),
+    onItemClick: ((TransactionListItem) -> Unit)? = null,
+) {
+    item(key = "recent_activity_header", contentType = "recent_activity_header") {
+        RecentActivityHeader(title = CoreRes.string.title_moneyRecentActivity, modifier = modifier)
+    }
+    items(transactions, key = { it.id }, contentType = { "money_activity_row" }) { item ->
+        MoneyActivityRow(
+            item = item,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(itemPadding),
+            onClick = onItemClick?.let { click -> { click(item) } },
+        )
+    }
+}
 
 /** Which day an activity entry happened on, relative to the viewer's today. */
 sealed interface ActivityDay {
