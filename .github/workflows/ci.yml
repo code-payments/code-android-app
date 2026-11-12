@@ -15,6 +15,14 @@ on:
   pull_request:
   merge_group:
   workflow_dispatch:
+    inputs:
+      live:
+        description: 'OCP SDK checks: make the live read call to the production OCP server'
+        type: boolean
+        default: false
+  # Nightly live read for "OCP SDK checks". Unit tests and Lint skip this event.
+  schedule:
+    - cron: '17 9 * * *'
   push:
     branches:
       - code/cash
@@ -31,6 +39,7 @@ env:
 jobs:
   unit-tests:
     name: Unit tests
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -81,9 +90,11 @@ jobs:
   #     apps/, ui/, DI, Room, analytics and Firebase.
   #   - jvmTest: their JVM suites, plus :services:opencode's fixture tests, which pin the bytes
   #     protobuf-java sends today. The Wire side of that parity runs on Node in "Unit tests".
-  #   - Node smoke: plain `node` loads the Kotlin/JS library build of :services:opencode-client and
-  #     makes one read call (rates over StreamLiveMintData). Set the OCP_LIVE repository variable
-  #     to 0 to skip the call and only check that the library loads.
+  #   - Node smoke: plain `node` loads the Kotlin/JS library build of :services:opencode-client.
+  #     The read call to production (rates over StreamLiveMintData) is opt-in: it runs on the
+  #     nightly schedule, on workflow_dispatch with live: true, and on PRs labelled ocp-live.
+  #     The label is read from the event payload, so adding it takes effect on the next push,
+  #     not on a re-run. Every other run only checks that the library loads.
   ocp-sdk:
     name: OCP SDK checks
     runs-on: ubuntu-24.04
@@ -131,7 +142,10 @@ jobs:
 
       - name: Node smoke test
         env:
-          OCP_LIVE: ${{ vars.OCP_LIVE || '1' }}
+          OCP_LIVE: >-
+            ${{ (github.event_name == 'schedule'
+            || (github.event_name == 'workflow_dispatch' && inputs.live)
+            || contains(github.event.pull_request.labels.*.name, 'ocp-live')) && '1' || '0' }}
           # The library's npm dependencies (@grpc/grpc-js, @noble/*) are installed in the root
           # project's Kotlin/JS node_modules, not next to the distribution.
           NODE_PATH: ${{ github.workspace }}/build/js/node_modules
@@ -141,6 +155,7 @@ jobs:
 
   lint:
     name: Lint
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
