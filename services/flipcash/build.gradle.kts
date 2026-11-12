@@ -60,6 +60,8 @@ kotlin {
         jvmTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.core)
+            // LiveResponseParityTest parses OCP GetIntentMetadata responses with protobuf-java.
+            implementation(libs.ocp.client.protocol)
         }
     }
 }

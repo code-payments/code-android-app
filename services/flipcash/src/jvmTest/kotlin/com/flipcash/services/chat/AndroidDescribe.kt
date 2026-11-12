@@ -1,9 +1,12 @@
 package com.flipcash.services.chat
 
 import com.codeinc.flipcash.gen.events.v1.EventStreamingService as RpcEventStreamingService
+import com.codeinc.flipcash.gen.intent.v1.Model as FlipcashIntentModel
+import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.codeinc.flipcash.gen.events.v1.Model as EventModel
 import com.codeinc.flipcash.gen.messaging.v1.MessagingService as RpcMessagingService
 import com.flipcash.services.internal.network.extensions.asContent
+import com.flipcash.services.internal.network.extensions.toChatMessage
 import com.flipcash.services.internal.network.extensions.toChatUpdate
 import com.flipcash.services.internal.network.extensions.toPagingToken
 import com.flipcash.services.internal.network.extensions.toReactor
@@ -114,7 +117,8 @@ internal fun ChatMessage.describe(): JsonObject = buildJsonObject {
     senderId?.let { put("senderId", it.hex()) }
     // Content decode is gated by :services:flipcash-chat's vectors; here it is compared by its
     // re-encoded bytes.
-    put("content", buildJsonArray { content.forEach { add(it.asContent().toByteArray().hex()) } })
+    // Mirrors the KMP describer: the app's encoder is send-only, so server-only widgets go by value.
+    put("content", buildJsonArray { content.forEach { add(it.describeContent()) } })
     put("ts", timestamp.describe())
     put("unreadSeq", unreadSeq)
     lastEditedTs?.let { put("lastEditedTs", it.describe()) }
@@ -128,6 +132,12 @@ internal fun ChatMessage.describe(): JsonObject = buildJsonObject {
     put("redacted", redacted)
 }
 
+private fun com.flipcash.services.models.chat.MessageContent.describeContent(): String = runCatching { asContent().toByteArray().hex() }
+    .getOrElse {
+        ((this as? com.flipcash.services.models.chat.MessageContent.Widget)?.widget as? com.flipcash.services.models.chat.WidgetContent.ShareProfile)
+            ?.let { "share-profile:${it.username}" } ?: "unsupported"
+    }
+
 internal fun EmojiReaction.describe(): JsonObject = buildJsonObject {
     put("emoji", emoji.value); put("count", count)
     selfReactor?.let { put("selfReactor", it.describe()) }
@@ -140,3 +150,72 @@ internal fun Reactor.describe(): JsonObject = buildJsonObject {
 }
 
 internal fun Instant.describe(): String = "$epochSeconds.${nanosecondsOfSecond.toString().padStart(9, '0')}"
+
+/** GetReactionSummaries as raw fields, matching the KMP test's describer. */
+internal fun describeGetReactionSummaries(response: RpcMessagingService.GetReactionSummariesResponse): JsonObject = buildJsonObject {
+    put("result", response.result.name)
+    put("summaries", buildJsonArray {
+        response.summariesList.forEach { summary ->
+            add(buildJsonObject {
+                put("messageId", summary.messageId.value)
+                put("reactions", buildJsonArray {
+                    summary.reactionsList.forEach { add(buildJsonObject { put("emoji", it.emoji.value); put("count", it.count) }) }
+                })
+            })
+        }
+    })
+}
+
+/** GetMessages through Android's message mapper, as values. */
+internal fun describeGetMessages(response: RpcMessagingService.GetMessagesResponse): JsonObject = buildJsonObject {
+    put("result", response.result.name)
+    put("messages", buildJsonArray { response.messages.messagesList.forEach { add(it.toChatMessage().describe()) } })
+}
+
+/**
+ * OCP GetIntentMetadata, with its app metadata parsed by protobuf-java as a Flipcash chat payment.
+ * Android has no decoder for this (it only builds AppMetadata for SubmitIntent), so this one maps
+ * the protobuf-java message by hand in the KMP describe shape, from the proto's field meanings.
+ */
+internal fun describeGetIntentMetadata(response: OcpTransactionService.GetIntentMetadataResponse): JsonObject = buildJsonObject {
+    put("result", response.result.name)
+    if (response.hasMetadata() && response.metadata.hasAppMetadata()) {
+        val app = FlipcashIntentModel.AppMetadata.parseFrom(response.metadata.appMetadata.value)
+        put("chatPayment", describeChatPayment(app))
+        if (app.hasChat()) put("chatId", app.chat.chatId.value.toByteArray().hex())
+    }
+}
+
+private fun describeChatPayment(app: FlipcashIntentModel.AppMetadata): JsonObject = buildJsonObject {
+    val chat = app.chat
+    when (if (app.hasChat()) chat.typeCase else null) {
+        null, FlipcashIntentModel.ChatMetadata.TypeCase.TYPE_NOT_SET -> put("kind", "none")
+        FlipcashIntentModel.ChatMetadata.TypeCase.GROUP_PAYMENT -> put("kind", "group")
+        FlipcashIntentModel.ChatMetadata.TypeCase.CONTACT_DM_PAYMENT -> {
+            put("kind", "contactDm")
+            put("sourcePhone", chat.contactDmPayment.source.value)
+            put("destinationPhone", chat.contactDmPayment.destination.value)
+        }
+        FlipcashIntentModel.ChatMetadata.TypeCase.DM_PAYMENT -> {
+            put("kind", "tipDm")
+            put("origin", when (chat.dmPayment.location) {
+                FlipcashIntentModel.ChatMetadata.DmPayment.Location.CHAT -> "CHAT"
+                else -> "TIPCARD"
+            })
+            when (chat.dmPayment.action) {
+                FlipcashIntentModel.PaymentAction.SEND -> put("action", "SEND")
+                FlipcashIntentModel.PaymentAction.TIP -> put("action", "TIP")
+                else -> Unit
+            }
+        }
+        FlipcashIntentModel.ChatMetadata.TypeCase.RETURN_PAYMENT -> {
+            put("kind", "return"); put("messageId", chat.returnPayment.messageId.value)
+        }
+        FlipcashIntentModel.ChatMetadata.TypeCase.REQUESTED_PAYMENT -> {
+            put("kind", "requested"); put("paymentRequestId", chat.requestedPayment.paymentRequestId.value.toByteArray().hex())
+        }
+        FlipcashIntentModel.ChatMetadata.TypeCase.REACTION_BOOST -> {
+            put("kind", "reactionBoost"); put("messageId", chat.reactionBoost.messageId.value); put("emoji", chat.reactionBoost.emoji.value)
+        }
+    }
+}

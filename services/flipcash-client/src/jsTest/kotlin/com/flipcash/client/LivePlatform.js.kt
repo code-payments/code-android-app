@@ -7,6 +7,11 @@ internal actual fun liveEnv(name: String): String? = js("process.env[name]") as 
 
 internal actual fun liveTransport(host: String): GrpcTransport? = NodeGrpcTransport(host)
 
+internal actual fun liveReadFile(path: String): String {
+    val fs = js("require('fs')")
+    return fs.readFileSync(path, "utf8") as String
+}
+
 internal actual fun writeLiveFile(path: String, bytes: ByteArray) {
     val fs = js("require('fs')")
     val pathModule = js("require('path')")

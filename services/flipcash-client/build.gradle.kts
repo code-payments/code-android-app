@@ -53,9 +53,10 @@ kotlin {
 }
 
 // LiveChatReadTest calls the production Flipcash server with read calls only, so it runs only when
-// FLIPCASH_LIVE=1 and FLIPCASH_TEST_ACCESS_KEY holds the test account's login entropy.
+// FLIPCASH_LIVE=1 and the test account is given as FLIPCASH_TEST_ACCESS_KEY_FILE (the path of
+// a file holding its access key words; only the path reaches Gradle).
 // FLIPCASH_LIVE_DUMP names a directory for the raw responses (keep it outside the repo).
-val liveVars: Map<String, String> = listOf("FLIPCASH_LIVE", "FLIPCASH_TEST_ACCESS_KEY", "FLIPCASH_LIVE_DUMP")
+val liveVars: Map<String, String> = listOf("FLIPCASH_LIVE", "FLIPCASH_TEST_ACCESS_KEY_FILE", "FLIPCASH_LIVE_DUMP")
     .mapNotNull { name -> providers.environmentVariable(name).orNull?.let { name to it } }
     .toMap()
 val liveRun = liveVars["FLIPCASH_LIVE"] == "1"

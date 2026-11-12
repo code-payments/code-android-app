@@ -1,6 +1,7 @@
 package com.flipcash.client
 
 import com.flipcash.chat.ContentCodec
+import com.flipcash.chat.MessageContent
 import kotlin.time.Instant
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
@@ -101,7 +102,7 @@ internal fun describe(message: ChatMessage): JsonObject = buildJsonObject {
     message.senderId?.let { put("senderId", it.bytes.hex()) }
     // Content this port does not cover has no wire form to compare; LiveResponseParityTest counts it.
     put("content", buildJsonArray {
-        message.content.forEach { add(runCatching { ContentCodec.encode(it).hex() }.getOrDefault(UNSUPPORTED_CONTENT)) }
+        message.content.forEach { add(describeContent(it)) }
     })
     put("ts", message.timestamp.describe())
     put("unreadSeq", message.unreadSeq)
@@ -133,6 +134,14 @@ internal fun describe(reactor: Reactor): JsonObject = buildJsonObject {
 internal fun Instant.describe(): String = "$epochSeconds.${nanosecondsOfSecond.toString().padStart(9, '0')}"
 
 internal fun ByteArray.hex(): String = joinToString("") { (it.toInt() and 0xff).toString(16).padStart(2, '0') }
+
+/**
+ * Content as its re-encoded bytes. A share-profile widget, which only the server writes and so has
+ * no client encoder, is described by its username; anything else the encoder rejects is
+ * [UNSUPPORTED_CONTENT].
+ */
+internal fun describeContent(content: MessageContent): String = runCatching { ContentCodec.encode(content).hex() }
+    .getOrElse { (content as? MessageContent.Widget.ShareProfile)?.let { "share-profile:${it.username}" } ?: UNSUPPORTED_CONTENT }
 
 /** What [describe] puts for content the port decodes to an Unsupported value. */
 internal const val UNSUPPORTED_CONTENT = "unsupported"
