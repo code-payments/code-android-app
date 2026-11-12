@@ -1,5 +1,7 @@
 package com.getcode.opencode.internal.domain.mapping
 
+import com.getcode.opencode.internal.network.extensions.tryValueOf
+
 import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.getcode.opencode.internal.network.extensions.toMetadata
 import com.getcode.opencode.mapper.Mapper

@@ -4,6 +4,7 @@ import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
 import com.getcode.opencode.internal.network.extensions.toMint
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Rate
+import com.getcode.opencode.model.transactions.VerifiedExchangeState
 import com.getcode.solana.keys.Mint
 import com.google.protobuf.Timestamp
 import kotlinx.coroutines.flow.Flow
@@ -157,4 +158,9 @@ class VerifiedProtoManager internal constructor(
 data class VerifiedState(
     val rateProto: OcpCurrencyService.VerifiedCoreMintFiatExchangeRate,
     val reserveProto: OcpCurrencyService.VerifiedLaunchpadCurrencyReserveState?,
-)
+) : VerifiedExchangeState {
+    override val currencyCode: String get() = rateProto.exchangeRate.currencyCode
+    override val exchangeRate: Double get() = rateProto.exchangeRate.exchangeRate
+    override val encodedRate: ByteArray get() = rateProto.toByteArray()
+    override val encodedReserve: ByteArray? get() = reserveProto?.toByteArray()
+}

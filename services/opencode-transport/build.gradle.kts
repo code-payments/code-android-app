@@ -2,8 +2,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 
 // OCP calls in common code: Wire messages (com.flipcash:ocp-client-protocol-wire), request signing
-// with our Ed25519, and a GrpcTransport each platform implements. jsMain implements it over
-// @grpc/grpc-js for Node.
+// with our Ed25519, and a GrpcTransport each platform implements: jvmMain over grpc-java (OkHttp),
+// jsMain over @grpc/grpc-js for Node.
 //
 // Not on Android's classpath: the app and :services:opencode do not depend on this module, and it
 // has no android target. The Wire artifact `api`s protovalidate-runtime 0.2.0 while the app pins
@@ -44,6 +44,10 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.kotlinx.serialization.json)
         }
+        jvmMain.dependencies {
+            implementation(libs.grpc.okhttp)
+            implementation(libs.grpc.kotlin)
+        }
         jsMain.dependencies {
             // Exact pin, recorded in kotlin-js-store/package-lock.json.
             implementation(npm("@grpc/grpc-js", "1.14.6"))
@@ -60,4 +64,12 @@ tasks.withType<KotlinJsTest>().configureEach {
     listOf("OCP_LIVE", "FLIPCASH_TEST_MNEMONIC").forEach { name ->
         providers.environmentVariable(name).orNull?.let { environment(name, it) }
     }
+}
+
+// CanonicalSchemaTest compares the schema it rebuilds from the Wire artifact with this file.
+val canonicalSchemaFile = layout.projectDirectory
+    .file("src/commonMain/kotlin/com/getcode/opencode/transport/OcpCanonicalSchema.kt").asFile.absolutePath
+tasks.named<Test>("jvmTest") {
+    systemProperty("canonicalSchemaFile", canonicalSchemaFile)
+    providers.environmentVariable("UPDATE_CANONICAL_SCHEMA").orNull?.let { environment("UPDATE_CANONICAL_SCHEMA", it) }
 }

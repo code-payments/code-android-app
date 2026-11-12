@@ -1,5 +1,6 @@
 package com.getcode.opencode.internal.network.services
 
+import com.getcode.opencode.internal.network.extensions.newInstance
 import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.codeinc.opencode.gen.transaction.v1.feeAmountOrNull
 import com.getcode.ed25519kmp.Ed25519

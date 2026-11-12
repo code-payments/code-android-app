@@ -1,5 +1,6 @@
 package com.getcode.opencode.internal.network.api
 
+import com.getcode.opencode.internal.network.extensions.getAccountType
 import com.codeinc.opencode.gen.account.v1.AccountGrpcKt
 import com.codeinc.opencode.gen.account.v1.OcpAccountService
 import com.codeinc.opencode.gen.account.v1.validate

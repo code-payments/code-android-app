@@ -43,7 +43,7 @@ internal object SignedRequests {
     }
 
     fun signatureOf(unsigned: Message<*, *>, signer: Ed25519.KeyPair): Signature =
-        Signature(value_ = Ed25519.sign(unsigned.encode(), signer).toByteString())
+        Signature(value_ = Ed25519.sign(unsigned.encodeCanonical(), signer).toByteString())
 
     private fun Ed25519.KeyPair.accountId() = SolanaAccountId(value_ = publicKeyBytes.toByteString())
 }

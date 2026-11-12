@@ -65,6 +65,10 @@ gradlePlugin {
             id = "flipcash.kmp.test.fixtures"
             implementationClass = "KmpTestFixturesConventionPlugin"
         }
+        register("serviceBoundary") {
+            id = "flipcash.service.boundary"
+            implementationClass = "ServiceBoundaryConventionPlugin"
+        }
         register("analyticsCatalogue") {
             id = "flipcash.analytics.catalogue"
             implementationClass = "AnalyticsCatalogueConventionPlugin"

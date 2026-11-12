@@ -15,6 +15,14 @@ on:
   pull_request:
   merge_group:
   workflow_dispatch:
+    inputs:
+      live:
+        description: 'OCP SDK checks: make the live read call to the production OCP server'
+        type: boolean
+        default: false
+  # Nightly live read for "OCP SDK checks". Unit tests and Lint skip this event.
+  schedule:
+    - cron: '17 9 * * *'
   push:
     branches:
       - code/cash
@@ -31,6 +39,7 @@ env:
 jobs:
   unit-tests:
     name: Unit tests
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -75,8 +84,78 @@ jobs:
       - name: Run unit tests
         run: ./gradlew generateEmojiList kotlinStorePackageLock jsNodeTest flipcashTestDebug
 
+  # Not proposed as required: the smoke step calls the production OCP server, so a server blip
+  # must not block merges. Covers the platform-neutral OCP modules outside "Unit tests":
+  #   - checkServiceDependencies: :services:* modules other than the app-facing ones stay free of
+  #     apps/, ui/, DI, Room, analytics and Firebase.
+  #   - jvmTest: their JVM suites, plus :services:opencode's fixture tests, which pin the bytes
+  #     protobuf-java sends today. The Wire side of that parity runs on Node in "Unit tests".
+  #   - Node smoke: plain `node` loads the Kotlin/JS library build of :services:opencode-client.
+  #     The read call to production (rates over StreamLiveMintData) is opt-in: it runs on the
+  #     nightly schedule, on workflow_dispatch with live: true, and on PRs labelled ocp-live.
+  #     The label is read from the event payload, so adding it takes effect on the next push,
+  #     not on a re-run. Every other run only checks that the library loads.
+  ocp-sdk:
+    name: OCP SDK checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Setup Java env
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'corretto'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name != 'push' && github.event_name != 'workflow_dispatch' }}
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+      - name: Provision config
+        uses: ./.github/actions/provision-config
+        with:
+          google-services: ${{ secrets.FLIPCASH2_GOOGLE_SERVICES }}
+          bugsnag-api-key: ${{ secrets.FLIPCASH_BUGSNAG_API_KEY }}
+          google-cloud-project-number: ${{ secrets.GOOGLE_CLOUD_PROJECT_NUMBER }}
+          mixpanel-api-key: ${{ secrets.FLIPCASH_MIXPANEL_API_KEY }}
+          coinbase-onramp-api-key: ${{ secrets.COINBASE_ONRAMP_API_KEY }}
+
+      - name: Check service boundaries and run JVM suites
+        run: >-
+          ./gradlew checkServiceDependencies
+          :services:opencode:jvmTest
+          :services:opencode-model:jvmTest
+          :services:opencode-solana:jvmTest
+          :services:opencode-transport:jvmTest
+          :services:opencode-intents:jvmTest
+          :services:opencode-client:jvmTest
+
+      - name: Build the opencode-client JS library
+        run: ./gradlew kotlinNpmInstall :services:opencode-client:jsNodeProductionLibraryDistribution
+
+      - name: Node smoke test
+        env:
+          OCP_LIVE: >-
+            ${{ (github.event_name == 'schedule'
+            || (github.event_name == 'workflow_dispatch' && inputs.live)
+            || contains(github.event.pull_request.labels.*.name, 'ocp-live')) && '1' || '0' }}
+          # The library's npm dependencies (@grpc/grpc-js, @noble/*) are installed in the root
+          # project's Kotlin/JS node_modules, not next to the distribution.
+          NODE_PATH: ${{ github.workspace }}/build/js/node_modules
+        run: >-
+          node services/opencode-client/node-smoke/smoke.cjs
+          services/opencode-client/build/dist/js/productionLibrary/Flipcash-services-opencode-client.js
+
   lint:
     name: Lint
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
