@@ -68,6 +68,8 @@ import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsViewModel
 import com.flipcash.app.messenger.internal.screens.ShareToChatsSubject
 import com.flipcash.app.messenger.internal.screens.openGroupInvite
+import com.flipcash.app.messenger.internal.screens.invitePeopleSheetMetadata
+import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.messenger.internal.request.ChatRequestsViewModel
 import com.flipcash.app.messenger.internal.request.RequestDetailsScreen
 import com.flipcash.app.messenger.internal.request.RequestMoneyScreen
@@ -186,6 +188,16 @@ fun ChatFlowScreen(
 private fun chatEntryProvider(
     openKeyboard: Boolean,
     resultStateRegistry: NavResultStateRegistry,
+): (NavKey) -> NavEntry<NavKey> {
+    val invitePeopleSheet = invitePeopleSheetMetadata(LocalNavBarShell.current)
+    return chatEntries(openKeyboard, resultStateRegistry, invitePeopleSheet)
+}
+
+/** The chat flow's steps; [invitePeopleSheet] goes over the two Invite People steps' metadata. */
+internal fun chatEntries(
+    openKeyboard: Boolean,
+    resultStateRegistry: NavResultStateRegistry,
+    invitePeopleSheet: Map<String, Any>,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<ChatStep.Conversation> {
         FlowConversationScreen(openKeyboard)
@@ -196,10 +208,10 @@ private fun chatEntryProvider(
     annotatedEntry<ChatStep.GroupSendAmountEntry> {
         FlowAmountEntryScreen(resultStateRegistry, toMembers = true)
     }
-    annotatedEntry<ChatStep.InviteToGroup> {
+    annotatedEntry<ChatStep.InviteToGroup>(metadata = invitePeopleSheet) {
         FlowGroupInviteSheet()
     }
-    annotatedEntry<ChatStep.ShareInviteLink> { step ->
+    annotatedEntry<ChatStep.ShareInviteLink>(metadata = invitePeopleSheet) { step ->
         FlowInviteLinkSheet(step.inviteIdHex)
     }
     annotatedEntry<ChatStep.NewInviteLink> {
