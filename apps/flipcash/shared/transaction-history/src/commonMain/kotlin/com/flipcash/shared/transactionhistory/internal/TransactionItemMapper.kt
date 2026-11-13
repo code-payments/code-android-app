@@ -14,6 +14,7 @@ import com.flipcash.services.models.BoostedReaction
 import com.flipcash.services.models.RequestedPayment
 import com.flipcash.services.models.ReturnedPayment
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.transactionhistory.TransactionAvatar
 import com.flipcash.shared.transactionhistory.TransactionListItem
 import com.flipcash.shared.transactionhistory.convertOf
@@ -57,6 +58,8 @@ internal class TransactionItemMapper @Inject constructor(
             else -> TransactionAvatar.Generic(badgeToken = token)
         }
 
+        val chatId = groupChatIdOf(meta)
+
         val prefix: String? = when {
             meta == null -> null
             meta.isOutgoing -> "-"
@@ -81,9 +84,21 @@ internal class TransactionItemMapper @Inject constructor(
             fee = convert?.fee,
             canCancel = (meta as? MessageMetadata.IndirectlySentCrypto)?.canCancel == true,
             returnChatId = returnedPaymentOf(meta)?.chatId,
+            chatId = chatId,
+            chatName = source.chatName?.takeIf { chatId != null && it.isNotBlank() },
+            chatPicture = source.chatPicture
+                ?.takeIf { chatId != null && !source.chatName.isNullOrBlank() },
+            counterpartyName = counterparty?.displayName?.takeIf { it.isNotBlank() },
         )
     }
 }
+
+/**
+ * The group chat an entry happened in: the chat a boost was sent in, or the one a request payment
+ * paid into. Null for everything else, a send-back included: its chat is the DM it was paid in.
+ */
+internal fun groupChatIdOf(meta: MessageMetadata?): ChatId? =
+    boostedReactionOf(meta)?.chatId ?: requestedPaymentOf(meta)?.chatId
 
 /**
  * A convert spans two mints, so its row reads as the exchange itself — "USDF → Dad Cash" — rather

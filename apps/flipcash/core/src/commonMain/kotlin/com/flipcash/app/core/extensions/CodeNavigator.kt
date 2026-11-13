@@ -3,6 +3,9 @@ package com.flipcash.app.core.extensions
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.NavBarButton
+import com.flipcash.app.core.navigation.NavBarShell
+import com.flipcash.app.core.navigation.selectedTab
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.NavOptions
 
@@ -128,4 +131,18 @@ fun resolveBackStack(
     if (routes.isEmpty()) return base
     val resolved = resolveRoutes(routes)
     return if (leadsWithTab(resolved)) resolved else base + resolved
+}
+
+/**
+ * Opens a chat picked from search. Today's shell pushes it over the search, on whichever tab the
+ * search was opened from. [NavBarShell.GroupMoney] keeps chats in Groups: from Groups it pushes
+ * the same way, and from any other tab it switches to Groups with the chat on top.
+ */
+fun CodeNavigator.openChatFromSearch(shell: NavBarShell, chat: AppRoute.Messaging.Chat) {
+    val fromGroups = shell.selectedTab(backStack.toList()) == NavBarButton.Chats
+    if (shell == NavBarShell.GroupMoney && !fromGroups) {
+        navigateAll(listOf(AppRoute.Tabs.Chats, chat))
+    } else {
+        push(chat)
+    }
 }

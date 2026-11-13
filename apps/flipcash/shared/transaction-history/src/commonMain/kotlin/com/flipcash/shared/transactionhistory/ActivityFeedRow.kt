@@ -69,35 +69,44 @@ fun ActivityFeedRow(
             )
         }
 
-        val fee = item.fee
-        val amount = item.amount
-        if (fee != null && amount != null) {
-            // A convert is two amounts in one row: what left the source token, and what the swap
-            // cost. It carries no sign — the pairing, not a prefix, is what reads as an exchange.
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
-            ) {
-                Text(
-                    text = amount.inDisplayCurrency().formatted(),
-                    style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.textMain,
-                    maxLines = 1,
-                )
-                Text(
-                    text = stringResource(TxRes.string.label_activity_convertFee, fee.inDisplayCurrency().formatted()),
-                    style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary,
-                    maxLines = 1,
-                )
-            }
-        } else {
-            amount?.let { fiat ->
-                ActivityAmount(
-                    amount = fiat,
-                    signPrefix = item.signedAmountPrefix?.ifEmpty { null },
-                )
-            }
+        ActivityRowAmount(item)
+    }
+}
+
+/**
+ * The right side of an activity row: the signed amount, or for a convert the amount over its fee.
+ * Shared by [ActivityFeedRow] and [MoneyActivityRow] so both read an entry's amount alike.
+ */
+@Composable
+internal fun ActivityRowAmount(item: TransactionListItem) {
+    val fee = item.fee
+    val amount = item.amount
+    if (fee != null && amount != null) {
+        // A convert is two amounts in one row: what left the source token, and what the swap
+        // cost. It carries no sign — the pairing, not a prefix, is what reads as an exchange.
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+        ) {
+            Text(
+                text = amount.inDisplayCurrency().formatted(),
+                style = CodeTheme.typography.textMedium,
+                color = CodeTheme.colors.textMain,
+                maxLines = 1,
+            )
+            Text(
+                text = stringResource(TxRes.string.label_activity_convertFee, fee.inDisplayCurrency().formatted()),
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+                maxLines = 1,
+            )
+        }
+    } else {
+        amount?.let { fiat ->
+            ActivityAmount(
+                amount = fiat,
+                signPrefix = item.signedAmountPrefix?.ifEmpty { null },
+            )
         }
     }
 }

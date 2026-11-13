@@ -23,9 +23,11 @@ import com.flipcash.services.models.NotificationMetadata
 import com.flipcash.services.models.NotificationState
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.transactionhistory.internal.TransactionDetailsMapper
 import com.flipcash.shared.transactionhistory.internal.boostedReactionOf
+import com.flipcash.shared.transactionhistory.internal.groupChatIdOf
 import com.flipcash.shared.transactionhistory.internal.isSplitBoost
 import com.flipcash.shared.transactionhistory.internal.TransactionItemMapper
 import com.getcode.opencode.model.core.ID
@@ -232,6 +234,9 @@ class ActivityFeedCoordinator @Inject internal constructor(
                 token = token,
                 toToken = destinationTokenOf(msg.metadata, tokens),
                 boostChatName = boostChatNameOf(msg.metadata, chatNames),
+                chatName = groupChatIdOf(msg.metadata)?.let { chatNames[chats.chatIdHex(it)] },
+                chatPicture = groupChatIdOf(msg.metadata)
+                    ?.let { resolved.chatPictures[chats.chatIdHex(it)] },
             ) to profiles
         )
     }
@@ -397,6 +402,10 @@ class ActivityFeedCoordinator @Inject internal constructor(
     private val chatNames: Flow<Map<String, String>> = chats.observeMemberTitles()
         .onStart { emit(emptyMap()) }
 
+    /** Group pictures for the Money tab's rows, from the same store as [chatNames]. */
+    private val chatPictures: Flow<Map<String, MediaItem>> = chats.observeMemberPictures()
+        .onStart { emit(emptyMap()) }
+
     /**
      * Observed profile + token caches, paired for a single [combine] against the cached pages. All
      * three are network-free reads that re-emit as they hydrate, so rows resolve reactively from
@@ -411,8 +420,9 @@ class ActivityFeedCoordinator @Inject internal constructor(
             tokenProvider.observeTokenCache(),
             badgeTokens,
             chatNames,
-        ) { profiles, tokens, badges, chatNames ->
-            Resolvers(profiles, badges + tokens, chatNames)
+            chatPictures,
+        ) { profiles, tokens, badges, chatNames, chatPictures ->
+            Resolvers(profiles, badges + tokens, chatNames, chatPictures)
         }
 
     /** What a row resolves against, all read from memory; see [resolvers]. */
@@ -420,6 +430,7 @@ class ActivityFeedCoordinator @Inject internal constructor(
         val profiles: Map<String, UserProfile>,
         val tokens: Map<Mint, Token>,
         val chatNames: Map<String, String>,
+        val chatPictures: Map<String, MediaItem> = emptyMap(),
     )
 
     /**

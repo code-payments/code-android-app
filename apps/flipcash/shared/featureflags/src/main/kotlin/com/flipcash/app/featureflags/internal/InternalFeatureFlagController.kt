@@ -92,6 +92,9 @@ internal class InternalFeatureFlagController @Inject constructor(
         betaFlags.data.map { prefs -> prefs[betaOverrideKey] ?: false }
             .stateIn(dataScope, SharingStarted.Eagerly, false)
 
+    override suspend fun getOverride(): Boolean =
+        betaFlags.data.map { prefs -> prefs[betaOverrideKey] ?: false }.firstOrNull() ?: false
+
     override fun set(flag: FeatureFlag<*>, value: Boolean) {
         dataScope.launch {
             betaFlags.edit { prefs ->

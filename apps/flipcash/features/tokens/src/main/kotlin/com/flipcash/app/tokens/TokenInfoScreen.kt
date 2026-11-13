@@ -221,6 +221,8 @@ internal fun TokenInfoEntry.toTokenInfoSource(): TokenInfoSource =
     when (this) {
         TokenInfoEntry.Deeplink -> TokenInfoSource.DEEPLINK
         TokenInfoEntry.Wallet -> TokenInfoSource.WALLET
+        // The Money tab's list is the wallet's own way into a currency once the card stack is gone.
+        TokenInfoEntry.Currencies -> TokenInfoSource.WALLET
         TokenInfoEntry.Discovery -> TokenInfoSource.DISCOVERY
         TokenInfoEntry.Search -> TokenInfoSource.SEARCH
         TokenInfoEntry.Chat -> TokenInfoSource.CHAT

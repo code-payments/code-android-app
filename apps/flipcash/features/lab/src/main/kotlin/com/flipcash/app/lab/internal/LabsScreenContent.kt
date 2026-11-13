@@ -30,7 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.featureflags.FeatureTrack
+import com.flipcash.app.featureflags.isShownInLabs
 import com.flipcash.app.featureflags.FlagOption
 import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.featureflags.message
@@ -59,11 +59,8 @@ internal fun LabsScreenContent(viewModel: LabsScreenViewModel, onboarding: Boole
         if (betaOverride) showAllFlags = true
     }
 
-    val betaFlags = remember(allFlags, showAllFlags, onboarding) {
-        if (showAllFlags) allFlags
-        else allFlags.filter {
-            it.flag.minTrack == FeatureTrack.Production || (onboarding && it.flag.onboarding)
-        }
+    val betaFlags = remember(allFlags, showAllFlags, onboarding, isStaff) {
+        allFlags.filter { it.flag.isShownInLabs(showAllFlags = showAllFlags, isStaff = isStaff, onboarding = onboarding) }
     }
 
     val state = rememberLazyListState()
