@@ -12,11 +12,17 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.flipcash.app.core.chat.ChatStep
+import com.flipcash.app.core.chat.InviteHostAction
 import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.services.models.chat.ChatId
+import com.getcode.navigation.core.CodeNavigator
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,8 +35,9 @@ import kotlin.test.assertTrue
 /**
  * Group Money phase 2, item 4: the Invite People sheet (frame 1-07, node 13729:672). Close at the
  * start, the group's avatar and name, one line above the link, a caption under it, and three tiles:
- * Copy Link, Share Link, QR Code. Every invite entry opens this sheet; the host sheet (Approve
- * switch, Manage Invites) is not reached. The classic shell keeps today's sheet and routing.
+ * Copy Link, Share Link, QR Code. Every invite entry but Group Info opens this sheet. Group Info
+ * keeps the classic sheets, the host sheet (Approve switch, Manage Invites) included, and the share
+ * sheets the host sheet opens are classic too. The classic shell keeps today's sheet and routing.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w400dp-h800dp-xhdpi")
@@ -53,23 +60,26 @@ class GroupInviteSheetGroupMoneyInviteSpec {
     private var shared = 0
     private var shownCard = 0
 
-    private fun show(shell: NavBarShell) {
+    /** The sheet under [shell]; [classic] is the route's, as the chat flow's entries apply it. */
+    private fun show(shell: NavBarShell, classic: Boolean = false) {
         composeRule.setContent {
             CompositionLocalProvider(LocalNavBarShell provides shell) {
                 Box(Modifier.fillMaxSize().testTag(ScreenTag)) {
                     FlipcashPreview(showBackground = true) {
                         Box(Modifier.testTag(SheetTag)) {
-                            GroupInviteSheetContent(
-                                group = group,
-                                inviteUrl = "https://app.flipcash.com/chat/road-trip",
-                                inviteLink = null,
-                                creating = false,
-                                copied = false,
-                                onCopy = { copied++ },
-                                onShare = { shared++ },
-                                onShowCard = { shownCard++ },
-                                onDismiss = {},
-                            )
+                            InviteSheetShell(classic) {
+                                GroupInviteSheetContent(
+                                    group = group,
+                                    inviteUrl = "https://app.flipcash.com/chat/road-trip",
+                                    inviteLink = null,
+                                    creating = false,
+                                    copied = false,
+                                    onCopy = { copied++ },
+                                    onShare = { shared++ },
+                                    onShowCard = { shownCard++ },
+                                    onDismiss = {},
+                                )
+                            }
                         }
                     }
                 }
@@ -139,15 +149,65 @@ class GroupInviteSheetGroupMoneyInviteSpec {
     }
 
     @Test
-    fun `group money invite entries never open the host sheet`() {
-        assertFalse(inviteOpensHost(NavBarShell.GroupMoney, canInvite = true))
-        assertFalse(inviteOpensHost(NavBarShell.GroupMoney, canInvite = false))
+    fun `group money opens the host sheet only from group info`() {
+        assertTrue(inviteOpensHost(NavBarShell.GroupMoney, canInvite = true, InviteEntry.GroupInfo))
+        assertFalse(inviteOpensHost(NavBarShell.GroupMoney, canInvite = true, InviteEntry.JoinRequests))
+        InviteEntry.entries.forEach { entry ->
+            assertFalse(inviteOpensHost(NavBarShell.GroupMoney, canInvite = false, entry), "$entry")
+        }
     }
 
     @Test
     fun `classic invite entries open the host sheet for a host`() {
-        assertTrue(inviteOpensHost(NavBarShell.Classic, canInvite = true))
-        assertFalse(inviteOpensHost(NavBarShell.Classic, canInvite = false))
+        InviteEntry.entries.forEach { entry ->
+            assertTrue(inviteOpensHost(NavBarShell.Classic, canInvite = true, entry), "$entry")
+            assertFalse(inviteOpensHost(NavBarShell.Classic, canInvite = false, entry), "$entry")
+        }
+    }
+
+    @Test
+    fun `group info's sheet under group money is the classic sheet`() {
+        show(NavBarShell.GroupMoney, classic = true)
+
+        composeRule.onNodeWithText("Copy").assertIsDisplayed()
+        composeRule.onNodeWithText("Share").assertIsDisplayed()
+        composeRule.onNodeWithText("Send this link to the people you want to join your group").assertIsDisplayed()
+        composeRule.onNodeWithText("Anyone with the link can join.").assertDoesNotExist()
+        composeRule.onNodeWithText("Road Trip").assertDoesNotExist()
+        composeRule.onNodeWithText("Copy Link").assertDoesNotExist()
+        val close = composeRule.onNodeWithTag("action_close").fetchSemanticsNode().boundsInRoot
+        val title = composeRule.onNodeWithText("Invite People").fetchSemanticsNode().boundsInRoot
+        assertTrue(close.left >= title.right, "classic Close $close stays right of the title $title")
+    }
+
+    /** A navigator that records the routes it is sent to. */
+    private fun recordingNavigator(): CodeNavigator = mockk<CodeNavigator>(relaxed = true).also { navigator ->
+        every { navigator.dispatchTarget(any()) } returns navigator
+    }
+
+    @Test
+    fun `host sheet picks open the classic share sheets`() {
+        val navigator = recordingNavigator()
+        var managed = 0
+
+        navigator.onInviteHostPick(InviteHostAction.ShareInvite) { managed++ }
+        navigator.onInviteHostPick(InviteHostAction.ShareJoin) { managed++ }
+        navigator.onInviteHostPick(InviteHostAction.ManageInvites) { managed++ }
+
+        verify { navigator.navigate(ChatStep.ShareInviteLink(classic = true), any()) }
+        verify { navigator.navigate(ChatStep.InviteToGroup(classic = true), any()) }
+        assertEquals(1, managed)
+    }
+
+    @Test
+    fun `entries other than group info open the group money share sheets`() {
+        val navigator = recordingNavigator()
+
+        navigator.openInvitePeople(InvitePeopleTarget.CurrentInviteLink)
+        navigator.openInvitePeople(InvitePeopleTarget.PlainLink)
+
+        verify { navigator.navigate(ChatStep.ShareInviteLink(classic = false), any()) }
+        verify { navigator.navigate(ChatStep.InviteToGroup(classic = false), any()) }
     }
 
     @Test

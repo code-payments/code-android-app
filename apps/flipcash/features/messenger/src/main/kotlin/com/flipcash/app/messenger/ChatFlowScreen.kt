@@ -68,6 +68,7 @@ import com.flipcash.app.messenger.internal.screens.ReactorsSheet
 import com.flipcash.app.messenger.internal.screens.ReactorsViewModel
 import com.flipcash.app.messenger.internal.screens.ShareToChatsSubject
 import com.flipcash.app.messenger.internal.screens.openGroupInvite
+import com.flipcash.app.messenger.internal.screens.InviteSheetShell
 import com.flipcash.app.messenger.internal.request.ChatRequestsViewModel
 import com.flipcash.app.messenger.internal.request.RequestDetailsScreen
 import com.flipcash.app.messenger.internal.request.RequestMoneyScreen
@@ -196,11 +197,11 @@ internal fun chatEntryProvider(
     annotatedEntry<ChatStep.GroupSendAmountEntry> {
         FlowAmountEntryScreen(resultStateRegistry, toMembers = true)
     }
-    annotatedEntry<ChatStep.InviteToGroup> {
-        FlowGroupInviteSheet()
+    annotatedEntry<ChatStep.InviteToGroup> { step ->
+        InviteSheetShell(step.classic) { FlowGroupInviteSheet() }
     }
     annotatedEntry<ChatStep.ShareInviteLink> { step ->
-        FlowInviteLinkSheet(step.inviteIdHex)
+        InviteSheetShell(step.classic) { FlowInviteLinkSheet(step.inviteIdHex, step.classic) }
     }
     annotatedEntry<ChatStep.NewInviteLink> {
         FlowNewInviteLinkSheet()
@@ -581,10 +582,10 @@ private fun ChatSubject.Group.cardRoute() = AppRoute.Menu.GroupCard(
 /**
  * [ChatStep.ShareInviteLink]: the invite sheet's invite variant (frames 1b, 1f). The tap on Share Invite
  * Link that opened it has the link made when the host had none; sending goes through the same view model as the
- * join variant, limited to chats an invite link may be sent into.
+ * join variant, limited to chats an invite link may be sent into. A [classic] sheet hands on to a classic join link.
  */
 @Composable
-private fun FlowInviteLinkSheet(inviteIdHex: String?) {
+private fun FlowInviteLinkSheet(inviteIdHex: String?, classic: Boolean) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val linkViewModel = hiltViewModel<InviteLinkViewModel>()
@@ -618,7 +619,7 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?) {
                 // 1e's offer: the plain join link, in place of this sheet.
                 InviteLinkViewModel.Effect.OpenJoinLink -> {
                     dismissSheet()
-                    navigator.openGroupInvite()
+                    navigator.openGroupInvite(classic)
                 }
                 // 1c's offer: revoke a link there to make room for another.
                 InviteLinkViewModel.Effect.OpenManageInvites -> {
