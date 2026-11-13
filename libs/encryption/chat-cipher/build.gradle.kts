@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 plugins {
     alias(libs.plugins.flipcash.kmp.library)
     alias(libs.plugins.flipcash.kmp.test.fixtures)
+    alias(libs.plugins.flipcash.kmp.js)
 }
 
 // Compiles `src/commonTest/resources` (chat_cipher.json, canonical copy in the orchestrator's
