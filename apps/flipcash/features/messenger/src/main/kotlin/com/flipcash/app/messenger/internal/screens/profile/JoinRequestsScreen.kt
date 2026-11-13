@@ -39,6 +39,7 @@ import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.messenger.internal.screens.openGroupInvite
 import com.flipcash.app.messenger.internal.screens.openInviteHost
 import com.flipcash.app.messenger.internal.screens.inviteOpensHost
+import com.flipcash.app.messenger.internal.screens.InviteEntry
 import com.flipcash.app.messenger.internal.screens.invitePeopleTarget
 import com.flipcash.app.messenger.internal.screens.openInvitePeople
 import androidx.compose.runtime.rememberCoroutineScope
@@ -112,7 +113,7 @@ internal fun JoinRequestsScreen(viewModel: ChatViewModel) {
                     viewModel.dispatchEvent(ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE))
                     // Group Money opens the sheet the transcript's Invite People opens (frame 1-07).
                     when {
-                        inviteOpensHost(shell, canInvite) ->
+                        inviteOpensHost(shell, canInvite, InviteEntry.JoinRequests) ->
                             navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
                         shell == NavBarShell.GroupMoney -> inviteScope.launch {
                             val approve = state.chatId?.let { inviteHost.approveOn(it) } == true

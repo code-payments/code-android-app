@@ -40,6 +40,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -121,14 +122,14 @@ import kotlinx.coroutines.launch
 
 /**
  * Opens the invite sheet over the current step and, once its invites are out, the chat picked
- * first.
+ * first. [classic] keeps the sheet as it is without Group Money ([InviteSheetShell]).
  *
  * The sheet returns that chat rather than navigating itself. It is opened from the transcript and
  * from the group's profile, and only the screen that opened it is sure to be composed when the
  * sends finish, so that screen does the navigating.
  */
-internal fun CodeNavigator.openGroupInvite() {
-    navigateForResult<GroupInviteResult>(ChatStep.InviteToGroup) { result ->
+internal fun CodeNavigator.openGroupInvite(classic: Boolean = false) {
+    navigateForResult<GroupInviteResult>(ChatStep.InviteToGroup(classic)) { result ->
         if (result is NavResultOrCanceled.ReturnValue) {
             navigate(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(result.value.chatId)))
         }
@@ -137,10 +138,10 @@ internal fun CodeNavigator.openGroupInvite() {
 
 /**
  * Opens the invite variant of the sheet: the host's current link, or the invite [inviteIdHex] picked
- * in Manage Invites. Returns the chat picked first, as [openGroupInvite] does.
+ * in Manage Invites. Returns the chat picked first, and takes [classic], as [openGroupInvite] does.
  */
-internal fun CodeNavigator.openInviteLinkShare(inviteIdHex: String? = null) {
-    navigateForResult<GroupInviteResult>(ChatStep.ShareInviteLink(inviteIdHex)) { result ->
+internal fun CodeNavigator.openInviteLinkShare(inviteIdHex: String? = null, classic: Boolean = false) {
+    navigateForResult<GroupInviteResult>(ChatStep.ShareInviteLink(inviteIdHex, classic)) { result ->
         if (result is NavResultOrCanceled.ReturnValue) {
             navigate(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(result.value.chatId)))
         }
@@ -169,26 +170,56 @@ internal fun CodeNavigator.openInvitePeople(target: InvitePeopleTarget) = when (
     InvitePeopleTarget.PlainLink -> openGroupInvite()
 }
 
+/** The screens whose Invite People button can open the host's Invite sheet. */
+internal enum class InviteEntry {
+    /** The group's profile. It opens the sheets it opened before Group Money, in either shell. */
+    GroupInfo,
+
+    /** Join Requests' empty state. */
+    JoinRequests,
+}
+
 /**
- * Whether an Invite People entry opens the host's Invite sheet ([openInviteHost]) rather than the
- * share sheet ([openGroupInvite]). The host sheet is for a viewer who can invite.
+ * Whether [entry] opens the host's Invite sheet ([openInviteHost]) rather than the share sheet
+ * ([openGroupInvite]). The host sheet is for a viewer who can invite. Group Money's sheet (frame
+ * 1-07) has no Approve switch or Manage Invites, so under it only Group Info opens the host sheet.
  */
-internal fun inviteOpensHost(shell: NavBarShell, canInvite: Boolean): Boolean =
-    // Group Money's sheet (frame 1-07) has no Approve switch or Manage Invites, so no entry opens it.
-    shell != NavBarShell.GroupMoney && canInvite
+internal fun inviteOpensHost(shell: NavBarShell, canInvite: Boolean, entry: InviteEntry): Boolean =
+    canInvite && (shell != NavBarShell.GroupMoney || entry == InviteEntry.GroupInfo)
+
+/**
+ * Draws [content] in the classic shell when [classic], so an invite sheet opened that way looks and
+ * behaves as it does without Group Money. Otherwise [content] keeps the shell it is in.
+ */
+@Composable
+internal fun InviteSheetShell(classic: Boolean, content: @Composable () -> Unit) {
+    if (classic) {
+        CompositionLocalProvider(LocalNavBarShell provides NavBarShell.Classic, content = content)
+    } else {
+        content()
+    }
+}
 
 /**
  * Opens the host's Invite sheet (frame 1m). It returns what to open next and closes, and the next
- * sheet opens from here, once it is gone; [onManageInvites] opens Manage Invites in the chat flow.
+ * sheet opens from here, once it is gone ([onInviteHostPick]).
  */
 internal fun CodeNavigator.openInviteHost(onManageInvites: () -> Unit) {
     navigateForResult<InviteHostAction>(ChatStep.InviteHost) { result ->
         if (result !is NavResultOrCanceled.ReturnValue) return@navigateForResult
-        when (result.value) {
-            InviteHostAction.ShareInvite -> openInviteLinkShare()
-            InviteHostAction.ShareJoin -> openGroupInvite()
-            InviteHostAction.ManageInvites -> onManageInvites()
-        }
+        onInviteHostPick(result.value, onManageInvites)
+    }
+}
+
+/**
+ * Opens what the host picked on their Invite sheet; [onManageInvites] opens Manage Invites in the
+ * chat flow. The host sheet is a classic sheet, so the share sheets it opens are classic too.
+ */
+internal fun CodeNavigator.onInviteHostPick(action: InviteHostAction, onManageInvites: () -> Unit) {
+    when (action) {
+        InviteHostAction.ShareInvite -> openInviteLinkShare(classic = true)
+        InviteHostAction.ShareJoin -> openGroupInvite(classic = true)
+        InviteHostAction.ManageInvites -> onManageInvites()
     }
 }
 

@@ -29,7 +29,12 @@ class ChatFlowInvitePeopleSheetTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val invitePeopleSteps = listOf(ChatStep.InviteToGroup, ChatStep.ShareInviteLink())
+    private val invitePeopleSteps = listOf(
+        ChatStep.InviteToGroup(),
+        ChatStep.ShareInviteLink(),
+        ChatStep.InviteToGroup(classic = true),
+        ChatStep.ShareInviteLink(classic = true),
+    )
 
     /** The chat flow's entries as the flow builds them with [shell] on. */
     private fun entriesUnder(shell: NavBarShell): (NavKey) -> NavEntry<NavKey> {
