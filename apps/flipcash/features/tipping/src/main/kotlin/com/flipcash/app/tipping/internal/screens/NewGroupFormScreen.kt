@@ -49,6 +49,8 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import com.flipcash.app.core.chat.NewGroupStep
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.data.Loadable
 import com.flipcash.app.core.data.isLoaded
 import com.flipcash.app.core.ui.DisplayTextInput
@@ -137,6 +139,9 @@ internal fun NewGroupFormContent(
     onCustomAmount: () -> Unit = {},
 ) {
     val keyboard = rememberKeyboardController()
+    // Group Money's form (frames 1-04, 1-05) asks only for a name: no "(Required)", no footnote, and
+    // a blue Create once the name is in.
+    val groupMoney = LocalNavBarShell.current == NavBarShell.GroupMoney
 
     // A private group's form opens on its name with the keyboard up; the public form keeps its own.
     val nameFocus = remember { FocusRequester() }
@@ -162,6 +167,7 @@ internal fun NewGroupFormContent(
                     isLoading = state.processingState.loading,
                     isSuccess = state.processingState.success,
                     onClick = onCreate,
+                    blue = groupMoney,
                 )
             },
         )
@@ -180,7 +186,9 @@ internal fun NewGroupFormContent(
                     titleField = {
                         DisplayTextInput(
                             state = state.titleFieldState,
-                            placeholder = stringResource(R.string.hint_groupName),
+                            placeholder = stringResource(
+                                if (groupMoney) R.string.hint_groupNameEdit else R.string.hint_groupName
+                            ),
                             modifier = Modifier.fillMaxWidth().focusRequester(nameFocus),
                             style = CodeTheme.typography.screenTitle.copy(
                                 color = CodeTheme.colors.textMain,
@@ -200,7 +208,7 @@ internal fun NewGroupFormContent(
 
                 // Node 11203:65: what a private group is, said once, where privacy is chosen, because
                 // it can't be undone.
-                if (state.isPrivate) {
+                if (state.isPrivate && !groupMoney) {
                     Text(
                         modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x3),
                         text = stringResource(R.string.subtitle_privateGroupFootnote),
@@ -232,6 +240,9 @@ internal fun NewGroupFormContent(
  * Unlike Next, Create commits over the network, so the capsule reports progress and success in place
  * of its label. The label stays in the layout while that happens — the pill would otherwise shrink
  * to the width of a spinner and jump back.
+ *
+ * [blue] paints the enabled capsule the theme's blue with a white label instead of the wallpaper
+ * accent: Group Money's Create (frame 1-05, node 13729:552) has no preview behind it to match.
  */
 @Composable
 private fun CreateAction(
@@ -239,6 +250,7 @@ private fun CreateAction(
     isLoading: Boolean,
     isSuccess: Boolean,
     onClick: () -> Unit,
+    blue: Boolean = false,
 ) {
     val (accent, onAccent) = rememberDynamicAccent(
         fallbackAccent = CodeTheme.colors.secondary,
@@ -248,8 +260,16 @@ private fun CreateAction(
     val clickable = enabled && !isLoading && !isSuccess
     // An incomplete draft dims the capsule rather than removing it: it is the only thing on screen
     // that says the form has an end, so it stays visible while it is inert.
-    val container = if (enabled) accent else White10
-    val content = if (enabled) onAccent else White50
+    val container = when {
+        !enabled -> White10
+        blue -> CodeTheme.colors.badgeFocus
+        else -> accent
+    }
+    val content = when {
+        !enabled -> White50
+        blue -> White
+        else -> onAccent
+    }
 
     Box(
         modifier = Modifier
