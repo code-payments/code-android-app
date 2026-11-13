@@ -266,6 +266,8 @@ include(
     ":libs:vibrator:impl",
     ":libs:vibrator:public",
 
+    ":libs:wire-canonical",
+
     // Services definition for app and lib access
     ":services:opencode",
     ":services:opencode-model",

@@ -82,6 +82,8 @@ ocp-client-protocol-wire = "0.10.0"
 # Wire messages for flipcash2 (com.codeinc.flipcash.wire.*), consumed only by :services:flipcash-chat
 # and :services:flipcash-client. Android stays on the protobuf-java artifact above.
 flipcash2-client-protocol-wire = "0.26.0"
+# The Wire runtime the -wire artifacts above are built against, for :libs:wire-canonical.
+wire = "7.1.2"
 
 # The Android port is the ONLY libphonenumber this app depends on, deliberately. Google's
 # `com.googlecode` artifact used to sit alongside it; the two ship separate copies of the metadata,
@@ -254,6 +256,7 @@ ocp-client-protocol = { module = "com.flipcash:ocp-client-protocol", version.ref
 flipcash2-client-protocol = { module = "com.flipcash:flipcash2-client-protocol", version.ref = "flipcash2-client-protocol" }
 ocp-client-protocol-wire = { module = "com.flipcash:ocp-client-protocol-wire", version.ref = "ocp-client-protocol-wire" }
 flipcash2-client-protocol-wire = { module = "com.flipcash:flipcash2-client-protocol-wire", version.ref = "flipcash2-client-protocol-wire" }
+wire-runtime = { module = "com.squareup.wire:wire-runtime", version.ref = "wire" }
 
 # Retrofit
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }

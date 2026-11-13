@@ -12,7 +12,7 @@ import com.codeinc.flipcash.wire.messaging.v1.Emoji
 import com.codeinc.flipcash.wire.messaging.v1.GetReactorsRequest
 import com.codeinc.flipcash.wire.messaging.v1.MessageId
 import com.getcode.ed25519kmp.Ed25519
-import com.getcode.opencode.transport.encodeCanonical
+import com.getcode.wire.canonical.encodeCanonical
 import com.squareup.wire.Message
 import com.squareup.wire.ofEpochSecond
 import kotlin.time.Instant

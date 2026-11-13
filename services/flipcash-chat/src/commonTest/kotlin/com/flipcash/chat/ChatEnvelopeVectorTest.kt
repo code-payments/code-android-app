@@ -11,6 +11,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import com.getcode.wire.canonical.canonicalize
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -37,14 +38,24 @@ class ChatEnvelopeVectorTest {
     }
 
     /**
-     * Content is sealed, not signed, so its bytes only have to decode the same. Wire writes oneof
-     * members after regular fields; `:services:flipcash-client`'s test checks the canonical bytes.
+     * Encoding writes the bytes Android's protobuf-java writes for the same content. Wire's own
+     * `encode()` puts oneof members after regular fields, which moves `CashContent`'s fields, so it
+     * fails here for the cash vectors.
      */
     @Test
-    fun contentEncodesBackToTheSameContent() {
-        for (v in list("contents").filter { it.str("direction") == "encode" }) {
-            val encoded = ContentCodec.encode(ContentCodec.decode(v.hex("bytes")))
-            assertEquals(v.obj("decoded"), describe(ContentCodec.decode(encoded)), v.str("name"))
+    fun contentEncodesLikeAndroid() {
+        val vectors = list("contents").filter { it.str("direction") == "encode" }
+        assertEquals(16, vectors.size)
+        for (v in vectors) {
+            assertEquals(v.str("bytes"), ContentCodec.encode(ContentCodec.decode(v.hex("bytes"))).hex(), v.str("name"))
+        }
+    }
+
+    /** protobuf-java's bytes are already in canonical order, so the schema covers every field they hold. */
+    @Test
+    fun androidContentBytesAreCanonical() {
+        for (v in list("contents")) {
+            assertEquals(v.str("bytes"), canonicalize(v.hex("bytes"), "flipcash.messaging.v1.Content", ContentCanonicalSchema).hex(), v.str("name"))
         }
     }
 

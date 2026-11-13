@@ -2,7 +2,7 @@ package com.flipcash.client
 
 import com.codeinc.flipcash.wire.common.v1.Auth
 import com.getcode.ed25519kmp.Ed25519
-import com.getcode.opencode.transport.canonicalize
+import com.getcode.wire.canonical.canonicalize
 import com.squareup.wire.Message
 import com.squareup.wire.ProtoAdapter
 import com.squareup.wire.ProtoReader

@@ -44,6 +44,7 @@ kotlin {
             // GrpcTransport is part of this module's API; MessageContent comes from flipcash-chat.
             api(project(":services:opencode-transport"))
             api(project(":services:flipcash-chat"))
+            implementation(project(":libs:wire-canonical"))
             implementation(libs.flipcash2.client.protocol.wire)
             implementation(libs.kotlinx.coroutines.core)
         }

@@ -18,8 +18,8 @@ import kotlin.test.assertEquals
  * The Set/GetKeyEnvelope requests in `chat_envelopes.json` were captured from Android's real
  * `ChatApi` (protobuf-java, real `authenticate()`); [KeyEnvelopeRequests] must build the same bytes.
  * Its Set/GetKeyEnvelope responses were built with protobuf-java and must decode to the same
- * values through [KeyEnvelopeResponses]. Building a SetKeyEnvelope request sends nothing. Its content vectors were encoded by Android's
- * mappers; `ContentCodec` writes Wire's order, which canonicalizes to the same bytes.
+ * values through [KeyEnvelopeResponses]. Building a SetKeyEnvelope request sends nothing. Its
+ * content vectors were encoded by Android's mappers, and `ContentCodec` writes the same bytes.
  */
 class KeyEnvelopeRequestTest {
 

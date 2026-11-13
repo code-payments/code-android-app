@@ -4,7 +4,8 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 // Chat crypto and message encoding in common code: group key envelopes, DM and group content
 // sealing over :libs:encryption:chat-cipher, and messaging.v1.Content <-> MessageContent over the
 // flipcash2 Wire messages (com.flipcash:flipcash2-client-protocol-wire). The Wire classes stay
-// internal; the public API is domain types and bytes.
+// internal; the public API is domain types and bytes. Content is written in field-number order
+// through :libs:wire-canonical, the bytes Android's protobuf-java seals today.
 //
 // Not on the app's classpath: nothing in apps/ or :services:flipcash depends on this module. The
 // Wire artifact `api`s protovalidate-runtime 0.2.0 while the app pins 0.1.3.
@@ -65,6 +66,7 @@ kotlin {
             // ChatCipher, KeyPair and InviteBundleResult are part of this module's API.
             api(project(":libs:encryption:chat-cipher"))
             implementation(libs.flipcash2.client.protocol.wire)
+            implementation(project(":libs:wire-canonical"))
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -75,4 +77,13 @@ kotlin {
             implementation(libs.androidx.test.runner)
         }
     }
+}
+
+// ContentCanonicalSchemaTest compares the schema it rebuilds from the flipcash2 Wire artifact with
+// this file. Run with UPDATE_CANONICAL_SCHEMA=1 to rewrite it.
+val canonicalSchemaFile = layout.projectDirectory
+    .file("src/commonMain/kotlin/com/flipcash/chat/ContentCanonicalSchema.kt").asFile.absolutePath
+tasks.named<Test>("jvmTest") {
+    systemProperty("canonicalSchemaFile", canonicalSchemaFile)
+    providers.environmentVariable("UPDATE_CANONICAL_SCHEMA").orNull?.let { environment("UPDATE_CANONICAL_SCHEMA", it) }
 }

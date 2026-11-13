@@ -1,4 +1,4 @@
-package com.getcode.opencode.transport
+package com.getcode.wire.canonical
 
 import com.squareup.wire.Message
 import okio.Buffer
@@ -37,7 +37,7 @@ public enum class MapKey { Bool, Signed, ZigZag, Unsigned, Bytes }
  * field. A signature over Wire's bytes only verifies through the server's `proto.Marshal`
  * fallback, which is marked for removal. Sign and send these bytes instead.
  */
-public fun Message<*, *>.encodeCanonical(schema: CanonicalSchema = OcpCanonicalSchema): ByteArray {
+public fun Message<*, *>.encodeCanonical(schema: CanonicalSchema): ByteArray {
     val typeUrl = requireNotNull(adapter.typeUrl) { "${this::class.simpleName} has no type URL" }
     return canonicalize(encode(), typeUrl.substringAfterLast('/'), schema)
 }

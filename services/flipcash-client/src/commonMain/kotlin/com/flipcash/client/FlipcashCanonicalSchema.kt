@@ -2,9 +2,9 @@
 // UPDATE_CANONICAL_SCHEMA=1 ./gradlew :services:flipcash-client:jvmTest to refresh.
 package com.flipcash.client
 
-import com.getcode.opencode.transport.CanonicalField
-import com.getcode.opencode.transport.CanonicalSchema
-import com.getcode.opencode.transport.MapKey
+import com.getcode.wire.canonical.CanonicalField
+import com.getcode.wire.canonical.CanonicalSchema
+import com.getcode.wire.canonical.MapKey
 
 private val S = CanonicalField.Scalar
 private fun M(type: String) = CanonicalField.Message(type)

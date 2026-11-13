@@ -17,6 +17,7 @@ import com.codeinc.flipcash.wire.messaging.v1.SystemContent.UserJoined
 import com.codeinc.flipcash.wire.messaging.v1.TextContent
 import com.codeinc.flipcash.wire.messaging.v1.WidgetContent
 import com.codeinc.flipcash.wire.paymentrequest.v1.PaymentRequestId
+import com.getcode.wire.canonical.encodeCanonical
 import com.squareup.wire.ofEpochSecond
 import okio.ByteString.Companion.toByteString
 
@@ -28,8 +29,12 @@ import okio.ByteString.Companion.toByteString
  */
 object ContentCodec {
 
-    /** Serializes [content]. [MessageContent.Unsupported] has no wire form and throws. */
-    fun encode(content: MessageContent): ByteArray = content.toWire().encode()
+    /**
+     * Serializes [content] in field-number order, as protobuf-java does. Wire's own `encode()` writes
+     * oneof members after the regular fields, which changes the bytes a recipient opens.
+     * [MessageContent.Unsupported] has no wire form and throws.
+     */
+    fun encode(content: MessageContent): ByteArray = content.toWire().encodeCanonical(ContentCanonicalSchema)
 
     /** Parses [bytes]. Throws [IllegalArgumentException] when they are not a `Content`. */
     fun decode(bytes: ByteArray): MessageContent = parse(bytes).toDomain()

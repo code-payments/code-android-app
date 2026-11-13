@@ -1,6 +1,6 @@
 package com.flipcash.client
 
-import com.getcode.opencode.transport.canonicalize
+import com.getcode.wire.canonical.canonicalize
 
 import com.flipcash.chat.ContentCodec
 import com.flipcash.chat.MessageContent
