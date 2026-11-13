@@ -16,7 +16,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.analytics.GroupType
+import com.flipcash.analytics.events.GroupEvents
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.tipping.internal.HiltChatsViewModel
 import com.flipcash.core.resources.Res
@@ -119,9 +124,23 @@ fun ChatsScreen() {
     )
 }
 
-/** The chat list's Add button: opens the New Chat menu. */
+/**
+ * The chat list's Add button. The classic shell opens the New Chat menu; Group Money's Groups tab
+ * has only groups to start, so it goes straight to a private New Group (frame 1-04, node
+ * 13729:462) and records the open the menu's New Group row would have.
+ */
 @Composable
 internal fun ChatsAddAction() {
     val navigator = LocalCodeNavigator.current
-    AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
+    val analytics = rememberAnalytics()
+    val shell = LocalNavBarShell.current
+    AppBarDefaults.Add {
+        when (shell) {
+            NavBarShell.GroupMoney -> {
+                analytics.track(GroupEvents.newOpened(GroupType.PRIVATE))
+                navigator.push(AppRoute.Messaging.NewGroup(isPrivate = true))
+            }
+            NavBarShell.Classic -> navigator.push(AppRoute.Messaging.NewChat)
+        }
+    }
 }
