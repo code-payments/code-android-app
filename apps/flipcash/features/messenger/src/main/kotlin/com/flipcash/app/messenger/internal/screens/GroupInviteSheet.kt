@@ -97,7 +97,6 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.shared.chat.ui.ConversationReference
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.getcode.opencode.model.core.ID
-import com.getcode.navigation.NavMetadataKeys
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.navigateForResult
@@ -177,18 +176,6 @@ internal fun CodeNavigator.openInvitePeople(target: InvitePeopleTarget) = when (
 internal fun inviteOpensHost(shell: NavBarShell, canInvite: Boolean): Boolean =
     // Group Money's sheet (frame 1-07) has no Approve switch or Manage Invites, so no entry opens it.
     shell != NavBarShell.GroupMoney && canInvite
-
-/**
- * Metadata over [ChatStep.InviteToGroup] and [ChatStep.ShareInviteLink], both [com.getcode.navigation.WrapContentSheet]s
- * by type. Group Money presents them at full height (frame 1-07, node 13729:672); the classic shell
- * keeps them wrapping their content.
- */
-internal fun invitePeopleSheetMetadata(shell: NavBarShell): Map<String, Any> =
-    if (shell == NavBarShell.GroupMoney) {
-        mapOf(NavMetadataKeys.IsWrapContentSheet.key to false)
-    } else {
-        emptyMap()
-    }
 
 /**
  * Opens the host's Invite sheet (frame 1m). It returns what to open next and closes, and the next
