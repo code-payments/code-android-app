@@ -112,11 +112,16 @@ fun ChatsScreen() {
                     // Node 9442:5779 — the only way to start a chat with someone who has never paid
                     // you. A pushed route rather than an in-place screen: this list is a tab home, and
                     // anything drawn inside it would leave the tab bar over the entry screen.
-                    endContent = {
-                        AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
-                    },
+                    endContent = { ChatsAddAction() },
                 )
             }
         },
     )
+}
+
+/** The chat list's Add button: opens the New Chat menu. */
+@Composable
+internal fun ChatsAddAction() {
+    val navigator = LocalCodeNavigator.current
+    AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
 }

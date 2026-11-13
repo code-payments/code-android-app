@@ -95,6 +95,49 @@ internal fun NewGroupFormScreen(viewModel: CreateGroupViewModel) {
         }
     }
 
+    NewGroupFormContent(
+        state = state,
+        onBack = { keyboard.hideIfVisible { flowNavigator.exitCanceled() } },
+        onCreate = {
+            keyboard.hideIfVisible {
+                viewModel.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
+            }
+        },
+        onPickPicture = { pickPicture.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
+        onChangeCurrency = {
+            keyboard.hideIfVisible {
+                flowNavigator.navigateTo(NewGroupStep.SelectCurrency)
+            }
+        },
+        onPresetSelected = {
+            viewModel.dispatchEvent(CreateGroupViewModel.Event.OnAmountSelected(it))
+        },
+        onCustomAmount = {
+            keyboard.hideIfVisible {
+                flowNavigator.navigateTo(NewGroupStep.CustomAmount)
+            }
+        },
+    )
+}
+
+/**
+ * The form itself, drawn from [state] alone so it can be shown without the flow or the view model.
+ *
+ * The three currency callbacks only matter on the public form, which is the only one with a
+ * requirement section.
+ */
+@Composable
+internal fun NewGroupFormContent(
+    state: CreateGroupViewModel.State,
+    onBack: () -> Unit,
+    onCreate: () -> Unit,
+    onPickPicture: () -> Unit,
+    onChangeCurrency: () -> Unit = {},
+    onPresetSelected: (Fiat) -> Unit = {},
+    onCustomAmount: () -> Unit = {},
+) {
+    val keyboard = rememberKeyboardController()
+
     // A private group's form opens on its name with the keyboard up; the public form keeps its own.
     val nameFocus = remember { FocusRequester() }
     // Focus asked for before the push transition settles is dropped, so it waits the transition
@@ -112,17 +155,13 @@ internal fun NewGroupFormScreen(viewModel: CreateGroupViewModel) {
                 if (state.isPrivate) R.string.title_newPrivateGroup else R.string.title_newPublicGroup
             ),
             titleAlignment = Alignment.CenterHorizontally,
-            onBackIconClicked = { keyboard.hideIfVisible { flowNavigator.exitCanceled() } },
+            onBackIconClicked = onBack,
             endContent = {
                 CreateAction(
                     enabled = state.canCreate,
                     isLoading = state.processingState.loading,
                     isSuccess = state.processingState.success,
-                    onClick = {
-                        keyboard.hideIfVisible {
-                            viewModel.dispatchEvent(CreateGroupViewModel.Event.CreateRequested)
-                        }
-                    },
+                    onClick = onCreate,
                 )
             },
         )
@@ -156,7 +195,7 @@ internal fun NewGroupFormScreen(viewModel: CreateGroupViewModel) {
                             onKeyboardAction = { keyboard.hideIfVisible { } },
                         )
                     },
-                    onPick = { pickPicture.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly)) },
+                    onPick = onPickPicture,
                 )
 
                 // Node 11203:65: what a private group is, said once, where privacy is chosen, because
@@ -174,19 +213,9 @@ internal fun NewGroupFormScreen(viewModel: CreateGroupViewModel) {
             // A private group has no rules (StartChat's private_group case carries none).
             if (!state.isPrivate) RequirementSection(
                 state = state,
-                onChangeCurrency = {
-                    keyboard.hideIfVisible {
-                        flowNavigator.navigateTo(NewGroupStep.SelectCurrency)
-                    }
-                },
-                onPresetSelected = {
-                    viewModel.dispatchEvent(CreateGroupViewModel.Event.OnAmountSelected(it))
-                },
-                onCustomAmount = {
-                    keyboard.hideIfVisible {
-                        flowNavigator.navigateTo(NewGroupStep.CustomAmount)
-                    }
-                },
+                onChangeCurrency = onChangeCurrency,
+                onPresetSelected = onPresetSelected,
+                onCustomAmount = onCustomAmount,
             )
         }
     }

@@ -42,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -63,6 +64,9 @@ import dev.chrisbanes.haze.blur.hazeBlur
  * Cash shortcut draws its symbol at this size too, so the two read as the same control.
  */
 internal val CondensedSymbolFontSize = 22.sp
+
+/** The composer's Send Cash button. */
+internal const val SendCashButtonTag = "chat_send_cash_button"
 
 @Composable
 internal fun RowScope.SendCashButton(
@@ -137,6 +141,7 @@ internal fun RowScope.SendCashButton(
     Row(
         modifier = Modifier
             .addIf(!canType) { Modifier.weight(1f) }
+            .testTag(SendCashButtonTag)
             // Match the chat input's single-line height (~54dp; driven by its trailing send-icon
             // stack). Equal min width keeps the collapsed "$" state a square with even padding
             // instead of a short rectangle; the expanded "Send $" content grows past it.
