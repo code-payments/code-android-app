@@ -1,19 +1,28 @@
 package com.flipcash.app.core.ui
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.theme.FlipcashPreview
+import com.getcode.theme.CodeTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * Spec for the Group Money tab pill (frames node 13729:413 Groups, node 13729:744 Money): the
@@ -28,16 +37,31 @@ class GroupMoneyShellSpecTest {
 
     private val clicks = mutableListOf<NavBarButton>()
 
+    // The pill's side padding inside its glass, grid.x1 plus the indicator's overhang
+    // (staticGrid.x2). grid.x1 follows the screen's width class, so it is read from the theme.
+    private var pillPadding = 0.dp
+
     private fun setBar(shell: NavBarShell, selected: NavBarButton = NavBarButton.Chats) {
         composeRule.setContent {
             FlipcashPreview {
-                NavigationBar(
-                    state = rememberNavigationBarState(selectedTab = selected),
-                    onButtonClick = { clicks += it },
-                    shell = shell,
-                )
+                pillPadding = CodeTheme.dimens.grid.x1 + CodeTheme.dimens.staticGrid.x2
+                Box(Modifier.fillMaxWidth().testTag(HOST)) {
+                    NavigationBar(
+                        state = rememberNavigationBarState(selectedTab = selected),
+                        onButtonClick = { clicks += it },
+                        shell = shell,
+                    )
+                }
             }
         }
+    }
+
+    private fun bounds(tag: String) = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+
+    // Layout snaps to whole pixels, so a half-pixel split can land on either side.
+    private fun assertDpEquals(expected: Dp, actual: Dp) {
+        val onePixel = 1f / composeRule.density.density
+        assertEquals(expected.value, actual.value, onePixel + 0.01f, "expected $expected, was $actual")
     }
 
     @Test
@@ -80,6 +104,29 @@ class GroupMoneyShellSpecTest {
     }
 
     @Test
+    fun `the group money bar is sized to its two tabs and centred, not full width`() {
+        setBar(NavBarShell.GroupMoney)
+        val host = bounds(HOST)
+        val groups = bounds("nav_chats")
+        val money = bounds("nav_wallet")
+
+        val leftGap = groups.left - host.left
+        val rightGap = host.right - money.right
+        assertDpEquals(leftGap, rightGap)
+        assertTrue(leftGap > pillPadding + 1.dp, "the pill reaches the edges: gap $leftGap")
+        assertDpEquals(groups.right - groups.left, money.right - money.left)
+        assertDpEquals(groups.right, money.left)
+    }
+
+    @Test
+    fun `the classic bar still spans the width it is given`() {
+        setBar(NavBarShell.Classic)
+        val host = bounds(HOST)
+        assertDpEquals(pillPadding, bounds("nav_scanner").left - host.left)
+        assertDpEquals(pillPadding, host.right - bounds("nav_tipcard").right)
+    }
+
+    @Test
     fun `the bar defaults to the classic shell`() {
         composeRule.setContent {
             FlipcashPreview {
@@ -88,5 +135,9 @@ class GroupMoneyShellSpecTest {
         }
         composeRule.onNodeWithTag("nav_scanner").assertExists()
         composeRule.onNodeWithTag("nav_tipcard").assertExists()
+    }
+
+    private companion object {
+        const val HOST = "host"
     }
 }

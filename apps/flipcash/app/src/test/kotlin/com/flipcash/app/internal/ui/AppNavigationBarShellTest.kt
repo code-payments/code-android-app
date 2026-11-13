@@ -18,9 +18,9 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
- * Whether the bar (and the search button on it) is drawn, per shell. Under Group Money, Scanner and
- * You have no tab, so they are drawn without the bar however they were reached; under Classic every
- * tab keeps it, as on code/cash.
+ * Whether the bar is drawn, per shell, and whether it offers search. Under Group Money, Scanner and
+ * You have no tab, so they are drawn without the bar however they were reached, and the bar has no
+ * search button; under Classic every tab keeps the bar and its search button, as on code/cash.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
@@ -59,6 +59,12 @@ class AppNavigationBarShellTest {
     @Test
     fun `You pushed from the Money avatar is drawn without the bar`() {
         assertFalse(barShown(NavBarShell.GroupMoney, AppRoute.Tabs.Wallet, AppRoute.Tabs.Menu))
+    }
+
+    @Test
+    fun `only the Classic bar offers search`() {
+        assertTrue(NavBarShell.Classic.offersSearch)
+        assertFalse(NavBarShell.GroupMoney.offersSearch)
     }
 
     @Test

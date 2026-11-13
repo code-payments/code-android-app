@@ -102,11 +102,12 @@ internal class AppNavigationBarVisibility(
      * home can also hide it without leaving its route (the You tab's tip card expanding in place).
      *
      * Only the shell's own tab homes count: under [NavBarShell.GroupMoney] Scanner and You have no
-     * tab, so they are drawn without the bar and its search button (see OffBarTabs).
+     * tab, so they are drawn without the bar (see OffBarTabs).
      */
     val shown: Boolean by derivedStateOf {
         // Search keeps the bar: its pill and button hand over to Search's field (SearchMorph), and
-        // come back from it, rather than the whole bar sliding away.
+        // come back from it, rather than the whole bar sliding away. Only Classic has the button
+        // that opens Search (see offersSearch).
         val top = navigator.currentRouteKey
         (shell.value.isTabHome(top) || top is AppRoute.Messaging.Search) &&
             bottomBarMessages.value.isEmpty() &&
@@ -218,14 +219,16 @@ internal fun AppNavigationBar(
                     selectedTab = selectedTab ?: NavBarButton.Wallet,
                     chatListUnreadCount = chatListUnreadCount,
                 )
-                // The search button sits at the bar's trailing end, apart from the tabs, where
-                // iOS puts its search tab. It is as tall as the pill, which sizes to its content.
+                // Under Classic the search button sits at the bar's trailing end, apart from the
+                // tabs, where iOS puts its search tab. It is as tall as the pill, which sizes to its
+                // content. GroupMoney has no search button; its pill centres itself in the row.
                 var pillHeight by remember { mutableStateOf(0.dp) }
                 val density = LocalDensity.current
                 Row(
                     modifier = Modifier
                         .navigationBarsPadding()
-                        // Shared with the toast that rises out of the bar, so it is never wider.
+                        // Shared with the toast that rises out of the bar, so it is never wider
+                        // than this row. The Group Money pill is narrower than the row.
                         .padding(horizontal = FloatingChrome.horizontalInset)
                         .padding(bottom = CodeTheme.dimens.grid.x3),
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
@@ -260,19 +263,21 @@ internal fun AppNavigationBar(
                             )
                         }
                     }
-                    Box(
-                        modifier = with(searchMorph) {
-                            Modifier
-                                .size(pillHeight.takeIf { it > 0.dp } ?: SearchButtonFallbackSize)
-                                .morphButton()
-                        },
-                    ) {
-                        if (chromeShown) {
-                            SearchButton(
-                                modifier = Modifier.fillMaxSize(),
-                                hazeState = hazeState,
-                                onClick = searchMorph::open,
-                            )
+                    if (shell.offersSearch) {
+                        Box(
+                            modifier = with(searchMorph) {
+                                Modifier
+                                    .size(pillHeight.takeIf { it > 0.dp } ?: SearchButtonFallbackSize)
+                                    .morphButton()
+                            },
+                        ) {
+                            if (chromeShown) {
+                                SearchButton(
+                                    modifier = Modifier.fillMaxSize(),
+                                    hazeState = hazeState,
+                                    onClick = searchMorph::open,
+                                )
+                            }
                         }
                     }
                 }
@@ -280,6 +285,16 @@ internal fun AppNavigationBar(
         }
     }
 }
+
+/**
+ * Whether the bar draws the search button beside the tabs. Only Classic does: the Group Money bar
+ * holds Groups and Money alone (frames 1-01 and 1-02, node 13729:411), so it has no way into Search.
+ */
+internal val NavBarShell.offersSearch: Boolean
+    get() = when (this) {
+        NavBarShell.Classic -> true
+        NavBarShell.GroupMoney -> false
+    }
 
 /**
  * What a long-press on the You tab does: open the account switcher as a sheet, or nothing while
