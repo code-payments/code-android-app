@@ -128,14 +128,26 @@ fun NavigationBar(
     // camera, since its PreviewView runs in COMPATIBLE mode (a TextureView drawn in the Compose layer,
     // not a SurfaceView hole). With no HazeState it falls back to a near-opaque fill.
     val pillBackground = Modifier.floatingGlass(hazeState)
+    val horizontalPadding = CodeTheme.dimens.grid.x1 + indicatorOverhang
+
+    // Classic stretches the pill across the width it is given. GroupMoney sizes it to its tabs and
+    // centres it in that width (frames 1-01 and 1-02, node 13729:411). Each tab takes the classic
+    // design's 86.5pt item (node 10599:65384); 85 is the nearest fixed step.
+    val pillWidth = when (shell) {
+        NavBarShell.Classic -> Modifier
+        NavBarShell.GroupMoney -> Modifier
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .width(CodeTheme.dimens.staticGrid.x17 * order.size + horizontalPadding * 2)
+    }
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .then(modifier)
+            .then(pillWidth)
             .then(pillBackground)
             .padding(vertical = CodeTheme.dimens.grid.x1)
-            .padding(horizontal = CodeTheme.dimens.grid.x1 + indicatorOverhang),
+            .padding(horizontal = horizontalPadding),
     ) {
         val itemWidth = maxWidth / order.size
 
