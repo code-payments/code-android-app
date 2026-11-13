@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -101,7 +102,12 @@ class GroupInviteSheetGroupMoneyInviteSpec {
     fun `group money sheet puts Close at the start`() {
         show(NavBarShell.GroupMoney)
 
-        val close = composeRule.onNodeWithTag("action_close").fetchSemanticsNode().boundsInRoot
+        // The bar also subcomposes its leading control unplaced, to measure it (TopAppBarBase's
+        // "leftIcon_probe"), so a leading Close has a second, unplaced node with the same tag.
+        val placed = composeRule.onAllNodesWithTag("action_close").fetchSemanticsNodes()
+            .filter { it.layoutInfo.isPlaced }
+        assertEquals(1, placed.size, "one placed Close")
+        val close = placed.single().boundsInRoot
         val title = composeRule.onNodeWithText("Invite People").fetchSemanticsNode().boundsInRoot
         assertTrue(close.right <= title.left, "Close $close should sit left of the title $title")
     }
