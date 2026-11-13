@@ -78,6 +78,7 @@ import com.flipcash.app.core.chat.InviteHostAction
 import com.flipcash.app.core.media.rememberMediaUrl
 import com.flipcash.app.core.share.SharePreviewImage
 import com.flipcash.app.core.share.TipCodePreview
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.messenger.internal.invites.InviteLinkState
@@ -165,6 +166,12 @@ internal fun CodeNavigator.openInvitePeople(target: InvitePeopleTarget) = when (
     InvitePeopleTarget.CurrentInviteLink -> openInviteLinkShare()
     InvitePeopleTarget.PlainLink -> openGroupInvite()
 }
+
+/**
+ * Whether an Invite People entry opens the host's Invite sheet ([openInviteHost]) rather than the
+ * share sheet ([openGroupInvite]). The host sheet is for a viewer who can invite.
+ */
+internal fun inviteOpensHost(shell: NavBarShell, canInvite: Boolean): Boolean = canInvite
 
 /**
  * Opens the host's Invite sheet (frame 1m). It returns what to open next and closes, and the next
@@ -387,6 +394,7 @@ internal fun GroupInviteSheet(
 
     if (isGroupSubject(subject)) {
         GroupInviteSheetContent(
+            group = group,
             inviteUrl = inviteUrl,
             inviteLink = inviteLink,
             creating = creating,
@@ -604,7 +612,8 @@ internal fun GroupInviteSheet(
  * It wraps its height, so there is no list to scroll and no Recent Chats to send into.
  */
 @Composable
-private fun GroupInviteSheetContent(
+internal fun GroupInviteSheetContent(
+    group: ChatSubject.Group?,
     inviteUrl: String?,
     inviteLink: ShareToChatsSubject.GroupInviteLink?,
     creating: Boolean,
