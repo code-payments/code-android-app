@@ -84,6 +84,13 @@ import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.messenger.internal.screens.openGroupInvite
 import com.flipcash.app.messenger.internal.screens.openInviteHost
+import com.flipcash.app.messenger.internal.screens.inviteOpensHost
+import com.flipcash.app.messenger.internal.screens.invitePeopleTarget
+import com.flipcash.app.messenger.internal.screens.openInvitePeople
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -135,6 +142,8 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val inviteHost = hiltViewModel<InviteHostViewModel>()
     val canInviteByChat by inviteHost.canInvite.collectAsStateWithLifecycle()
     val canInvite = state.chatId?.let { canInviteByChat[it] } == true
+    val shell = LocalNavBarShell.current
+    val inviteScope = rememberCoroutineScope()
     LaunchedEffect(state.chatId, group?.isPrivate) {
         // Only a private group has invite links, and the answer is the server's, not the cached chat's.
         if (group?.isPrivate == true && isMember) state.chatId?.let(inviteHost::refresh)
@@ -264,11 +273,16 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                                     ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE)
                                 )
                                 // A host sees the link card sheet (frame 1m); a member without
-                                // can_invite keeps the single join link.
-                                if (canInvite) {
-                                    navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
-                                } else {
-                                    navigator.openGroupInvite()
+                                // can_invite keeps the single join link. Group Money opens the
+                                // sheet the transcript's Invite People opens (frame 1-07).
+                                when {
+                                    inviteOpensHost(shell, canInvite) ->
+                                        navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
+                                    shell == NavBarShell.GroupMoney -> inviteScope.launch {
+                                        val approve = state.chatId?.let { inviteHost.approveOn(it) } == true
+                                        navigator.openInvitePeople(invitePeopleTarget(canInvite, approve))
+                                    }
+                                    else -> navigator.openGroupInvite()
                                 }
                             },
                         )
