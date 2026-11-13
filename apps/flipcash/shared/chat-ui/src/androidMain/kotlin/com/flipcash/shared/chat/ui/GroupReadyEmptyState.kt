@@ -12,7 +12,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.flipcash.app.theme.FlipcashPreview
@@ -45,13 +44,13 @@ fun GroupReadyEmptyState(
     ) {
         Text(
             text = stringResource(Res.string.title_groupReadyEmpty),
-            style = CodeTheme.typography.screenTitle.copy(fontWeight = FontWeight.Bold),
+            style = CodeTheme.typography.screenTitle,
             color = CodeTheme.colors.textMain,
             textAlign = TextAlign.Center,
         )
         Text(
             text = stringResource(Res.string.subtitle_groupReadyEmpty),
-            style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.Normal),
+            style = CodeTheme.typography.textMessage,
             color = CodeTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
         )
