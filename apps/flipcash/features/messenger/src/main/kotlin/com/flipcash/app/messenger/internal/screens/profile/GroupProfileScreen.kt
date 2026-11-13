@@ -82,10 +82,7 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.rememberMutedLabel
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
-import com.flipcash.app.messenger.internal.screens.openGroupInvite
-import com.flipcash.app.messenger.internal.screens.openInviteHost
-import com.flipcash.app.messenger.internal.screens.inviteOpensHost
-import com.flipcash.app.messenger.internal.screens.InviteEntry
+import com.flipcash.app.messenger.internal.screens.openGroupInfoInvite
 import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
@@ -270,10 +267,8 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                                 // A host sees the link card sheet (frame 1m); a member without
                                 // can_invite keeps the single join link. Both are the classic
                                 // sheets under Group Money too.
-                                if (inviteOpensHost(shell, canInvite, InviteEntry.GroupInfo)) {
-                                    navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
-                                } else {
-                                    navigator.openGroupInvite(classic = true)
+                                navigator.openGroupInfoInvite(shell, canInvite) {
+                                    flowNavigator.navigateTo(ChatStep.ManageInvites)
                                 }
                             },
                         )

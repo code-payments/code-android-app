@@ -212,6 +212,18 @@ internal fun CodeNavigator.openInviteHost(onManageInvites: () -> Unit) {
 }
 
 /**
+ * Group Info's share button: the host's Invite sheet for a viewer who can invite, the classic join
+ * link otherwise. These are the sheets it opened before Group Money, in either [shell].
+ */
+internal fun CodeNavigator.openGroupInfoInvite(shell: NavBarShell, canInvite: Boolean, onManageInvites: () -> Unit) {
+    if (inviteOpensHost(shell, canInvite, InviteEntry.GroupInfo)) {
+        openInviteHost(onManageInvites)
+    } else {
+        openGroupInvite(classic = true)
+    }
+}
+
+/**
  * Opens what the host picked on their Invite sheet; [onManageInvites] opens Manage Invites in the
  * chat flow. The host sheet is a classic sheet, so the share sheets it opens are classic too.
  */
