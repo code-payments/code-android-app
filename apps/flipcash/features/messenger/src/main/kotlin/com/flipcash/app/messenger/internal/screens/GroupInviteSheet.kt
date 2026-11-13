@@ -78,7 +78,9 @@ import com.flipcash.app.core.chat.InviteHostAction
 import com.flipcash.app.core.media.rememberMediaUrl
 import com.flipcash.app.core.share.SharePreviewImage
 import com.flipcash.app.core.share.TipCodePreview
+import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.core.navigation.NavBarShell
+import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.messenger.internal.invites.InviteLinkState
@@ -171,7 +173,9 @@ internal fun CodeNavigator.openInvitePeople(target: InvitePeopleTarget) = when (
  * Whether an Invite People entry opens the host's Invite sheet ([openInviteHost]) rather than the
  * share sheet ([openGroupInvite]). The host sheet is for a viewer who can invite.
  */
-internal fun inviteOpensHost(shell: NavBarShell, canInvite: Boolean): Boolean = canInvite
+internal fun inviteOpensHost(shell: NavBarShell, canInvite: Boolean): Boolean =
+    // Group Money's sheet (frame 1-07) has no Approve switch or Manage Invites, so no entry opens it.
+    shell != NavBarShell.GroupMoney && canInvite
 
 /**
  * Opens the host's Invite sheet (frame 1m). It returns what to open next and closes, and the next
@@ -609,7 +613,9 @@ internal fun GroupInviteSheet(
 
 /**
  * The group sheets (spec surface 1): the link pill, one line under it, then Copy, Share and QR Code.
- * It wraps its height, so there is no list to scroll and no Recent Chats to send into.
+ * It wraps its height, so there is no list to scroll and no Recent Chats to send into. Under Group
+ * Money it is frame 1-07 (node 13729:672): Close at the start, the group's avatar and name, a line
+ * above the link and a caption under it, and the tiles read Copy Link, Share Link and QR Code.
  */
 @Composable
 internal fun GroupInviteSheetContent(
@@ -623,13 +629,29 @@ internal fun GroupInviteSheetContent(
     onShowCard: (() -> Unit)?,
     onDismiss: () -> Unit,
 ) {
+    val groupMoney = LocalNavBarShell.current == NavBarShell.GroupMoney
     Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
         AppBarWithTitle(
             title = stringResource(R.string.title_invitePeople),
             titleAlignment = Alignment.CenterHorizontally,
-            endContent = { AppBarDefaults.Close(onClick = onDismiss) },
+            onBackIconClicked = if (groupMoney) onDismiss else null,
+            leadingDismiss = groupMoney,
+            endContent = { if (!groupMoney) AppBarDefaults.Close(onClick = onDismiss) },
         )
         if (inviteUrl == null && inviteLink == null) return@Column
+        if (groupMoney) {
+            GroupMoneyInviteBody(group = group, inviteUrl = inviteUrl, inviteLink = inviteLink) {
+                GroupInviteTileRow(
+                    groupMoney = true,
+                    creating = creating,
+                    copied = copied,
+                    onCopy = onCopy,
+                    onShare = onShare,
+                    onShowCard = onShowCard,
+                )
+            }
+            return@Column
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -647,42 +669,137 @@ internal fun GroupInviteSheetContent(
                 style = CodeTheme.typography.textSmall,
                 color = White50,
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Min)
-                    .padding(top = TileRowBottom),
-                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+            GroupInviteTileRow(
+                modifier = Modifier.padding(top = TileRowBottom),
+                groupMoney = false,
+                creating = creating,
+                copied = copied,
+                onCopy = onCopy,
+                onShare = onShare,
+                onShowCard = onShowCard,
+            )
+        }
+    }
+}
+
+/**
+ * Frame 1-07's body (node 13729:684): the group's avatar and name, the line above the link, the link
+ * with its caption, then [tiles], centred down the sheet.
+ */
+@Composable
+private fun GroupMoneyInviteBody(
+    group: ChatSubject.Group?,
+    inviteUrl: String?,
+    inviteLink: ShareToChatsSubject.GroupInviteLink?,
+    tiles: @Composable () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = ListInset)
+            .padding(top = GroupPillTop, bottom = GroupSheetBottom),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6),
+    ) {
+        if (group != null) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
-                GroupInviteTileOrder.forEach { tile ->
-                    val tileModifier = Modifier.weight(1f).fillMaxHeight()
-                    when (tile) {
-                        GroupInviteTile.Copy -> InviteLinkTile(
-                            modifier = tileModifier,
-                            enabled = !creating,
-                            icon = if (copied) R.drawable.ic_check else R.drawable.ic_copy,
-                            label = stringResource(
-                                if (copied) R.string.action_inviteLinkCopied else R.string.action_copy
-                            ),
-                            onClick = onCopy,
-                        )
-                        GroupInviteTile.Share -> InviteLinkTile(
-                            modifier = tileModifier,
-                            enabled = !creating,
-                            icon = R.drawable.ic_share_os,
-                            label = stringResource(R.string.action_shareInviteLink),
-                            onClick = onShare,
-                        )
-                        GroupInviteTile.QrCode -> if (onShowCard != null) InviteLinkTile(
-                            modifier = tileModifier,
-                            enabled = !creating,
-                            icon = R.drawable.ic_nav_tipcard,
-                            label = stringResource(R.string.action_qrCode),
-                            onClick = onShowCard,
-                            testTag = GroupCardTileTag,
-                        )
-                    }
-                }
+                ChatSubjectAvatar(subject = group, modifier = Modifier.size(CodeTheme.dimens.grid.x12))
+                Text(
+                    text = group.title,
+                    style = CodeTheme.typography.screenTitle,
+                    color = CodeTheme.colors.textMain,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+        Text(
+            text = stringResource(R.string.label_inviteLinkSendHintGroup),
+            style = CodeTheme.typography.textMedium,
+            color = CodeTheme.colors.textMain,
+            textAlign = TextAlign.Center,
+        )
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+        ) {
+            if (inviteLink != null) {
+                InviteLinkPill(link = inviteLink.link, showsMeta = false)
+            } else if (inviteUrl != null) {
+                PlainLinkPill(url = inviteUrl)
+            }
+            Text(
+                text = stringResource(R.string.caption_inviteLinkAnyoneJoins),
+                style = CodeTheme.typography.textSmall,
+                color = White50,
+                textAlign = TextAlign.Center,
+            )
+        }
+        tiles()
+    }
+}
+
+/**
+ * Copy, Share and QR Code in [GroupInviteTileOrder], splitting the row. Group Money's tiles (frame
+ * 1-07, node 13729:694) read Copy Link and Share Link, with white labels.
+ */
+@Composable
+private fun GroupInviteTileRow(
+    groupMoney: Boolean,
+    creating: Boolean,
+    copied: Boolean,
+    onCopy: () -> Unit,
+    onShare: () -> Unit,
+    onShowCard: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val labelColor = if (groupMoney) CodeTheme.colors.textMain else White50
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .then(modifier),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+    ) {
+        GroupInviteTileOrder.forEach { tile ->
+            val tileModifier = Modifier.weight(1f).fillMaxHeight()
+            when (tile) {
+                GroupInviteTile.Copy -> InviteLinkTile(
+                    modifier = tileModifier,
+                    enabled = !creating,
+                    icon = if (copied) R.drawable.ic_check else R.drawable.ic_copy,
+                    label = stringResource(
+                        when {
+                            copied -> R.string.action_inviteLinkCopied
+                            groupMoney -> R.string.action_copyLink
+                            else -> R.string.action_copy
+                        }
+                    ),
+                    labelColor = labelColor,
+                    onClick = onCopy,
+                )
+                GroupInviteTile.Share -> InviteLinkTile(
+                    modifier = tileModifier,
+                    enabled = !creating,
+                    icon = R.drawable.ic_share_os,
+                    label = stringResource(
+                        if (groupMoney) R.string.action_shareLink else R.string.action_shareInviteLink
+                    ),
+                    labelColor = labelColor,
+                    onClick = onShare,
+                )
+                GroupInviteTile.QrCode -> if (onShowCard != null) InviteLinkTile(
+                    modifier = tileModifier,
+                    enabled = !creating,
+                    icon = R.drawable.ic_nav_tipcard,
+                    label = stringResource(R.string.action_qrCode),
+                    labelColor = labelColor,
+                    onClick = onShowCard,
+                    testTag = GroupCardTileTag,
+                )
             }
         }
     }
@@ -701,6 +818,7 @@ private fun InviteLinkTile(
     modifier: Modifier = Modifier,
     testTag: String? = null,
     enabled: Boolean = true,
+    labelColor: Color = White50,
 ) {
     Column(
         modifier = modifier
@@ -723,7 +841,7 @@ private fun InviteLinkTile(
         Text(
             text = label,
             style = CodeTheme.typography.textSmall,
-            color = White50,
+            color = labelColor,
             textAlign = TextAlign.Center,
         )
     }
