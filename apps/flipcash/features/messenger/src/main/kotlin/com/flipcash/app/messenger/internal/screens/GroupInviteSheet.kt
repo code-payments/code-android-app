@@ -706,7 +706,10 @@ private fun GroupMoneyInviteBody(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
-                ChatSubjectAvatar(subject = group, modifier = Modifier.size(CodeTheme.dimens.grid.x12))
+                ChatSubjectAvatar(
+                    subject = group,
+                    modifier = Modifier.size(CodeTheme.dimens.grid.x12).clip(CircleShape),
+                )
                 Text(
                     text = group.title,
                     style = CodeTheme.typography.screenTitle,
