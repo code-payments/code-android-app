@@ -1,7 +1,11 @@
 package com.flipcash.app.messenger.internal.screens
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -52,22 +56,35 @@ class GroupInviteSheetGroupMoneyInviteSpec {
     private fun show(shell: NavBarShell) {
         composeRule.setContent {
             CompositionLocalProvider(LocalNavBarShell provides shell) {
-                FlipcashPreview(showBackground = true) {
-                    GroupInviteSheetContent(
-                        group = group,
-                        inviteUrl = "https://app.flipcash.com/chat/road-trip",
-                        inviteLink = null,
-                        creating = false,
-                        copied = false,
-                        onCopy = { copied++ },
-                        onShare = { shared++ },
-                        onShowCard = { shownCard++ },
-                        onDismiss = {},
-                    )
+                Box(Modifier.fillMaxSize().testTag(ScreenTag)) {
+                    FlipcashPreview(showBackground = true) {
+                        Box(Modifier.testTag(SheetTag)) {
+                            GroupInviteSheetContent(
+                                group = group,
+                                inviteUrl = "https://app.flipcash.com/chat/road-trip",
+                                inviteLink = null,
+                                creating = false,
+                                copied = false,
+                                onCopy = { copied++ },
+                                onShare = { shared++ },
+                                onShowCard = { shownCard++ },
+                                onDismiss = {},
+                            )
+                        }
+                    }
                 }
             }
         }
         composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `group money sheet wraps its content rather than filling the screen`() {
+        show(NavBarShell.GroupMoney)
+
+        val sheet = composeRule.onNodeWithTag(SheetTag).fetchSemanticsNode().boundsInRoot
+        val screen = composeRule.onNodeWithTag(ScreenTag).fetchSemanticsNode().boundsInRoot
+        assertTrue(sheet.height < screen.height, "sheet $sheet should wrap its content on screen $screen")
     }
 
     @Test
@@ -145,5 +162,10 @@ class GroupInviteSheetGroupMoneyInviteSpec {
         val close = composeRule.onNodeWithTag("action_close").fetchSemanticsNode().boundsInRoot
         val title = composeRule.onNodeWithText("Invite People").fetchSemanticsNode().boundsInRoot
         assertTrue(close.left >= title.right, "classic Close $close stays right of the title $title")
+    }
+
+    private companion object {
+        const val SheetTag = "invite-sheet"
+        const val ScreenTag = "screen"
     }
 }
