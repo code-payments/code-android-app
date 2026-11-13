@@ -1670,6 +1670,9 @@
     <string name="title_flipcashSender" translatable="false">Flipcash</string>
     <string name="title_groupReady">Your Group Is Ready</string>
     <string name="subtitle_groupReady">Invite people to join %1$s</string>
+    <!-- Group Money's version of the card: a centred empty state at the top of the transcript (frame 1-06, node 13729:658). -->
+    <string name="title_groupReadyEmpty">Your group is ready</string>
+    <string name="subtitle_groupReadyEmpty">Invite people to join your group.</string>
     <string name="action_shareInviteLink">Share</string>
     <string name="label_recentChats">Recent Chats</string>
     <!-- Invite links for a private group's host (spec group-invites.md, nodes 12844:60 to 12844:395). -->
