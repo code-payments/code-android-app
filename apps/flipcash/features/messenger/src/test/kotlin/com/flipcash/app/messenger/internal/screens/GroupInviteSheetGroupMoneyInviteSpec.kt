@@ -200,6 +200,21 @@ class GroupInviteSheetGroupMoneyInviteSpec {
     }
 
     @Test
+    fun `group info opens the classic sheets in either shell`() {
+        NavBarShell.entries.forEach { shell ->
+            val host = recordingNavigator()
+            host.openGroupInfoInvite(shell, canInvite = true) {}
+            verify { host.navigate(ChatStep.InviteHost, any()) }
+            verify(exactly = 0) { host.navigate(ChatStep.InviteToGroup(classic = false), any()) }
+
+            val member = recordingNavigator()
+            member.openGroupInfoInvite(shell, canInvite = false) {}
+            verify { member.navigate(ChatStep.InviteToGroup(classic = true), any()) }
+            verify(exactly = 0) { member.navigate(ChatStep.InviteHost, any()) }
+        }
+    }
+
+    @Test
     fun `entries other than group info open the group money share sheets`() {
         val navigator = recordingNavigator()
 
