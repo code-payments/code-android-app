@@ -59,9 +59,7 @@ fun GroupReadyEmptyState(
         CodeButton(
             text = stringResource(Res.string.title_invitePeople),
             buttonState = ButtonState.Filled,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = CodeTheme.dimens.grid.x4),
+            modifier = Modifier.fillMaxWidth(),
             onClick = onInvite,
         )
     }
