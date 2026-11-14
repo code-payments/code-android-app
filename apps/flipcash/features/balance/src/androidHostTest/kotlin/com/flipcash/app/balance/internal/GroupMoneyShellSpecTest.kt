@@ -91,6 +91,8 @@ class GroupMoneyShellSpecTest {
                     tokenState = tokenState,
                     dispatchEvent = { events += it },
                     money = money,
+                    // The bar WalletScreen hands the tab; the classic wallet must not draw it.
+                    topBar = { MoneyTitleBar(profileAvatar = {}, dispatchEvent = { events += it }) },
                 )
             }
         }

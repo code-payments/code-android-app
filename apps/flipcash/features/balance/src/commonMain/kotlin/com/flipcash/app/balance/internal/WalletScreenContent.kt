@@ -7,7 +7,6 @@ import com.flipcash.core.resources.action_addDollars
 import com.flipcash.core.resources.action_addMoney
 import com.flipcash.core.resources.action_withdraw
 import com.flipcash.core.resources.label_currencyCount
-import com.flipcash.core.resources.title_tabMoney
 import com.getcode.util.resources.ic_chevron_right
 import com.getcode.util.resources.Res as UiRes
 import org.jetbrains.compose.resources.pluralStringResource
@@ -34,8 +33,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -53,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.cardexpand.CardExpansionController
@@ -77,7 +76,12 @@ import com.flipcash.shared.transactionhistory.moneyActivitySection
 import com.flipcash.shared.transactionhistory.recentActivitySection
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.TopScrollEdge
 import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.theme.ScaffoldBarPlacement
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 
 private const val TokenStackKey = "tokenStack"
 
@@ -86,7 +90,7 @@ fun WalletScreen(
     viewModel: WalletViewModel,
     tokenViewModel: SelectTokenViewModel,
     money: Boolean = false,
-    profileAvatar: @Composable () -> Unit = {},
+    topBar: @Composable () -> Unit = {},
 ) {
     val balanceState by viewModel.stateFlow.collectAsStateWithLifecycle()
     val tokenState by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
@@ -95,17 +99,20 @@ fun WalletScreen(
         tokenState = tokenState,
         dispatchEvent = viewModel::dispatchEvent,
         money = money,
-        profileAvatar = profileAvatar,
+        topBar = topBar,
     )
 }
 
+/**
+ * @param topBar The Money tab's title bar, drawn only when [money]. The wallet has no title bar.
+ */
 @Composable
 internal fun WalletScreenContent(
     balanceState: WalletViewModel.State,
     tokenState: SelectTokenViewModel.State,
     dispatchEvent: (WalletViewModel.Event) -> Unit,
     money: Boolean = false,
-    profileAvatar: @Composable () -> Unit = {},
+    topBar: @Composable () -> Unit = {},
 ) {
     // Time-to-full-display for a logged-in launch. This tab is where the app lands, and the gate
     // below means "landed" is not the same frame as "composed" -- registering a reporter here holds
@@ -113,6 +120,61 @@ internal fun WalletScreenContent(
     // the same condition as that gate: what the launch is finished for is the balance and the deck.
     ReportDrawnWhenSeam { !tokenState.isAwaitingTokens }
 
+    // Above the loading gate so the Money bar's scroll edge has it while the tab loads.
+    val listState = rememberLazyListState()
+
+    if (!money) {
+        // The wallet's header starts 96 dp down, so the list never needed to clear the status bar.
+        WalletBody(
+            balanceState = balanceState,
+            tokenState = tokenState,
+            dispatchEvent = dispatchEvent,
+            money = false,
+            listState = listState,
+            listTop = CodeTheme.dimens.inset,
+        )
+        return
+    }
+
+    // Pinned the way the Groups tab pins its bar: the list runs the full height and passes under the
+    // bar, blurring into it (TopScrollEdge), and at rest starts clear of it. The bar sits outside the
+    // loading gate, so the title is in place before the balance is.
+    val hazeState = rememberHazeState()
+    CodeScaffold(
+        barPlacement = ScaffoldBarPlacement.Overlay,
+        topBar = topBar,
+    ) { barPadding ->
+        val barHeight = barPadding.calculateTopPadding()
+        Box(modifier = Modifier.fillMaxSize()) {
+            WalletBody(
+                balanceState = balanceState,
+                tokenState = tokenState,
+                dispatchEvent = dispatchEvent,
+                money = true,
+                listState = listState,
+                listTop = barHeight,
+                listModifier = Modifier.hazeSource(hazeState),
+            )
+            TopScrollEdge(hazeState = hazeState, listState = listState, height = barHeight)
+        }
+    }
+}
+
+/**
+ * The tab below its title bar: a spinner until the token set arrives, then the list.
+ *
+ * @param listTop The list's top content padding, where its first row comes to rest.
+ */
+@Composable
+private fun WalletBody(
+    balanceState: WalletViewModel.State,
+    tokenState: SelectTokenViewModel.State,
+    dispatchEvent: (WalletViewModel.Event) -> Unit,
+    money: Boolean,
+    listState: LazyListState,
+    listTop: Dp,
+    listModifier: Modifier = Modifier,
+) {
     // The tab waits on the token set and nothing else. Tokens are what the balance and the card deck
     // are made of, so there is no drawing the tab without them; the activity preview and the Add Money
     // row are separate reads that arrive later and fill in underneath.
@@ -163,7 +225,6 @@ internal fun WalletScreenContent(
         arrivingMint = null
     }
 
-    val listState = rememberLazyListState()
     // Px the token stack has scrolled above the viewport top, read live so the stack collapses (then
     // releases and scrolls off) as the list scrolls. A lambda so the stack reads it in its placement
     // phase without recomposing.
@@ -190,13 +251,11 @@ internal fun WalletScreenContent(
         // Only ever in the tree past the loading gate above, so it is the anchor for "the wallet
         // drew its content" -- what the startup benchmark waits on before it stops the trace. Same
         // condition as ReportDrawnWhenSeam above, so the trace stays open exactly as long as the report.
-        modifier = Modifier
+        modifier = listModifier
             .fillMaxSize()
             .testTag("wallet_content"),
         contentPadding = PaddingValues(
-            // Money opens on its title, so it clears the status bar itself; the wallet's header starts
-            // 96 dp down and never needed to.
-            top = if (money) statusBarInset + CodeTheme.dimens.grid.x2 else CodeTheme.dimens.inset,
+            top = listTop,
             start = CodeTheme.dimens.inset,
             end = CodeTheme.dimens.inset,
             // Clearance under the last row (the action tiles) once the list is scrolled to the end. The
@@ -211,7 +270,6 @@ internal fun WalletScreenContent(
                     ?: tokenState.totalBalance,
                 currencyCount = tokenState.tokens?.size ?: 0,
                 balanceAlpha = { 1f - heroProgress() },
-                profileAvatar = profileAvatar,
                 dispatchEvent = dispatchEvent,
             )
         } else item {
@@ -423,9 +481,9 @@ internal fun WalletScreenContent(
 }
 
 /**
- * The top of the Money tab (node 13729:744): its title with the profile avatar that opens You, the
- * balance alone, the number of currencies held, which opens their list, and Add Money beside Withdraw.
- * Both buttons start today's flows, the same ones the wallet's tiles start.
+ * The top of the Money tab under its title bar (node 13729:744): the balance alone, the number of
+ * currencies held, which opens their list, and Add Money beside Withdraw. Both buttons start today's
+ * flows, the same ones the wallet's tiles start.
  *
  * @param balanceAlpha The balance's opacity, read in the draw phase so a currency opening over the
  *   tab fades it the way it fades the wallet's.
@@ -434,33 +492,8 @@ private fun LazyListScope.moneyHeader(
     balance: LocalFiat?,
     currencyCount: Int,
     balanceAlpha: () -> Float,
-    profileAvatar: @Composable () -> Unit,
     dispatchEvent: (WalletViewModel.Event) -> Unit,
 ) {
-    item(key = "money_title") {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                modifier = Modifier.weight(1f),
-                text = stringResource(Res.string.title_tabMoney),
-                style = CodeTheme.typography.screenTitleLarge,
-                color = CodeTheme.colors.textMain,
-            )
-            Box(
-                modifier = Modifier
-                    .size(CodeTheme.dimens.staticGrid.x8)
-                    .clip(CircleShape)
-                    .clickable { dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Tabs.Menu)) }
-                    .testTag("money_profile"),
-                contentAlignment = Alignment.Center,
-            ) {
-                profileAvatar()
-            }
-        }
-    }
-
     item(key = "money_balance") {
         BalanceHeader(
             modifier = Modifier

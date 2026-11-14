@@ -8,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.flipcash.app.balance.internal.HiltWalletViewModel
+import com.flipcash.app.balance.internal.MoneyTitleBar
 import com.flipcash.app.balance.internal.WalletViewModel
 import com.flipcash.app.balance.internal.WalletScreen
 import com.flipcash.app.core.AppRoute
@@ -25,7 +26,7 @@ import kotlinx.coroutines.flow.onEach
  * The wallet tab's home.
  *
  * @param money Lays the wallet out as the Money tab of the group money shell (node 13729:744).
- * @param profileAvatar The viewer's avatar in the Money title; tapping it opens You.
+ * @param profileAvatar The viewer's avatar in the Money title bar; tapping it opens You.
  */
 @Composable
 fun WalletScreen(
@@ -39,7 +40,12 @@ fun WalletScreen(
     ) {
         val viewModel = hiltViewModel<HiltWalletViewModel>()
         val tokenViewModel = hiltViewModel<HiltSelectTokenViewModel>()
-        WalletScreen(viewModel, tokenViewModel, money = money, profileAvatar = profileAvatar)
+        WalletScreen(
+            viewModel,
+            tokenViewModel,
+            money = money,
+            topBar = { MoneyTitleBar(profileAvatar = profileAvatar, dispatchEvent = viewModel::dispatchEvent) },
+        )
 
         LaunchedEffect(tokenViewModel) {
             tokenViewModel.dispatchEvent(

@@ -30,8 +30,8 @@ import com.flipcash.core.resources.message_chatsArchived
 import com.flipcash.core.resources.title_tabChat
 import com.flipcash.core.resources.title_tabGroups
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
+import com.getcode.ui.components.AppBarWithLargeTitle
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.toast.LocalFloatingToastHost
 import kotlinx.coroutines.launch
@@ -117,8 +117,8 @@ fun ChatsScreen() {
 /**
  * The chat list's title bar outside select mode. The classic shell centres "Chat" between the "…"
  * menu (Select Chats, Read All) and Add. Group Money's Groups tab has no "…": its title sits flush
- * start in the Money tab's title style, with Add alone at the end (frame 1-01, node 13729:420), and
- * a long press on a row is the way into select mode.
+ * start with Add alone at the end (frame 1-01, node 13729:420), and a long press on a row is the way
+ * into select mode.
  */
 @Composable
 internal fun ChatsTitleBar(
@@ -127,12 +127,9 @@ internal fun ChatsTitleBar(
     onReadAll: () -> Unit,
 ) {
     when (LocalNavBarShell.current) {
-        NavBarShell.GroupMoney -> AppBarWithTitle(
+        // The Money tab draws its title through the same bar, so switching tabs leaves it in place.
+        NavBarShell.GroupMoney -> AppBarWithLargeTitle(
             title = stringResource(Res.string.title_tabGroups),
-            titleTextStyle = CodeTheme.typography.screenTitleLarge,
-            // With nothing in the leading slot, a Start title sits at the inset, where the Money
-            // tab's title sits.
-            titleAlignment = Alignment.Start,
             endContent = { ChatsAddAction() },
         )
         NavBarShell.Classic -> AppBarWithTitle(
