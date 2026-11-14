@@ -32,8 +32,9 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.ui.layout.Layout
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -72,7 +73,8 @@ import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.core.ui.TileButtonStyle
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
-import com.flipcash.shared.transactionhistory.moneyActivitySection
+import com.flipcash.shared.transactionhistory.FeedSyncState
+import com.flipcash.shared.transactionhistory.MoneyActivitySection
 import com.flipcash.shared.transactionhistory.recentActivitySection
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.getcode.theme.CodeTheme
@@ -122,6 +124,16 @@ internal fun WalletScreenContent(
 
     // Above the loading gate so the Money bar's scroll edge has it while the tab loads.
     val listState = rememberLazyListState()
+
+    // Money's activity runs to the bottom of the tab, so it previews more rows than the wallet's
+    // three. Sent both ways, so turning the layout off in Beta Features gives the wallet its three back.
+    LaunchedEffect(money) {
+        dispatchEvent(
+            WalletViewModel.Event.OnActivityPreviewSizeChanged(
+                if (money) WalletViewModel.MONEY_PREVIEW_COUNT else WalletViewModel.RECENT_PREVIEW_COUNT
+            )
+        )
+    }
 
     if (!money) {
         // The wallet's header starts 96 dp down, so the list never needed to clear the status bar.
@@ -264,14 +276,35 @@ private fun WalletBody(
             bottom = LocalTabBarPadding.current.calculateBottomPadding() + CodeTheme.dimens.grid.x8,
         ),
     ) {
-        if (money) {
-            moneyHeader(
-                balance = reveal?.let { LocalFiat.fromUsd(it.totalBefore, tokenState.rate) }
-                    ?: tokenState.totalBalance,
-                currencyCount = tokenState.tokens?.size ?: 0,
-                balanceAlpha = { 1f - heroProgress() },
-                dispatchEvent = dispatchEvent,
-            )
+        if (money) item(key = "money", contentType = "money") {
+            // Recent Activity takes the height left under the balance and its buttons, down to the
+            // bottom of the list (node 13729:744), and grows past it when it has more rows than fit.
+            StretchLastToList {
+                MoneyHeader(
+                    balance = reveal?.let { LocalFiat.fromUsd(it.totalBefore, tokenState.rate) }
+                        ?: tokenState.totalBalance,
+                    currencyCount = tokenState.tokens?.size ?: 0,
+                    balanceAlpha = { 1f - heroProgress() },
+                    dispatchEvent = dispatchEvent,
+                )
+                MoneyActivitySection(
+                    transactions = balanceState.transactions,
+                    // Until a fetch has answered, an empty feed is a cache that has not heard from
+                    // the server, and an established account must not be told it has no activity.
+                    showEmpty = balanceState.feedSyncState != FeedSyncState.Unknown,
+                    modifier = Modifier
+                        .padding(top = grid.x6)
+                        .testTag("money_activity"),
+                    headerModifier = Modifier
+                        .clickable {
+                            dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Sheets.ActivityHistory))
+                        }
+                        .padding(top = grid.x4, bottom = grid.x1),
+                    onItemClick = { item ->
+                        dispatchEvent(WalletViewModel.Event.OpenTransaction(item))
+                    },
+                )
+            }
         } else item {
             // v2 wallet header: 96 dp top / 44 dp bottom per Figma node 8966:1578.
             BalanceHeader(
@@ -368,20 +401,7 @@ private fun WalletBody(
             }
         }
 
-        if (money && balanceState.transactions.isNotEmpty()) {
-            moneyActivitySection(
-                transactions = balanceState.transactions,
-                modifier = Modifier
-                    .padding(top = grid.x6)
-                    .clickable {
-                        dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Sheets.ActivityHistory))
-                    }
-                    .padding(top = grid.x4, bottom = grid.x1),
-                onItemClick = { item ->
-                    dispatchEvent(WalletViewModel.Event.OpenTransaction(item))
-                },
-            )
-        } else if (balanceState.transactions.isNotEmpty()) {
+        if (!money && balanceState.transactions.isNotEmpty()) {
             // Preview of the most recent activity (newest first); the full paged history lives on its own
             // screen. Tap the header to dive in. Shared with the token-info screen for consistency.
             recentActivitySection(
@@ -488,13 +508,15 @@ private fun WalletBody(
  * @param balanceAlpha The balance's opacity, read in the draw phase so a currency opening over the
  *   tab fades it the way it fades the wallet's.
  */
-private fun LazyListScope.moneyHeader(
+@Composable
+private fun MoneyHeader(
     balance: LocalFiat?,
     currencyCount: Int,
     balanceAlpha: () -> Float,
     dispatchEvent: (WalletViewModel.Event) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    item(key = "money_balance") {
+    Column(modifier = modifier.fillMaxWidth()) {
         BalanceHeader(
             modifier = Modifier
                 .fillMaxWidth()
@@ -507,9 +529,7 @@ private fun LazyListScope.moneyHeader(
         ) {
             dispatchEvent(WalletViewModel.Event.OpenCurrencySelection)
         }
-    }
 
-    item(key = "money_currency_count") {
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Row(
                 modifier = Modifier
@@ -535,9 +555,7 @@ private fun LazyListScope.moneyHeader(
                 )
             }
         }
-    }
 
-    item(key = "money_actions") {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -558,6 +576,46 @@ private fun LazyListScope.moneyHeader(
             ) {
                 // No preselected mint, as from the wallet's tile: the flow opens on the currency picker.
                 dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Transfers.Withdrawal(preselectedMint = null)))
+            }
+        }
+    }
+}
+
+/**
+ * [content]'s children top to bottom, the last stretched so the whole is at least as tall as the
+ * list: what the list has left once the children above it are drawn. Content taller than the list
+ * keeps its own height and scrolls.
+ */
+@Composable
+private fun LazyItemScope.StretchLastToList(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Layout(
+        modifier = modifier,
+        content = {
+            // Measured, never placed. fillParentMaxHeight is how an item reads the list's height in
+            // the same pass, and the list has already taken its content padding off it.
+            Spacer(Modifier.fillParentMaxHeight())
+            content()
+        },
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minHeight = 0)
+        val listHeight = measurables.first().measure(loose).height
+        val children = measurables.drop(1)
+        val above = children.dropLast(1).map { it.measure(loose) }
+        val used = above.sumOf { it.height }
+        val last = children.lastOrNull()
+            ?.measure(loose.copy(minHeight = (listHeight - used).coerceIn(0, loose.maxHeight)))
+        val placeables = above + listOfNotNull(last)
+        val width = (placeables.maxOfOrNull { it.width } ?: 0)
+            .coerceIn(constraints.minWidth, constraints.maxWidth)
+        val height = placeables.sumOf { it.height }.coerceAtLeast(constraints.minHeight)
+        layout(width, height) {
+            var y = 0
+            placeables.forEach { placeable ->
+                placeable.place(0, y)
+                y += placeable.height
             }
         }
     }
