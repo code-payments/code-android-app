@@ -1,10 +1,13 @@
 package com.flipcash.app.tipping
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
@@ -33,6 +36,8 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.EmptyCodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarDefaults
+import com.getcode.ui.components.AppBarWithLargeTitle
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -104,6 +109,30 @@ class ChatsTitleBarShellTest {
         setBar(NavBarShell.GroupMoney)
 
         composeRule.onNodeWithTag("action_add").assertExists()
+    }
+
+    @Test
+    fun `group money draws its title and Add where the Money tab's bar draws its own`() {
+        setContent(NavBarShell.GroupMoney) {
+            Box(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxSize()) {
+                    ChatsTitleBar(canReadAll = true, onSelectChats = {}, onReadAll = {})
+                }
+                // The bar MoneyTitleBar draws, with a control of Add's size at the end.
+                Box(Modifier.fillMaxSize()) {
+                    AppBarWithLargeTitle(title = "Money", endContent = { AppBarDefaults.Add {} })
+                }
+            }
+        }
+
+        val groups = composeRule.onNodeWithText("Groups").getBoundsInRoot()
+        val money = composeRule.onNodeWithText("Money").getBoundsInRoot()
+        val seen = "Groups $groups, Money $money"
+        assertEquals(money.left, groups.left, "start, $seen")
+        assertEquals(money.top, groups.top, "top, $seen")
+        assertEquals(money.bottom, groups.bottom, "bottom, $seen")
+        val adds = composeRule.onAllNodesWithTag("action_add")
+        assertEquals(adds[1].getBoundsInRoot(), adds[0].getBoundsInRoot(), "Add")
     }
 
     @Test
