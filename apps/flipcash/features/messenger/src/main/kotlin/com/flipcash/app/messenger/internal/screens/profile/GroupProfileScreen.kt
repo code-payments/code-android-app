@@ -82,8 +82,8 @@ import com.flipcash.app.messenger.internal.ChatViewModel
 import com.flipcash.app.messenger.internal.rememberMutedLabel
 import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
-import com.flipcash.app.messenger.internal.screens.openGroupInvite
-import com.flipcash.app.messenger.internal.screens.openInviteHost
+import com.flipcash.app.messenger.internal.screens.openGroupInfoInvite
+import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.models.chat.ChatRuleRequirement
@@ -135,6 +135,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
     val inviteHost = hiltViewModel<InviteHostViewModel>()
     val canInviteByChat by inviteHost.canInvite.collectAsStateWithLifecycle()
     val canInvite = state.chatId?.let { canInviteByChat[it] } == true
+    val shell = LocalNavBarShell.current
     LaunchedEffect(state.chatId, group?.isPrivate) {
         // Only a private group has invite links, and the answer is the server's, not the cached chat's.
         if (group?.isPrivate == true && isMember) state.chatId?.let(inviteHost::refresh)
@@ -264,11 +265,10 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                                     ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE)
                                 )
                                 // A host sees the link card sheet (frame 1m); a member without
-                                // can_invite keeps the single join link.
-                                if (canInvite) {
-                                    navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }
-                                } else {
-                                    navigator.openGroupInvite()
+                                // can_invite keeps the single join link. Both are the classic
+                                // sheets under Group Money too.
+                                navigator.openGroupInfoInvite(shell, canInvite) {
+                                    flowNavigator.navigateTo(ChatStep.ManageInvites)
                                 }
                             },
                         )

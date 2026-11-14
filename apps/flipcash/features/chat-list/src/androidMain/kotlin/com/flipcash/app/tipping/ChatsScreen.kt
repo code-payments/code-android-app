@@ -16,14 +16,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.analytics.GroupType
+import com.flipcash.analytics.events.GroupEvents
+import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.tipping.internal.HiltChatsViewModel
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.action_undo
 import com.flipcash.core.resources.message_chatsArchived
 import com.flipcash.core.resources.title_tabChat
+import com.flipcash.core.resources.title_tabGroups
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.toast.LocalFloatingToastHost
@@ -31,8 +38,9 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * The "Chats" root tab: tip DMs and groups under the standard centred screen title, with no dismiss
- * affordance (the root nav bar is the chrome). The tip card lives on the "You" tab.
+ * The "Chats" root tab: tip DMs and groups under the standard centred screen title (flush start on
+ * Group Money's Groups tab; see [ChatsTitleBar]), with no dismiss affordance (the root nav bar is
+ * the chrome). The tip card lives on the "You" tab.
  *
  * Wires [ChatsScreenContent] to the Android view model, the navigator and the root toast host.
  */
@@ -96,27 +104,75 @@ fun ChatsScreen() {
                 onArchive = { archiveWithUndo(viewModel.archiveSelection()) },
                 label = "chat list bar",
             ) {
-                AppBarWithTitle(
-                    title = stringResource(Res.string.title_tabChat),
-                    // Centred rather than flush-start: an empty leading slot reserves no width, so a
-                    // Start title sits at the inset and reads as off-centre against the Add button.
-                    titleAlignment = Alignment.CenterHorizontally,
-                    // Node 13201:108 — opposite Add and drawn the same way.
-                    leadingContent = {
-                        ChatListMoreButton(
-                            canReadAll = state.canReadAll,
-                            onSelectChats = { viewModel.startSelection() },
-                            onReadAll = viewModel::requestReadAll,
-                        )
-                    },
-                    // Node 9442:5779 — the only way to start a chat with someone who has never paid
-                    // you. A pushed route rather than an in-place screen: this list is a tab home, and
-                    // anything drawn inside it would leave the tab bar over the entry screen.
-                    endContent = {
-                        AppBarDefaults.Add { navigator.push(AppRoute.Messaging.NewChat) }
-                    },
+                ChatsTitleBar(
+                    canReadAll = state.canReadAll,
+                    onSelectChats = { viewModel.startSelection() },
+                    onReadAll = viewModel::requestReadAll,
                 )
             }
         },
     )
+}
+
+/**
+ * The chat list's title bar outside select mode. The classic shell centres "Chat" between the "…"
+ * menu (Select Chats, Read All) and Add. Group Money's Groups tab has no "…": its title sits flush
+ * start in the Money tab's title style, with Add alone at the end (frame 1-01, node 13729:420), and
+ * a long press on a row is the way into select mode.
+ */
+@Composable
+internal fun ChatsTitleBar(
+    canReadAll: Boolean,
+    onSelectChats: () -> Unit,
+    onReadAll: () -> Unit,
+) {
+    when (LocalNavBarShell.current) {
+        NavBarShell.GroupMoney -> AppBarWithTitle(
+            title = stringResource(Res.string.title_tabGroups),
+            titleTextStyle = CodeTheme.typography.screenTitleLarge,
+            // With nothing in the leading slot, a Start title sits at the inset, where the Money
+            // tab's title sits.
+            titleAlignment = Alignment.Start,
+            endContent = { ChatsAddAction() },
+        )
+        NavBarShell.Classic -> AppBarWithTitle(
+            title = stringResource(Res.string.title_tabChat),
+            // Centred rather than flush-start: an empty leading slot reserves no width, so a
+            // Start title sits at the inset and reads as off-centre against the Add button.
+            titleAlignment = Alignment.CenterHorizontally,
+            // Node 13201:108 — opposite Add and drawn the same way.
+            leadingContent = {
+                ChatListMoreButton(
+                    canReadAll = canReadAll,
+                    onSelectChats = onSelectChats,
+                    onReadAll = onReadAll,
+                )
+            },
+            // Node 9442:5779 — the only way to start a chat with someone who has never paid
+            // you. A pushed route rather than an in-place screen: this list is a tab home, and
+            // anything drawn inside it would leave the tab bar over the entry screen.
+            endContent = { ChatsAddAction() },
+        )
+    }
+}
+
+/**
+ * The chat list's Add button. The classic shell opens the New Chat menu; Group Money's Groups tab
+ * has only groups to start, so it goes straight to a private New Group (frame 1-04, node
+ * 13729:462) and records the open the menu's New Group row would have.
+ */
+@Composable
+internal fun ChatsAddAction() {
+    val navigator = LocalCodeNavigator.current
+    val analytics = rememberAnalytics()
+    val shell = LocalNavBarShell.current
+    AppBarDefaults.Add {
+        when (shell) {
+            NavBarShell.GroupMoney -> {
+                analytics.track(GroupEvents.newOpened(GroupType.PRIVATE))
+                navigator.push(AppRoute.Messaging.NewGroup(isPrivate = true))
+            }
+            NavBarShell.Classic -> navigator.push(AppRoute.Messaging.NewChat)
+        }
+    }
 }

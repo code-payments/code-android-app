@@ -15,6 +15,7 @@ import androidx.navigation3.scene.SinglePaneSceneStrategy
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.core.chat.NewGroupStep
+import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.tipping.internal.CreateGroupViewModel
 import com.flipcash.app.tipping.internal.screens.NewGroupCustomAmountSheet
 import com.flipcash.app.tipping.internal.screens.NewGroupFormScreen
@@ -62,8 +63,9 @@ fun NewGroupFlowScreen(
 
     // Created here, before any step asks for it, so the steps' flowSharedViewModel resolves this
     // instance — the flow's store owner is this entry's — and it is born knowing which form it is.
+    val isPrivate = NavBarShellPrivacy.newGroupIsPrivate(route.isPrivate, LocalNavBarShell.current)
     hiltViewModel<CreateGroupViewModel, CreateGroupViewModel.Factory>(
-        creationCallback = { factory -> factory.create(route.isPrivate) },
+        creationCallback = { factory -> factory.create(isPrivate) },
     )
 
     FlowHost<NewGroupStep, Parcelable>(
