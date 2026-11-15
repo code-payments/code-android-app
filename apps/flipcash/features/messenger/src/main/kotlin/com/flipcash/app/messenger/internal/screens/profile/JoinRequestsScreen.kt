@@ -111,7 +111,8 @@ internal fun JoinRequestsScreen(viewModel: ChatViewModel) {
                 canInvite = canInvite,
                 onShare = {
                     viewModel.dispatchEvent(ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE))
-                    // Group Money opens the sheet the transcript's Invite People opens (frame 1-07).
+                    // Group Money opens the share sheet the transcript's Invite People opens (frame
+                    // 1-07), with the group's avatar and name, which the transcript's leaves out.
                     when {
                         inviteOpensHost(shell, canInvite, InviteEntry.JoinRequests) ->
                             navigator.openInviteHost { flowNavigator.navigateTo(ChatStep.ManageInvites) }

@@ -199,10 +199,10 @@ internal fun chatEntryProvider(
         FlowAmountEntryScreen(resultStateRegistry, toMembers = true)
     }
     annotatedEntry<ChatStep.InviteToGroup> { step ->
-        InviteSheetShell(step.classic) { FlowGroupInviteSheet() }
+        InviteSheetShell(step.classic) { FlowGroupInviteSheet(step.condensed) }
     }
     annotatedEntry<ChatStep.ShareInviteLink> { step ->
-        InviteSheetShell(step.classic) { FlowInviteLinkSheet(step.inviteIdHex, step.classic) }
+        InviteSheetShell(step.classic) { FlowInviteLinkSheet(step.inviteIdHex, step.classic, step.condensed) }
     }
     annotatedEntry<ChatStep.NewInviteLink> {
         FlowNewInviteLinkSheet()
@@ -542,11 +542,12 @@ private fun FlowGroupSelectPeople(viewModel: ChatViewModel, onSendComplete: () -
 /**
  * The invite sheet, on the conversation's own view model.
  *
- * Reached from the empty transcript and from the group's profile, and the same step either way —
- * the link is the chat's, so there is nothing for a second entry point to hold differently.
+ * Reached from the empty transcript and from the group's profile, and the same step either way:
+ * the link is the chat's. Only the layout differs, and the step carries it: [condensed] is the
+ * transcript's Group Money sheet, without the group's avatar and name.
  */
 @Composable
-private fun FlowGroupInviteSheet() {
+private fun FlowGroupInviteSheet(condensed: Boolean) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     // Same dismissal rule as the other sheets in this flow: exit through the sheet so it animates
@@ -562,6 +563,7 @@ private fun FlowGroupInviteSheet() {
         onShare = { viewModel.dispatchEvent(ChatViewModel.Event.InviteLinkShared) },
         onCopy = { viewModel.dispatchEvent(ChatViewModel.Event.CopyInviteLink) },
         onDismiss = dismissSheet,
+        condensed = condensed,
         // The card is drawn over this sheet, which stays open beneath it.
         onShowCard = (state.subject as? ChatSubject.Group)?.let { group ->
             {
@@ -584,9 +586,10 @@ private fun ChatSubject.Group.cardRoute() = AppRoute.Menu.GroupCard(
  * [ChatStep.ShareInviteLink]: the invite sheet's invite variant (frames 1b, 1f). The tap on Share Invite
  * Link that opened it has the link made when the host had none; sending goes through the same view model as the
  * join variant, limited to chats an invite link may be sent into. A [classic] sheet hands on to a classic join link.
+ * A [condensed] one hands on to a join link with the group's avatar and name: only the transcript opens it condensed.
  */
 @Composable
-private fun FlowInviteLinkSheet(inviteIdHex: String?, classic: Boolean) {
+private fun FlowInviteLinkSheet(inviteIdHex: String?, classic: Boolean, condensed: Boolean) {
     val viewModel = flowSharedViewModel<ChatViewModel>()
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val linkViewModel = hiltViewModel<InviteLinkViewModel>()
@@ -606,6 +609,7 @@ private fun FlowInviteLinkSheet(inviteIdHex: String?, classic: Boolean) {
         onShare = linkViewModel::onShare,
         onCopy = linkViewModel::onCopy,
         onDismiss = dismissSheet,
+        condensed = condensed,
         // The card is drawn over this sheet and encodes its invite link, handed over in memory.
         onShowCard = (state.subject as? ChatSubject.Group)?.let { group ->
             {

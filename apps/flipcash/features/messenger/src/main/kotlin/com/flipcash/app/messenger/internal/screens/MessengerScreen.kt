@@ -808,10 +808,15 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             // The composer may have the keyboard up; it closes before the sheet opens.
                             scope.launch {
                                 // Straight to the share sheet, not the host's Invite People sheet;
-                                // the profile's Share button still opens that one.
+                                // the profile's Share button still opens that one. Only this entry
+                                // opens the Group Money sheet condensed, without the group's avatar
+                                // and name.
                                 val approve = state.chatId?.let { inviteHost.approveOn(it) } == true
                                 keyboard.hideIfVisible {
-                                    navigator.openInvitePeople(invitePeopleTarget(viewerCanInvite, approve))
+                                    navigator.openInvitePeople(
+                                        target = invitePeopleTarget(viewerCanInvite, approve),
+                                        condensed = true,
+                                    )
                                 }
                             }
                         },

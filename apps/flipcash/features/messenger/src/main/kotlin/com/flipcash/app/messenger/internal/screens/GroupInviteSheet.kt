@@ -81,6 +81,7 @@ import com.flipcash.app.core.share.SharePreviewImage
 import com.flipcash.app.core.share.TipCodePreview
 import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.core.navigation.NavBarShell
+import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.messenger.internal.invites.InviteLinkState
@@ -121,14 +122,15 @@ import kotlinx.coroutines.launch
 
 /**
  * Opens the invite sheet over the current step and, once its invites are out, the chat picked
- * first. [classic] keeps the sheet as it is without Group Money ([InviteSheetShell]).
+ * first. [classic] keeps the sheet as it is without Group Money ([InviteSheetShell]). [condensed]
+ * leaves the group's avatar and name off the Group Money sheet; only the transcript passes it.
  *
  * The sheet returns that chat rather than navigating itself. It is opened from the transcript and
  * from the group's profile, and only the screen that opened it is sure to be composed when the
  * sends finish, so that screen does the navigating.
  */
-internal fun CodeNavigator.openGroupInvite(classic: Boolean = false) {
-    navigateForResult<GroupInviteResult>(ChatStep.InviteToGroup(classic)) { result ->
+internal fun CodeNavigator.openGroupInvite(classic: Boolean = false, condensed: Boolean = false) {
+    navigateForResult<GroupInviteResult>(ChatStep.InviteToGroup(classic, condensed)) { result ->
         if (result is NavResultOrCanceled.ReturnValue) {
             navigate(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(result.value.chatId)))
         }
@@ -137,10 +139,15 @@ internal fun CodeNavigator.openGroupInvite(classic: Boolean = false) {
 
 /**
  * Opens the invite variant of the sheet: the host's current link, or the invite [inviteIdHex] picked
- * in Manage Invites. Returns the chat picked first, and takes [classic], as [openGroupInvite] does.
+ * in Manage Invites. Returns the chat picked first, and takes [classic] and [condensed], as
+ * [openGroupInvite] does.
  */
-internal fun CodeNavigator.openInviteLinkShare(inviteIdHex: String? = null, classic: Boolean = false) {
-    navigateForResult<GroupInviteResult>(ChatStep.ShareInviteLink(inviteIdHex, classic)) { result ->
+internal fun CodeNavigator.openInviteLinkShare(
+    inviteIdHex: String? = null,
+    classic: Boolean = false,
+    condensed: Boolean = false,
+) {
+    navigateForResult<GroupInviteResult>(ChatStep.ShareInviteLink(inviteIdHex, classic, condensed)) { result ->
         if (result is NavResultOrCanceled.ReturnValue) {
             navigate(AppRoute.Messaging.Chat(ChatIdentifier.ByChatId(result.value.chatId)))
         }
@@ -162,11 +169,12 @@ internal fun invitePeopleTarget(viewerCanInvite: Boolean, approveNewMembers: Boo
 /**
  * Opens the share sheet for [target] without the host Invite People sheet in between. The invite
  * variant waits on a link still being made and makes one when there is none, so this never starts
- * a second create.
+ * a second create. The transcript passes [condensed]; Join Requests' empty state opens the same
+ * sheets with the group's avatar and name.
  */
-internal fun CodeNavigator.openInvitePeople(target: InvitePeopleTarget) = when (target) {
-    InvitePeopleTarget.CurrentInviteLink -> openInviteLinkShare()
-    InvitePeopleTarget.PlainLink -> openGroupInvite()
+internal fun CodeNavigator.openInvitePeople(target: InvitePeopleTarget, condensed: Boolean = false) = when (target) {
+    InvitePeopleTarget.CurrentInviteLink -> openInviteLinkShare(condensed = condensed)
+    InvitePeopleTarget.PlainLink -> openGroupInvite(condensed = condensed)
 }
 
 /** The screens whose Invite People button can open the host's Invite sheet. */
@@ -336,6 +344,8 @@ internal sealed interface ShareToChatsSubject {
  * @param state the Recent Chats selection and the message to send with the link.
  * @param onShowCard opens the profile card of a person or the scan card of a group, as a third
  * tile beside Share and Copy. Null hides the tile (a message link has no card).
+ * @param condensed the Group Money group sheet without the group's avatar and name, on tighter
+ * gaps ([GroupInviteSheetContent]). The caller picks it: only the transcript's Invite People does.
  */
 @Composable
 internal fun GroupInviteSheet(
@@ -343,6 +353,7 @@ internal fun GroupInviteSheet(
     subject: ShareToChatsSubject,
     onCopy: () -> Unit,
     onDismiss: () -> Unit,
+    condensed: Boolean = false,
     /** Recent Chats and the send path: the person, message and currency subjects only. */
     state: GroupInviteViewModel.State = GroupInviteViewModel.State(),
     onShare: () -> Unit = {},
@@ -440,6 +451,8 @@ internal fun GroupInviteSheet(
 
     if (isGroupSubject(subject)) {
         GroupInviteSheetContent(
+            group = group,
+            condensed = condensed,
             inviteUrl = inviteUrl,
             inviteLink = inviteLink,
             creating = creating,
@@ -655,11 +668,15 @@ internal fun GroupInviteSheet(
 /**
  * The group sheets (spec surface 1): the link pill, one line under it, then Copy, Share and QR Code.
  * It wraps its height, so there is no list to scroll and no Recent Chats to send into. Under Group
- * Money it is frame 1-07 (node 13729:672) without the group's avatar and name: Close at the start, a
- * line above the link and a caption under it, and the tiles read Copy Link, Share Link and QR Code.
+ * Money it is frame 1-07 (node 13729:672): Close at the start, the group's avatar and name, a line
+ * above the link and a caption under it, and the tiles read Copy Link, Share Link and QR Code.
+ *
+ * [condensed] is the same Group Money sheet without the avatar and name, on tighter gaps, for the
+ * transcript's Invite People. The classic sheet ignores it.
  */
 @Composable
 internal fun GroupInviteSheetContent(
+    group: ChatSubject.Group?,
     inviteUrl: String?,
     inviteLink: ShareToChatsSubject.GroupInviteLink?,
     creating: Boolean,
@@ -668,6 +685,7 @@ internal fun GroupInviteSheetContent(
     onShare: () -> Unit,
     onShowCard: (() -> Unit)?,
     onDismiss: () -> Unit,
+    condensed: Boolean = false,
 ) {
     val groupMoney = LocalNavBarShell.current == NavBarShell.GroupMoney
     Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
@@ -680,7 +698,12 @@ internal fun GroupInviteSheetContent(
         )
         if (inviteUrl == null && inviteLink == null) return@Column
         if (groupMoney) {
-            GroupMoneyInviteBody(inviteUrl = inviteUrl, inviteLink = inviteLink) {
+            GroupMoneyInviteBody(
+                group = group,
+                condensed = condensed,
+                inviteUrl = inviteUrl,
+                inviteLink = inviteLink,
+            ) {
                 GroupInviteTileRow(
                     groupMoney = true,
                     creating = creating,
@@ -723,27 +746,55 @@ internal fun GroupInviteSheetContent(
 }
 
 /**
- * Frame 1-07's body (node 13729:684) without the group's avatar and name: the line above the link,
- * the link with its caption, then [tiles], centred down the sheet.
+ * Frame 1-07's body (node 13729:684): the group's avatar and name, the line above the link, the link
+ * with its caption, then [tiles], centred down the sheet.
  *
- * The gaps aim at 16 between blocks and 8 from the link to its caption, as on iOS. They use the
- * fixed 5dp grid instead, 15 and 10, which holds them at every width where [CodeTheme.dimens.grid]
- * would not.
+ * [condensed] leaves the avatar and name out. Its gaps aim at 16 between blocks and 8 from the link
+ * to its caption, as on iOS. They use the fixed 5dp grid instead, 15 and 10, which holds them at
+ * every width where [CodeTheme.dimens.grid] would not.
  */
 @Composable
 private fun GroupMoneyInviteBody(
+    group: ChatSubject.Group?,
+    condensed: Boolean,
     inviteUrl: String?,
     inviteLink: ShareToChatsSubject.GroupInviteLink?,
     tiles: @Composable () -> Unit,
 ) {
+    val dimens = CodeTheme.dimens
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = ListInset)
-            .padding(vertical = CodeTheme.dimens.staticGrid.x3),
+            .then(
+                if (condensed) {
+                    Modifier.padding(vertical = dimens.staticGrid.x3)
+                } else {
+                    Modifier.padding(top = GroupPillTop, bottom = GroupSheetBottom)
+                }
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x3),
+        verticalArrangement = Arrangement.spacedBy(if (condensed) dimens.staticGrid.x3 else dimens.grid.x6),
     ) {
+        if (!condensed && group != null) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(dimens.grid.x2),
+            ) {
+                ChatSubjectAvatar(
+                    subject = group,
+                    modifier = Modifier.size(dimens.grid.x12).clip(CircleShape),
+                )
+                if (group.title.isNotBlank()) {
+                    Text(
+                        text = group.title,
+                        style = CodeTheme.typography.screenTitle,
+                        color = CodeTheme.colors.textMain,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
         Text(
             text = stringResource(R.string.label_inviteLinkSendHintGroup),
             style = CodeTheme.typography.textMedium,
@@ -753,7 +804,7 @@ private fun GroupMoneyInviteBody(
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
+            verticalArrangement = Arrangement.spacedBy(if (condensed) dimens.staticGrid.x2 else dimens.grid.x3),
         ) {
             if (inviteLink != null) {
                 InviteLinkPill(link = inviteLink.link, showsMeta = false)
