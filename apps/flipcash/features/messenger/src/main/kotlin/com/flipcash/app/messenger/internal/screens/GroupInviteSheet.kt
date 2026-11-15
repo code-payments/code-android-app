@@ -81,7 +81,6 @@ import com.flipcash.app.core.share.SharePreviewImage
 import com.flipcash.app.core.share.TipCodePreview
 import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.core.navigation.NavBarShell
-import com.flipcash.app.messenger.internal.screens.components.ChatSubjectAvatar
 import com.flipcash.app.messenger.internal.ChatSubject
 import com.flipcash.app.messenger.internal.GroupInviteViewModel
 import com.flipcash.app.messenger.internal.invites.InviteLinkState
@@ -441,7 +440,6 @@ internal fun GroupInviteSheet(
 
     if (isGroupSubject(subject)) {
         GroupInviteSheetContent(
-            group = group,
             inviteUrl = inviteUrl,
             inviteLink = inviteLink,
             creating = creating,
@@ -657,12 +655,11 @@ internal fun GroupInviteSheet(
 /**
  * The group sheets (spec surface 1): the link pill, one line under it, then Copy, Share and QR Code.
  * It wraps its height, so there is no list to scroll and no Recent Chats to send into. Under Group
- * Money it is frame 1-07 (node 13729:672): Close at the start, the group's avatar and name, a line
- * above the link and a caption under it, and the tiles read Copy Link, Share Link and QR Code.
+ * Money it is frame 1-07 (node 13729:672) without the group's avatar and name: Close at the start, a
+ * line above the link and a caption under it, and the tiles read Copy Link, Share Link and QR Code.
  */
 @Composable
 internal fun GroupInviteSheetContent(
-    group: ChatSubject.Group?,
     inviteUrl: String?,
     inviteLink: ShareToChatsSubject.GroupInviteLink?,
     creating: Boolean,
@@ -683,7 +680,7 @@ internal fun GroupInviteSheetContent(
         )
         if (inviteUrl == null && inviteLink == null) return@Column
         if (groupMoney) {
-            GroupMoneyInviteBody(group = group, inviteUrl = inviteUrl, inviteLink = inviteLink) {
+            GroupMoneyInviteBody(inviteUrl = inviteUrl, inviteLink = inviteLink) {
                 GroupInviteTileRow(
                     groupMoney = true,
                     creating = creating,
@@ -726,12 +723,15 @@ internal fun GroupInviteSheetContent(
 }
 
 /**
- * Frame 1-07's body (node 13729:684): the group's avatar and name, the line above the link, the link
- * with its caption, then [tiles], centred down the sheet.
+ * Frame 1-07's body (node 13729:684) without the group's avatar and name: the line above the link,
+ * the link with its caption, then [tiles], centred down the sheet.
+ *
+ * The gaps aim at 16 between blocks and 8 from the link to its caption, as on iOS. They use the
+ * fixed 5dp grid instead, 15 and 10, which holds them at every width where [CodeTheme.dimens.grid]
+ * would not.
  */
 @Composable
 private fun GroupMoneyInviteBody(
-    group: ChatSubject.Group?,
     inviteUrl: String?,
     inviteLink: ShareToChatsSubject.GroupInviteLink?,
     tiles: @Composable () -> Unit,
@@ -740,29 +740,10 @@ private fun GroupMoneyInviteBody(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = ListInset)
-            .padding(top = GroupPillTop, bottom = GroupSheetBottom),
+            .padding(vertical = CodeTheme.dimens.staticGrid.x3),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6),
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x3),
     ) {
-        if (group != null) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-            ) {
-                ChatSubjectAvatar(
-                    subject = group,
-                    modifier = Modifier.size(CodeTheme.dimens.grid.x12).clip(CircleShape),
-                )
-                if (group.title.isNotBlank()) {
-                    Text(
-                        text = group.title,
-                        style = CodeTheme.typography.screenTitle,
-                        color = CodeTheme.colors.textMain,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-        }
         Text(
             text = stringResource(R.string.label_inviteLinkSendHintGroup),
             style = CodeTheme.typography.textMedium,
@@ -772,7 +753,7 @@ private fun GroupMoneyInviteBody(
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x2),
         ) {
             if (inviteLink != null) {
                 InviteLinkPill(link = inviteLink.link, showsMeta = false)

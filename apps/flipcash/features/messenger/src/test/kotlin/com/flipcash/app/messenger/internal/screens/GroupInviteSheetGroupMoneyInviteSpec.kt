@@ -34,8 +34,9 @@ import kotlin.test.assertTrue
 
 /**
  * Group Money phase 2, item 4: the Invite People sheet (frame 1-07, node 13729:672). Close at the
- * start, the group's avatar and name, one line above the link, a caption under it, and three tiles:
- * Copy Link, Share Link, QR Code. Every invite entry but Group Info opens this sheet. Group Info
+ * start, one line above the link, a caption under it, and three tiles: Copy Link, Share Link, QR
+ * Code. The frame's group avatar and name are left out, so the sheet stays short. Every invite
+ * entry but Group Info opens this sheet. Group Info
  * keeps the classic sheets, the host sheet (Approve switch, Manage Invites) included, and the share
  * sheets the host sheet opens are classic too. The classic shell keeps today's sheet and routing.
  */
@@ -69,7 +70,6 @@ class GroupInviteSheetGroupMoneyInviteSpec {
                         Box(Modifier.testTag(SheetTag)) {
                             InviteSheetShell(classic) {
                                 GroupInviteSheetContent(
-                                    group = group,
                                     inviteUrl = "https://app.flipcash.com/chat/road-trip",
                                     inviteLink = null,
                                     creating = false,
@@ -98,12 +98,28 @@ class GroupInviteSheetGroupMoneyInviteSpec {
     }
 
     @Test
-    fun `group money sheet names the group with its initials avatar`() {
-        show(NavBarShell.GroupMoney)
+    fun `group money sheet shows no group name or avatar`() {
+        // Through the sheet's entry point, which still holds the group for the share sheet's
+        // title and picture, so there is a group on hand that the sheet could draw.
+        composeRule.setContent {
+            CompositionLocalProvider(LocalNavBarShell provides NavBarShell.GroupMoney) {
+                FlipcashPreview(showBackground = true) {
+                    GroupInviteSheet(
+                        inviteUrl = "https://app.flipcash.com/chat/road-trip",
+                        subject = ShareToChatsSubject.Group(group),
+                        onCopy = {},
+                        onDismiss = {},
+                        onShowCard = {},
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
 
         composeRule.onNodeWithText("Invite People").assertIsDisplayed()
-        composeRule.onNodeWithText("RT", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Road Trip").assertIsDisplayed()
+        composeRule.onNodeWithText("Anyone with the link can join.").assertIsDisplayed()
+        composeRule.onNodeWithText("Road Trip", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithText("RT", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
