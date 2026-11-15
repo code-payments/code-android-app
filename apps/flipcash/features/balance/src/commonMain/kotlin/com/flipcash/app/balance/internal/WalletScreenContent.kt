@@ -527,9 +527,9 @@ private fun MoneyHeader(
                 .testTag("money_balance"),
             balance = balance,
             appreciation = appreciation,
-            // The pill, the count and the buttons read as one group, as on iOS: under the pill
-            // there is only the count's own x1 padding.
-            bottomPadding = CodeTheme.dimens.none,
+            // The count's own x1 padding is part of the gap under the pill, so the balance adds
+            // only the rest of PillToCountGap.
+            bottomPadding = PillToCountGap - CodeTheme.dimens.grid.x1,
             appreciationStyle = AppreciationStyle.Pill,
             showCurrency = false,
         ) {
@@ -632,3 +632,10 @@ private fun LazyItemScope.StretchLastToList(
  * card is just another card in the deck.
  */
 private val ArrivalRetention = 1500.milliseconds
+
+/**
+ * From the bottom of the Money tab's appreciation pill (its border) to the top of the "N currencies"
+ * text. A fixed size rather than a grid step: the grid's x1 is 2.5 dp on a compact width and 5 dp on
+ * a normal one, and this gap is 10 at every width.
+ */
+private val PillToCountGap = 10.dp

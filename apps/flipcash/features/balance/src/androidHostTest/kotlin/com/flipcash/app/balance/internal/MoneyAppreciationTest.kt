@@ -56,7 +56,7 @@ class MoneyAppreciationTest {
 
     private var money by mutableStateOf(false)
 
-    /** The theme's grid x1 at this width, read from the theme the tab is drawn in. */
+    /** The theme's grid x1 at the test's width, read from the theme the tab is drawn in. */
     private var gridX1: Dp = 0.dp
 
     /**
@@ -134,15 +134,33 @@ class MoneyAppreciationTest {
     }
 
     @Test
-    fun `money's pill sits a grid x1 above the currency count`() {
+    fun `money's pill border sits 10 dp above the currency count`() {
         setWallet(appreciation = 3.0, money = true)
 
-        val pill = composeRule.onNode(pillLabel, useUnmergedTree = true).getBoundsInRoot()
+        assertPillToCountGap()
+    }
+
+    /**
+     * A compact width halves the grid's x1. The gap under the pill stays 10 dp. At xhdpi the
+     * half-dp paddings land on whole pixels; at mdpi each would round up and read 11.
+     */
+    @Test
+    @Config(qualifiers = "w320dp-h2400dp-xhdpi")
+    fun `money's pill border sits 10 dp above the currency count at a compact width`() {
+        setWallet(appreciation = 3.0, money = true)
+
+        assertEquals(2.5f, gridX1.value, "the compact grid's x1")
+        assertPillToCountGap()
+    }
+
+    private fun assertPillToCountGap() {
+        val label = composeRule.onNode(pillLabel, useUnmergedTree = true).getBoundsInRoot()
         val currencies = composeRule.onNodeWithText("1 currency", useUnmergedTree = true).getBoundsInRoot()
 
-        // The pill's box is its text and 3 dp above and below it (CurrencyAppreciationLabel). Under
-        // the box the only space is the count's own x1 padding: the balance adds none of its own.
-        assertEquals((3.dp + gridX1).value, (currencies.top - pill.bottom).value, 0.5f, "pill text to count text")
+        // The pill's border box is its amount's text and 3 dp above and below it, centred on the
+        // label's line (CurrencyAppreciationLabel), so the border's bottom is 3 dp under the label.
+        val pillBottom = label.bottom + 3.dp
+        assertEquals(10f, (currencies.top - pillBottom).value, 0.5f, "pill border to count text")
     }
 
     @Test
