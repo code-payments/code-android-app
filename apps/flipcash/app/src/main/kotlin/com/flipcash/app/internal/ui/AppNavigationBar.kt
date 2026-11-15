@@ -298,7 +298,8 @@ internal val NavBarShell.offersSearch: Boolean
 
 /**
  * What a long-press on the You tab does: open the account switcher as a sheet, or nothing while
- * [canSwitchAccounts] is closed. Mirrors iOS `HomeTabView.handleLongPress(on:)`.
+ * [canSwitchAccounts] is closed. Mirrors iOS `HomeTabView.handleLongPress(on:)`. The Group Money
+ * shell has no You tab, so the Money tab's avatar, which opens You, takes this long-press instead.
  *
  * The switcher is the same screen Advanced Features pushes. At a sheet's root its app bar shows a
  * Close, and choosing an account logs out, which App.kt answers by replacing the stack — sheet

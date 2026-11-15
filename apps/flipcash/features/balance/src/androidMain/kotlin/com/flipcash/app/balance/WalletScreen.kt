@@ -27,11 +27,14 @@ import kotlinx.coroutines.flow.onEach
  *
  * @param money Lays the wallet out as the Money tab of the group money shell (node 13729:744).
  * @param profileAvatar The viewer's avatar in the Money title bar; tapping it opens You.
+ * @param onProfileLongClick What a long press on that avatar does: the app passes the You tab's
+ * long press, the account switcher, or null while the switcher's gate is closed.
  */
 @Composable
 fun WalletScreen(
     money: Boolean = false,
     profileAvatar: @Composable () -> Unit = {},
+    onProfileLongClick: (() -> Unit)? = null,
 ) {
     val navigator = LocalCodeNavigator.current
     Column(
@@ -44,7 +47,13 @@ fun WalletScreen(
             viewModel,
             tokenViewModel,
             money = money,
-            topBar = { MoneyTitleBar(profileAvatar = profileAvatar, dispatchEvent = viewModel::dispatchEvent) },
+            topBar = {
+                MoneyTitleBar(
+                    profileAvatar = profileAvatar,
+                    dispatchEvent = viewModel::dispatchEvent,
+                    onProfileLongClick = onProfileLongClick,
+                )
+            },
         )
 
         LaunchedEffect(tokenViewModel) {
