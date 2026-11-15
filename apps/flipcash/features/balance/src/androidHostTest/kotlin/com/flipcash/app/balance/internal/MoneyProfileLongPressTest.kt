@@ -22,7 +22,7 @@ import kotlin.test.assertEquals
 /**
  * The group money shell has no You tab, so the Money avatar that opens You also takes the You
  * tab's long press: the account switcher. The app passes a null callback while the switcher's gate
- * is closed; then the avatar behaves as before, with no haptic, and a hold is a slow tap.
+ * is closed; then a hold on the avatar does nothing, with no haptic, and a tap still opens You.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -67,15 +67,25 @@ class MoneyProfileLongPressTest {
     }
 
     @Test
-    fun `gate closed - long press on the avatar fires no haptic and no switcher`() {
+    fun `gate closed - long press on the avatar does nothing`() {
         setBar(onProfileLongClick = null)
 
         composeRule.onNodeWithTag("money_profile").performTouchInput { longClick() }
 
         assertEquals(0, longClicks)
         assertEquals(emptyList(), haptics)
-        // Unchanged from before the long press existed: a hold is a slow tap.
+        // Not a slow tap: a hold does not open You.
+        assertEquals(emptyList(), events)
+    }
+
+    @Test
+    fun `gate closed - a tap on the avatar still opens You`() {
+        setBar(onProfileLongClick = null)
+
+        composeRule.onNodeWithTag("money_profile").performClick()
+
         assertEquals(listOf<WalletViewModel.Event>(WalletViewModel.Event.OpenScreen(AppRoute.Tabs.Menu)), events)
+        assertEquals(emptyList(), haptics)
     }
 
     @Test

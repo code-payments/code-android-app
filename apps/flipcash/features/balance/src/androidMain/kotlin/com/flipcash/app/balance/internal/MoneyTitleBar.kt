@@ -23,9 +23,8 @@ import org.jetbrains.compose.resources.stringResource
  * leaves the title where it is.
  *
  * @param onProfileLongClick What a long press on the avatar does. The shell has no You tab, so the
- * avatar takes the You tab's long press, the account switcher. Null leaves the avatar with no long
- * press at all, no haptic and a hold that opens You, which is what the app passes while the
- * switcher's gate is closed.
+ * avatar takes the You tab's long press, the account switcher. Null, which the app passes while the
+ * switcher's gate is closed, makes a hold do nothing: no haptic, and it does not open You.
  */
 @Composable
 internal fun MoneyTitleBar(
@@ -41,10 +40,12 @@ internal fun MoneyTitleBar(
                     // Add's size, so the avatar takes the place Add has on the Groups tab.
                     .size(CodeTheme.dimens.staticGrid.x8)
                     .clip(CircleShape)
-                    // combinedClickable fires the long-press haptic itself, and only when
-                    // onLongClick is non-null, so a closed gate stays silent.
+                    // A null onLongClick would turn a hold into a slow tap that opens You, so a
+                    // closed gate still takes the long press and drops it, with the haptic
+                    // combinedClickable would otherwise fire turned off.
                     .combinedClickable(
-                        onLongClick = onProfileLongClick,
+                        onLongClick = onProfileLongClick ?: {},
+                        hapticFeedbackEnabled = onProfileLongClick != null,
                         onClick = { dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Tabs.Menu)) },
                     )
                     .testTag("money_profile"),
