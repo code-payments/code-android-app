@@ -527,7 +527,9 @@ private fun MoneyHeader(
                 .testTag("money_balance"),
             balance = balance,
             appreciation = appreciation,
-            bottomPadding = CodeTheme.dimens.grid.x1,
+            // The pill, the count and the buttons read as one group, as on iOS: under the pill
+            // there is only the count's own x1 padding.
+            bottomPadding = CodeTheme.dimens.none,
             appreciationStyle = AppreciationStyle.Pill,
             showCurrency = false,
         ) {

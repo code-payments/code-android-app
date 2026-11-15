@@ -13,6 +13,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
@@ -25,6 +27,7 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
+import com.getcode.theme.CodeTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -53,6 +56,9 @@ class MoneyAppreciationTest {
 
     private var money by mutableStateOf(false)
 
+    /** The theme's grid x1 at this width, read from the theme the tab is drawn in. */
+    private var gridX1: Dp = 0.dp
+
     /**
      * One currency holding $27 that has moved by [appreciation]. The 7 appears nowhere else on the
      * Money tab, so it finds the balance.
@@ -76,6 +82,7 @@ class MoneyAppreciationTest {
         )
         composeRule.setContent {
             FlipcashPreview {
+                gridX1 = CodeTheme.dimens.grid.x1
                 WalletScreenContent(
                     balanceState = balanceState,
                     tokenState = tokenState,
@@ -124,6 +131,18 @@ class MoneyAppreciationTest {
         assertTrue(pill.top >= balance.bottom, "pill under the balance, $balance vs $pill")
         assertTrue(currencies.top >= pill.bottom, "currency count under the pill, $pill vs $currencies")
         assertTrue(addMoney.top >= currencies.bottom, "Add Money under the count, $currencies vs $addMoney")
+    }
+
+    @Test
+    fun `money's pill sits a grid x1 above the currency count`() {
+        setWallet(appreciation = 3.0, money = true)
+
+        val pill = composeRule.onNode(pillLabel, useUnmergedTree = true).getBoundsInRoot()
+        val currencies = composeRule.onNodeWithText("1 currency", useUnmergedTree = true).getBoundsInRoot()
+
+        // The pill's box is its text and 3 dp above and below it (CurrencyAppreciationLabel). Under
+        // the box the only space is the count's own x1 padding: the balance adds none of its own.
+        assertEquals((3.dp + gridX1).value, (currencies.top - pill.bottom).value, 0.5f, "pill text to count text")
     }
 
     @Test
