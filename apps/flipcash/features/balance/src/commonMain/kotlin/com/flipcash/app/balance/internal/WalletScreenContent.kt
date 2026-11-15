@@ -283,6 +283,7 @@ private fun WalletBody(
                 MoneyHeader(
                     balance = reveal?.let { LocalFiat.fromUsd(it.totalBefore, tokenState.rate) }
                         ?: tokenState.totalBalance,
+                    appreciation = tokenState.aggregateAppreciation,
                     currencyCount = tokenState.tokens?.size ?: 0,
                     balanceAlpha = { 1f - heroProgress() },
                     dispatchEvent = dispatchEvent,
@@ -501,16 +502,18 @@ private fun WalletBody(
 }
 
 /**
- * The top of the Money tab under its title bar (node 13729:744): the balance alone, the number of
- * currencies held, which opens their list, and Add Money beside Withdraw. Both buttons start today's
- * flows, the same ones the wallet's tiles start.
+ * The top of the Money tab under its title bar (node 13729:744): the balance with the wallet's
+ * appreciation pill under it, the number of currencies held, which opens their list, and Add Money
+ * beside Withdraw. Both buttons start today's flows, the same ones the wallet's tiles start.
  *
+ * @param appreciation The change across every currency held, the value the wallet's pill shows.
  * @param balanceAlpha The balance's opacity, read in the draw phase so a currency opening over the
- *   tab fades it the way it fades the wallet's.
+ *   tab fades it the way it fades the wallet's. The pill fades with it, as it does in the wallet.
  */
 @Composable
 private fun MoneyHeader(
     balance: LocalFiat?,
+    appreciation: LocalFiat?,
     currencyCount: Int,
     balanceAlpha: () -> Float,
     dispatchEvent: (WalletViewModel.Event) -> Unit,
@@ -523,8 +526,9 @@ private fun MoneyHeader(
                 .graphicsLayer { alpha = balanceAlpha() }
                 .testTag("money_balance"),
             balance = balance,
-            appreciation = null,
+            appreciation = appreciation,
             bottomPadding = CodeTheme.dimens.grid.x1,
+            appreciationStyle = AppreciationStyle.Pill,
             showCurrency = false,
         ) {
             dispatchEvent(WalletViewModel.Event.OpenCurrencySelection)

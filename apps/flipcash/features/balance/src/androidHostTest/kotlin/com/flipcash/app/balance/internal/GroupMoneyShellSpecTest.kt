@@ -162,11 +162,16 @@ class GroupMoneyShellSpecTest {
     }
 
     @Test
-    fun `money drops the card stack, the appreciation line and the tiles`() {
+    fun `money drops the card stack and the tiles`() {
         setWallet(money = true)
         composeRule.onNodeWithTag("wallet_token_card_stack").assertDoesNotExist()
         composeRule.onNodeWithTag("wallet_tiles").assertDoesNotExist()
-        composeRule.onNodeWithText("from appreciation", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `money keeps the appreciation line`() {
+        setWallet(money = true)
+        composeRule.onNodeWithText("from appreciation", substring = true).assertExists()
     }
 
     // endregion
