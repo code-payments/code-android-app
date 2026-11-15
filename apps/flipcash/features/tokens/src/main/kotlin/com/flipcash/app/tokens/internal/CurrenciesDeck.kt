@@ -1,5 +1,6 @@
 package com.flipcash.app.tokens.internal
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -20,6 +21,7 @@ import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.tokens.TokenPurpose
 import com.flipcash.app.core.ui.TokenCardExpansion
 import com.flipcash.app.core.ui.TokenCardStack
+import com.flipcash.features.tokens.R
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
@@ -31,6 +33,21 @@ import kotlinx.coroutines.launch
  */
 internal fun showsCurrencyDeck(purpose: TokenPurpose, shell: NavBarShell): Boolean =
     purpose == TokenPurpose.Balance && shell == NavBarShell.GroupMoney
+
+/**
+ * The title over the currency screen for [purpose] under [shell]: Currencies where it draws the deck,
+ * as iOS titles that screen, and the picker's title everywhere else.
+ */
+@StringRes
+internal fun tokenSelectTitle(purpose: TokenPurpose, shell: NavBarShell): Int =
+    if (showsCurrencyDeck(purpose, shell)) R.string.title_currencies else pickerTitle(purpose)
+
+@StringRes
+private fun pickerTitle(purpose: TokenPurpose): Int = when (purpose) {
+    is TokenPurpose.Swap -> R.string.title_selectPaymentCurrency
+    is TokenPurpose.LaunchFunding -> R.string.title_selectPaymentCurrency
+    else -> R.string.title_selectCurrency
+}
 
 /**
  * The currencies screen's own card expansion, apart from the app-root one the wallet uses. The wallet

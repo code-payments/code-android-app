@@ -24,10 +24,10 @@ import com.flipcash.app.tokens.internal.CurrenciesDeck
 import com.flipcash.app.tokens.internal.SelectTokenScreen
 import com.flipcash.app.tokens.internal.rememberCurrenciesCardExpansion
 import com.flipcash.app.tokens.internal.showsCurrencyDeck
+import com.flipcash.app.tokens.internal.tokenSelectTitle
 import com.flipcash.app.tokens.ui.HiltSelectTokenViewModel
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
 import com.flipcash.app.tokens.ui.TokenListPresentation
-import com.flipcash.features.tokens.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.solana.keys.Mint
 import com.getcode.ui.components.AppBarWithTitle
@@ -47,20 +47,17 @@ fun TokenSelectScreen(
     val navigator = LocalCodeNavigator.current
     val viewModel = hiltViewModel<HiltSelectTokenViewModel>()
 
+    val shell = LocalNavBarShell.current
     val topBar: @Composable (Modifier) -> Unit = { modifier ->
         AppBarWithTitle(
             modifier = modifier,
-            title = when (purpose) {
-                is TokenPurpose.Swap -> stringResource(R.string.title_selectPaymentCurrency)
-                is TokenPurpose.LaunchFunding -> stringResource(R.string.title_selectPaymentCurrency)
-                else -> stringResource(R.string.title_selectCurrency)
-            },
+            title = stringResource(tokenSelectTitle(purpose, shell)),
             onBackIconClicked = { navigator.pop() },
             titleAlignment = Alignment.CenterHorizontally,
         )
     }
 
-    if (showsCurrencyDeck(purpose, LocalNavBarShell.current)) {
+    if (showsCurrencyDeck(purpose, shell)) {
         // The Group Money shell's currencies screen: the wallet's card deck, and a tapped card opens
         // its currency in place over it, as it does on the classic wallet.
         val state by viewModel.stateFlow.collectAsStateWithLifecycle()
