@@ -20,9 +20,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.core.resources.Res as CoreRes
 import com.flipcash.core.resources.label_chatReceipt_yesterday
-import com.flipcash.core.resources.description_noTransactionHistory
 import com.flipcash.core.resources.label_chatSeparator_today
-import com.flipcash.core.resources.title_noTransactionHistory
+import com.flipcash.core.resources.title_moneyNoActivity
 import com.flipcash.core.resources.title_moneyRecentActivity
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.common.ui.ContactAvatar
@@ -82,29 +81,21 @@ fun MoneyActivitySection(
     }
 }
 
-/** No activity yet, in the words and type the full history uses for the same thing. */
+/**
+ * No activity yet, in one line as on iOS. The full history keeps its own two lines ("No Activity"
+ * and what will appear there), in the same type as this.
+ */
 @Composable
 private fun MoneyActivityEmpty() {
-    Column(
+    Text(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = CodeTheme.dimens.grid.x4),
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x4),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(CoreRes.string.title_noTransactionHistory),
-            style = CodeTheme.typography.textLarge,
-            color = CodeTheme.colors.textMain,
-        )
-        Text(
-            modifier = Modifier.fillMaxWidth(0.8f),
-            text = stringResource(CoreRes.string.description_noTransactionHistory),
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textSecondary,
-            textAlign = TextAlign.Center,
-        )
-    }
+        text = stringResource(CoreRes.string.title_moneyNoActivity),
+        style = CodeTheme.typography.textLarge,
+        color = CodeTheme.colors.textMain,
+        textAlign = TextAlign.Center,
+    )
 }
 
 /** Which day an activity entry happened on, relative to the viewer's today. */

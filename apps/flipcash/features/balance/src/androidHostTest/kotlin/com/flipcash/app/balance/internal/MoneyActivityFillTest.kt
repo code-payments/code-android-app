@@ -129,17 +129,26 @@ class MoneyActivityFillTest {
 
         assertEquals(contentBottom().value, sectionBottom().value, 0.5f, "section bottom")
         composeRule.onNodeWithText("Recent Activity").assertIsDisplayed()
-        composeRule.onNodeWithText("No Activity").assertIsDisplayed()
+        composeRule.onNodeWithText("No activity yet").assertIsDisplayed()
         val header = composeRule.onNodeWithText("Recent Activity").getBoundsInRoot()
-        val empty = composeRule.onNodeWithText("No Activity").getBoundsInRoot()
+        val empty = composeRule.onNodeWithText("No activity yet").getBoundsInRoot()
         assertTrue(empty.top > header.bottom, "empty state under the header, $header vs $empty")
     }
 
     @Test
-    fun `a feed that gave up still says No Activity`() {
+    fun `with no activity money says it in one line, not the full history's two`() {
+        setMoney(rows = 0, syncState = FeedSyncState.Synced)
+
+        composeRule.onNodeWithText("No activity yet").assertIsDisplayed()
+        composeRule.onNodeWithText("No Activity").assertDoesNotExist()
+        composeRule.onNodeWithText("Your recent activity will appear here", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a feed that gave up still says it has no activity`() {
         setMoney(rows = 0, syncState = FeedSyncState.Unavailable)
 
-        composeRule.onNodeWithText("No Activity").assertIsDisplayed()
+        composeRule.onNodeWithText("No activity yet").assertIsDisplayed()
     }
 
     @Test
@@ -148,6 +157,7 @@ class MoneyActivityFillTest {
 
         assertEquals(contentBottom().value, sectionBottom().value, 0.5f, "section bottom")
         composeRule.onNodeWithText("Recent Activity").assertIsDisplayed()
+        composeRule.onNodeWithText("No activity yet").assertDoesNotExist()
         composeRule.onNodeWithText("No Activity").assertDoesNotExist()
     }
 

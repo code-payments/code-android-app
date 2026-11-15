@@ -2014,6 +2014,7 @@
     <string name="title_tabGroups">Groups</string>
     <string name="title_tabMoney">Money</string>
     <string name="title_moneyRecentActivity">Recent Activity</string>
+    <string name="title_moneyNoActivity">No activity yet</string>
     <plurals name="label_currencyCount">
         <item quantity="one">%1$d currency</item>
         <item quantity="other">%1$d currencies</item>
