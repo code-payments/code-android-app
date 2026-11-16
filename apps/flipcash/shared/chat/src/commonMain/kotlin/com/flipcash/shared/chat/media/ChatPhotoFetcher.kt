@@ -21,7 +21,6 @@ import okio.Buffer
 import okio.buffer
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
 /**
@@ -40,50 +39,60 @@ class ChatPhotoKeyer : Keyer<ChatPhoto> {
  * for any of them; a [ChatPhotoUnavailable.Open] carrying [BlobOpenFailure.KeyPending] may succeed
  * on a later attempt. Decode failures of opened bytes surface as Coil's own decode error and
  * are, to the UI, the same as [BlobOpenFailure.Undecodable].
+ *
+ * Each load reports one [ChatPhotoLoadTrace] with the time spent in each step.
  */
-class ChatPhotoFetcher(
+class ChatPhotoFetcher internal constructor(
     private val photo: ChatPhoto,
     private val loader: ChatPhotoLoader,
     private val http: OkHttpClient,
     private val imageLoader: ImageLoader,
+    private val timeSource: TimeSource = TimeSource.Monotonic,
+    private val report: (ChatPhotoLoadTrace) -> Unit = ::emit,
 ) : Fetcher {
 
-    /** When this fetch went to the network, so a slow or cancelled download leaves a trace. */
-    private var downloadStarted: TimeMark? = null
+    private val record = ChatPhotoLoadTrace(photo)
 
-    override suspend fun fetch(): FetchResult = try {
-        load()
-    } catch (e: ChatPhotoUnavailable) {
-        trace(tag = TAG, message = "Chat photo ${photo.cacheKey} unavailable: ${e.message}", type = TraceType.Log)
-        throw e
-    } catch (e: CancellationException) {
-        downloadStarted?.let {
-            trace(tag = TAG, message = "Chat photo ${photo.cacheKey} cancelled after ${it.elapsedNow()}", type = TraceType.Log)
+    override suspend fun fetch(): FetchResult {
+        val started = timeSource.markNow()
+        return try {
+            load().also { record.outcome = ChatPhotoLoadTrace.Outcome.Ok }
+        } catch (e: Throwable) {
+            record.fail(e, cancelled = e is CancellationException)
+            throw e
+        } finally {
+            record.total = started.elapsedNow()
+            report(record)
         }
-        throw e
     }
 
     private suspend fun load(): FetchResult {
         if (photo.redacted) throw ChatPhotoUnavailable.Redacted()
         val cache = imageLoader.diskCache
         val key = photo.cacheKey
-        cache?.openSnapshot(key)?.let { return it.asResult() }
+        cache?.openSnapshot(key)?.let {
+            record.cacheHit = true
+            return it.asResult()
+        }
 
-        downloadStarted = TimeSource.Monotonic.markNow()
         trace(
             tag = TAG,
             message = "Chat photo $key downloading ${photo.rendition.role} (${photo.rendition.blob?.sizeBytes} bytes)",
-            type = TraceType.Log,
+            type = TraceType.Silent,
         )
-        var url = loader.resolveUrl(photo) ?: throw ChatPhotoUnavailable.NotFound()
-        var bytes = download(url)
-        if (bytes == null) {
+        var url = resolveUrl(failedUrl = null)
+        val bytes = download(url).getOrElse {
             // The signed URL can die before its stated expiry; one re-mint is worth trying.
-            url = loader.resolveUrl(photo, failedUrl = url) ?: throw ChatPhotoUnavailable.NotFound()
-            bytes = download(url) ?: throw ChatPhotoUnavailable.Download(null)
+            url = resolveUrl(failedUrl = url)
+            download(url).getOrElse { throw ChatPhotoUnavailable.Download(it) }
         }
-        val opened = loader.open(photo, bytes)
-        trace(tag = TAG, message = "Chat photo $key loaded in ${downloadStarted?.elapsedNow()}", type = TraceType.Log)
+        record.step = ChatPhotoLoadTrace.Step.Decrypt
+        val opened = if (photo.sealed) {
+            val decryptStarted = timeSource.markNow()
+            loader.open(photo, bytes).also { record.decrypt = decryptStarted.elapsedNow() }
+        } else {
+            loader.open(photo, bytes)
+        }
 
         if (cache != null) {
             cache.write(key, opened)?.let { return it.asResult() }
@@ -96,12 +105,45 @@ class ChatPhotoFetcher(
         )
     }
 
-    private suspend fun download(url: String): ByteArray? = withContext(Dispatchers.IO) {
-        runCatching {
-            http.newCall(Request.Builder().url(url).build()).execute().use { response ->
-                if (response.isSuccessful) response.body?.bytes() else null
+    /** The URL to download, minting one when the stored URL is missing, expired or [failedUrl]. */
+    private suspend fun resolveUrl(failedUrl: String?): String {
+        record.step = ChatPhotoLoadTrace.Step.Url
+        val attempt = record.newAttempt()
+        val started = timeSource.markNow()
+        val resolution = loader.resolve(photo, failedUrl)
+        if (resolution.minted) attempt.mint = started.elapsedNow()
+        return resolution.url ?: throw ChatPhotoUnavailable.NotFound(resolution.failure)
+    }
+
+    /**
+     * Downloads [url] into the latest attempt's timings. The call blocks its thread, so a cancel
+     * only lands once it returns, and a cancelled load still records the whole download.
+     */
+    private suspend fun download(url: String): Result<ByteArray> = withContext(Dispatchers.IO) {
+        record.step = ChatPhotoLoadTrace.Step.Download
+        val attempt = record.attempts.last()
+        try {
+            val request = Request.Builder().url(url).build()
+            attempt.host = request.url.host
+            val started = timeSource.markNow()
+            http.newCall(request).execute().use { response ->
+                attempt.ttfb = started.elapsedNow()
+                attempt.status = response.code
+                attempt.xCache = response.header("X-Cache")
+                attempt.pop = response.header("X-Amz-Cf-Pop")
+                if (!response.isSuccessful) throw ChatPhotoHttpException(response.code)
+                val transferStarted = timeSource.markNow()
+                val bytes = response.body.bytes()
+                attempt.transfer = transferStarted.elapsedNow()
+                attempt.bytes = bytes.size
+                Result.success(bytes)
             }
-        }.getOrNull()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            attempt.error = e.failureName()
+            Result.failure(e)
+        }
     }
 
     private fun DiskCache.write(key: String, bytes: ByteArray): DiskCache.Snapshot? {
@@ -125,6 +167,11 @@ class ChatPhotoFetcher(
 
     private companion object {
         const val TAG = "ChatPhotoFetcher"
+
+        /** Network loads go to breadcrumbs too; a disk cache hit only to the local log file. */
+        fun emit(record: ChatPhotoLoadTrace) {
+            trace(tag = TAG, message = record.message(), type = if (record.cacheHit) TraceType.Silent else TraceType.Log)
+        }
     }
 
     @Singleton
