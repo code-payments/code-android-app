@@ -46,15 +46,27 @@ data class ChatPhoto(
 sealed class ChatPhotoUnavailable(message: String, cause: Throwable? = null) : Exception(message, cause) {
     class Redacted : ChatPhotoUnavailable("Redacted message")
 
-    /** No URL could be resolved for the blob. */
-    class NotFound : ChatPhotoUnavailable("No download URL for the photo")
+    /** No URL could be resolved for the blob; [cause] is the mint's failure when it had one. */
+    class NotFound(cause: Throwable? = null) : ChatPhotoUnavailable("No download URL for the photo", cause)
 
-    /** The bytes could not be downloaded. */
+    /**
+     * The bytes could not be downloaded; [cause] is the transport's exception, or a
+     * [ChatPhotoHttpException] when the CDN answered with an error status.
+     */
     class Download(cause: Throwable?) : ChatPhotoUnavailable("Photo download failed", cause)
 
     /** The sealed bytes did not open or decode; [reason] says why. [BlobOpenFailure.KeyPending] can succeed later. */
     class Open(val reason: BlobOpenFailure) : ChatPhotoUnavailable("Photo did not open: $reason")
 }
+
+/** The CDN answered a photo download with [status] rather than the bytes. */
+class ChatPhotoHttpException(val status: Int) : Exception("HTTP $status")
+
+/**
+ * A URL resolved for a photo, for the load trace: [minted] when it took a `GetBlobs` call rather
+ * than the stored one, and [failure] when that call failed.
+ */
+internal class UrlResolution(val url: String?, val minted: Boolean, val failure: Throwable? = null)
 
 /**
  * The network-free parts of loading a chat photo, so the Coil fetcher around them stays thin:
@@ -85,16 +97,20 @@ class ChatPhotoLoader internal constructor(
      * [failedUrl] is one that just failed, which forces a mint even if it looks valid, since
      * metadata stored before expiry was modelled carries no expiry. Null if none can be had.
      */
-    suspend fun resolveUrl(photo: ChatPhoto, failedUrl: String? = null): String? {
-        if (photo.redacted) return null
+    suspend fun resolveUrl(photo: ChatPhoto, failedUrl: String? = null): String? = resolve(photo, failedUrl).url
+
+    /** [resolveUrl], also saying whether it minted and why a mint failed. */
+    internal suspend fun resolve(photo: ChatPhoto, failedUrl: String? = null): UrlResolution {
+        if (photo.redacted) return UrlResolution(url = null, minted = false)
         val stored = photo.rendition.blob?.downloadUrl?.takeIf { it.isNotBlank() }
         val usable = stored != null && stored != failedUrl && !photo.rendition.isDownloadUrlExpired(now())
-        if (usable) return stored
-        return blobStorage.refreshMetadata(listOf(photo.rendition.blobId), BlobAccessContext.Chat(photo.chatId))
-            .getOrNull()
+        if (usable) return UrlResolution(url = stored, minted = false)
+        val minted = blobStorage.refreshMetadata(listOf(photo.rendition.blobId), BlobAccessContext.Chat(photo.chatId))
+        val url = minted.getOrNull()
             ?.get(photo.rendition.cacheKey)
             ?.downloadUrl
             ?.takeIf { it.isNotBlank() }
+        return UrlResolution(url = url, minted = true, failure = minted.exceptionOrNull())
     }
 
     /**
