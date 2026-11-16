@@ -88,11 +88,6 @@ internal fun reduceChatOpen(event: Event): (State) -> State =
         }
         is Event.OnEncryptionResolved -> { state -> state.copy(isEncrypted = event.isEncrypted) }
 
-        is Event.OnViewerStateResolved -> { state ->
-            state.copy(viewerState = event.viewerState, silenceClock = kotlin.time.Clock.System.now())
-        }
-        Event.SilenceLapsed -> { state -> state.copy(silenceClock = kotlin.time.Clock.System.now()) }
-        Event.SilenceLifted -> { state -> state }
         Event.CopyInviteLink,
         is Event.InviteSheetOpened,
         Event.InviteLinkShared,

@@ -106,8 +106,6 @@ import com.flipcash.app.messenger.internal.pins.ChatPins
 import com.flipcash.app.messenger.internal.pins.WaitingPin
 import com.flipcash.app.messenger.internal.pins.PinnedRow
 import com.flipcash.shared.chat.ui.previewText
-import com.flipcash.services.models.chat.isActiveAt
-import com.flipcash.services.models.chat.silence
 import com.flipcash.services.models.chat.isDmAddressable
 import com.flipcash.services.models.handle
 import com.flipcash.services.models.nameOrHandle
@@ -338,6 +336,7 @@ internal class ChatViewModel @AssistedInject constructor(
     private val hostLobbies: HostLobbies,
     private val groupRosters: GroupRosters,
     private val dispatchers: DispatcherProvider,
+    private val viewer: DefaultViewerScope,
     // Last and defaulted so the transcript tests, which hold no saved previews, need not supply one.
     linkCardMemory: LinkCardMemory? = null,
     private val composerLinkPreview: ComposerLinkPreview? = null,
@@ -354,7 +353,7 @@ internal class ChatViewModel @AssistedInject constructor(
     ),
     updateStateForEvent = updateStateForEvent,
     defaultDispatcher = dispatchers.Default,
-) {
+), ViewerScope by viewer {
     /** The highest pin summary version heard of; a read follows any that passes the held list. */
     private val pinVersionHeard = MutableStateFlow<Long?>(null)
 
@@ -403,27 +402,14 @@ internal class ChatViewModel @AssistedInject constructor(
         val separatorConfig: SeparatorConfig = SeparatorConfig.Continuous(),
         val chatId: ChatId? = null,
         val subject: ChatSubject? = null,
-        /**
-         * What this chat holds about the viewer, or null while nothing is known.
-         *
-         * On the chat rather than on the [ChatSubject] because it is not about who the
-         * conversation is with: a DM is muted exactly the way a group is, and both profiles offer
-         * the row. Carried whole rather than reduced to a muted flag — a timed mute lapses with
-         * nothing sent to say so, so what is muted depends on when it is asked, and `isMutedAt`
-         * needs the deadline this keeps.
-         */
-        val viewerState: ViewerState? = null,
+        /** [ViewerScope]'s slice: viewer state and the clock a timed silence is read against. */
+        val viewer: ViewerSlice = ViewerSlice(),
         /** The chat's pins, read on open and again whenever the stored summary moves past them. */
         val pins: ChatPins = ChatPins(),
         /** Which visible pin the bar shows, newest first. A tap jumps to it and steps to the next older. */
         val pinBarIndex: Int = 0,
         /** The message the server refused at the pin cap; the pinned list quotes it while it waits for a slot. */
         val waitingPin: WaitingPin? = null,
-        /**
-         * The clock a timed silence is read against. A silence lapses with no event, so [silence]
-         * compares the deadline to this and a timer bumps it at the deadline.
-         */
-        val silenceClock: kotlin.time.Instant = kotlin.time.Clock.System.now(),
         // The kind of DM this conversation is, resolved from the fast local contact lookup ahead of
         // the participant's server profile (which resolves over the network for tip DMs). Starts
         // UNKNOWN and settles to CONTACT_DM / TIP_DM as soon as the chat opens; the send button and
@@ -692,9 +678,13 @@ internal class ChatViewModel @AssistedInject constructor(
         val participant: ChatParticipant?
             get() = subject?.asParticipant()
 
-        /** `can_pin`: the creator of a group while a member, either member of a DM. Read, never derived from the type. */
+        /** See [ViewerSlice.viewerState]. */
+        val viewerState: ViewerState?
+            get() = viewer.viewerState
+
+        /** See [ViewerSlice.canPin]. */
         val canPin: Boolean
-            get() = viewerState?.permissions?.canPin == true
+            get() = viewer.canPin
 
         /**
          * Cash sent here pays members rather than posting a cash link. Private groups only: they
@@ -803,9 +793,9 @@ internal class ChatViewModel @AssistedInject constructor(
         val showsJoinRequestsAnchor: Boolean
             get() = isLobbyHost && joinRequests.isNotEmpty() && selection == null && editing == null
 
-        /** The silence a moderator has on the viewer right now, or null once it has lapsed. */
+        /** See [ViewerSlice.silence]. */
         val silence: SilenceState?
-            get() = viewerState.silence?.takeIf { it.isActiveAt(silenceClock) }
+            get() = viewer.silence
 
         /** Whether the chat's speaker rules and any silence let this viewer speak. See [speakerBlock]. */
         val canSpeak: Boolean
@@ -1026,9 +1016,6 @@ internal class ChatViewModel @AssistedInject constructor(
         data class OnProfileStandingResolved(val standing: GroupProfileStanding?) : Event
         data class OnRuleTokensResolved(val tokens: Map<List<Byte>, RuleCurrency>) : Event
 
-        /** This chat's viewer state moved, from the stream or from the viewer's own request. */
-        data class OnViewerStateResolved(val viewerState: ViewerState?) : Event
-
         /** A read of the chat's pins came back, made at summary [version]. */
         data class PinsRead(val pins: List<Pin>, val version: Long) : Event
 
@@ -1048,12 +1035,6 @@ internal class ChatViewModel @AssistedInject constructor(
 
         /** The pin bar was tapped: jump to the pin it shows and step to the next older one. */
         data object PinBarTapped : Event
-
-        /** A timed silence reached its deadline; nothing else says so. */
-        data object SilenceLapsed : Event
-
-        /** The viewer can send again; the screen shows it as a floating toast above the composer. */
-        data object SilenceLifted : Event
 
         data class OnEncryptionResolved(val isEncrypted: Boolean) : Event
 
@@ -2647,44 +2628,12 @@ internal class ChatViewModel @AssistedInject constructor(
             .onEach { chatCoordinator.refreshRules(it) }
             .launchIn(viewModelScope)
 
-        // The same metadata, minus the type filter: every chat has viewer state and every chat can
-        // be muted, so this one is not the group chrome's business. Observed rather than read with
-        // the chat because a mute made on another device arrives on the stream, and because leaving
-        // clears it server-side.
-        stateFlow.mapNotNull { it.chatId }
-            .distinctUntilChanged()
-            .flatMapLatest { chatCoordinator.observeMetadata(it) }
-            .map { it?.metadata?.viewerState }
-            .distinctUntilChanged()
-            .onEach { dispatchEvent(Event.OnViewerStateResolved(it)) }
-            .launchIn(viewModelScope)
-
-        // A timed silence lapses with nothing sent, so the composer comes back on a timer rather
-        // than at the next stream event. The deadline is read off the viewer state, and a new
-        // silence replaces the pending timer.
-        stateFlow.map { it.viewerState.silence as? SilenceState.Until }
-            .distinctUntilChanged()
-            .flatMapLatest { silence ->
-                flow {
-                    if (silence != null) {
-                        val wait = silence.until - kotlin.time.Clock.System.now()
-                        if (wait.isPositive()) delay(wait)
-                        emit(Unit)
-                    }
-                }
-            }
-            .onEach { dispatchEvent(Event.SilenceLapsed) }
-            .launchIn(viewModelScope)
-
-        // The pill giving way to the composer is the one moment worth a word. Read off the
-        // silenced/not edge of the state, so a host's unsilence and a timer lapse that land together
-        // are one lift, and a chat opened already free of silence has no edge to toast.
-        stateFlow.map { it.silence != null }
-            .distinctUntilChanged()
-            .scan(false to false) { (_, was), isSilenced -> was to isSilenced }
-            .filter { (was, isSilenced) -> was && !isSilenced }
-            .onEach { dispatchEvent(Event.SilenceLifted) }
-            .launchIn(viewModelScope)
+        viewer.bind(
+            scope = viewModelScope,
+            chatId = stateFlow.mapNotNull { it.chatId },
+            slice = stateFlow.map { it.viewer },
+            dispatch = { dispatchEvent(it) },
+        )
 
         // The profile footer's claim. Decided by the policy from the chat's metadata, so the
         // screen never reads the server's flag itself.
@@ -4735,9 +4684,6 @@ internal class ChatViewModel @AssistedInject constructor(
                 Event.JoinChat,
                 is Event.JoinStateUpdated,
                 is Event.OnEncryptionResolved,
-                is Event.OnViewerStateResolved,
-                Event.SilenceLapsed,
-                Event.SilenceLifted,
                 Event.CopyInviteLink,
                 is Event.InviteSheetOpened,
                 Event.InviteLinkShared,
@@ -4774,6 +4720,7 @@ internal class ChatViewModel @AssistedInject constructor(
                 is Event.AdvanceReadPointer,
                 is Event.ChatDeactivated,
                 is Event.MessagePolicyChanged -> reduceChatOpen(event)
+                is ViewerEvent -> { state -> state.copy(viewer = state.viewer.reduce(event)) }
                 is Event.PinsRead,
                 is Event.PinnedCopiesStored,
                 is Event.PinSummaryChanged,

@@ -141,7 +141,7 @@ class GroupChromeScreenshotTest {
                                 state = ChatViewModel.State(
                                     subject = group,
                                     chatType = ChatType.GROUP,
-                                    viewerState = ViewerState(mute = MuteState.Forever, version = 1L),
+                                    viewer = ViewerSlice(viewerState = ViewerState(mute = MuteState.Forever, version = 1L)),
                                 ),
                                 onBarHeightChange = {},
                                 chatActionHandler = {},

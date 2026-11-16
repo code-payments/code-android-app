@@ -132,7 +132,7 @@ class ChatIdentityScreenshotTest {
                             state = ChatViewModel.State(
                                 subject = ChatSubject.TipUser(participant),
                                 chatType = ChatType.TIP_DM,
-                                viewerState = ViewerState(mute = MuteState.Forever, version = 1L),
+                                viewer = ViewerSlice(viewerState = ViewerState(mute = MuteState.Forever, version = 1L)),
                             ),
                             onBarHeightChange = {},
                             chatActionHandler = {},

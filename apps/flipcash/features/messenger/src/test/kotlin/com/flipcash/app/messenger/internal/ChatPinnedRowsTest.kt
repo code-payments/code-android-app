@@ -148,6 +148,7 @@ class ChatPinnedRowsTest {
         hostLobbies = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
         groupRosters = mockk(relaxed = true) { every { state } returns MutableStateFlow(emptyMap()) },
         dispatchers = TestDispatcherProvider(mainCoroutineRule.dispatcher),
+        viewer = DefaultViewerScope(chatCoordinator),
         identifier = null,
     )
 
