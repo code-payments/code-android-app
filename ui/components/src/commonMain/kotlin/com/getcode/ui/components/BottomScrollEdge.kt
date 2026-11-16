@@ -16,6 +16,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
@@ -58,15 +59,24 @@ fun BottomScrollEdge(
     BottomScrollEdge(hazeState = hazeState, visible = visible, modifier = modifier, height = height)
 }
 
-/** [BottomScrollEdge] shown whenever [visible] is true. */
+/**
+ * [BottomScrollEdge] shown whenever [visible] is true.
+ *
+ * The blur ramps in over the top [ramp] of [height] and holds at full strength below it. The
+ * default ramps over the whole height; a shorter ramp dissolves what sits low in the edge, such as
+ * rows passing beside and beneath a floating bar.
+ */
 @Composable
 fun BottomScrollEdge(
     hazeState: HazeState,
     visible: Boolean,
     height: Dp,
     modifier: Modifier = Modifier,
+    ramp: Dp = height,
 ) {
     val material = HazeMaterials.ultraThin(containerColor = CodeTheme.colors.background)
+    // Past the box's foot when the ramp is the whole height, so the gradient ends at the bottom.
+    val rampEnd = if (ramp >= height) Float.POSITIVE_INFINITY else with(LocalDensity.current) { ramp.toPx() }
 
     AnimatedVisibility(visible = visible, modifier = modifier, enter = fadeIn(), exit = fadeOut()) {
         Box(
@@ -76,7 +86,13 @@ fun BottomScrollEdge(
                 .hazeBlur(
                     HazeInput.Sources(hazeState),
                     material.then {
-                        progressive(HazeProgressive.verticalGradient(startIntensity = 0f, endIntensity = 1f))
+                        progressive(
+                            HazeProgressive.verticalGradient(
+                                startIntensity = 0f,
+                                endY = rampEnd,
+                                endIntensity = 1f,
+                            ),
+                        )
                     },
                 ),
         )

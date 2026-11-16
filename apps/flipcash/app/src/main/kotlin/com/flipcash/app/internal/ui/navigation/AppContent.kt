@@ -60,6 +60,7 @@ import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.ui.transitions.CardExpandTransition
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.core.tokens.TokenInfoPresentation
+import com.flipcash.app.internal.ui.AppBottomScrollEdge
 import com.flipcash.app.internal.ui.AppNavigationBar
 import com.flipcash.app.internal.ui.SearchMorph
 import com.flipcash.app.search.PreloadSearch
@@ -313,6 +314,15 @@ internal fun AppContent(
                 ),
             )
         }
+
+        // Over the nav content and under the toasts and the bar, which float above it. Left out with
+        // the bar while the biometrics overlay is up.
+        if (!isBiometricsLocked()) AppBottomScrollEdge(
+            visibility = barVisibility,
+            hazeState = hazeState,
+            barHeight = { tabBarHeight.value },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
 
         // Composed before the bar, so the bar draws over a toast rising out of it.
         AppToastHost(

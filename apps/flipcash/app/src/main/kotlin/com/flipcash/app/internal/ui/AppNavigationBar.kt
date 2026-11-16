@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.getcode.ui.components.glass.floatingGlass
@@ -54,6 +55,7 @@ import com.flipcash.app.core.navigation.selectedTab
 import com.flipcash.app.core.ui.NavigationBar
 import com.flipcash.app.core.ui.NavBarGlyph
 import com.flipcash.app.core.ui.label
+import com.getcode.ui.components.BottomScrollEdge
 import com.getcode.ui.components.CircularIconButton
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -149,6 +151,17 @@ internal class AppNavigationBarVisibility(
 
     /** On screen and not faded out by a card expansion. */
     val isVisible: Boolean get() = shown && !fadedOut
+
+    /**
+     * Whether the soft edge under the bar is drawn (see [AppBottomScrollEdge]): only under
+     * [NavBarShell.GroupMoney], over its tab homes, while the bar is. Search, which keeps the bar,
+     * draws its own edge, and Classic has none.
+     */
+    val showsBottomEdge: Boolean by derivedStateOf {
+        shell.value == NavBarShell.GroupMoney &&
+            shell.value.isTabHome(navigator.currentRouteKey) &&
+            isVisible
+    }
 }
 
 @Composable
@@ -297,6 +310,37 @@ internal fun AppNavigationBar(
         }
     }
 }
+
+/**
+ * The soft edge the Group Money bar floats over: the list blurs out toward the foot of the screen as
+ * it passes beside and beneath the bar, across the full width, as iOS's tab bar does, rather than
+ * running sharp under it. Shown while [AppNavigationBarVisibility.showsBottomEdge] says so, and faded
+ * with the bar through a card expansion.
+ *
+ * [barHeight] is the bar's measured height, system navigation bar included. The edge starts
+ * [BottomEdgeLeadIn] above the bar and is at full strength from halfway down, about the middle of
+ * the pill, so a row beside or below the pill is dissolved while the last row, which rests on the
+ * bar's top, is barely touched. It draws nothing touchable, so the list under it still scrolls.
+ */
+@Composable
+internal fun AppBottomScrollEdge(
+    visibility: AppNavigationBarVisibility,
+    hazeState: HazeState,
+    barHeight: () -> Dp,
+    modifier: Modifier = Modifier,
+) {
+    val height = barHeight() + BottomEdgeLeadIn
+    BottomScrollEdge(
+        hazeState = hazeState,
+        visible = visibility.showsBottomEdge,
+        height = height,
+        ramp = height / 2,
+        modifier = modifier.graphicsLayer { alpha = 1f - visibility.fadeProgress },
+    )
+}
+
+// How far above the bar's top the edge begins to blur.
+private val BottomEdgeLeadIn = 24.dp
 
 /**
  * Whether the bar draws the search button beside the tabs. Only Classic does: the Group Money bar

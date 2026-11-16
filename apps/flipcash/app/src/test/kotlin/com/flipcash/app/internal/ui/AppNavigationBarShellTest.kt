@@ -3,12 +3,14 @@ package com.flipcash.app.internal.ui
 import androidx.compose.runtime.mutableStateOf
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import com.flipcash.app.cardexpand.CardExpansionController
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.navigation.TabBarVisibilityController
 import com.flipcash.app.core.navigation.isTabHome
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.EmptyCodeNavigator
+import kotlinx.coroutines.runBlocking
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -28,19 +30,28 @@ class AppNavigationBarShellTest {
 
     private val tabs = listOf(AppRoute.Tabs.Scanner, AppRoute.Tabs.Wallet, AppRoute.Tabs.Chats, AppRoute.Tabs.Menu)
 
+    private fun visibility(
+        shell: NavBarShell,
+        vararg stack: NavKey,
+        bottomBarMessages: List<Any> = emptyList(),
+        billUp: Boolean = false,
+        tabBarVisibility: TabBarVisibilityController = TabBarVisibilityController(),
+        cardExpansion: CardExpansionController? = null,
+    ) = AppNavigationBarVisibility(
+        navigator = CodeNavigator(
+            backStack = NavBackStack(*stack),
+            resultStore = EmptyCodeNavigator.resultStore,
+            onRootReached = {},
+        ),
+        bottomBarMessages = mutableStateOf(bottomBarMessages),
+        billUp = mutableStateOf(billUp),
+        tabBarVisibility = tabBarVisibility,
+        cardExpansion = cardExpansion,
+        shell = mutableStateOf(shell),
+    )
+
     private fun barShown(shell: NavBarShell, vararg stack: NavKey): Boolean =
-        AppNavigationBarVisibility(
-            navigator = CodeNavigator(
-                backStack = NavBackStack(*stack),
-                resultStore = EmptyCodeNavigator.resultStore,
-                onRootReached = {},
-            ),
-            bottomBarMessages = mutableStateOf(emptyList<Any>()),
-            billUp = mutableStateOf(false),
-            tabBarVisibility = TabBarVisibilityController(),
-            cardExpansion = null,
-            shell = mutableStateOf(shell),
-        ).shown
+        visibility(shell, *stack).shown
 
     @Test
     fun `Classic draws the bar over all four tabs, Scanner and You included`() {
@@ -82,6 +93,52 @@ class AppNavigationBarShellTest {
         assertEquals(
             listOf<AppRoute>(AppRoute.Tabs.Wallet, AppRoute.Tabs.Chats),
             tabs.filter { NavBarShell.GroupMoney.isTabHome(it) },
+        )
+    }
+
+    @Test
+    fun `the soft bottom edge shows over the Group Money tab homes only`() {
+        assertTrue(visibility(NavBarShell.GroupMoney, AppRoute.Tabs.Chats).showsBottomEdge)
+        assertTrue(visibility(NavBarShell.GroupMoney, AppRoute.Tabs.Wallet).showsBottomEdge)
+        assertFalse(visibility(NavBarShell.GroupMoney, AppRoute.Tabs.Scanner).showsBottomEdge)
+        assertFalse(visibility(NavBarShell.GroupMoney, AppRoute.Tabs.Menu).showsBottomEdge)
+        assertFalse(visibility(NavBarShell.GroupMoney, AppRoute.Tabs.Wallet, AppRoute.Tabs.Menu).showsBottomEdge)
+        assertFalse(visibility(NavBarShell.GroupMoney, AppRoute.Tabs.Chats, AppRoute.Messaging.ArchivedChats).showsBottomEdge)
+    }
+
+    @Test
+    fun `Classic has no soft bottom edge`() {
+        tabs.forEach { tab -> assertFalse(visibility(NavBarShell.Classic, tab).showsBottomEdge, "$tab") }
+    }
+
+    @Test
+    fun `Search draws its own bottom edge, so the bar's is left out`() {
+        assertFalse(
+            visibility(NavBarShell.GroupMoney, AppRoute.Tabs.Chats, AppRoute.Messaging.Search).showsBottomEdge,
+        )
+    }
+
+    @Test
+    fun `the soft bottom edge leaves with the bar`() {
+        assertFalse(
+            visibility(NavBarShell.GroupMoney, AppRoute.Tabs.Chats, billUp = true).showsBottomEdge,
+        )
+        assertFalse(
+            visibility(NavBarShell.GroupMoney, AppRoute.Tabs.Chats, bottomBarMessages = listOf(Any()))
+                .showsBottomEdge,
+        )
+        val hidden = TabBarVisibilityController().apply { hide() }
+        assertFalse(
+            visibility(NavBarShell.GroupMoney, AppRoute.Tabs.Chats, tabBarVisibility = hidden).showsBottomEdge,
+        )
+    }
+
+    @Test
+    fun `the soft bottom edge leaves once a wallet card has expanded over the deck`() {
+        val expansion = CardExpansionController()
+        runBlocking { expansion.snapTo(1f) }
+        assertFalse(
+            visibility(NavBarShell.GroupMoney, AppRoute.Tabs.Wallet, cardExpansion = expansion).showsBottomEdge,
         )
     }
 }
