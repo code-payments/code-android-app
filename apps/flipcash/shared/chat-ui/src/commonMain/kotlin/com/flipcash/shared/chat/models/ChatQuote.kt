@@ -3,7 +3,7 @@ package com.flipcash.shared.chat.models
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.opencode.model.core.ID
 
-import com.flipcash.services.models.chat.MediaItemRendition
+import com.flipcash.services.models.chat.MediaItem
 import androidx.compose.ui.graphics.Color
 import com.getcode.opencode.model.financial.Fiat
 
@@ -66,13 +66,14 @@ sealed interface ChatQuoteSnippet {
      * A quoted photo: a thumbnail beside its caption, or beside the word "Photo" when there is none.
      *
      * @property caption the caption as written, null when the photo has none.
-     * @property rendition what a thumbnail is drawn from, null when the item carries none.
+     * @property item the quoted photo, null when the message carries none. The whole item rather than
+     * one rendition, so the thumbnail can pick the size it draws at.
      * @property sealed whether the photo's bytes must be opened before they decode.
      * @property redacted a redacted photo is never fetched, so its thumbnail is not drawn.
      */
     data class Photo(
         val caption: String?,
-        val rendition: MediaItemRendition?,
+        val item: MediaItem?,
         val sealed: Boolean,
         val redacted: Boolean,
         /** Which chat the photo's blob belongs to, for the thumbnail's fetch. */

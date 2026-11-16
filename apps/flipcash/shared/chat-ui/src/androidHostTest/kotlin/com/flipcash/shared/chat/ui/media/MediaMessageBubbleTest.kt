@@ -215,13 +215,13 @@ class MediaMessageBubbleTest {
                 sized(MediaItemRendition.Role.THUMBNAIL, 320, 4),
             ),
         )
-        assertEquals(800, bubbleRendition(item, bubblePx = 700)?.blob?.image?.width)
-        assertEquals(1600, bubbleRendition(item, bubblePx = 900)?.blob?.image?.width)
+        assertEquals(800, photoRendition(item, targetPx = 700)?.blob?.image?.width)
+        assertEquals(1600, photoRendition(item, targetPx = 900)?.blob?.image?.width)
     }
 
     @Test
     fun `a bubble falls back to the original when the server derived no renditions`() {
         val item = MediaItem(listOf(sized(MediaItemRendition.Role.ORIGINAL, 4000, 1)))
-        assertEquals(MediaItemRendition.Role.ORIGINAL, bubbleRendition(item, bubblePx = 700)?.role)
+        assertEquals(MediaItemRendition.Role.ORIGINAL, photoRendition(item, targetPx = 700)?.role)
     }
 }
