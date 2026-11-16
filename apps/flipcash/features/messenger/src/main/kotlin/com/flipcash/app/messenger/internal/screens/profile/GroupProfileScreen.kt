@@ -265,8 +265,7 @@ internal fun GroupProfileScreen(viewModel: ChatViewModel) {
                                     ChatViewModel.Event.InviteSheetOpened(GroupInviteSheetSource.PROFILE)
                                 )
                                 // A host sees the link card sheet (frame 1m); a member without
-                                // can_invite keeps the single join link. Both are the classic
-                                // sheets under Group Money too.
+                                // can_invite keeps the single join link, in either shell.
                                 navigator.openGroupInfoInvite(shell, canInvite) {
                                     flowNavigator.navigateTo(ChatStep.ManageInvites)
                                 }

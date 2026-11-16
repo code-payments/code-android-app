@@ -99,16 +99,10 @@ sealed interface ChatStep : FlowStep, Parcelable {
      *
      * A [WrapContentSheet] (Nov 9): it has no Recent Chats or message bar, only the link, a line
      * and three tiles. [ShareMessage] keeps the full sheet for its list.
-     *
-     * [classic] draws the sheet as it is without Group Money, whichever shell is on: Group Info
-     * and the host's Invite sheet open it this way. Under the classic shell it changes nothing.
-     *
-     * [condensed] drops the Group Money sheet's group avatar and name and tightens its gaps. Only
-     * the transcript's Invite People opens it this way. It changes nothing on a [classic] sheet.
      */
     @Parcelize
     @Serializable
-    data class InviteToGroup(val classic: Boolean = false, val condensed: Boolean = false) :
+    data object InviteToGroup :
         ChatStep,
         NavigationRetVal<GroupInviteResult>,
         Sheet,
@@ -121,16 +115,10 @@ sealed interface ChatStep : FlowStep, Parcelable {
      *
      * Carries the invite's id and never its link: a step is logged and saved, and the link's
      * fragment is the secret. The sheet rebuilds the link from the host's own invites.
-     *
-     * [classic] and [condensed] change the sheet as [InviteToGroup]'s do.
      */
     @Parcelize
     @Serializable
-    data class ShareInviteLink(
-        val inviteIdHex: String? = null,
-        val classic: Boolean = false,
-        val condensed: Boolean = false,
-    ) :
+    data class ShareInviteLink(val inviteIdHex: String? = null) :
         ChatStep,
         NavigationRetVal<GroupInviteResult>,
         Sheet,

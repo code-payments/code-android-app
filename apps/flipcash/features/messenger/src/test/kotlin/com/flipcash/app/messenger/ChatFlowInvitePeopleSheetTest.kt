@@ -30,12 +30,9 @@ class ChatFlowInvitePeopleSheetTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     private val invitePeopleSteps = listOf(
-        ChatStep.InviteToGroup(),
+        ChatStep.InviteToGroup,
         ChatStep.ShareInviteLink(),
-        ChatStep.InviteToGroup(classic = true),
-        ChatStep.ShareInviteLink(classic = true),
-        ChatStep.InviteToGroup(condensed = true),
-        ChatStep.ShareInviteLink(condensed = true),
+        ChatStep.ShareInviteLink("0a0b"),
     )
 
     /** The chat flow's entries as the flow builds them with [shell] on. */
