@@ -35,6 +35,13 @@ sealed interface StatefulSwapResponseServerParameters {
     val memoValue: String
 
     /**
+     * v1 transaction config. Set by the server only when the client requested transaction
+     * version 1; when set, [alts] is empty, [computeUnitLimit] and [computeUnitPrice] are 0, and
+     * the transaction is built as v1 without ALTs using this config. Null for v0.
+     */
+    val transactionConfig: SolanaTransactionConfig?
+
+    /**
      * Server parameters when executing stateful buy/sell flows against the
      * Reserve contract against an existing currency
      *
@@ -126,6 +133,7 @@ sealed interface StatefulSwapResponseServerParameters {
          * `VM::TransferForSwapWithFee` instead of `VM::TransferForSwap`.
          */
         val feeDestination: PublicKey? = null,
+        override val transactionConfig: SolanaTransactionConfig? = null,
     ): StatefulSwapResponseServerParameters
 
     /**
@@ -222,7 +230,49 @@ sealed interface StatefulSwapResponseServerParameters {
          * pre-coordinated amount accepted by the user. Zero when unused.
          */
         val treasuryPurchaseAmount: Long,
-    ): StatefulSwapResponseServerParameters
+        override val transactionConfig: SolanaTransactionConfig? = null,
+        /**
+         * VM memory accounts initialized and resized to full capacity within the
+         * transaction, in instruction order. Only set when [transactionConfig] is set.
+         */
+        val memoryAccounts: List<VmMemoryAccountInitialization> = emptyList(),
+        /**
+         * Owner of the to_mint fee account, which v1 transactions open with
+         * AssociatedTokenAccount::CreateIdempotent. Null when the server omits it.
+         */
+        val feeAccountOwner: PublicKey? = null,
+    ): StatefulSwapResponseServerParameters {
+
+        data class VmMemoryAccountInitialization(
+            /**
+             * The memory account address. Client should verify that it matches the
+             * address derived from the VM and name.
+             */
+            val address: PublicKey,
+            /**
+             * The name provided to VM::InitMemory
+             */
+            val name: String,
+            /**
+             * The number of virtual accounts provided to VM::InitMemory
+             */
+            val numAccounts: Int,
+            /**
+             * The virtual account size provided to VM::InitMemory
+             */
+            val accountSize: Int,
+            /**
+             * The account sizes provided to successive VM::ResizeMemory instructions,
+             * in order. The last is the memory account's full capacity.
+             */
+            val resizeSizes: List<Int>,
+            /**
+             * Lamports the authority transfers to the memory account with
+             * System::Transfer after VM::InitMemory
+             */
+            val rentTopUpLamports: Long,
+        )
+    }
 
     /**
      * Server parameters when executing stateful swap flows against the
@@ -281,5 +331,6 @@ sealed interface StatefulSwapResponseServerParameters {
          * CoinbaseStableSwapper::Swap instruction.
          */
         val poolFeeRecipient: PublicKey,
+        override val transactionConfig: SolanaTransactionConfig? = null,
     ): StatefulSwapResponseServerParameters
 }
