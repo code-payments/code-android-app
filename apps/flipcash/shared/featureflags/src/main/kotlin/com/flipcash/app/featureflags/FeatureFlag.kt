@@ -128,6 +128,20 @@ sealed interface FeatureFlag<T: Any> {
         override val staffVisible: Boolean = true
     }
 
+    /**
+     * Puts the [GroupMoneyUi] tab bar at the screen's leading edge instead of centring it. Does
+     * nothing while that shell is off, so it takes the same staff or beta override gate.
+     */
+    @FeatureFlagMarker
+    data object LeftAlignedTabBar: FeatureFlag<Boolean> {
+        override val key: String = "left_aligned_tab_bar_enabled"
+        override val default: Boolean = false
+        override val launched: Boolean = false
+        override val visible: Boolean = true
+        override val persistLogOut: Boolean = false
+        override val staffVisible: Boolean = true
+    }
+
     companion object {
         val entries: List<FeatureFlag<*>>
             get() = FeatureFlagEntries.entries
@@ -150,6 +164,7 @@ val FeatureFlag<*>.title: String
         FeatureFlag.LinkDesktop -> "Link a Desktop"
         FeatureFlag.ChatCashBill -> "Chat Cash Bill"
         FeatureFlag.GroupMoneyUi -> "Groups and Money"
+        FeatureFlag.LeftAlignedTabBar -> "Left-Aligned Tab Bar"
     }
 
 val FeatureFlag<*>.message: String
@@ -163,6 +178,7 @@ val FeatureFlag<*>.message: String
         FeatureFlag.LinkDesktop -> "When enabled, Settings shows Link a Desktop, which sends this account to the Flipcash desktop app over your local network"
         FeatureFlag.ChatCashBill -> "Show the bill when someone sends you cash in the chat you have open."
         FeatureFlag.GroupMoneyUi -> "When enabled, the tab bar has two tabs, Groups and Money, in place of Scan, Chat, Wallet and You"
+        FeatureFlag.LeftAlignedTabBar -> "When enabled, puts the Groups and Money tab bar at the left edge instead of the centre. Needs the Groups and Money flag on"
     }
 
 /**

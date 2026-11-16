@@ -56,6 +56,7 @@ import com.flipcash.app.theme.FlipcashThemeWrapper
 import com.flipcash.core.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
+import com.getcode.ui.components.glass.FloatingChrome
 import com.getcode.ui.components.glass.floatingGlass
 
 data class NavigationBarState(
@@ -90,6 +91,19 @@ fun rememberNavigationBarState(
     }.value
 }
 
+/**
+ * The horizontal padding of the row the app floats [NavigationBar] in. Each edge takes
+ * [FloatingChrome.horizontalInset], which the toast rising out of the bar shares. A left-aligned
+ * Group Money bar instead starts at the screen's content margin, `dimens.inset`, so its leading edge
+ * lines up with the tab's title and content.
+ */
+@Composable
+fun navigationBarRowPadding(shell: NavBarShell, leftAligned: Boolean): PaddingValues {
+    val inset = FloatingChrome.horizontalInset
+    val start = if (shell == NavBarShell.GroupMoney && leftAligned) CodeTheme.dimens.inset else inset
+    return PaddingValues(start = start, end = inset)
+}
+
 @Composable
 fun NavigationBar(
     modifier: Modifier = Modifier,
@@ -107,6 +121,9 @@ fun NavigationBar(
     onYouTabLongClick: (() -> Unit)? = null,
     // The tab set to draw. Classic is today's four tabs; GroupMoney draws Groups and Money only.
     shell: NavBarShell = NavBarShell.Classic,
+    // GroupMoney only: puts the pill at the start of the width it is given instead of centring it
+    // (the Left-Aligned Tab Bar beta flag). Classic fills the width, so it ignores this.
+    leftAligned: Boolean = false,
 ) {
     val order = shell.tabs
     if (order.isEmpty()) return
@@ -131,12 +148,13 @@ fun NavigationBar(
     val horizontalPadding = CodeTheme.dimens.grid.x1 + indicatorOverhang
 
     // Classic stretches the pill across the width it is given. GroupMoney sizes it to its tabs and
-    // centres it in that width (frames 1-01 and 1-02, node 13729:411). Each tab takes the classic
-    // design's 86.5pt item (node 10599:65384); 85 is the nearest fixed step.
+    // centres it in that width (frames 1-01 and 1-02, node 13729:411), or starts it there when
+    // leftAligned. Each tab takes the classic design's 86.5pt item (node 10599:65384); 85 is the
+    // nearest fixed step.
     val pillWidth = when (shell) {
         NavBarShell.Classic -> Modifier
         NavBarShell.GroupMoney -> Modifier
-            .wrapContentWidth(Alignment.CenterHorizontally)
+            .wrapContentWidth(if (leftAligned) Alignment.Start else Alignment.CenterHorizontally)
             .width(CodeTheme.dimens.staticGrid.x17 * order.size + horizontalPadding * 2)
     }
 

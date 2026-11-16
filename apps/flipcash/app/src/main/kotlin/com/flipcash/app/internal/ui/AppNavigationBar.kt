@@ -57,7 +57,10 @@ import com.flipcash.app.core.ui.label
 import com.getcode.ui.components.CircularIconButton
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.flipcash.app.core.ui.navigationBarRowPadding
 import com.flipcash.app.core.ui.rememberNavigationBarState
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.BlobAccessContext
@@ -67,7 +70,6 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.Sheet
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.glass.FloatingChrome
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -198,6 +200,13 @@ internal fun AppNavigationBar(
 
     val avatar = rememberProfileAvatar()
 
+    // The Left-Aligned Tab Bar beta flag, read live so flipping it in Labs moves the bar at once.
+    // Remembered because each observe() starts its own collector. It only moves the Group Money bar;
+    // that shell is already limited to staff and the beta override.
+    val featureFlags = LocalFeatureFlags.current
+    val leftAlignedFlag = remember(featureFlags) { featureFlags.observe(FeatureFlag.LeftAlignedTabBar) }
+    val leftAligned by leftAlignedFlag.collectAsStateWithLifecycle()
+
     Box(
         modifier = Modifier
             .then(modifier)
@@ -221,15 +230,17 @@ internal fun AppNavigationBar(
                 )
                 // Under Classic the search button sits at the bar's trailing end, apart from the
                 // tabs, where iOS puts its search tab. It is as tall as the pill, which sizes to its
-                // content. GroupMoney has no search button; its pill centres itself in the row.
+                // content. GroupMoney has no search button; its pill centres itself in the row, or
+                // starts at the screen's content margin when leftAligned.
                 var pillHeight by remember { mutableStateOf(0.dp) }
                 val density = LocalDensity.current
                 Row(
                     modifier = Modifier
                         .navigationBarsPadding()
-                        // Shared with the toast that rises out of the bar, so it is never wider
-                        // than this row. The Group Money pill is narrower than the row.
-                        .padding(horizontal = FloatingChrome.horizontalInset)
+                        // FloatingChrome.horizontalInset each edge, shared with the toast that rises
+                        // out of the bar, so it is never wider than this row. The Group Money pill is
+                        // narrower than the row.
+                        .padding(navigationBarRowPadding(shell, leftAligned))
                         .padding(bottom = CodeTheme.dimens.grid.x3),
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     verticalAlignment = Alignment.CenterVertically,
@@ -260,6 +271,7 @@ internal fun AppNavigationBar(
                                 avatar = avatar,
                                 onYouTabLongClick = youTabLongClick(canSwitchAccounts, navigator),
                                 shell = shell,
+                                leftAligned = leftAligned,
                             )
                         }
                     }
