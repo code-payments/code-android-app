@@ -266,6 +266,8 @@ include(
     ":libs:vibrator:impl",
     ":libs:vibrator:public",
 
+    ":libs:wire-canonical",
+
     // Services definition for app and lib access
     ":services:opencode",
     ":services:opencode-model",
@@ -277,6 +279,8 @@ include(
     ":services:flipcash",
     ":services:flipcash:test-fixtures",
     ":services:flipcash-compose",
+    ":services:flipcash-chat",
+    ":services:flipcash-client",
 
     // common UI
     ":ui:biometrics",

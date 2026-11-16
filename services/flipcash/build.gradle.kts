@@ -57,6 +57,34 @@ kotlin {
             implementation(libs.bundles.unit.testing)
             implementation(project(":services:flipcash:test-fixtures"))
         }
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.core)
+            // LiveResponseParityTest parses OCP GetIntentMetadata responses with protobuf-java.
+            implementation(libs.ocp.client.protocol)
+        }
+    }
+}
+
+tasks.named<Test>("jvmTest") {
+    // ChatEnvelopeFixtureTest and ChatClientFixtureTest record Android's chat bytes into the
+    // fixtures :services:flipcash-chat and :services:flipcash-client check their Wire code against.
+    // Run with -Dfixture.update=true to rewrite them.
+    val vectors = rootProject.file("libs/encryption/chat-cipher/src/commonTest/resources")
+    val fixture = rootProject.file("services/flipcash-chat/src/commonTest/resources/chat_envelopes.json")
+    systemProperty("chatCipherVectors", vectors.absolutePath)
+    systemProperty("chatEnvelopeFixture", fixture.absolutePath)
+    systemProperty(
+        "flipcashClientFixture",
+        rootProject.file("services/flipcash-client/src/commonTest/resources/flipcash_client.json").absolutePath,
+    )
+    inputs.dir(vectors)
+    providers.systemProperty("fixture.update").orNull?.let { systemProperty("fixture.update", it) }
+    // LiveResponseParityTest compares the responses :services:flipcash-client's LiveChatReadTest
+    // wrote to FLIPCASH_LIVE_DUMP; it skips when that is unset.
+    providers.environmentVariable("FLIPCASH_LIVE_DUMP").orNull?.let {
+        systemProperty("flipcashLiveDump", it)
+        outputs.upToDateWhen { false }
     }
 }
 

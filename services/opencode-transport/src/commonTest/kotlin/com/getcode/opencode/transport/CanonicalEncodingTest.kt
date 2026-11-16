@@ -15,6 +15,9 @@ import com.codeinc.opencode.wire.transaction.v1.StatefulSwapRequest
 import com.codeinc.opencode.wire.transaction.v1.StatelessSwapRequest
 import com.codeinc.opencode.wire.transaction.v1.SubmitIntentRequest
 import com.getcode.ed25519kmp.Ed25519
+import com.getcode.wire.canonical.CanonicalField
+import com.getcode.wire.canonical.CanonicalSchema
+import com.getcode.wire.canonical.canonicalize
 import com.squareup.wire.Message
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject

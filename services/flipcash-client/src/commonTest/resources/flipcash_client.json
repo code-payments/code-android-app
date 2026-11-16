@@ -1,0 +1,409 @@
+{
+    "ownerSeed": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
+    "requests": {
+        "streamEventsPath": "/flipcash.event.v1.EventStreaming/StreamEvents",
+        "streamEventsOpen": [
+            {
+                "seconds": 1762000000,
+                "nanos": 0,
+                "bytes": "0a740a6a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a40a3eccbd2fd235035b6e729cbd8164f2ae6f3382a1c2e911a0f56e467e309f257f86d8634fe19881058d7975d965f808d6e42f54932e7906172909ff361a23c0f12060880f997c806"
+            },
+            {
+                "seconds": 1762000000,
+                "nanos": 123456789,
+                "bytes": "0a790a6a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a4022df39600b7c39590df1bf7944b2a84fe5363e19295913644eca471a4ceb0ca97c656f2ef7e65781decb9378a88d3a42879db6d84131c901807fbe59eab2060c120b0880f997c80610959aef3a"
+            }
+        ],
+        "pong": [
+            {
+                "seconds": 1762000015,
+                "nanos": 0,
+                "bytes": "12080a06088ff997c806"
+            },
+            {
+                "seconds": 1762000015,
+                "nanos": 999999999,
+                "bytes": "120e0a0c088ff997c80610ff93ebdc03"
+            }
+        ],
+        "getReactors": [
+            {
+                "name": "defaults",
+                "path": "/flipcash.messaging.v1.Messaging/GetReactors",
+                "messageId": 42,
+                "emoji": "🔥",
+                "limit": 100,
+                "descending": true,
+                "bytes": "0a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e1202082a1a060a04f09f94a5220408641801526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a40c3c12cb96d3797ca546ef159182b013f1efadd58af7f9d136bfc82807a4f4e989edba4a67519da4fb0eba07c4f1968f510eab215de2635baee143ef59aa96800"
+            },
+            {
+                "name": "ascending-with-token",
+                "path": "/flipcash.messaging.v1.Messaging/GetReactors",
+                "messageId": 7,
+                "emoji": "🔥",
+                "limit": 25,
+                "descending": false,
+                "token": "a0a1a2a3a4a5a6a7",
+                "bytes": "0a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e120208071a060a04f09f94a5220e0819120a0a08a0a1a2a3a4a5a6a7526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a409c57a991adc65e08247081d11f2a8503680d3b1469c269d6d61fade7ae99f24fd236c506e467aebba4bc151b0ca4670e637fb3c450e406fda07166530c2b9e04"
+            }
+        ]
+    },
+    "paymentMetadata": [
+        {
+            "name": "group",
+            "kind": "group",
+            "bytes": "0a280a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e22020801"
+        },
+        {
+            "name": "contact-dm",
+            "kind": "contactDm",
+            "sourcePhone": "+15555550100",
+            "destinationPhone": "+15555550199",
+            "bytes": "0a460a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e12200a0e0a0c2b3135353535353530313030120e0a0c2b3135353535353530313939"
+        },
+        {
+            "name": "tip-dm-tipcard-tip",
+            "kind": "tipDm",
+            "origin": "TIPCARD",
+            "action": "TIP",
+            "bytes": "0a280a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e1a021002"
+        },
+        {
+            "name": "tip-dm-chat-send",
+            "kind": "tipDm",
+            "origin": "CHAT",
+            "action": "SEND",
+            "bytes": "0a2a0a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e1a0408011001"
+        },
+        {
+            "name": "return",
+            "kind": "return",
+            "messageId": 9001,
+            "bytes": "0a2b0a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e3a050a0308a946"
+        },
+        {
+            "name": "requested",
+            "kind": "requested",
+            "paymentRequestId": "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+            "bytes": "0a4a0a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e32240a220a20707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"
+        },
+        {
+            "name": "reaction-boost",
+            "kind": "reactionBoost",
+            "messageId": 42,
+            "emoji": "❤️",
+            "bytes": "0a340a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e2a0e0a02082a12080a06e29da4efb88f"
+        },
+        {
+            "name": "tip-dm-unset-action",
+            "kind": "tipDm",
+            "origin": "CHAT",
+            "decodeOnly": true,
+            "bytes": "0a280a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e1a020801"
+        },
+        {
+            "name": "no-chat",
+            "kind": "none",
+            "decodeOnly": true,
+            "bytes": ""
+        }
+    ],
+    "streamResponses": [
+        {
+            "name": "ping",
+            "bytes": "0a120a0c088af997c8061080cab5ee011202080f",
+            "expected": {
+                "type": "ping",
+                "serverTime": "1762000010.500000000",
+                "pingDelaySeconds": 15
+            }
+        },
+        {
+            "name": "error-denied",
+            "bytes": "1200",
+            "expected": {
+                "type": "error",
+                "code": "DENIED"
+            }
+        },
+        {
+            "name": "error-invalid-timestamp",
+            "bytes": "12020801",
+            "expected": {
+                "type": "error",
+                "code": "INVALID_TIMESTAMP"
+            }
+        },
+        {
+            "name": "error-unknown-code",
+            "bytes": "1202082a",
+            "expected": {
+                "type": "error",
+                "code": "UNRECOGNIZED"
+            }
+        },
+        {
+            "name": "empty",
+            "bytes": "",
+            "expected": {
+                "type": "none"
+            }
+        },
+        {
+            "name": "events",
+            "bytes": "1a95070ae20622df060a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e1a6c0a22080112120a10303132333435363738393a3b3c3d3e3f1a02082a22060886f997c8060a22080312120a10303132333435363738393a3b3c3d3e3f1a02082922060886f997c8060a22080912120a10303132333435363738393a3b3c3d3e3f1a02082822060886f997c80622480a160a120a10303132333435363738393a3b3c3d3e3f10010a160a120a10303132333435363738393a3b3c3d3e3f10040a160a120a10303132333435363738393a3b3c3d3e3f100932db030ad803080b10031a080884f997c806100122ab010aa8010a02082a12120a10101112131415161718191a1b1c1d1e1f1a060a040a02676d1a062a040a02200a220b0881f997c8061080e59a772805380b426d0a02082a12670a060a04f09f94a510021a270a120a10303132333435363738393a3b3c3d3e3f12060882f997c8061803218fc2f5285c8fd23f22270a120a10303132333435363738393a3b3c3d3e3f12060882f997c8061803218fc2f5285c8fd23f28043114ae47e17a14f03f22b30112b0010a02082a12120a10101112131415161718191a1b1c1d1e1f1a0e0a0c0a0a676d2c20656469746564220b0881f997c8061080e59a77280532060883f997c806380b426d0a02082a12670a060a04f09f94a510021a270a120a10303132333435363738393a3b3c3d3e3f12060882f997c8061803218fc2f5285c8fd23f22270a120a10303132333435363738393a3b3c3d3e3f12060882f997c8061803218fc2f5285c8fd23f28043114ae47e17a14f03f22621a600a02082b1a50124e0a220a20505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f122818e0c65b22220a20c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf22060885f997c806480122003aa2010a2e0a02082a12060a04f09f94a51a120a10303132333435363738393a3b3c3d3e3f2001280230053a060887f997c8060a400a02082a12060a04f09f94a51a120a10303132333435363738393a3b3c3d3e3f2003280230053a060887f997c806410000000000000440498fc2f5285c8fd23f0a2e0a02082a12060a04f09f94a51a120a10303132333435363738393a3b3c3d3e3f2007280230053a060887f997c8060a2622240a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e0a022a000a021a00",
+            "expected": {
+                "type": "updates",
+                "updates": [
+                    {
+                        "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
+                        "pointers": [
+                            {
+                                "type": "SENT",
+                                "userId": "303132333435363738393a3b3c3d3e3f",
+                                "value": 42,
+                                "ts": "1762000006.000000000"
+                            },
+                            {
+                                "type": "READ",
+                                "userId": "303132333435363738393a3b3c3d3e3f",
+                                "value": 41,
+                                "ts": "1762000006.000000000"
+                            },
+                            {
+                                "type": "UNKNOWN",
+                                "userId": "303132333435363738393a3b3c3d3e3f",
+                                "value": 40,
+                                "ts": "1762000006.000000000"
+                            }
+                        ],
+                        "typing": [
+                            {
+                                "userId": "303132333435363738393a3b3c3d3e3f",
+                                "state": "STARTED_TYPING"
+                            },
+                            {
+                                "userId": "303132333435363738393a3b3c3d3e3f",
+                                "state": "TYPING_TIMED_OUT"
+                            },
+                            {
+                                "userId": "303132333435363738393a3b3c3d3e3f",
+                                "state": "UNKNOWN"
+                            }
+                        ],
+                        "events": [
+                            {
+                                "sequence": 11,
+                                "count": 3,
+                                "ts": "1762000004.000000001",
+                                "mutations": [
+                                    {
+                                        "kind": "sent",
+                                        "message": {
+                                            "messageId": 42,
+                                            "senderId": "101112131415161718191a1b1c1d1e1f",
+                                            "content": [
+                                                "0a040a02676d"
+                                            ],
+                                            "ts": "1762000001.250000000",
+                                            "unreadSeq": 5,
+                                            "eventSequence": 11,
+                                            "reactions": {
+                                                "messageId": 42,
+                                                "reactions": [
+                                                    {
+                                                        "emoji": "🔥",
+                                                        "count": 2,
+                                                        "selfReactor": {
+                                                            "userId": "303132333435363738393a3b3c3d3e3f",
+                                                            "reactedAt": "1762000002.000000000",
+                                                            "version": 3,
+                                                            "boostCents": 29
+                                                        },
+                                                        "sampleReactors": [
+                                                            {
+                                                                "userId": "303132333435363738393a3b3c3d3e3f",
+                                                                "reactedAt": "1762000002.000000000",
+                                                                "version": 3,
+                                                                "boostCents": 29
+                                                            }
+                                                        ],
+                                                        "version": 4,
+                                                        "boostCents": 100
+                                                    }
+                                                ]
+                                            },
+                                            "redacted": false
+                                        }
+                                    },
+                                    {
+                                        "kind": "edited",
+                                        "message": {
+                                            "messageId": 42,
+                                            "senderId": "101112131415161718191a1b1c1d1e1f",
+                                            "content": [
+                                                "0a0c0a0a676d2c20656469746564"
+                                            ],
+                                            "ts": "1762000001.250000000",
+                                            "unreadSeq": 5,
+                                            "lastEditedTs": "1762000003.000000000",
+                                            "eventSequence": 11,
+                                            "reactions": {
+                                                "messageId": 42,
+                                                "reactions": [
+                                                    {
+                                                        "emoji": "🔥",
+                                                        "count": 2,
+                                                        "selfReactor": {
+                                                            "userId": "303132333435363738393a3b3c3d3e3f",
+                                                            "reactedAt": "1762000002.000000000",
+                                                            "version": 3,
+                                                            "boostCents": 29
+                                                        },
+                                                        "sampleReactors": [
+                                                            {
+                                                                "userId": "303132333435363738393a3b3c3d3e3f",
+                                                                "reactedAt": "1762000002.000000000",
+                                                                "version": 3,
+                                                                "boostCents": 29
+                                                            }
+                                                        ],
+                                                        "version": 4,
+                                                        "boostCents": 100
+                                                    }
+                                                ]
+                                            },
+                                            "redacted": false
+                                        }
+                                    },
+                                    {
+                                        "kind": "deleted",
+                                        "message": {
+                                            "messageId": 43,
+                                            "content": [
+                                                "124e0a220a20505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f122818e0c65b22220a20c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf"
+                                            ],
+                                            "ts": "1762000005.000000000",
+                                            "unreadSeq": 0,
+                                            "eventSequence": 0,
+                                            "redacted": true
+                                        }
+                                    },
+                                    {
+                                        "kind": "sent",
+                                        "message": {
+                                            "messageId": 0,
+                                            "content": [],
+                                            "ts": "0.000000000",
+                                            "unreadSeq": 0,
+                                            "eventSequence": 0,
+                                            "redacted": false
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        "reactionUpdates": [
+                            {
+                                "messageId": 42,
+                                "emoji": "🔥",
+                                "actor": "303132333435363738393a3b3c3d3e3f",
+                                "action": "ADDED",
+                                "count": 2,
+                                "version": 5,
+                                "reactedAt": "1762000007.000000000",
+                                "boostCents": 0,
+                                "actorBoostCents": 0
+                            },
+                            {
+                                "messageId": 42,
+                                "emoji": "🔥",
+                                "actor": "303132333435363738393a3b3c3d3e3f",
+                                "action": "BOOSTED",
+                                "count": 2,
+                                "version": 5,
+                                "reactedAt": "1762000007.000000000",
+                                "boostCents": 250,
+                                "actorBoostCents": 29
+                            },
+                            {
+                                "messageId": 42,
+                                "emoji": "🔥",
+                                "actor": "303132333435363738393a3b3c3d3e3f",
+                                "action": "UNKNOWN",
+                                "count": 2,
+                                "version": 5,
+                                "reactedAt": "1762000007.000000000",
+                                "boostCents": 0,
+                                "actorBoostCents": 0
+                            }
+                        ]
+                    },
+                    {
+                        "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
+                        "pointers": [],
+                        "typing": [],
+                        "events": [],
+                        "reactionUpdates": []
+                    }
+                ]
+            }
+        }
+    ],
+    "getReactorsResponses": [
+        {
+            "name": "ok-page",
+            "bytes": "12200a120a10101112131415161718191a1b1c1d1e1f120808e4f997c8061007180212290a120a10303132333435363738393a3b3c3d3e3f120808e4f997c80610071802218fc2f5285c8fd23f1a0a0a08a0a1a2a3a4a5a6a72001",
+            "expected": {
+                "type": "page",
+                "reactors": [
+                    {
+                        "userId": "101112131415161718191a1b1c1d1e1f",
+                        "reactedAt": "1762000100.000000007",
+                        "version": 2,
+                        "boostCents": 0
+                    },
+                    {
+                        "userId": "303132333435363738393a3b3c3d3e3f",
+                        "reactedAt": "1762000100.000000007",
+                        "version": 2,
+                        "boostCents": 29
+                    }
+                ],
+                "hasMore": true,
+                "pagingToken": "a0a1a2a3a4a5a6a7"
+            }
+        },
+        {
+            "name": "ok-last-page",
+            "bytes": "",
+            "expected": {
+                "type": "page",
+                "reactors": [],
+                "hasMore": false
+            }
+        },
+        {
+            "name": "denied",
+            "bytes": "0801",
+            "expected": {
+                "type": "denied"
+            }
+        },
+        {
+            "name": "message-not-found",
+            "bytes": "0802",
+            "expected": {
+                "type": "message-not-found"
+            }
+        },
+        {
+            "name": "unknown-result",
+            "bytes": "082a",
+            "expected": {
+                "type": "unrecognized"
+            }
+        }
+    ]
+}

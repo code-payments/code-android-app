@@ -36,6 +36,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(libs.ocp.client.protocol.wire)
+            // CanonicalSchema and the canonical encoder are part of this module's API.
+            api(project(":libs:wire-canonical"))
             api(project(":libs:encryption:ed25519"))
             implementation(libs.kotlinx.coroutines.core)
         }

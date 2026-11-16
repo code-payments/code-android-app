@@ -2,6 +2,10 @@
 // UPDATE_CANONICAL_SCHEMA=1 ./gradlew :services:opencode-transport:jvmTest to refresh.
 package com.getcode.opencode.transport
 
+import com.getcode.wire.canonical.CanonicalField
+import com.getcode.wire.canonical.CanonicalSchema
+import com.getcode.wire.canonical.MapKey
+
 private val S = CanonicalField.Scalar
 private fun M(type: String) = CanonicalField.Message(type)
 private fun Map(key: MapKey, value: String?) = CanonicalField.MapOf(key, value)

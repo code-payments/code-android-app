@@ -1,0 +1,520 @@
+{
+    "note": "Recorded by ChatEnvelopeFixtureTest in :services:flipcash (jvmTest) from Android's protobuf-java code. Hex unless noted. Keys come from chat-cipher's public vectors. `sealed` vectors use random nonces and are checked by opening them.",
+    "ownerSeed": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "contents": [
+        {
+            "name": "text",
+            "direction": "encode",
+            "bytes": "0a070a0568656c6c6f",
+            "decoded": {
+                "type": "text",
+                "text": "hello"
+            }
+        },
+        {
+            "name": "text-unicode",
+            "direction": "encode",
+            "bytes": "0a160a14676d20e29880efb88f20f09f92b820636166c3a9",
+            "decoded": {
+                "type": "text",
+                "text": "gm ☀️ 💸 café"
+            }
+        },
+        {
+            "name": "text-empty",
+            "direction": "encode",
+            "bytes": "0a00",
+            "decoded": {
+                "type": "text",
+                "text": ""
+            }
+        },
+        {
+            "name": "text-link-preview",
+            "direction": "encode",
+            "bytes": "0a4e0a197365652068747470733a2f2f6578616d706c652e636f6d2f6112310a1568747470733a2f2f6578616d706c652e636f6d2f6112074578616d706c651a0f416e206578616d706c652070616765",
+            "decoded": {
+                "type": "text",
+                "text": "see https://example.com/a",
+                "linkPreview": {
+                    "url": "https://example.com/a",
+                    "title": "Example",
+                    "description": "An example page"
+                }
+            }
+        },
+        {
+            "name": "reply-of-text",
+            "direction": "encode",
+            "bytes": "1a0d0a02082a12070a050a03796573",
+            "decoded": {
+                "type": "reply",
+                "repliedMessageId": 42,
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "yes"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "cash-single",
+            "direction": "encode",
+            "bytes": "1286010a220a20505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f122818e0c65b22220a20c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf1a120a10303132333435363738393a3b3c3d3e3f32220a20707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+            "decoded": {
+                "type": "cash",
+                "intentId": "505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f",
+                "mint": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+                "quarks": 1500000,
+                "verb": "SENT",
+                "receiver": "303132333435363738393a3b3c3d3e3f",
+                "multiReceiver": [],
+                "paymentRequestId": "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"
+            }
+        },
+        {
+            "name": "cash-tipped-multi",
+            "direction": "encode",
+            "bytes": "1298010a220a20505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f12281880897a22220a20c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf20012a460a210a120a10101112131415161718191a1b1c1d1e1f11000000000000f43f18d0a54c0a210a120a10303132333435363738393a3b3c3d3e3f11000000000000e83f18b0e32d",
+            "decoded": {
+                "type": "cash",
+                "intentId": "505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f",
+                "mint": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+                "quarks": 2000000,
+                "verb": "TIPPED",
+                "multiReceiver": [
+                    {
+                        "receiver": "101112131415161718191a1b1c1d1e1f",
+                        "nativeAmount": 1.25,
+                        "quarks": 1250000
+                    },
+                    {
+                        "receiver": "303132333435363738393a3b3c3d3e3f",
+                        "nativeAmount": 0.75,
+                        "quarks": 750000
+                    }
+                ]
+            }
+        },
+        {
+            "name": "reply-of-cash",
+            "direction": "encode",
+            "bytes": "1a6a0a02082b126412620a220a20505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f12281890a10f22220a20c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf1a120a10101112131415161718191a1b1c1d1e1f",
+            "decoded": {
+                "type": "reply",
+                "repliedMessageId": 43,
+                "content": [
+                    {
+                        "type": "cash",
+                        "intentId": "505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f",
+                        "mint": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+                        "quarks": 250000,
+                        "verb": "SENT",
+                        "receiver": "101112131415161718191a1b1c1d1e1f",
+                        "multiReceiver": []
+                    }
+                ]
+            }
+        },
+        {
+            "name": "widget-payment-request",
+            "direction": "encode",
+            "bytes": "42261a240a220a20707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+            "decoded": {
+                "type": "widget-payment-request",
+                "paymentRequestId": "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"
+            }
+        },
+        {
+            "name": "system-fallback",
+            "direction": "encode",
+            "bytes": "2a140a12536f6d657468696e672068617070656e6564",
+            "decoded": {
+                "type": "system",
+                "fallbackText": "Something happened"
+            }
+        },
+        {
+            "name": "system-joined-admitted",
+            "direction": "encode",
+            "bytes": "2a380a0a426f62206a6f696e6564122a0a120a10303132333435363738393a3b3c3d3e3f1a140a120a10101112131415161718191a1b1c1d1e1f",
+            "decoded": {
+                "type": "system",
+                "fallbackText": "Bob joined",
+                "userJoined": {
+                    "userId": "303132333435363738393a3b3c3d3e3f",
+                    "admittedBy": "101112131415161718191a1b1c1d1e1f"
+                }
+            }
+        },
+        {
+            "name": "system-joined-invited",
+            "direction": "encode",
+            "bytes": "2a380a0a426f62206a6f696e6564122a0a120a10303132333435363738393a3b3c3d3e3f22140a120a10101112131415161718191a1b1c1d1e1f",
+            "decoded": {
+                "type": "system",
+                "fallbackText": "Bob joined",
+                "userJoined": {
+                    "userId": "303132333435363738393a3b3c3d3e3f",
+                    "invitedBy": "101112131415161718191a1b1c1d1e1f"
+                }
+            }
+        },
+        {
+            "name": "system-joined-direct",
+            "direction": "encode",
+            "bytes": "2a240a0a426f62206a6f696e656412160a120a10303132333435363738393a3b3c3d3e3f1200",
+            "decoded": {
+                "type": "system",
+                "fallbackText": "Bob joined",
+                "userJoined": {
+                    "userId": "303132333435363738393a3b3c3d3e3f"
+                }
+            }
+        },
+        {
+            "name": "deleted",
+            "direction": "encode",
+            "bytes": "321c0a060880e2cfaa0612120a10101112131415161718191a1b1c1d1e1f",
+            "decoded": {
+                "type": "deleted",
+                "seconds": 1700000000,
+                "nanos": 0,
+                "deletedBy": "101112131415161718191a1b1c1d1e1f"
+            }
+        },
+        {
+            "name": "deleted-no-actor",
+            "direction": "encode",
+            "bytes": "32080a060880e2cfaa06",
+            "decoded": {
+                "type": "deleted",
+                "seconds": 1700000000,
+                "nanos": 0
+            }
+        },
+        {
+            "name": "encrypted-group",
+            "direction": "encode",
+            "bytes": "3a4608021218000102030405060708090a0b0c0d0e0f10111213141516171a28a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7",
+            "decoded": {
+                "type": "encrypted",
+                "scheme": 2,
+                "nonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+                "ciphertext": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7"
+            }
+        },
+        {
+            "name": "cash-return-offer",
+            "direction": "decode",
+            "bytes": "12750a220a20505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f12370a034341441100000000008028401890d7eb0522220a20c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf1a120a10303132333435363738393a3b3c3d3e3f3a020a00",
+            "decoded": {
+                "type": "cash",
+                "intentId": "505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f",
+                "mint": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+                "quarks": 12250000,
+                "verb": "SENT",
+                "receiver": "303132333435363738393a3b3c3d3e3f",
+                "multiReceiver": [],
+                "paymentReturn": {
+                    "offer": true
+                }
+            }
+        },
+        {
+            "name": "cash-return-of",
+            "direction": "decode",
+            "bytes": "127b0a220a20505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f12370a034341441100000000008028401890d7eb0522220a20c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf1a120a10303132333435363738393a3b3c3d3e3f204d3a0612040a020809",
+            "decoded": {
+                "type": "cash",
+                "intentId": "505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f",
+                "mint": "c0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+                "quarks": 12250000,
+                "verb": "SENT",
+                "receiver": "303132333435363738393a3b3c3d3e3f",
+                "multiReceiver": [],
+                "paymentReturn": {
+                    "offer": false,
+                    "returnOf": 9
+                }
+            }
+        },
+        {
+            "name": "widget-share-profile",
+            "direction": "decode",
+            "bytes": "420b0a090a070a05616c696365",
+            "decoded": {
+                "type": "widget-share-profile",
+                "username": "alice"
+            }
+        },
+        {
+            "name": "widget-unknown",
+            "direction": "decode",
+            "bytes": "4200",
+            "decoded": {
+                "type": "widget-unsupported"
+            }
+        },
+        {
+            "name": "encrypted-unknown-scheme",
+            "direction": "decode",
+            "bytes": "3a2f080712180000000000000000000000000000000000000000000000001a110000000000000000000000000000000000",
+            "decoded": {
+                "type": "encrypted",
+                "scheme": 7,
+                "nonce": "000000000000000000000000000000000000000000000000",
+                "ciphertext": "0000000000000000000000000000000000"
+            }
+        },
+        {
+            "name": "system-joined-no-user",
+            "direction": "decode",
+            "bytes": "2a0a0a066a6f696e65641200",
+            "decoded": {
+                "type": "system",
+                "fallbackText": "joined"
+            }
+        },
+        {
+            "name": "empty-content",
+            "direction": "decode",
+            "bytes": "",
+            "decoded": {
+                "type": "unsupported"
+            }
+        },
+        {
+            "name": "media-unported",
+            "direction": "decode",
+            "bytes": "2200",
+            "decoded": {
+                "type": "media"
+            }
+        },
+        {
+            "name": "text-link-preview-image",
+            "direction": "decode",
+            "bytes": "0a410a197365652068747470733a2f2f6578616d706c652e636f6d2f6212240a1568747470733a2f2f6578616d706c652e636f6d2f6212094578616d706c6520422200",
+            "decoded": {
+                "type": "text",
+                "text": "see https://example.com/b",
+                "linkPreview": {
+                    "url": "https://example.com/b",
+                    "title": "Example B",
+                    "description": ""
+                }
+            }
+        }
+    ],
+    "sealed": [
+        {
+            "name": "dm-text",
+            "kind": "dm",
+            "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
+            "chatKey": "6c2005541fb82abe2f639ae77e3b146e7f0dd97a9b7d3b2dccef000c69e9df22",
+            "senderPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+            "recipientPublicKey": "da29e95b02e00ffa15645775fb1d2ba222a1943395eea06b94e2c057b7be69d0",
+            "bytes": "3a3e0801121882a6c400622c2f09fd86bf1b7903a6f1ded3065f230032561a201aefee6eb8e73e36a6d9a06e09f8d1b43a906036feddd1d312bb0077bc867a72",
+            "opened": {
+                "type": "text",
+                "text": "sealed hello"
+            }
+        },
+        {
+            "name": "dm-reply",
+            "kind": "dm",
+            "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
+            "chatKey": "6c2005541fb82abe2f639ae77e3b146e7f0dd97a9b7d3b2dccef000c69e9df22",
+            "senderPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+            "recipientPublicKey": "da29e95b02e00ffa15645775fb1d2ba222a1943395eea06b94e2c057b7be69d0",
+            "bytes": "3a4608011218276053c6230e3c940a84279d81fc6ff312cbb2b0e92e3dfe1a285f406becc9017a803410d6d1675cf311d84aa2ff258c702a8d7b1379dd8f373f863cfad77a4262db",
+            "opened": {
+                "type": "reply",
+                "repliedMessageId": 7,
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "sealed reply"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "group-text",
+            "kind": "group",
+            "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
+            "groupKey": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf",
+            "senderId": "101112131415161718191a1b1c1d1e1f",
+            "bytes": "3a3d08021218f97c32c72a583460862cf1401d1d6936247d98bb98bf1afe1a1f45dbfc2be6473aad836abe40fc3b2b404777867286dea69aa4e84304040db4",
+            "opened": {
+                "type": "text",
+                "text": "group hello"
+            }
+        },
+        {
+            "name": "group-payment-request",
+            "kind": "group",
+            "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
+            "groupKey": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf",
+            "senderId": "101112131415161718191a1b1c1d1e1f",
+            "bytes": "3a56080212180d5c4e5ae72e7aff93628ce0d046b59d463fb072916661171a38b203ae5ebd3bf9863dd1bee204b136a4225a42cc7e56082874c2ccb2f2cc75e67e3b75c399c9ed7c446f2b29f1b51988529b297b589484a2",
+            "opened": {
+                "type": "widget-payment-request",
+                "paymentRequestId": "707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f"
+            }
+        }
+    ],
+    "keyEnvelopes": [
+        {
+            "name": "creator-for-member",
+            "bytes": "0801121878797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f1a30f7823c719916d6636a8348a8c1c4254409172fedc830f56c6061e01fc1e3f956bf4faadd73fc0865388b4dc5d5fa96cd",
+            "scheme": 1,
+            "nonce": "78797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+            "ciphertext": "f7823c719916d6636a8348a8c1c4254409172fedc830f56c6061e01fc1e3f956bf4faadd73fc0865388b4dc5d5fa96cd",
+            "wrapperPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+            "recipientSeed": "65666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f8081828384",
+            "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
+            "groupKey": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf"
+        },
+        {
+            "name": "self",
+            "bytes": "0801121878797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f1a3061580137239facdc36c36cf0288bf0f628fbb2fafac5d3576231423b6cafb0f22c6853482ae6e17c70c90aedc979bf00",
+            "scheme": 1,
+            "nonce": "78797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+            "ciphertext": "61580137239facdc36c36cf0288bf0f628fbb2fafac5d3576231423b6cafb0f22c6853482ae6e17c70c90aedc979bf00",
+            "wrapperPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+            "recipientSeed": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+            "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
+            "groupKey": "a0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebf"
+        },
+        {
+            "name": "unknown-scheme",
+            "bytes": "080512180000000000000000000000000000000000000000000000001a30000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "scheme": 5,
+            "nonce": "000000000000000000000000000000000000000000000000",
+            "ciphertext": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        }
+    ],
+    "requests": {
+        "chatId": "97dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e",
+        "getKeyEnvelope": "0a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a40af122722bc527a0131d8f57997784ffb8cd5843e344154ecbc2bad1dab589f058166a76c1d81889bd591d347242d51dbbec9e703a7da3829a6e62443ec4fc700",
+        "setKeyEnvelope": {
+            "envelope": "creator-for-member",
+            "request": "0a220a2097dfb79f2c2c44a9bd581b3b4fd30e7aee470d3b53062288886a976dd8ade15e124e0801121878797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f1a30f7823c719916d6636a8348a8c1c4254409172fedc830f56c6061e01fc1e3f956bf4faadd73fc0865388b4dc5d5fa96cd526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a402b52c39a26cce0eae6a3162aa7b1d2456cb0f72ea83363fcec59ee04e6ee4c685b2dc00f74ee285519f7dab60cdd398bb2ad1885c469d56ca1699f2ba4b58900"
+        }
+    },
+    "getKeyEnvelopeResponses": [
+        {
+            "name": "own",
+            "bytes": "124e0801121878797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f1a30f7823c719916d6636a8348a8c1c4254409172fedc830f56c6061e01fc1e3f956bf4faadd73fc0865388b4dc5d5fa96cd1a120a10101112131415161718191a1b1c1d1e1f22220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664",
+            "decoded": {
+                "type": "own",
+                "scheme": 1,
+                "nonce": "78797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+                "ciphertext": "f7823c719916d6636a8348a8c1c4254409172fedc830f56c6061e01fc1e3f956bf4faadd73fc0865388b4dc5d5fa96cd",
+                "wrappedBy": "101112131415161718191a1b1c1d1e1f",
+                "wrappedByPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664"
+            }
+        },
+        {
+            "name": "own-no-wrapper",
+            "bytes": "124e0801121878797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f1a30f7823c719916d6636a8348a8c1c4254409172fedc830f56c6061e01fc1e3f956bf4faadd73fc0865388b4dc5d5fa96cd",
+            "decoded": {
+                "type": "own",
+                "scheme": 1,
+                "nonce": "78797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+                "ciphertext": "f7823c719916d6636a8348a8c1c4254409172fedc830f56c6061e01fc1e3f956bf4faadd73fc0865388b4dc5d5fa96cd"
+            }
+        },
+        {
+            "name": "own-unknown-scheme",
+            "bytes": "124e0809121878797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f1a30f7823c719916d6636a8348a8c1c4254409172fedc830f56c6061e01fc1e3f956bf4faadd73fc0865388b4dc5d5fa96cd",
+            "decoded": {
+                "type": "own",
+                "scheme": 9,
+                "nonce": "78797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f",
+                "ciphertext": "f7823c719916d6636a8348a8c1c4254409172fedc830f56c6061e01fc1e3f956bf4faadd73fc0865388b4dc5d5fa96cd"
+            }
+        },
+        {
+            "name": "invite-only",
+            "bytes": "22220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad0496642af7010a120a10a93f48c2a250501856a290e1babf91aa12900108011218000102030405060708090a0b0c0d0e0f10111213141516171a3008c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e2622407dfffc895aa4fb96e0a75c837d6f389b12c38cdcb7f9054e28c8282f5ab82ebea4578869d50b5e86348615df49d01e1b3de4b70f1dedb18b8b1dd4663bed2e011a4e080112188485868788898a8b8c8d8e8f909192939495969798999a9b1a30f1511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b8",
+            "decoded": {
+                "type": "invite-only",
+                "inviteId": "a93f48c2a250501856a290e1babf91aa",
+                "keyEnvelopeScheme": 1,
+                "keyNonce": "000102030405060708090a0b0c0d0e0f1011121314151617",
+                "keyCiphertext": "08c106a61e81b932b4b6c6616b977968ca37017b25677ebae5ee96d5885c7b760f915eb3dea88f22609b5b7560d34e26",
+                "keySignature": "7dfffc895aa4fb96e0a75c837d6f389b12c38cdcb7f9054e28c8282f5ab82ebea4578869d50b5e86348615df49d01e1b3de4b70f1dedb18b8b1dd4663bed2e01",
+                "secretEnvelopeScheme": 1,
+                "secretNonce": "8485868788898a8b8c8d8e8f909192939495969798999a9b",
+                "secretCiphertext": "f1511a8bdc0f1f0ca68e1d459234e23c1eb154cbaa581f115e0934d18bdca70a4c5f066ef41625029eb5ab23d96b77b8",
+                "wrappedByPublicKey": "79b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad049664"
+            }
+        },
+        {
+            "name": "ok-empty",
+            "bytes": "",
+            "decoded": {
+                "type": "no-envelope"
+            }
+        },
+        {
+            "name": "no-envelope",
+            "bytes": "0803",
+            "decoded": {
+                "type": "no-envelope"
+            }
+        },
+        {
+            "name": "denied",
+            "bytes": "0801",
+            "decoded": {
+                "type": "denied"
+            }
+        },
+        {
+            "name": "not-found",
+            "bytes": "0802",
+            "decoded": {
+                "type": "not-found"
+            }
+        },
+        {
+            "name": "unknown-result",
+            "bytes": "082a",
+            "decoded": {
+                "type": "no-envelope"
+            }
+        }
+    ],
+    "setKeyEnvelopeResponses": [
+        {
+            "name": "ok",
+            "bytes": "",
+            "result": "OK"
+        },
+        {
+            "name": "denied",
+            "bytes": "0801",
+            "result": "DENIED"
+        },
+        {
+            "name": "not-found",
+            "bytes": "0802",
+            "result": "NOT_FOUND"
+        },
+        {
+            "name": "already-set",
+            "bytes": "0803",
+            "result": "ALREADY_SET"
+        },
+        {
+            "name": "unknown-result",
+            "bytes": "082a",
+            "result": "UNRECOGNIZED"
+        }
+    ]
+}

@@ -12,6 +12,7 @@ on:
       - 'libs/currency-math/**'
       - 'libs/device-link/**'
       - 'libs/encryption/**'
+      - 'libs/wire-canonical/**'
       - 'libs/reporting/**'
       - 'libs/analytics-events/**'
       - 'libs/text-format/**'
@@ -93,6 +94,7 @@ jobs:
             :libs:encryption:sha512:iosSimulatorArm64Test \
             :libs:encryption:utils:iosSimulatorArm64Test \
             :libs:logging:iosSimulatorArm64Test \
+            :libs:wire-canonical:iosSimulatorArm64Test \
             :libs:parcelable:iosSimulatorArm64Test \
             :libs:reporting:iosSimulatorArm64Test \
             :libs:text-format:iosSimulatorArm64Test \
