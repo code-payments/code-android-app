@@ -3,7 +3,9 @@ package com.flipcash.services.internal.network.services
 import com.codeinc.flipcash.gen.moderation.v1.ModerationService
 import com.flipcash.services.internal.network.api.ModerationApi
 import com.getcode.opencode.utils.toValidationOrElse
+import com.flipcash.services.models.ImageContentKind
 import com.flipcash.services.models.ImageModerationError
+import com.flipcash.services.models.TextContentKind
 import com.flipcash.services.models.TextModerationError
 import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.extensions.foldWithSuppression
@@ -12,9 +14,13 @@ import javax.inject.Inject
 internal class ModerationService @Inject constructor(
     private val api: ModerationApi,
 ) {
-    suspend fun moderateText(text: String, owner: Ed25519.KeyPair): Result<ModerationService.ModerateTextResponse> {
+    suspend fun moderateText(
+        text: String,
+        kind: TextContentKind,
+        owner: Ed25519.KeyPair,
+    ): Result<ModerationService.ModerateTextResponse> {
         return runCatching {
-            api.moderateText(text, owner)
+            api.moderateText(text, kind, owner)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -32,9 +38,13 @@ internal class ModerationService @Inject constructor(
         )
     }
 
-    suspend fun moderateImage(imageBytes: ByteArray, owner: Ed25519.KeyPair): Result<ModerationService.ModerateImageResponse> {
+    suspend fun moderateImage(
+        imageBytes: ByteArray,
+        kind: ImageContentKind,
+        owner: Ed25519.KeyPair,
+    ): Result<ModerationService.ModerateImageResponse> {
         return runCatching {
-            api.moderateImage(imageBytes, owner)
+            api.moderateImage(imageBytes, kind, owner)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
