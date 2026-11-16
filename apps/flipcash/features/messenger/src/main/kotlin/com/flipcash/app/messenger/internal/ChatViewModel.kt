@@ -3284,7 +3284,7 @@ internal class ChatViewModel @AssistedInject constructor(
                 // through observeMetadata, which is the same path a join from another device takes —
                 // one source for the gate rather than two that can disagree.
                 chatCoordinator.join(chatId)
-                    .also { analytics.trackJoined(group, it) }
+                    .also { analytics.trackCommunityChatJoined(group, it) }
                     .onSuccess {
                         // The gate holds its own confirmation rather than waiting to be replaced:
                         // membership comes back through the roster, which can land on the next frame

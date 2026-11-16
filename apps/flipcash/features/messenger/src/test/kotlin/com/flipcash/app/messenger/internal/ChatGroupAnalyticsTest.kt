@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal
 
 import android.content.ClipboardManager
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.flipcash.analytics.AnalyticsEvent
 import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.analytics.PropertyValue
@@ -223,35 +224,52 @@ class ChatGroupAnalyticsTest {
     }
 
     @Test
-    fun `a denied join reports the result name and the count before it`() = runTest(mainCoroutineRule.dispatcher) {
-        coEvery { chatCoordinator.join(any()) } returns Result.failure(JoinChatError.RulesNotSatisfied())
+    fun `a denied Community Chat join reports the result name, the count before it and the gate mint`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            coEvery { chatCoordinator.join(any()) } returns Result.failure(JoinChatError.RulesNotSatisfied())
 
-        val vm = createViewModel()
-        vm.openGroup(isMember = false)
-        vm.dispatchEvent(ChatViewModel.Event.JoinChat)
-        advanceUntilIdle()
+            val vm = createViewModel()
+            vm.openGroup(isMember = false)
+            vm.dispatchEvent(ChatViewModel.Event.JoinChat)
+            advanceUntilIdle()
 
-        val event = analytics.events.single { it.name == "Group: Joined" }
-        assertEquals(text(AnalyticsState.FAILURE.value), event.properties["State"])
-        assertEquals(text("RulesNotSatisfied"), event.properties["Error"])
-        assertEquals(PropertyValue.Number(4.0), event.properties["Member Count"])
-        assertEquals(PropertyValue.Flag(true), event.properties["Gated"])
-    }
+            assertEquals(
+                AnalyticsEvent(
+                    "Community Chat: Joined",
+                    mapOf(
+                        "State" to text(AnalyticsState.FAILURE.value),
+                        "Error" to text("RulesNotSatisfied"),
+                        "Member Count" to PropertyValue.Number(4.0),
+                        "Gate Mint" to text(mint.base58()),
+                    ),
+                ),
+                analytics.events.single { it.name == "Community Chat: Joined" },
+            )
+            assertTrue(analytics.events.none { it.name == "Group: Joined" })
+        }
 
     @Test
-    fun `a join that succeeds carries no error`() = runTest(mainCoroutineRule.dispatcher) {
-        coEvery { chatCoordinator.join(any()) } returns Result.success(Unit)
+    fun `a Community Chat join with no rules succeeds with no error and no gate mint`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            coEvery { chatCoordinator.join(any()) } returns Result.success(Unit)
 
-        val vm = createViewModel()
-        vm.openGroup(isMember = false, rules = null)
-        vm.dispatchEvent(ChatViewModel.Event.JoinChat)
-        advanceUntilIdle()
+            val vm = createViewModel()
+            vm.openGroup(isMember = false, rules = null)
+            vm.dispatchEvent(ChatViewModel.Event.JoinChat)
+            advanceUntilIdle()
 
-        val event = analytics.events.single { it.name == "Group: Joined" }
-        assertEquals(text(AnalyticsState.SUCCESS.value), event.properties["State"])
-        assertNull(event.properties["Error"])
-        assertEquals(PropertyValue.Flag(false), event.properties["Gated"])
-    }
+            assertEquals(
+                AnalyticsEvent(
+                    "Community Chat: Joined",
+                    mapOf(
+                        "State" to text(AnalyticsState.SUCCESS.value),
+                        "Member Count" to PropertyValue.Number(4.0),
+                    ),
+                ),
+                analytics.events.single { it.name == "Community Chat: Joined" },
+            )
+            assertTrue(analytics.events.none { it.name == "Group: Joined" })
+        }
 
     @Test
     fun `a leave that fails in transport reports Network`() = runTest(mainCoroutineRule.dispatcher) {
