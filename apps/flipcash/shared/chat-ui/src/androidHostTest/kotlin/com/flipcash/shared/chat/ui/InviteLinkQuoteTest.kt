@@ -58,7 +58,7 @@ class InviteLinkQuoteTest {
     fun `the reply strip labels an invite link in a photo caption`() {
         composeTestRule.setContent {
             DesignSystem {
-                ComposerReplyStrip(quote(ChatQuoteSnippet.Photo(caption = invite, rendition = null, sealed = false, redacted = false)), onDismiss = {})
+                ComposerReplyStrip(quote(ChatQuoteSnippet.Photo(caption = invite, item = null, sealed = false, redacted = false)), onDismiss = {})
             }
         }
         composeTestRule.onNodeWithText("Invite link", substring = true).assertExists()

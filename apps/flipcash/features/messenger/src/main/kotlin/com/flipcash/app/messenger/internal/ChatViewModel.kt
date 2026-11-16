@@ -2035,7 +2035,7 @@ internal class ChatViewModel @AssistedInject constructor(
 
     private fun MessageContent.Media.toPhotoSnippet(message: ChatMessage) = ChatQuoteSnippet.Photo(
         caption = caption?.text?.takeIf { it.isNotBlank() },
-        rendition = items.firstOrNull()?.renditions?.firstOrNull(),
+        item = items.firstOrNull(),
         sealed = message.encryption != null,
         redacted = message.redacted,
         chatId = stateFlow.value.chatId,
