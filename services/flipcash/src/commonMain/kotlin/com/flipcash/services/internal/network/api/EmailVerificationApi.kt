@@ -84,4 +84,25 @@ internal class EmailVerificationApi @Inject constructor(
             api.unlink(request)
         }
     }
+
+    /**
+     * Links an email address to the user without verifying it. No email is sent. A different
+     * address replaces any linked before, including a verified one, and is linked as unverified.
+     * An unverified address satisfies nothing that requires a verified one.
+     */
+    suspend fun linkUnverified(
+        request: ContactMethod.Email,
+        owner: Ed25519.KeyPair
+    ): EmailVerificationService.LinkUnverifiedResponse {
+        val request = EmailVerificationService.LinkUnverifiedRequest.newBuilder()
+            .setEmailAddress(Common.EmailAddress.newBuilder().setValue(request.emailAddress).build())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.linkUnverified(request)
+        }
+    }
 }

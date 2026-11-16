@@ -137,6 +137,23 @@ class UserFlagsMapperTest {
     }
 
     @Test
+    fun `maps new currency v2 purchase and fee amounts`() {
+        val proto = userFlags {
+            newCurrencyPurchaseAmount = 1_000_000L
+            newCurrencyFeeAmount = 2_000_000L
+            newCurrencyV2PurchaseAmount = 7_000_000L
+            newCurrencyV2FeeAmount = 8_000_000L
+        }
+
+        val result = mapper.map(proto)
+
+        assertEquals(7_000_000L, result.newCurrencyV2PurchaseAmount.quarks)
+        assertEquals(8_000_000L, result.newCurrencyV2FeeAmount.quarks)
+        assertEquals(1_000_000L, result.newCurrencyPurchaseAmount.quarks)
+        assertEquals(2_000_000L, result.newCurrencyFeeAmount.quarks)
+    }
+
+    @Test
     fun `maps enable phone number send`() {
         val proto = userFlags {
             enablePhoneNumberSend = true

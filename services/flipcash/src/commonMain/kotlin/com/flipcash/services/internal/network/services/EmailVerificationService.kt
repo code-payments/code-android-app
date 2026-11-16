@@ -106,4 +106,29 @@ internal class EmailVerificationService @Inject constructor(
             }
         )
     }
+
+    suspend fun linkUnverified(
+        request: ContactMethod.Email,
+        owner: Ed25519.KeyPair
+    ): Result<Unit> {
+        return runCatching {
+            api.linkUnverified(request, owner)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcEmailService.LinkUnverifiedResponse.Result.OK -> Result.success(Unit)
+                    RpcEmailService.LinkUnverifiedResponse.Result.DENIED -> {
+                        Result.failure(EmailVerificationError.Denied())
+                    }
+                    RpcEmailService.LinkUnverifiedResponse.Result.UNRECOGNIZED -> {
+                        Result.failure(EmailVerificationError.Unrecognized())
+                    }
+                    else -> Result.failure(EmailVerificationError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { EmailVerificationError.Other(it) })
+            }
+        )
+    }
 }

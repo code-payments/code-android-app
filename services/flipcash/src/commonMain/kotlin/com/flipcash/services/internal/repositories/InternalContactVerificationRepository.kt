@@ -43,4 +43,9 @@ internal class InternalContactVerificationRepository(
         return phoneService.linkForPayment(method, owner)
             .onFailure { ErrorUtils.handleError(it) }
     }
+
+    override suspend fun linkUnverified(method: ContactMethod.Email, owner: Ed25519.KeyPair): Result<Unit> {
+        return emailService.linkUnverified(method, owner)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
 }

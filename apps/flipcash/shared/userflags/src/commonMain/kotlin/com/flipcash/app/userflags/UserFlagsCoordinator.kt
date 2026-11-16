@@ -178,6 +178,9 @@ private data class CachedFlags(
     val billExchangeDataTimeoutMillis: Long? = null,
     val newCurrencyPurchaseAmount: CachedFiat,
     val newCurrencyFeeAmount: CachedFiat,
+    // Absent from flags cached before these fields existed; decode to UserFlags.Default's value.
+    val newCurrencyV2PurchaseAmount: CachedFiat = CachedFiat.fromDomain(UserFlags.Default.newCurrencyV2PurchaseAmount),
+    val newCurrencyV2FeeAmount: CachedFiat = CachedFiat.fromDomain(UserFlags.Default.newCurrencyV2FeeAmount),
     val withdrawalFeeAmount: CachedFiat,
     val preferredUsdcOnRampLiquidityPool: String,
     val enablePhoneNumberSend: Boolean,
@@ -198,6 +201,8 @@ private data class CachedFlags(
         billExchangeDataTimeout = billExchangeDataTimeoutMillis?.milliseconds,
         newCurrencyPurchaseAmount = newCurrencyPurchaseAmount.toDomain(),
         newCurrencyFeeAmount = newCurrencyFeeAmount.toDomain(),
+        newCurrencyV2PurchaseAmount = newCurrencyV2PurchaseAmount.toDomain(),
+        newCurrencyV2FeeAmount = newCurrencyV2FeeAmount.toDomain(),
         withdrawalFeeAmount = withdrawalFeeAmount.toDomain(),
         preferredUsdcOnRampLiquidityPool = runCatching {
             UsdcLiquidtyPool.valueOf(preferredUsdcOnRampLiquidityPool)
@@ -226,6 +231,8 @@ private data class CachedFlags(
             billExchangeDataTimeoutMillis = flags.billExchangeDataTimeout?.inWholeMilliseconds,
             newCurrencyPurchaseAmount = CachedFiat.fromDomain(flags.newCurrencyPurchaseAmount),
             newCurrencyFeeAmount = CachedFiat.fromDomain(flags.newCurrencyFeeAmount),
+            newCurrencyV2PurchaseAmount = CachedFiat.fromDomain(flags.newCurrencyV2PurchaseAmount),
+            newCurrencyV2FeeAmount = CachedFiat.fromDomain(flags.newCurrencyV2FeeAmount),
             withdrawalFeeAmount = CachedFiat.fromDomain(flags.withdrawalFeeAmount),
             preferredUsdcOnRampLiquidityPool = flags.preferredUsdcOnRampLiquidityPool.name,
             enablePhoneNumberSend = flags.enablePhoneNumberSend,

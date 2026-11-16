@@ -135,6 +135,8 @@ private val ServerFlags = UserFlags(
     billExchangeDataTimeout = 30.seconds,
     newCurrencyPurchaseAmount = Fiat(quarks = 1_000_000L),
     newCurrencyFeeAmount = Fiat(quarks = 2_000_000L),
+    newCurrencyV2PurchaseAmount = Fiat(quarks = 9_000_000L),
+    newCurrencyV2FeeAmount = Fiat(quarks = 10_000_000L),
     withdrawalFeeAmount = Fiat(quarks = 3_000_000L),
     preferredUsdcOnRampLiquidityPool = UsdcLiquidtyPool.Flipcash,
     enablePhoneNumberSend = true,
