@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.chat.ChatId
@@ -56,6 +57,7 @@ internal class InviteLandingViewModel @Inject constructor(
     private val landing: GroupInviteLanding,
     private val lobbyRequests: LobbyRequests,
     private val resources: ResourceHelper,
+    private val analytics: FlipcashAnalytics,
 ) : ViewModel() {
 
     sealed interface Effect {
@@ -151,9 +153,13 @@ internal class InviteLandingViewModel @Inject constructor(
         val token = token ?: return
         val chatId = _state.value.group?.chatId ?: return
         if (_state.value.joining) return
+        // The count from before the call, as the roster paged it, rather than the lookup's.
+        val memberCount = _state.value.memberCount.toInt()
         _state.update { it.copy(joining = true) }
         viewModelScope.launch {
-            when (val result = landing.join(secret, chatId, token)) {
+            val result = landing.join(secret, chatId, token)
+            analytics.trackGroupJoined(memberCount, result)
+            when (result) {
                 is InviteJoinResult.Joined -> {
                     // Joining takes the viewer out of the lobby, so the stored request is stale.
                     lobbyRequests.clear(chatId)

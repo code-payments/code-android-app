@@ -1,5 +1,8 @@
 package com.flipcash.app.messenger.internal
 
+import com.flipcash.analytics.AnalyticsEvent
+import com.flipcash.analytics.PropertyValue
+import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.chat.ChatId
@@ -27,6 +30,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -50,6 +54,7 @@ class InviteLandingViewModelTest {
     private val landing = mockk<GroupInviteLanding>()
     private val lobby = mockk<LobbyRequests>(relaxed = true)
     private val resources = mockk<ResourceHelper>(relaxed = true)
+    private val analytics = RecordingAnalytics()
 
     private val chatId = ChatId(ByteArray(16) { 5 }.toList())
     private val token = InviteToken(ByteArray(32) { 9 })
@@ -66,7 +71,7 @@ class InviteLandingViewModelTest {
         rosterSummary = RosterSummary(memberCount = count, version = 1),
     )
 
-    private fun viewModel() = InviteLandingViewModel(landing, lobby, resources)
+    private fun viewModel() = InviteLandingViewModel(landing, lobby, resources, analytics)
 
     private val requests = MutableStateFlow<Map<ChatId, Instant>>(emptyMap())
     private val requestedAt = Instant.fromEpochMilliseconds(5_000)
@@ -440,4 +445,108 @@ class InviteLandingViewModelTest {
         assertEquals(false, vm.state.value.joining)
         assertTrue(BottomBarManager.messages.value.isNotEmpty())
     }
+
+    /** A live link whose lookup and roster disagree on the count, so a test can tell which was sent. */
+    private fun openWithRoster(lookupCount: Long = 40, rosterCount: Long = 52): InviteLandingViewModel {
+        coEvery { landing.lookup(any()) } returns InviteLookup.Found(token, chat(lookupCount), null)
+        coEvery { landing.roster(any(), any(), null) } returns
+            InviteRosterResult.Page(listOf(member), null, rosterCount)
+        return viewModel().apply { open(secret) }
+    }
+
+    private fun groupJoined(memberCount: Int, error: String? = null) = AnalyticsEvent(
+        "Group: Joined",
+        buildMap {
+            put("State", PropertyValue.Text(if (error == null) "Success" else "Failure"))
+            if (error != null) put("Error", PropertyValue.Text(error))
+            put("Member Count", PropertyValue.Number(memberCount.toDouble()))
+            put("Gated", PropertyValue.Flag(false))
+        },
+    )
+
+    @Test
+    fun `a join sends Group Joined with the roster's count and Gated false`() {
+        coEvery { landing.join(any(), chatId, token) } returns InviteJoinResult.Joined(chatId)
+        val vm = openWithRoster(lookupCount = 40, rosterCount = 52)
+        assertEquals(40L, vm.state.value.group?.memberCount)
+        assertEquals(52L, vm.state.value.memberCount)
+
+        vm.join()
+
+        assertEquals(listOf(groupJoined(memberCount = 52)), analytics.events)
+    }
+
+    @Test
+    fun `each failed join sends Group Joined with the result's name`() {
+        val cases = listOf(
+            InviteJoinResult.Dead(DeadInviteReason.EXHAUSTED) to "Dead",
+            InviteJoinResult.NotFound to "NotFound",
+            InviteJoinResult.GroupGone to "GroupGone",
+            InviteJoinResult.Banned to "Banned",
+            InviteJoinResult.Refused to "Refused",
+            InviteJoinResult.Failed to "Failed",
+        )
+        for ((result, error) in cases) {
+            analytics.events.clear()
+            BottomBarManager.clear()
+            coEvery { landing.join(any(), chatId, token) } returns result
+            val vm = openWithRoster(lookupCount = 40, rosterCount = 52)
+
+            vm.join()
+
+            assertEquals(listOf(groupJoined(memberCount = 52, error = error)), analytics.events, "$result")
+        }
+    }
+
+    @Test
+    fun `a join with no loaded link sends nothing`() {
+        viewModel().join()
+        coEvery { landing.lookup(any()) } returns InviteLookup.NotFound
+        viewModel().apply { open(secret) }.join()
+
+        coVerify(exactly = 0) { landing.join(any(), any(), any()) }
+        assertTrue(analytics.events.isEmpty())
+    }
+
+    @Test
+    fun `an existing member opens the chat and sends nothing`() = runTest(mainCoroutineRule.dispatcher) {
+        coEvery { landing.lookup(any()) } returns InviteLookup.AlreadyMember(chatId)
+        val vm = viewModel().apply { open(secret) }
+        assertEquals(InviteLandingViewModel.Effect.OpenChat(chatId), vm.effects.first())
+        assertTrue(analytics.events.isEmpty())
+    }
+
+    @Test
+    fun `requesting to join and cancelling send nothing`() {
+        coEvery { lobby.request(chatId) } returns Result.success(requestedAt)
+        coEvery { lobby.cancel(chatId) } returns Result.success(Unit)
+        coEvery { landing.lookup(any()) } returns found(DeadInviteReason.EXPIRED)
+        val vm = viewModel().apply { open(secret) }
+
+        vm.requestToJoin()
+        vm.cancelRequest()
+
+        coVerify(exactly = 1) { lobby.request(chatId) }
+        coVerify(exactly = 1) { lobby.cancel(chatId) }
+        assertTrue(analytics.events.isEmpty())
+    }
+
+    @Test
+    fun `a join sends once, after the call returns, however often it is tapped`() =
+        runTest(mainCoroutineRule.dispatcher) {
+            val gate = CompletableDeferred<InviteJoinResult>()
+            coEvery { landing.join(any(), chatId, token) } coAnswers { gate.await() }
+            val vm = openWithRoster()
+
+            vm.join()
+            vm.join()
+            assertTrue(analytics.events.isEmpty())
+
+            gate.complete(InviteJoinResult.Joined(chatId))
+            advanceUntilIdle()
+            // The secret is dropped on success, so a later tap is the silent early return.
+            vm.join()
+
+            assertEquals(listOf(groupJoined(memberCount = 52)), analytics.events)
+        }
 }
