@@ -57,6 +57,7 @@ public typealias ErrorModalEvents = SharedCore.ErrorModalEvents
 public typealias AccountEvents = SharedCore.AccountEvents
 public typealias ButtonEvents = SharedCore.ButtonEvents
 public typealias GroupEvents = SharedCore.GroupEvents
+public typealias CommunityChatEvents = SharedCore.CommunityChatEvents
 public typealias ProfileEvents = SharedCore.ProfileEvents
 public typealias SearchEvents = SharedCore.SearchEvents
 public typealias PaymentRequestEvents = SharedCore.PaymentRequestEvents
