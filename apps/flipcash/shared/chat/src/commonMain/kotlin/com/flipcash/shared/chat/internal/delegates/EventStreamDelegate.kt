@@ -28,6 +28,8 @@ import com.flipcash.shared.chat.EventSequenceTracker
 import com.flipcash.shared.chat.EventStreamOperations
 import com.flipcash.shared.chat.LiveCashArrival
 import com.flipcash.shared.chat.LiveCashSink
+import com.flipcash.shared.chat.media.PhotoArrivalSink
+import com.flipcash.shared.chat.media.mayHoldPhoto
 import com.flipcash.shared.chat.alerts.ActorBoostTotals
 import com.flipcash.shared.chat.alerts.ReactionActorProfiles
 import com.flipcash.shared.chat.alerts.ReactionAlertEvent
@@ -107,6 +109,7 @@ class EventStreamDelegate @Inject constructor(
     private val actorProfiles: ReactionActorProfiles = ReactionActorProfiles.None,
     private val paymentRequestUpdates: PaymentRequestUpdateSink = PaymentRequestUpdateSink.None,
     private val liveCash: LiveCashSink = LiveCashSink.None,
+    private val photoArrivals: PhotoArrivalSink = PhotoArrivalSink.None,
 ) : EventStreamOperations {
 
 
@@ -609,6 +612,9 @@ class EventStreamDelegate @Inject constructor(
             // replay would inflate the counter permanently. The watermark is the
             // only thing standing between gap fill and a corrupted profile.
             if (msg.messageId <= countedThrough) continue
+            // Past the watermark, so only a message that is new to this device. The prefetch reads
+            // the stored row, which the upsert above has opened if it was sealed.
+            if (mayHoldPhoto(msg.content)) photoArrivals.arrived(chatId, msg.messageId)
             countReceipt(msg)
             highestCounted = maxOf(highestCounted, msg.messageId)
         }

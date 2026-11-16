@@ -35,6 +35,7 @@ import com.flipcash.app.core.util.Linkify
 import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.ChatCoordinator
 import com.flipcash.shared.chat.PaymentRequests
+import com.flipcash.shared.chat.media.ChatPhotoPrefetcher
 import com.flipcash.shared.chat.ui.labelInviteLinks
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
@@ -65,6 +66,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -152,6 +154,9 @@ class NotificationService : FirebaseMessagingService(),
     @Inject
     lateinit var testPushMark: TestPushMark
 
+    @Inject
+    lateinit var photoPrefetcher: ChatPhotoPrefetcher
+
     // TODO(firebase-messaging): 25.1.0 deprecated onNewToken in favor of FID-based onRegistered().
     //  Migrate once Firebase ships a stable guide and the backend accepts FID registration.
     //  Tracking: https://github.com/firebase/firebase-android-sdk/issues/8087
@@ -231,7 +236,7 @@ class NotificationService : FirebaseMessagingService(),
                 it is PushAction.LoadMessages ||
                 it is PushAction.ApplyMessage
         }
-        if (chatActions.isNotEmpty()) {
+        val chatSync = if (chatActions.isNotEmpty()) {
             launch {
                 chatActions.forEach { action ->
                     when (action) {
@@ -245,6 +250,8 @@ class NotificationService : FirebaseMessagingService(),
                     }
                 }
             }
+        } else {
+            null
         }
 
         val post = actions.filterIsInstance<PushAction.PostNotification>().firstOrNull()
@@ -253,6 +260,9 @@ class NotificationService : FirebaseMessagingService(),
         if (post == null && !syncContacts) return
 
         authenticateIfNeeded {
+            // Beside posting rather than after it, so the download never holds the notification
+            // back and still runs if posting gives up.
+            post?.let { prefetchPushedPhotos(it, chatSync) }
             launch {
                 try {
                     if (syncContacts) launch { contactCoordinator.sync() }
@@ -273,6 +283,22 @@ class NotificationService : FirebaseMessagingService(),
                     trace(tag = "NotificationService", message = "Failed to handle push", error = e)
                 }
             }
+        }
+    }
+
+    /**
+     * Downloads the pushed message's photos so they are on disk before its chat is opened. Waits
+     * for [chatSync], the feed refresh and message write this push already started, so the message
+     * and its chat are stored when the prefetch reads them.
+     */
+    private fun prefetchPushedPhotos(post: PushAction.PostNotification, chatSync: Job?) {
+        val payload = post.payload ?: return
+        val chatId = (payload.navigation as? NavigationTrigger.Chat.ById)?.chatId ?: return
+        val metadata = payload.chatMetadata ?: return
+        val messageId = metadata.message?.messageId ?: metadata.messageId ?: return
+        launch {
+            chatSync?.join()
+            photoPrefetcher.prefetchPushed(chatId, messageId, metadata.message, metadata.muted)
         }
     }
 

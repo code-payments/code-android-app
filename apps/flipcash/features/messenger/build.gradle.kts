@@ -52,5 +52,6 @@ dependencies {
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.okhttp.tls)
     testImplementation(libs.robolectric)
+    testImplementation(libs.coil3.core)
     testImplementation(libs.androidx.paging.testing)
 }

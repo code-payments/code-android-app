@@ -9,6 +9,8 @@ import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.annotations.AccountType
 import com.flipcash.app.core.toast.SystemToastController
 import com.flipcash.app.internal.toast.AndroidSystemToastController
+import com.flipcash.shared.chat.media.PhotoPrefetchTarget
+import com.flipcash.shared.chat.ui.media.BubblePhotoPrefetchTarget
 import com.getcode.util.resources.AndroidContentReader
 import com.getcode.util.resources.AndroidResources
 import com.getcode.util.resources.AndroidSettingsHelper
@@ -57,6 +59,12 @@ object AppModule {
     fun providesSettingsHelper(
         @ApplicationContext context: Context,
     ): SettingsHelper = AndroidSettingsHelper(context)
+
+    /** The chat photo prefetch picks blobs with the transcript bubble's own width math, in chat-ui. */
+    @Provides
+    fun providesPhotoPrefetchTarget(
+        @ApplicationContext context: Context,
+    ): PhotoPrefetchTarget = BubblePhotoPrefetchTarget(context)
 
     @Provides
     fun providesClipboard(

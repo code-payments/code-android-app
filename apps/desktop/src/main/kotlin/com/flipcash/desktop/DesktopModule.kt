@@ -19,6 +19,7 @@ import com.flipcash.services.controllers.ChatController
 import com.flipcash.shared.chat.media.ChatMediaLocation
 import com.flipcash.shared.chat.media.DirectoryChatMediaLocation
 import com.flipcash.shared.chat.media.ImageLoaderSentImageCache
+import com.flipcash.shared.chat.media.PhotoArrivalSink
 import com.flipcash.shared.chat.media.SentImageCache
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.storage.DirectoryPreferencesFiles
@@ -132,6 +133,10 @@ object DesktopModule {
     @Provides
     @Singleton
     fun chatMediaLocation(): ChatMediaLocation = DirectoryChatMediaLocation(appDir)
+
+    /** Desktop draws a photo when its chat is open and does not download one ahead of that. */
+    @Provides
+    fun photoArrivals(): PhotoArrivalSink = PhotoArrivalSink.None
 
     @Provides
     @Singleton
