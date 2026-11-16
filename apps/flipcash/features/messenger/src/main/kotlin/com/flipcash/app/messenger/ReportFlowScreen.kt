@@ -98,7 +98,7 @@ private fun reportEntryProvider(
 private fun FlowReasonSelection(subject: ReportSubject) {
     val viewModel = flowSharedViewModel<ReportViewModel>()
     val flowNavigator = rememberFlowNavigator<ReportStep, Parcelable>()
-    val progress by viewModel.state.collectAsStateWithLifecycle()
+    val progress by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     ExitOnceConfirmed(viewModel, flowNavigator)
 
@@ -110,7 +110,7 @@ private fun FlowReasonSelection(subject: ReportSubject) {
             } else {
                 // Every other reason is the whole report, so the pick is the submit. Asking for
                 // more after someone has already said what is wrong would be asking twice.
-                viewModel.submit(subject, reason, details = null)
+                viewModel.dispatchEvent(ReportViewModel.Event.Submit(subject, reason, details = null))
             }
         },
         // `back` on its own: at the flow's root it exits the flow itself, so pairing it with an
@@ -127,14 +127,14 @@ private fun FlowReportDetails(subject: ReportSubject, reason: ReportReason) {
     // typed — leaving by the back arrow is usually a second thought about the reason, not about
     // the words.
     val details = rememberTextFieldState()
-    val progress by viewModel.state.collectAsStateWithLifecycle()
+    val progress by viewModel.stateFlow.collectAsStateWithLifecycle()
 
     ExitOnceConfirmed(viewModel, flowNavigator)
 
     ReportDetailsContent(
         state = details,
         progress = progress,
-        onSubmit = { typed -> viewModel.submit(subject, reason, typed) },
+        onSubmit = { typed -> viewModel.dispatchEvent(ReportViewModel.Event.Submit(subject, reason, typed)) },
         // Not the flow's root, so this steps back to the reasons rather than leaving.
         onNavigateUp = { flowNavigator.back() },
     )

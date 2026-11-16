@@ -59,11 +59,13 @@ import com.getcode.util.formatLocalized
 internal fun RestrictedMembersScreen(kind: RestrictedKind, chatViewModel: ChatViewModel) {
     val viewModel = hiltViewModel<RestrictedMembersViewModel>()
     val chatState by chatViewModel.stateFlow.collectAsStateWithLifecycle()
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val flowNavigator = rememberFlowNavigator<ChatStep, Parcelable>()
     val chatId = chatState.chatId
 
-    LaunchedEffect(chatId) { chatId?.let(viewModel::load) }
+    LaunchedEffect(chatId) {
+        chatId?.let { viewModel.dispatchEvent(RestrictedMembersViewModel.Event.Load(it)) }
+    }
 
     val rows = state.rows(kind)
     val unknownName = stringResource(R.string.title_unnamedUser)
@@ -122,8 +124,12 @@ internal fun RestrictedMembersScreen(kind: RestrictedKind, chatViewModel: ChatVi
                             userId ?: return@RestrictedRow
                             val id = chatId ?: return@RestrictedRow
                             when (kind) {
-                                RestrictedKind.Silenced -> viewModel.unsilence(id, userId, name)
-                                RestrictedKind.Removed -> viewModel.unban(id, userId)
+                                RestrictedKind.Silenced -> viewModel.dispatchEvent(
+                                    RestrictedMembersViewModel.Event.Unsilence(id, userId, name)
+                                )
+                                RestrictedKind.Removed -> viewModel.dispatchEvent(
+                                    RestrictedMembersViewModel.Event.Unban(id, userId)
+                                )
                             }
                         },
                     )
