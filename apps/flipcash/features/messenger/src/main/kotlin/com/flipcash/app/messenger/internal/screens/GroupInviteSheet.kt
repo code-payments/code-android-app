@@ -671,8 +671,8 @@ internal fun GroupInviteSheet(
  * Money it is frame 1-07 (node 13729:672): Close at the start, the group's avatar and name, a line
  * above the link and a caption under it, and the tiles read Copy Link, Share Link and QR Code.
  *
- * [condensed] is the same Group Money sheet without the avatar and name, on tighter gaps, for the
- * transcript's Invite People. The classic sheet ignores it.
+ * [condensed] is the same Group Money sheet without the avatar and name, on tighter gaps and with
+ * Close at the end, for the transcript's Invite People. The classic sheet ignores it.
  */
 @Composable
 internal fun GroupInviteSheetContent(
@@ -688,13 +688,14 @@ internal fun GroupInviteSheetContent(
     condensed: Boolean = false,
 ) {
     val groupMoney = LocalNavBarShell.current == NavBarShell.GroupMoney
+    val leadingClose = groupMoney && !condensed
     Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
         AppBarWithTitle(
             title = stringResource(R.string.title_invitePeople),
             titleAlignment = Alignment.CenterHorizontally,
-            onBackIconClicked = if (groupMoney) onDismiss else null,
-            leadingDismiss = groupMoney,
-            endContent = { if (!groupMoney) AppBarDefaults.Close(onClick = onDismiss) },
+            onBackIconClicked = if (leadingClose) onDismiss else null,
+            leadingDismiss = leadingClose,
+            endContent = { if (!leadingClose) AppBarDefaults.Close(onClick = onDismiss) },
         )
         if (inviteUrl == null && inviteLink == null) return@Column
         if (groupMoney) {

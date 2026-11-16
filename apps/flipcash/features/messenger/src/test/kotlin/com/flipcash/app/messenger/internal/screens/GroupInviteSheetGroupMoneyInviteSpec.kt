@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
@@ -29,6 +30,7 @@ import com.flipcash.app.theme.FlipcashPreview
 import com.flipcash.services.models.chat.ChatId
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarDefaults
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -47,7 +49,8 @@ import kotlin.test.assertTrue
  * Group Money phase 2, item 4: the Invite People sheet (frame 1-07, node 13729:672). Close at the
  * start, the group's avatar and name, one line above the link, a caption under it, and three tiles:
  * Copy Link, Share Link, QR Code. Every invite entry but Group Info opens this sheet. The
- * transcript's Invite People opens it condensed: no avatar or name, on tighter gaps. Group Info
+ * transcript's Invite People opens it condensed: no avatar or name, on tighter gaps, and Close at
+ * the end at the inset it has at the start. Group Info
  * keeps the classic sheets, the host sheet (Approve switch, Manage Invites) included, and the share
  * sheets the host sheet opens are classic too. The classic shell keeps today's sheet and routing.
  */
@@ -314,6 +317,54 @@ class GroupInviteSheetGroupMoneyInviteSpec {
         val close = placed.single().boundsInRoot
         val title = composeRule.onNodeWithText("Invite People").fetchSemanticsNode().boundsInRoot
         assertTrue(close.right <= title.left, "Close $close should sit left of the title $title")
+    }
+
+    @Test
+    fun `transcript sheet puts Close at the end, the other entries at the start, at the same inset`() {
+        val transcript = stepsFrom(openFromTranscript)
+        val entries = mapOf(
+            "join requests" to stepsFrom(openFromJoinRequests),
+            "manage invites" to stepsFrom(openFromManageInvites),
+            "hand-off" to stepsFrom(openFromHandOff),
+        )
+        var step by mutableStateOf(transcript.first())
+        var controlInset = 0f
+        composeRule.setContent {
+            CompositionLocalProvider(LocalNavBarShell provides NavBarShell.GroupMoney) {
+                FlipcashPreview(showBackground = true) {
+                    controlInset = with(LocalDensity.current) { AppBarDefaults.ControlInset.toPx() }
+                    Box(Modifier.testTag(SheetTag)) { SheetFor(step) }
+                }
+            }
+        }
+
+        fun bar(of: ChatStep): Pair<Rect, Rect> {
+            step = of
+            composeRule.waitForIdle()
+            // A leading Close also has an unplaced copy from the bar's "leftIcon_probe".
+            val close = composeRule.onAllNodesWithTag("action_close").fetchSemanticsNodes()
+                .filter { it.layoutInfo.isPlaced }
+            assertEquals(1, close.size, "one placed Close on $of")
+            val title = composeRule.onNodeWithText("Invite People").fetchSemanticsNode().boundsInRoot
+            return close.single().boundsInRoot to title
+        }
+
+        val sheet = composeRule.onNodeWithTag(SheetTag).fetchSemanticsNode().boundsInRoot
+        entries.forEach { (entry, steps) ->
+            assertTrue(steps.isNotEmpty(), entry)
+            steps.forEach { entryStep ->
+                val (end, endTitle) = bar(transcript.single { it::class == entryStep::class })
+                val (start, startTitle) = bar(entryStep)
+
+                assertTrue(end.center.x > sheet.center.x, "transcript Close $end should sit in the trailing half of $sheet")
+                assertTrue(start.center.x < sheet.center.x, "$entry Close $start should sit in the leading half of $sheet")
+                assertEquals(start.left - sheet.left, sheet.right - end.right, 0.5f, "$entry $entryStep inset")
+                assertEquals(controlInset, sheet.right - end.right, 0.5f, "transcript inset")
+                assertEquals(start.size, end.size, "$entry $entryStep Close size")
+                assertEquals(start.top, end.top, 0.5f, "$entry $entryStep Close top")
+                assertEquals(startTitle, endTitle, "$entry $entryStep title")
+            }
+        }
     }
 
     @Test
