@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.nativePaint
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -27,7 +28,7 @@ internal actual fun TransparentSystemBars() {
 }
 
 actual fun Paint.makeBlur(shadowBlurRadius: Float) {
-    this.asFrameworkPaint().apply {
+    nativePaint.apply {
         maskFilter =
             android.graphics.BlurMaskFilter(
                 shadowBlurRadius, android.graphics.BlurMaskFilter.Blur.NORMAL)
