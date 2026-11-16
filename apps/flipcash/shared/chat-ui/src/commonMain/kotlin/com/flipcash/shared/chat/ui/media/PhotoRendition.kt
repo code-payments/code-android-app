@@ -10,3 +10,11 @@ import com.flipcash.services.models.chat.MediaItemRendition
  */
 internal fun photoRendition(item: MediaItem, targetPx: Int): MediaItemRendition? =
     item.renditionForSize(targetPx) ?: item.rendition(MediaItemRendition.Role.ORIGINAL)
+
+/**
+ * The blob a transcript bubble [targetPx] wide requests: [photoRendition], or the first rendition
+ * when none carries blob metadata yet. A photo prefetch picks through this too, since the disk cache
+ * is keyed by blob id and a prefetch of any other blob is a wasted download.
+ */
+internal fun bubblePhotoRendition(item: MediaItem, targetPx: Int): MediaItemRendition? =
+    photoRendition(item, targetPx) ?: item.renditions.firstOrNull()

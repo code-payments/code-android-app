@@ -179,7 +179,7 @@ internal fun MediaMessageBubble(
     // The bubble draws the smallest server rendition that fills it, not the original: originals run
     // to several megabytes, and on a slow link the BlurHash stays up for the whole download.
     val bubblePx = with(LocalDensity.current) { maxWidth.roundToPx() }
-    val bubbleRendition = mediaItem?.let { photoRendition(it, bubblePx) } ?: rendition
+    val bubbleRendition = mediaItem?.let { bubblePhotoRendition(it, bubblePx) }
     val image = rendition?.blob?.image
     val info = item.photo
     // The optimistic row has no blob id yet and the staged file as its URL.
@@ -386,7 +386,7 @@ private fun PhotoStack.look(bubblePx: Int): PhotoStackLook {
 private fun stackCardOf(bubble: ChatListItem.ContentBubble, bubblePx: Int): StackCardPhoto {
     val item = bubble.content.photoBody()?.items?.firstOrNull()
     val info = bubble.photo
-    val rendition = item?.let { photoRendition(it, bubblePx) ?: it.renditions.firstOrNull() }
+    val rendition = item?.let { bubblePhotoRendition(it, bubblePx) }
     val blurHash = item?.rendition(MediaItemRendition.Role.ORIGINAL)?.blob?.image?.blurhash?.takeIf { it.isNotEmpty() }
     // A photo still sending has no blob yet and the staged file as its URL, which the card draws.
     val localUri = rendition?.takeIf { it.blobId.bytes.isEmpty() }?.blob?.downloadUrl?.takeIf { it.isNotEmpty() }

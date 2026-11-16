@@ -73,6 +73,7 @@ import com.flipcash.shared.chat.reactions.ReactionStrip
 import com.flipcash.shared.chat.ui.ContentBubble
 import com.flipcash.shared.chat.ui.QuickReactionStripPopup
 import com.flipcash.shared.chat.ui.ReactionPillRow
+import com.flipcash.shared.chat.ui.SenderGutterWidth
 import com.flipcash.shared.chat.ui.bubbleMaxWidth
 import com.flipcash.shared.chat.ui.bubblePositionOf
 import com.flipcash.shared.chat.ui.messageTimeOfDay
@@ -261,7 +262,7 @@ internal fun MessageRow(
         // and on the empty side of an outgoing row it is reaching for nothing. The one row that
         // leads with the bubble itself — an incoming message in a DM — keeps its leading edge live.
         leadingGutter = replyGutterFor(
-            width = CodeTheme.dimens.staticGrid.x5,
+            width = SenderGutterWidth,
             isFromSelf = bubble?.isFromSelf == true,
             showsSenderGutter = showsSenderGutter,
         ),
@@ -398,9 +399,9 @@ internal fun MessageRow(
                             // keeps the column's inset but no height, or the empty row would open
                             // an avatar's height of space below the stack.
                             val gutterSize = if (stack?.role == PhotoStack.Role.Last && item.plainText.isNullOrEmpty()) {
-                                Modifier.requiredWidth(CodeTheme.dimens.staticGrid.x5)
+                                Modifier.requiredWidth(SenderGutterWidth)
                             } else {
-                                Modifier.requiredSize(CodeTheme.dimens.staticGrid.x5)
+                                Modifier.requiredSize(SenderGutterWidth)
                             }
                             Box(modifier = gutterSize) {
                                 if (sender != null && runStart) {
@@ -732,7 +733,7 @@ private fun SwipeToReplyAffordance(
 @Composable
 internal fun senderNameInset(showsGutter: Boolean): Dp =
     if (showsGutter) {
-        CodeTheme.dimens.staticGrid.x5 + CodeTheme.dimens.grid.x1 + CodeTheme.dimens.grid.x1
+        SenderGutterWidth + CodeTheme.dimens.grid.x1 + CodeTheme.dimens.grid.x1
     } else {
         CodeTheme.dimens.grid.x1
     }
