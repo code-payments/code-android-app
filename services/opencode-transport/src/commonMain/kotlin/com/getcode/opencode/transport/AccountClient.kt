@@ -9,7 +9,7 @@ class AccountClient(private val transport: GrpcTransport) {
 
     suspend fun isOcpAccount(owner: Ed25519.KeyPair): IsOcpAccountResponse {
         val request = SignedRequests.isOcpAccount(owner)
-        return IsOcpAccountResponse.ADAPTER.decode(transport.unary(IS_OCP_ACCOUNT, request.encode()))
+        return IsOcpAccountResponse.ADAPTER.decode(transport.unary(IS_OCP_ACCOUNT, request.encodeCanonical()))
     }
 
     suspend fun getTokenAccountInfos(
@@ -19,7 +19,7 @@ class AccountClient(private val transport: GrpcTransport) {
     ): GetTokenAccountInfosResponse {
         val request = SignedRequests.getTokenAccountInfos(owner, requestingOwner, filterByMint)
         return GetTokenAccountInfosResponse.ADAPTER.decode(
-            transport.unary(GET_TOKEN_ACCOUNT_INFOS, request.encode()),
+            transport.unary(GET_TOKEN_ACCOUNT_INFOS, request.encodeCanonical()),
         )
     }
 

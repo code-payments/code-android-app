@@ -34,7 +34,9 @@ class NodeGrpcTransport(
         }
 
     override fun bidiStream(method: String, requests: Flow<ByteArray>): Flow<ByteArray> = callbackFlow {
-        val call = client.makeBidiStreamRequest(method, ::toBuffer, ::fromBuffer, Metadata(), callOptions())
+        // No deadline: a stream lives until either side closes it, as grpc-java's do. The unary
+        // deadline here ended every event stream after 15 seconds.
+        val call = client.makeBidiStreamRequest(method, ::toBuffer, ::fromBuffer, Metadata(), js("({})"))
         var cancelledByUs = false
         call.on("data") { message: dynamic -> trySend(message.unsafeCast<ByteArray>()) }
         call.on("error") { error: dynamic ->
@@ -52,6 +54,7 @@ class NodeGrpcTransport(
 
     override fun close() = client.close()
 
+    /** Options for a unary call: [deadlineMillis] from now. */
     private fun callOptions(): dynamic {
         val options: dynamic = js("({})")
         options.deadline = Date.now() + deadlineMillis

@@ -29,6 +29,7 @@ kotlin {
         commonMain.dependencies {
             implementation(libs.ocp.client.protocol)
             api(project(":services:opencode-model"))
+            api(project(":services:opencode-intents"))
             api(project(":services:opencode-solana"))
             api(project(":libs:currency-math"))
             api(project(":libs:datetime"))
@@ -90,9 +91,14 @@ kotlin {
             // formatProto tests render a flipcash2 response that carries a payment_intent_id.
             implementation(libs.flipcash2.client.protocol)
         }
-        jvmTest.dependencies {
-            implementation(kotlin("test"))
-            implementation(libs.kotlinx.coroutines.test)
+        jvmTest {
+            // The domain rendering OcpClientFixtureTest pins; :services:opencode-client's
+            // OcpClientParityTest compiles the same file.
+            kotlin.srcDir(rootProject.file("services/opencode-client/src/parityShared/kotlin"))
+            dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinx.coroutines.test)
+            }
         }
     }
 }
@@ -113,5 +119,15 @@ tasks.named<Test>("jvmTest") {
     val fixture = rootProject.file("services/opencode-transport/src/commonTest/resources/signed_requests.json")
     systemProperty("signedRequestFixture", fixture.absolutePath)
     inputs.file(fixture)
+    // OcpClientFixtureTest pins Android's OCP request bytes and response mappings for
+    // :services:opencode-client's Wire encoding.
+    val clientFixture = rootProject.file("services/opencode-client/src/commonTest/resources/ocp_client_parity.json")
+    systemProperty("ocpClientFixture", clientFixture.absolutePath)
+    inputs.file(clientFixture)
+    // CanonicalOrderFixtureTest pins protobuf-java bytes for requests whose Wire encode() order
+    // differs from field-number order; :services:opencode-transport's canonical encoder must match.
+    val canonicalFixture = rootProject.file("services/opencode-transport/src/commonTest/resources/canonical_order.json")
+    systemProperty("canonicalOrderFixture", canonicalFixture.absolutePath)
+    inputs.file(canonicalFixture)
     providers.systemProperty("fixture.update").orNull?.let { systemProperty("fixture.update", it) }
 }

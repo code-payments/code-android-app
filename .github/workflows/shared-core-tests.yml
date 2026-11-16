@@ -19,6 +19,9 @@ on:
       - 'libs/parcelable/**'
       - 'services/opencode-model/**'
       - 'services/opencode-solana/**'
+      - 'services/opencode-transport/**'
+      - 'services/opencode-intents/**'
+      - 'services/opencode-client/**'
       - 'build-logic/convention/src/main/kotlin/KmpAppleConventionPlugin.kt'
       - 'build-logic/convention/src/main/kotlin/AnalyticsCatalogueConventionPlugin.kt'
       - 'build-logic/convention/src/main/kotlin/com/getcode/buildlogic/analytics/**'
@@ -94,7 +97,10 @@ jobs:
             :libs:reporting:iosSimulatorArm64Test \
             :libs:text-format:iosSimulatorArm64Test \
             :services:opencode-model:iosSimulatorArm64Test \
-            :services:opencode-solana:iosSimulatorArm64Test
+            :services:opencode-solana:iosSimulatorArm64Test \
+            :services:opencode-transport:iosSimulatorArm64Test \
+            :services:opencode-intents:iosSimulatorArm64Test \
+            :services:opencode-client:iosSimulatorArm64Test
 
       # The facade suite has to run against the Kotlin in this checkout, not against the last
       # published release, or a facade written for an unreleased Kotlin change is untested until

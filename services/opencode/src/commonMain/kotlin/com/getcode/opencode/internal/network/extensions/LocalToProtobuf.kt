@@ -2,6 +2,7 @@ package com.getcode.opencode.internal.network.extensions
 
 import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
+import com.getcode.solana.keys.Mint
 import com.codeinc.opencode.gen.messaging.v1.OcpMessagingService
 import com.codeinc.opencode.gen.messaging.v1.requestToGiveBill
 import com.codeinc.opencode.gen.messaging.v1.requestToGrabBill
@@ -99,6 +100,21 @@ internal fun clientPongWith(timestampInMillis: Long): Model.ClientPong {
         ).build()
 }
 
+/** The first message on `StreamLiveMintData`: the mints to stream. */
+internal fun streamLiveMintDataOpenRequest(mints: List<Mint>): OcpCurrencyService.StreamLiveMintDataRequest =
+    OcpCurrencyService.StreamLiveMintDataRequest.newBuilder()
+        .setRequest(
+            OcpCurrencyService.StreamLiveMintDataRequest.Request.newBuilder()
+                .addAllMints(mints.map { it.asSolanaAccountId() })
+                .build()
+        ).build()
+
+/** The answer to a `StreamLiveMintData` server ping, stamped in whole seconds. */
+internal fun streamLiveMintDataPongRequest(nowMillis: Long): OcpCurrencyService.StreamLiveMintDataRequest =
+    OcpCurrencyService.StreamLiveMintDataRequest.newBuilder()
+        .setPong(clientPongWith(nowMillis))
+        .build()
+
 internal fun Long.asProtobufTimestamp(): Timestamp =
     Timestamp.newBuilder().setSeconds(this / 1_000).build()
 
@@ -152,24 +168,24 @@ internal fun TransactionMetadata.asProtobufMetadata(): OcpTransactionService.Met
                     .setSource(source.asSolanaAccountId())
                     .setMint(exchangeData.mint.asSolanaAccountId())
                     .apply {
-                        if (verifiedExchangeData != null) {
-                            setClientExchangeData(verifiedExchangeData.asProtobufExchangeData())
+                        this@asProtobufMetadata.verifiedExchangeData?.let {
+                            setClientExchangeData(it.asProtobufExchangeData())
                         }
                     }
                     .setDestination(destination.asSolanaAccountId())
                     .apply {
-                        if (this@asProtobufMetadata.destinationOwner != null) {
-                            setDestinationOwner(this@asProtobufMetadata.destinationOwner.asSolanaAccountId())
+                        this@asProtobufMetadata.destinationOwner?.let {
+                            setDestinationOwner(it.asSolanaAccountId())
                         }
                     }
                     .setIsIndirectSend(isIndirect)
                     .setIsWithdrawal(isWithdrawal)
                     .build()
             )
-            if (appMetadata != null) {
+            appMetadata?.let {
                 builder.setAppMetadata(
                     OcpTransactionService.AppMetadata.newBuilder()
-                        .setValue(appMetadata.toByteString())
+                        .setValue(it.toByteString())
                 )
             }
         }
@@ -196,10 +212,10 @@ internal fun TransactionMetadata.asProtobufMetadata(): OcpTransactionService.Met
                     }
                     .build()
             )
-            if (appMetadata != null) {
+            appMetadata?.let {
                 builder.setAppMetadata(
                     OcpTransactionService.AppMetadata.newBuilder()
-                        .setValue(appMetadata.toByteString())
+                        .setValue(it.toByteString())
                 )
             }
         }
@@ -369,7 +385,7 @@ internal fun StatefulSwapRequest.stablecoinParams(): OcpTransactionService.State
                 .setFromMint(details.fromMint.asSolanaAccountId())
                 .setToMint(details.toMint.asSolanaAccountId())
                 .setSwapAmount(this@stablecoinParams.swapAmount.underlyingTokenAmount.quarks)
-                .setDestinationOwner(this@stablecoinParams.program.destinationOwner.asSolanaAccountId())
+                .setDestinationOwner(details.destinationOwner.asSolanaAccountId())
                 .setFeeAmount(this@stablecoinParams.feeAmount?.underlyingTokenAmount?.quarks ?: 0)
                 .setFundingSource(OcpTransactionService.FundingSource.FUNDING_SOURCE_SUBMIT_INTENT)
                 .setFundingId(details.fundingSource.id.base58)

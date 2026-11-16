@@ -1,0 +1,60 @@
+package com.getcode.opencode.internal.network.api.intents
+
+import com.getcode.opencode.model.transactions.VerifiedExchangeState
+import com.getcode.opencode.annotations.InternalOpenCodeApi
+import com.getcode.opencode.internal.network.api.intents.actions.ActionPublicTransfer
+import com.getcode.opencode.internal.solana.extensions.timelockSwapAccounts
+import com.getcode.opencode.model.accounts.AccountCluster
+import com.getcode.opencode.model.financial.LocalFiat
+import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.transactions.TransactionMetadata
+import com.getcode.opencode.solana.intents.ActionGroup
+import com.getcode.opencode.solana.intents.IntentType
+import com.getcode.opencode.solana.intents.buildActionGroup
+import com.getcode.solana.keys.PublicKey
+
+@InternalOpenCodeApi
+class IntentFundSwap(
+    override val id: PublicKey,
+    override val metadata: TransactionMetadata,
+    override val actionGroup: ActionGroup,
+) : IntentType() {
+
+    companion object {
+        fun create(
+            intentId: PublicKey,
+            sourceCluster: AccountCluster,
+            amount: LocalFiat,
+            fromMint: Token,
+            verifiedState: VerifiedExchangeState,
+        ): IntentFundSwap {
+            val timelockAccounts = fromMint.timelockSwapAccounts(sourceCluster.authorityPublicKey)
+
+            val destination = timelockAccounts.ata.publicKey
+            val destinationOwner = timelockAccounts.pda.publicKey
+
+            val transfer = ActionPublicTransfer.newInstance(
+                amount = amount.underlyingTokenAmount,
+                source = sourceCluster.vaultPublicKey,
+                owner = sourceCluster.authority.keyPair,
+                destination = destination,
+                mint = fromMint.address,
+            )
+
+            return IntentFundSwap(
+                id = intentId,
+                metadata = TransactionMetadata.SendPublicPayment(
+                    source = sourceCluster.vaultPublicKey,
+                    destination = destination,
+                    destinationOwner = destinationOwner,
+                    amount = amount,
+                    verifiedState = verifiedState,
+                    mint = fromMint.address,
+                    isIndirect = false,
+                    isWithdrawal = true,
+                ),
+                actionGroup = buildActionGroup { add(transfer) },
+            )
+        }
+    }
+}

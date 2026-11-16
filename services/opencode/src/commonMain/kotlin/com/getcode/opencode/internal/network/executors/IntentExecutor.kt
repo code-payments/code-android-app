@@ -1,5 +1,8 @@
 package com.getcode.opencode.internal.network.executors
 
+import com.getcode.opencode.internal.network.extensions.requestToSubmitSignatures
+import com.getcode.opencode.internal.network.extensions.requestToSubmitActions
+import com.getcode.opencode.internal.network.extensions.newInstance
 import com.getcode.utils.BuildFlags
 import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.SubmitIntentRequest

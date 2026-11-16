@@ -1,5 +1,6 @@
 package com.getcode.opencode.internal.network.services
 
+import com.getcode.opencode.internal.network.extensions.newInstance
 import com.codeinc.opencode.gen.account.v1.OcpAccountService
 import com.getcode.ed25519kmp.Ed25519.KeyPair
 import com.getcode.opencode.internal.network.api.AccountApi

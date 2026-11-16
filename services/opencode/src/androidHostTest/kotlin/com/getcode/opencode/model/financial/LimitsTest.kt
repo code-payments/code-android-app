@@ -1,5 +1,6 @@
 package com.getcode.opencode.model.financial
 
+import com.getcode.opencode.internal.network.extensions.newInstance
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

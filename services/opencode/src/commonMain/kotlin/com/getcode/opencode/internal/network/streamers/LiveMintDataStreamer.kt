@@ -1,15 +1,14 @@
 package com.getcode.opencode.internal.network.streamers
 
-import com.codeinc.opencode.gen.common.v1.Model
 import com.codeinc.opencode.gen.currency.v1.OcpCurrencyService
 import com.getcode.opencode.internal.bidi.BidirectionalStreamReference
 import com.getcode.opencode.internal.bidi.openBidirectionalStream
 import com.getcode.opencode.internal.network.api.CurrencyApi
-import com.getcode.opencode.internal.network.extensions.asSolanaAccountId
+import com.getcode.opencode.internal.network.extensions.streamLiveMintDataOpenRequest
+import com.getcode.opencode.internal.network.extensions.streamLiveMintDataPongRequest
 import com.getcode.solana.keys.Mint
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
-import com.google.protobuf.Timestamp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -108,29 +107,14 @@ class ManagedMintStream internal constructor(
         reconnectOnCancelled = true,
         reconnectOnUnavailable = true,
         reconnectOnDeadlineExceeded = true,
-        initialRequest = {
-            OcpCurrencyService.StreamLiveMintDataRequest.newBuilder()
-                .setRequest(
-                    OcpCurrencyService.StreamLiveMintDataRequest.Request.newBuilder()
-                        .addAllMints(mints.map { it.asSolanaAccountId() })
-                        .build()
-                ).build()
-        },
+        initialRequest = { streamLiveMintDataOpenRequest(mints) },
         responseHandler = { response, requestChannel ->
             when (response.typeCase) {
                 OcpCurrencyService.StreamLiveMintDataResponse.TypeCase.DATA -> {
                     onUpdate(response.data)
                 }
                 OcpCurrencyService.StreamLiveMintDataResponse.TypeCase.PING -> {
-                    val pong = OcpCurrencyService.StreamLiveMintDataRequest.newBuilder()
-                        .setPong(
-                            Model.ClientPong.newBuilder()
-                                .setTimestamp(
-                                    Timestamp.newBuilder()
-                                        .setSeconds(System.currentTimeMillis() / 1_000)
-                                )
-                                .build()
-                        ).build()
+                    val pong = streamLiveMintDataPongRequest(System.currentTimeMillis())
                     reference.receivedPing(updatedTimeout = response.ping.pingDelay.seconds * 1_000L)
                     requestChannel(pong)
                 }

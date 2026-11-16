@@ -269,8 +269,10 @@ include(
     // Services definition for app and lib access
     ":services:opencode",
     ":services:opencode-model",
+    ":services:opencode-intents",
     ":services:opencode-solana",
     ":services:opencode-transport",
+    ":services:opencode-client",
     ":services:opencode-compose",
     ":services:flipcash",
     ":services:flipcash:test-fixtures",
@@ -426,6 +428,15 @@ run {
     // This has to live here rather than in a convention plugin: :libs:encryption:utils
     // runs Robolectric from androidHostTest and applies the AGP/KMP plugins directly,
     // so no flipcash convention plugin sees it.
+    // The service modules the Android app wires up directly (Hilt/Metro, Room, resources). They
+    // and their subprojects (test fixtures) keep their app dependencies; everything else under
+    // :services: is checked.
+    val appFacingServices = setOf(
+        ":services:flipcash",
+        ":services:flipcash-compose",
+        ":services:opencode",
+        ":services:opencode-compose",
+    )
     val robolectricJvmArgs = listOf(
         "--add-opens=java.base/java.lang=ALL-UNNAMED",
         "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
@@ -455,6 +466,12 @@ run {
         }
         tasks.withType(org.gradle.api.tasks.testing.Test::class.java).configureEach {
             jvmArgs(robolectricJvmArgs)
+        }
+        // Every service module except the app-facing ones must stay free of apps/, ui/, DI,
+        // Room, analytics and Firebase (ServiceBoundaryConventionPlugin). Applied after
+        // evaluation, once the module's plugins block has put build-logic on its classpath.
+        if (path.startsWith(":services:") && appFacingServices.none { path == it || path.startsWith("$it:") }) {
+            afterEvaluate { pluginManager.apply("flipcash.service.boundary") }
         }
     }
 }

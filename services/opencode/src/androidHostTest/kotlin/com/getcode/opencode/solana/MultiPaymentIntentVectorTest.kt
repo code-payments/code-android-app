@@ -1,5 +1,7 @@
 package com.getcode.opencode.solana
 
+import com.getcode.opencode.internal.network.extensions.action
+import com.getcode.opencode.internal.network.extensions.metadata
 import com.codeinc.opencode.gen.currency.v1.coreMintFiatExchangeRate
 import com.codeinc.opencode.gen.currency.v1.verifiedCoreMintFiatExchangeRate
 import com.getcode.crypt.DerivedKey

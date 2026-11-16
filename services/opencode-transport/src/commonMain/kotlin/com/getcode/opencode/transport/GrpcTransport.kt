@@ -6,8 +6,8 @@ import kotlinx.coroutines.flow.Flow
  * The gRPC calls the shared client code makes, in terms of method paths and serialized messages.
  *
  * Message encoding stays in common code (Wire); each platform supplies the wire transport. Node uses
- * `@grpc/grpc-js` ([NodeGrpcTransport] in jsMain). Android keeps its grpc-kotlin stubs for now; a
- * JVM actual would wrap a `ManagedChannel` with `ClientCalls` and a byte-array marshaller.
+ * `@grpc/grpc-js` ([NodeGrpcTransport] in jsMain); the JVM uses grpc-java ([JvmGrpcTransport] in
+ * jvmMain). Android keeps its grpc-kotlin stubs for now.
  */
 interface GrpcTransport {
     /** Sends one request to [method] (`/package.Service/Method`) and returns the one response. */
