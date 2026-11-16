@@ -44,6 +44,18 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.openAsSheet
 import dev.chrisbanes.haze.HazeState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.ui.graphics.Brush
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.hazeBlur
 import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.navigation.NavBarButton
@@ -55,7 +67,6 @@ import com.flipcash.app.core.navigation.selectedTab
 import com.flipcash.app.core.ui.NavigationBar
 import com.flipcash.app.core.ui.NavBarGlyph
 import com.flipcash.app.core.ui.label
-import com.getcode.ui.components.BottomScrollEdge
 import com.getcode.ui.components.CircularIconButton
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -312,15 +323,16 @@ internal fun AppNavigationBar(
 }
 
 /**
- * The soft edge the Group Money bar floats over: the list blurs out toward the foot of the screen as
- * it passes beside and beneath the bar, across the full width, as iOS's tab bar does, rather than
- * running sharp under it. Shown while [AppNavigationBarVisibility.showsBottomEdge] says so, and faded
+ * The soft edge the Group Money bar floats over, after iOS's tab bar: across the full width, the list
+ * softens and dims toward the background as it nears the foot of the screen, rather than running
+ * sharp under the bar. Shown while [AppNavigationBarVisibility.showsBottomEdge] says so, and faded
  * with the bar through a card expansion.
  *
- * [barHeight] is the bar's measured height, system navigation bar included. The edge starts
- * [BottomEdgeLeadIn] above the bar and is at full strength from halfway down, about the middle of
- * the pill, so a row beside or below the pill is dissolved while the last row, which rests on the
- * bar's top, is barely touched. It draws nothing touchable, so the list under it still scrolls.
+ * [barHeight] is the bar's measured height, system navigation bar included, so it reaches up to the
+ * pill's top. The edge starts [SoftEdgeLeadIn] above the pill. Its blur grows from nothing there to
+ * [SoftEdgeBlurRadius] at the pill's foot, and its dim follows [softEdgeDimStops], so a row beside
+ * the pill stays readable and a row below it has nearly faded out. It draws nothing touchable, so
+ * the list under it still scrolls.
  */
 @Composable
 internal fun AppBottomScrollEdge(
@@ -329,18 +341,74 @@ internal fun AppBottomScrollEdge(
     barHeight: () -> Dp,
     modifier: Modifier = Modifier,
 ) {
-    val height = barHeight() + BottomEdgeLeadIn
-    BottomScrollEdge(
-        hazeState = hazeState,
+    val background = CodeTheme.colors.background
+    // Under the pill: the system navigation bar and the bar row's bottom padding (AppNavigationBar).
+    val belowPill = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+        CodeTheme.dimens.grid.x3
+    val pill = (barHeight() - belowPill).coerceAtLeast(0.dp)
+    val pillFootPx = with(LocalDensity.current) { (SoftEdgeLeadIn + pill).toPx() }
+
+    val style = remember(background, pillFootPx) {
+        HazeBlurStyle {
+            blurRadius(SoftEdgeBlurRadius)
+            noiseFactor(0f)
+            colorEffects(emptyList())
+            backgroundColor(background)
+            progressive(
+                HazeProgressive.verticalGradient(
+                    easing = LinearEasing,
+                    startIntensity = 0f,
+                    endY = pillFootPx,
+                    endIntensity = 1f,
+                ),
+            )
+        }
+    }
+    val dim = remember(background, pill, belowPill) {
+        val stops = softEdgeDimStops(leadIn = SoftEdgeLeadIn, pill = pill, belowPill = belowPill)
+        Brush.verticalGradient(
+            *stops.map { (fraction, alpha) -> fraction to background.copy(alpha = alpha) }.toTypedArray(),
+        )
+    }
+
+    AnimatedVisibility(
         visible = visibility.showsBottomEdge,
-        height = height,
-        ramp = height / 2,
         modifier = modifier.graphicsLayer { alpha = 1f - visibility.fadeProgress },
+        enter = fadeIn(),
+        exit = fadeOut(),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(SoftEdgeLeadIn + pill + belowPill)
+                .hazeBlur(HazeInput.Sources(hazeState), style)
+                .background(dim),
+        )
+    }
+}
+
+/**
+ * The soft edge's dim, as (fraction of the edge's height, alpha of the background drawn over the
+ * list), read off iOS's tab bar edge: none where it starts, [SoftEdgeLeadIn] above the pill; 0.22 at
+ * the pill's top, 0.5 at its middle and 0.7 at its foot; 0.75 at the bottom of the screen.
+ */
+internal fun softEdgeDimStops(leadIn: Dp, pill: Dp, belowPill: Dp): List<Pair<Float, Float>> {
+    val height = leadIn + pill + belowPill
+    fun at(offset: Dp): Float = if (height > 0.dp) offset / height else 0f
+    return listOf(
+        0f to 0f,
+        at(leadIn) to 0.22f,
+        at(leadIn + pill / 2) to 0.5f,
+        at(leadIn + pill) to 0.7f,
+        1f to 0.75f,
     )
 }
 
-// How far above the bar's top the edge begins to blur.
-private val BottomEdgeLeadIn = 24.dp
+// How far above the pill's top the soft edge begins, as on iOS (29pt above its tab bar).
+private val SoftEdgeLeadIn = 29.dp
+
+// The soft edge's blur at the pill's foot and below. iOS's reaches a Gaussian sigma of about 3.5pt.
+private val SoftEdgeBlurRadius = 6.dp
 
 /**
  * Whether the bar draws the search button beside the tabs. Only Classic does: the Group Money bar
