@@ -23,12 +23,11 @@ internal class CoilPhotoPrefetchPlatform @Inject constructor(
 
     override fun network(): PrefetchNetwork {
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
-            ?: return PrefetchNetwork(connected = false, dataSaver = false, roaming = false)
+            ?: return PrefetchNetwork(connected = false, dataSaver = false)
         val capabilities = connectivity.activeNetwork?.let(connectivity::getNetworkCapabilities)
         return PrefetchNetwork(
             connected = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true,
             dataSaver = connectivity.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED,
-            roaming = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING) == false,
         )
     }
 

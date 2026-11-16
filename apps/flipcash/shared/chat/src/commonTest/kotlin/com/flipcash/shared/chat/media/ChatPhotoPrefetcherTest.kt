@@ -53,7 +53,7 @@ class ChatPhotoPrefetcherTest {
     private val user = mockk<UserManager> { every { accountId } returns self }
     private val cache = mockk<ImageCachePresence> { coEvery { holds(any()) } returns false }
     private val platform = mockk<PhotoPrefetchPlatform> {
-        every { network() } returns PrefetchNetwork(connected = true, dataSaver = false, roaming = false)
+        every { network() } returns PrefetchNetwork(connected = true, dataSaver = false)
         coEvery { download(any()) } returns PhotoPrefetchResult.Cached(bytes = 200_000)
     }
 

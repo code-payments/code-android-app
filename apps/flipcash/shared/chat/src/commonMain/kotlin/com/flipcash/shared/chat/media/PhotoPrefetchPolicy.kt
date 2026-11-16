@@ -5,8 +5,6 @@ data class PrefetchNetwork(
     val connected: Boolean,
     /** The user turned on Data Saver, which restricts background data for this app. */
     val dataSaver: Boolean,
-    /** The active network is roaming. Wi-Fi and home cellular both count as not roaming. */
-    val roaming: Boolean,
 )
 
 /** Why a photo that just arrived is not downloaded ahead of the chat being opened. */
@@ -21,7 +19,6 @@ enum class PhotoPrefetchSkip {
     Cached,
     Offline,
     DataSaver,
-    Roaming,
 }
 
 /**
@@ -40,6 +37,5 @@ fun photoPrefetchSkip(
     cached -> PhotoPrefetchSkip.Cached
     !network.connected -> PhotoPrefetchSkip.Offline
     network.dataSaver -> PhotoPrefetchSkip.DataSaver
-    network.roaming -> PhotoPrefetchSkip.Roaming
     else -> null
 }

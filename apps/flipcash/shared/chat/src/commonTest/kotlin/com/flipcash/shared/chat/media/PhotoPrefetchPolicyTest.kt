@@ -6,17 +6,17 @@ import kotlin.test.assertNull
 
 class PhotoPrefetchPolicyTest {
 
-    private val wifi = PrefetchNetwork(connected = true, dataSaver = false, roaming = false)
+    private val online = PrefetchNetwork(connected = true, dataSaver = false)
 
     private fun skip(
         redacted: Boolean = false,
         muted: Boolean = false,
         cached: Boolean = false,
-        network: PrefetchNetwork = wifi,
+        network: PrefetchNetwork = online,
     ) = photoPrefetchSkip(redacted = redacted, muted = muted, cached = cached, network = network)
 
     @Test
-    fun `a new photo on an unmetered or home network is fetched`() {
+    fun `a new photo on a connected network is fetched`() {
         assertNull(skip())
     }
 
@@ -37,26 +37,21 @@ class PhotoPrefetchPolicyTest {
 
     @Test
     fun `nothing is fetched without a network`() {
-        assertEquals(PhotoPrefetchSkip.Offline, skip(network = wifi.copy(connected = false)))
+        assertEquals(PhotoPrefetchSkip.Offline, skip(network = online.copy(connected = false)))
     }
 
     @Test
     fun `nothing is fetched while Data Saver is on`() {
-        assertEquals(PhotoPrefetchSkip.DataSaver, skip(network = wifi.copy(dataSaver = true)))
-    }
-
-    @Test
-    fun `nothing is fetched on a roaming network`() {
-        assertEquals(PhotoPrefetchSkip.Roaming, skip(network = wifi.copy(roaming = true)))
+        assertEquals(PhotoPrefetchSkip.DataSaver, skip(network = online.copy(dataSaver = true)))
     }
 
     @Test
     fun `the photo's own state is reported before the network's`() {
-        val roamingWithSaver = PrefetchNetwork(connected = true, dataSaver = true, roaming = true)
+        val offlineWithSaver = PrefetchNetwork(connected = false, dataSaver = true)
 
-        assertEquals(PhotoPrefetchSkip.Redacted, skip(redacted = true, muted = true, network = roamingWithSaver))
-        assertEquals(PhotoPrefetchSkip.Muted, skip(muted = true, cached = true, network = roamingWithSaver))
-        assertEquals(PhotoPrefetchSkip.Cached, skip(cached = true, network = roamingWithSaver))
-        assertEquals(PhotoPrefetchSkip.DataSaver, skip(network = roamingWithSaver))
+        assertEquals(PhotoPrefetchSkip.Redacted, skip(redacted = true, muted = true, network = offlineWithSaver))
+        assertEquals(PhotoPrefetchSkip.Muted, skip(muted = true, cached = true, network = offlineWithSaver))
+        assertEquals(PhotoPrefetchSkip.Cached, skip(cached = true, network = offlineWithSaver))
+        assertEquals(PhotoPrefetchSkip.Offline, skip(network = offlineWithSaver))
     }
 }
