@@ -216,4 +216,24 @@ class HeadlessAccessKeyStepTest {
         assertFalse(gate(groupMoneyUi = false, betaOverride = true))
         assertFalse(gate(groupMoneyUi = false, betaOverride = false))
     }
+
+    // A tester turns both on in Settings, logs out and taps Create without restarting the app.
+    // The held flows keep collecting DataStore, so the tap must read them then, not at start.
+    @Test
+    fun `the onboarding gate follows a toggle made after the app started`() {
+        val flagFlow = MutableStateFlow(FeatureFlag.GroupMoneyUi.default)
+        val overrideFlow = MutableStateFlow(false)
+        every { featureFlags.observe(FeatureFlag.GroupMoneyUi) } returns flagFlow
+        every { featureFlags.observeOverride() } returns overrideFlow
+
+        val authManager = newAuthManager()
+        assertFalse(authManager.isGroupMoneyOnboardingOpen())
+
+        flagFlow.value = true
+        overrideFlow.value = true
+        assertTrue(authManager.isGroupMoneyOnboardingOpen())
+
+        overrideFlow.value = false
+        assertFalse(authManager.isGroupMoneyOnboardingOpen())
+    }
 }
