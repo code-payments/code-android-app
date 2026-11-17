@@ -22,6 +22,7 @@ import com.getcode.opencode.model.financial.VmMetadata
 import com.getcode.opencode.model.messaging.MessageKind
 import com.getcode.opencode.model.transactions.AddressLookupTable
 import com.getcode.opencode.model.transactions.ExchangeData
+import com.getcode.opencode.model.transactions.SolanaTransactionConfig
 import com.getcode.opencode.model.transactions.SwapFundingSource
 import com.getcode.opencode.model.transactions.StatefulSwapResponseServerParameters
 import com.getcode.opencode.model.transactions.StatelessSwapServerParameters
@@ -161,6 +162,7 @@ internal fun OcpTransactionService.StatefulSwapResponse.ServerParameters.Reserve
         memoryAccount = memoryAccount.toPublicKey(),
         memoryIndex = memoryIndex,
         feeDestination = if (hasFeeDestination()) feeDestination.toPublicKey() else null,
+        transactionConfig = if (hasTransactionConfig()) transactionConfig.toModel() else null,
     )
 }
 
@@ -186,6 +188,18 @@ internal fun OcpTransactionService.StatefulSwapResponse.ServerParameters.Reserve
         feeDestination = feeDestination.toPublicKey(),
         treasury = if (hasTreasury()) treasury.toPublicKey() else null,
         treasuryPurchaseAmount = treasuryPurchaseAmount,
+        transactionConfig = if (hasTransactionConfig()) transactionConfig.toModel() else null,
+        memoryAccounts = memoryAccountsList.map { account ->
+            StatefulSwapResponseServerParameters.NewCurrency.VmMemoryAccountInitialization(
+                address = account.address.toPublicKey(),
+                name = account.name,
+                numAccounts = account.numAccounts,
+                accountSize = account.accountSize,
+                resizeSizes = account.resizeSizesList.toList(),
+                rentTopUpLamports = account.rentTopUpLamports,
+            )
+        },
+        feeAccountOwner = if (hasFeeAccountOwner()) feeAccountOwner.toPublicKey() else null,
     )
 }
 
@@ -204,6 +218,7 @@ internal fun OcpTransactionService.StatefulSwapResponse.ServerParameters.Coinbas
         memoValue = memoValue,
         feeDestination = feeDestination.toPublicKey(),
         poolFeeRecipient = poolFeeRecipient.toPublicKey(),
+        transactionConfig = if (hasTransactionConfig()) transactionConfig.toModel() else null,
     )
 }
 
@@ -264,6 +279,16 @@ internal fun OcpTransactionService.StatelessSwapResponse.ServerParameters.Coinba
         computeUnitPrice = computeUnitPrice,
         memoValue = memoValue,
         poolFeeRecipient = poolFeeRecipient.toPublicKey(),
+        transactionConfig = if (hasTransactionConfig()) transactionConfig.toModel() else null,
+    )
+}
+
+internal fun Model.SolanaTransactionConfig.toModel(): SolanaTransactionConfig {
+    return SolanaTransactionConfig(
+        computeUnitLimit = computeUnitLimit,
+        loadedAccountsDataSizeLimit = loadedAccountsDataSizeLimit,
+        priorityFeeLamports = priorityFeeLamports,
+        heapSize = heapSize,
     )
 }
 

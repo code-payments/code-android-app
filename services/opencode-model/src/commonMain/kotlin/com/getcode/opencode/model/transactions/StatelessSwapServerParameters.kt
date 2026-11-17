@@ -24,4 +24,10 @@ data class StatelessSwapServerParameters(
     val computeUnitPrice: Long,
     val memoValue: String,
     val poolFeeRecipient: PublicKey,
+    /**
+     * v1 transaction config. Set by the server only when the client requested transaction
+     * version 1; when set, [alts] is empty, [computeUnitLimit] and [computeUnitPrice] are 0, and
+     * the transaction is built as v1 without ALTs using this config. Null for v0.
+     */
+    val transactionConfig: SolanaTransactionConfig? = null,
 )
