@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat.media
 
 import com.flipcash.services.models.chat.MediaItemRendition
+import kotlin.concurrent.Volatile
 import kotlin.time.Duration
 
 /**
@@ -19,7 +20,14 @@ internal class ChatPhotoLoadTrace(photo: ChatPhoto) {
 
     var cacheHit: Boolean = false
 
-    /** The step running now, so a failure or cancel can say where it happened. */
+    /** This load waited on a download another load of the photo had started, rather than starting one. */
+    var joined: Boolean = false
+
+    /**
+     * The step running now, so a failure or cancel can say where it happened. A load that leaves a
+     * shared download before it ends reads it from another thread.
+     */
+    @Volatile
     var step: Step = Step.Url
 
     /** One per URL tried: the first, then the re-mint after a failed download. */
@@ -71,6 +79,13 @@ internal class ChatPhotoLoadTrace(photo: ChatPhoto) {
         outcome = if (cancelled) Outcome.Cancelled(step) else Outcome.Failed(step, error.failureName())
     }
 
+    /** Takes the steps a shared download recorded on its own trace, [download], once it has ended. */
+    fun adopt(download: ChatPhotoLoadTrace) {
+        step = download.step
+        attempts += download.attempts
+        decrypt = download.decrypt
+    }
+
     fun message(): String = buildString {
         append("Chat photo ").append(key)
         when (val outcome = outcome) {
@@ -84,6 +99,7 @@ internal class ChatPhotoLoadTrace(photo: ChatPhoto) {
         width?.let { append(" width=").append(it) }
         append(" sealed=").append(sealed)
         append(" cache=").append(if (cacheHit) "hit" else "miss")
+        if (joined) append(" joined=true")
         attempts.forEachIndexed { index, attempt ->
             append(" | try").append(index + 1)
             append(attempt.mint?.let { " mint=${it.ms()}" } ?: " url=stored")

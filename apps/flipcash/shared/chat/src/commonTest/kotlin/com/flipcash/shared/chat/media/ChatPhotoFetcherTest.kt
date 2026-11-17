@@ -21,6 +21,9 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType
 import okhttp3.OkHttpClient
@@ -71,6 +74,7 @@ class ChatPhotoFetcherTest {
         .addInterceptor { chain -> responses.removeFirst()(chain.request()) }
         .build()
     private val noCache = mockk<ImageLoader> { every { diskCache } returns null }
+    private val downloads = ChatPhotoDownloads(CoroutineScope(SupervisorJob() + Dispatchers.IO))
     private val reports = mutableListOf<ChatPhotoLoadTrace>()
 
     private fun blob(url: String) = BlobMetadata(
@@ -84,7 +88,7 @@ class ChatPhotoFetcherTest {
     )
 
     private fun fetcher(photo: ChatPhoto, imageLoader: ImageLoader = noCache) =
-        ChatPhotoFetcher(photo, loader, http, imageLoader, time) { reports += it }
+        ChatPhotoFetcher(photo, loader, downloads, http, imageLoader, time) { reports += it }
 
     /** A CDN answer whose headers take [ttfb] and whose body takes [transfer] to read. */
     private fun cdn(
