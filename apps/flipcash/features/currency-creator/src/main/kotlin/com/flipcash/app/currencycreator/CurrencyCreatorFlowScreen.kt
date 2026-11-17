@@ -20,6 +20,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.flipcash.app.bill.customization.LocalBillPlaygroundController
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.core.tokens.CurrencyCreatorResult
 import com.flipcash.app.tokens.LocalTransactionNotificationPrompt
 import com.flipcash.app.core.tokens.CurrencyCreatorStep
@@ -27,6 +28,7 @@ import com.flipcash.app.core.ui.flow.FlowStepBarController
 import com.flipcash.app.core.ui.flow.LocalFlowStepBar
 import com.flipcash.app.core.ui.flow.SteppedFlowScaffold
 import com.flipcash.app.currencycreator.internal.CurrencyCreatorViewModel
+import com.flipcash.app.currencycreator.internal.exitCurrencyCreator
 import com.flipcash.app.currencycreator.internal.screens.BillCustomizationContent
 import com.flipcash.app.currencycreator.internal.screens.BillCustomizationScreen
 import com.flipcash.app.currencycreator.internal.screens.BillReviewScreen
@@ -50,11 +52,9 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.flow.FlowExitReason
 import com.getcode.navigation.flow.LocalFlowNavigator
 import com.getcode.navigation.flow.PreviewFlowNavigator
-import com.getcode.navigation.flow.deliverFlowResult
 import com.getcode.navigation.flow.flowSharedViewModel
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.navigation.flow.rememberInitialStack
-import com.getcode.navigation.results.NavResultOrCanceled
 import com.getcode.navigation.results.NavResultStateRegistry
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.toFiat
@@ -68,6 +68,7 @@ fun CurrencyCreatorFlowScreen(
     resultStateRegistry: NavResultStateRegistry,
 ) {
     val outerNavigator = LocalCodeNavigator.current
+    val shell = LocalNavBarShell.current
 
     val initialStack = route.rememberInitialStack<CurrencyCreatorStep>()
 
@@ -91,26 +92,15 @@ fun CurrencyCreatorFlowScreen(
                 FlowExitReason.BackedOutOfRoot -> CurrencyCreatorResult.Canceled
             }
 
-            outerNavigator.deliverFlowResult(
+            outerNavigator.exitCurrencyCreator(
                 route = route,
-                value = NavResultOrCanceled.ReturnValue(result),
+                result = result,
+                shell = shell,
+                launchBill = state.launchBill,
+                purchaseAmount = state.purchaseAmount,
+                requestNotifications = { notificationPrompt.request() },
+                showBill = { session?.showBill(it) },
             )
-
-            if (result is CurrencyCreatorResult.Success) {
-                if (result.completedInPlace) notificationPrompt.request()
-                // The bill is priced through the new token's bonding curve in the
-                // ViewModel (see buildLaunchBill); presenting it lets someone grab the
-                // newly created currency. It's null if pricing failed — just close then.
-                val bill = state.launchBill
-                if (state.purchaseAmount > Fiat.Zero && bill != null) {
-                    outerNavigator.hide()
-                    session?.showBill(bill)
-                } else {
-                    outerNavigator.pop()
-                }
-            } else {
-                outerNavigator.pop()
-            }
         },
         entryProvider = currencyCreatorEntryProvider(),
     )
