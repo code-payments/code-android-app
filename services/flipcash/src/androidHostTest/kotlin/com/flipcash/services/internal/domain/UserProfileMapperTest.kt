@@ -1,11 +1,13 @@
 package com.flipcash.services.internal.domain
 
 import com.codeinc.flipcash.gen.blob.v1.Model as BlobModel
+import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.codeinc.flipcash.gen.common.v1.emailAddress
 import com.codeinc.flipcash.gen.common.v1.phoneNumber
 import com.codeinc.flipcash.gen.profile.v1.Model
 import com.codeinc.flipcash.gen.profile.v1.socialProfile
 import com.codeinc.flipcash.gen.profile.v1.xProfile
+import com.flipcash.services.internal.network.extensions.toRestrictedUser
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.chat.MediaItemRendition
 import com.google.protobuf.ByteString
@@ -72,9 +74,41 @@ class UserProfileMapperTest {
         val proto = userProfile {
             displayName = "Eve"
             emailAddress = emailAddress { value = "eve@example.com" }
+            isEmailAddressVerified = true
         }
 
         assertEquals("eve@example.com", mapper.map(proto).verifiedEmailAddress)
+    }
+
+    // The on-ramp reads verifiedEmailAddress when requireCoinbaseEmailVerification is on and
+    // email.value when it is off, so an address linked without a code satisfies only the latter.
+    @Test
+    fun `an email linked without a code is present but not verified`() {
+        val proto = userProfile {
+            emailAddress = emailAddress { value = "eve@example.com" }
+            isEmailAddressVerified = false
+        }
+
+        val profile = mapper.map(proto)
+
+        assertEquals("eve@example.com", profile.email?.value)
+        assertEquals(false, profile.email?.verified)
+        assertNull(profile.verifiedEmailAddress)
+    }
+
+    @Test
+    fun `a chat member's email is verified only when the server says so`() {
+        fun member(verified: Boolean) = ChatModel.RestrictedUser.newBuilder()
+            .setUserProfile(userProfile {
+                emailAddress = emailAddress { value = "eve@example.com" }
+                isEmailAddressVerified = verified
+            })
+            .build()
+            .toRestrictedUser()
+            .userProfile
+
+        assertNull(member(verified = false).verifiedEmailAddress)
+        assertEquals("eve@example.com", member(verified = true).verifiedEmailAddress)
     }
 
     @Test
@@ -121,17 +155,5 @@ class UserProfileMapperTest {
     fun `maps is_email_address_verified`() {
         assertEquals(true, mapper.map(userProfile { isEmailAddressVerified = true }).isEmailAddressVerified)
         assertEquals(false, mapper.map(userProfile { displayName = "Judy" }).isEmailAddressVerified)
-    }
-
-    @Test
-    fun `an email linked unverified still maps as verified until the flag is wired`() {
-        val proto = userProfile {
-            emailAddress = emailAddress { value = "kim@example.com" }
-            isEmailAddressVerified = false
-        }
-
-        val result = mapper.map(proto)
-        assertEquals(false, result.isEmailAddressVerified)
-        assertEquals("kim@example.com", result.verifiedEmailAddress)
     }
 }

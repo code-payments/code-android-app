@@ -20,9 +20,12 @@ class UserProfileMapper @Inject constructor(
         return UserProfile(
             displayName = from.displayName,
             socialAccounts = from.socialProfilesList.mapNotNull { socialMapper.map(it) },
-            // A value is only present on the server profile once verified.
+            // A phone number is only present on the server profile once verified.
             phoneNumber = from.phoneNumberOrNull?.value?.let { VerifiableContactMethod(it, verified = true) },
-            email = from.emailAddressOrNull?.value?.let { VerifiableContactMethod(it, verified = true) },
+            // An email can be linked without a code (LinkUnverified); the server says which.
+            email = from.emailAddressOrNull?.value?.let {
+                VerifiableContactMethod(it, verified = from.isEmailAddressVerified)
+            },
             profilePicture = if (from.hasProfilePicture()) from.profilePicture.toMediaItem() else null,
             joinedAt = if (from.hasJoinTs()) {
                 Instant.fromEpochSeconds(from.joinTs.seconds, from.joinTs.nanos)
