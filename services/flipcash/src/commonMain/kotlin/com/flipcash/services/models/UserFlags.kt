@@ -18,6 +18,10 @@ data class UserFlags(
     val billExchangeDataTimeout: Duration?,
     val newCurrencyPurchaseAmount: Fiat,
     val newCurrencyFeeAmount: Fiat,
+    // USDF that must be purchased, and paid as a fee, when launching a currency through the
+    // v2 launch flow. Carried only; nothing reads them yet.
+    val newCurrencyV2PurchaseAmount: Fiat,
+    val newCurrencyV2FeeAmount: Fiat,
     val withdrawalFeeAmount: Fiat,
     val preferredUsdcOnRampLiquidityPool: UsdcLiquidtyPool,
     val enablePhoneNumberSend: Boolean,
@@ -44,6 +48,8 @@ data class UserFlags(
             billExchangeDataTimeout = null,
             newCurrencyPurchaseAmount = Fiat.MAX_VALUE,
             newCurrencyFeeAmount = Fiat.MAX_VALUE,
+            newCurrencyV2PurchaseAmount = Fiat.MAX_VALUE,
+            newCurrencyV2FeeAmount = Fiat.MAX_VALUE,
             withdrawalFeeAmount = Fiat.Zero,
             preferredUsdcOnRampLiquidityPool = UsdcLiquidtyPool.Unknown,
             enablePhoneNumberSend = false,

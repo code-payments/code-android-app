@@ -8,4 +8,5 @@ interface ContactVerificationRepository {
     suspend fun checkVerificationCode(method: ContactMethod, code: String, owner: Ed25519.KeyPair): Result<Unit>
     suspend fun unlink(method: ContactMethod, owner: Ed25519.KeyPair): Result<Unit>
     suspend fun linkForPayment(method: ContactMethod.Phone, owner: Ed25519.KeyPair): Result<Unit>
+    suspend fun linkUnverified(method: ContactMethod.Email, owner: Ed25519.KeyPair): Result<Unit>
 }

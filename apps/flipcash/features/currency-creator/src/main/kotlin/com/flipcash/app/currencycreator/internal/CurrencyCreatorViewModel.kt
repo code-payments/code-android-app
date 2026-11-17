@@ -25,8 +25,10 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.features.currencycreator.R
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.controllers.ModerationController
+import com.flipcash.services.models.ImageContentKind
 import com.flipcash.services.models.ImageModerationError
 import com.flipcash.services.models.ModerationResult
+import com.flipcash.services.models.TextContentKind
 import com.flipcash.services.models.TextModerationError
 import com.flipcash.services.user.UserManager
 import com.getcode.manager.BottomBarAction
@@ -323,7 +325,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .filter { stateFlow.value.hasName }
             .map { stateFlow.value.nameFieldState.text.toString() }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
-            .map { moderationController.moderateText(it.trim()) }
+            .map { moderationController.moderateText(it.trim(), TextContentKind.CurrencyName) }
             .flatMapResult { result ->
                 when (result.flaggedCategory) {
                     ModerationResult.FlaggedCategory.NONE -> {
@@ -377,7 +379,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .filterIsInstance<Event.CheckImage>()
             .mapNotNull { stateFlow.value.icon.dataOrNull }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
-            .map { moderationController.moderateImage(it) }
+            .map { moderationController.moderateImage(it, ImageContentKind.CurrencyIcon) }
             .flatMapResult { result ->
                 when (result.flaggedCategory) {
                     ModerationResult.FlaggedCategory.NONE -> Result.success(result.attestation)
@@ -429,7 +431,7 @@ internal class CurrencyCreatorViewModel @Inject constructor(
             .filterIsInstance<Event.CheckDescription>()
             .map { stateFlow.value.descriptionFieldState.text.toString() }
             .onEach { dispatchEvent(Event.UpdateProcessingState(loading = true)) }
-            .map { moderationController.moderateText(it.trim()) }
+            .map { moderationController.moderateText(it.trim(), TextContentKind.CurrencyDescription) }
             .flatMapResult { result ->
                 when (result.flaggedCategory) {
                     ModerationResult.FlaggedCategory.NONE -> Result.success(result.attestation)

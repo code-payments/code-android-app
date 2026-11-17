@@ -2,6 +2,7 @@
     "ownerSeed": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
     "wireDefaultOrderDiffers": [
         "flipcash.chat.v1.StartChatRequest",
+        "flipcash.kyc.coinbase.v1.SubmitKycRequest",
         "flipcash.messaging.v1.EditMessageRequest",
         "flipcash.messaging.v1.GetMessagesRequest",
         "flipcash.messaging.v1.SendMessageRequest",
@@ -12,6 +13,7 @@
         "flipcash.chat.v1.GetFeaturedGroupsRequest",
         "flipcash.chat.v1.StartChatRequest",
         "flipcash.community.v1.GetCommunityRequest",
+        "flipcash.kyc.coinbase.v1.SubmitKycRequest",
         "flipcash.messaging.v1.EditMessageRequest",
         "flipcash.messaging.v1.GetMessagesRequest",
         "flipcash.messaging.v1.GetReactionSummariesRequest",
@@ -502,6 +504,14 @@
             "wireDefaultOrderDiffers": false,
             "wireDefaultSignedOrderDiffers": false
         },
+        "flipcash.email.v1.LinkUnverifiedRequest": {
+            "authTag": 2,
+            "unsigned": "0a070a0576616c7565",
+            "signature": "acc905123fe08faaa216d56edfa6194c8d6ab638f946fd0d257f87c23cbb1a93fb323846d8adc45d1ee8c4b37d2faa799a0b758a49524d3a793734eaa0686d08",
+            "signed": "0a070a0576616c7565126a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a40acc905123fe08faaa216d56edfa6194c8d6ab638f946fd0d257f87c23cbb1a93fb323846d8adc45d1ee8c4b37d2faa799a0b758a49524d3a793734eaa0686d08",
+            "wireDefaultOrderDiffers": false,
+            "wireDefaultSignedOrderDiffers": false
+        },
         "flipcash.email.v1.SendVerificationCodeRequest": {
             "authTag": 2,
             "unsigned": "0a070a0576616c75651a0576616c7565",
@@ -533,6 +543,30 @@
             "signed": "080112070a0576616c75651a170a0576616c7565120576616c7565190102030405060708226a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a409a4171c0983ce68bf034c98eabbf86f5d930aca30454eafef7c64a1508071749527b4c30de2df3017401c31ba1872e977bedeb24642041f1efec394ea6576809",
             "wireDefaultOrderDiffers": false,
             "wireDefaultSignedOrderDiffers": false
+        },
+        "flipcash.kyc.coinbase.v1.GetKycStateRequest": {
+            "authTag": 10,
+            "unsigned": "0801",
+            "signature": "c7b11d0f95ec637945d1e0d8eb08ae914daa04f5c7cc0aa859f1fe0e9d127aaea2a313eae6c042b56553e8018ff09585232b506031998681362568fff579ab0c",
+            "signed": "0801526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a40c7b11d0f95ec637945d1e0d8eb08ae914daa04f5c7cc0aa859f1fe0e9d127aaea2a313eae6c042b56553e8018ff09585232b506031998681362568fff579ab0c",
+            "wireDefaultOrderDiffers": false,
+            "wireDefaultSignedOrderDiffers": false
+        },
+        "flipcash.kyc.coinbase.v1.StartKycRequest": {
+            "authTag": 10,
+            "unsigned": "0801",
+            "signature": "c7b11d0f95ec637945d1e0d8eb08ae914daa04f5c7cc0aa859f1fe0e9d127aaea2a313eae6c042b56553e8018ff09585232b506031998681362568fff579ab0c",
+            "signed": "0801526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a40c7b11d0f95ec637945d1e0d8eb08ae914daa04f5c7cc0aa859f1fe0e9d127aaea2a313eae6c042b56553e8018ff09585232b506031998681362568fff579ab0c",
+            "wireDefaultOrderDiffers": false,
+            "wireDefaultSignedOrderDiffers": false
+        },
+        "flipcash.kyc.coinbase.v1.SubmitKycRequest": {
+            "authTag": 10,
+            "unsigned": "080112660a0e0a0576616c7565120576616c756512090896011096011896011a2a0a0576616c7565120576616c75651a0576616c7565220576616c75652a0576616c7565320576616c756522070a0576616c75652a070a0576616c756532070a0576616c7565380140011a100a0576616c756512070a0576616c75651a100a0576616c756512070a0576616c756522060a020801100122060a0208011001",
+            "signature": "6b6a21049c7958018945109967624e5dbfda31de346fc07659c103a21e9cab71f40451bc4f5e8ed8cd0c0b47bb6c9b011b38801a473d8671d27ee99de992bf05",
+            "signed": "080112660a0e0a0576616c7565120576616c756512090896011096011896011a2a0a0576616c7565120576616c75651a0576616c7565220576616c75652a0576616c7565320576616c756522070a0576616c75652a070a0576616c756532070a0576616c7565380140011a100a0576616c756512070a0576616c75651a100a0576616c756512070a0576616c756522060a020801100122060a0208011001526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a406b6a21049c7958018945109967624e5dbfda31de346fc07659c103a21e9cab71f40451bc4f5e8ed8cd0c0b47bb6c9b011b38801a473d8671d27ee99de992bf05",
+            "wireDefaultOrderDiffers": true,
+            "wireDefaultSignedOrderDiffers": true
         },
         "flipcash.messaging.v1.AddReactionRequest": {
             "authTag": 10,
@@ -776,17 +810,17 @@
         },
         "flipcash.moderation.v1.ModerateImageRequest": {
             "authTag": 2,
-            "unsigned": "0a030a0b0c",
-            "signature": "94f518697862a71d05ab2dbe3832d9366bc2f970e69193cb4d68b390372f0a7f945143f1e1b9005fe069cad134a1916c15823b0252acf41dce45dc29f988e608",
-            "signed": "0a030a0b0c126a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a4094f518697862a71d05ab2dbe3832d9366bc2f970e69193cb4d68b390372f0a7f945143f1e1b9005fe069cad134a1916c15823b0252acf41dce45dc29f988e608",
+            "unsigned": "0a030a0b0c1801",
+            "signature": "faeb2009a502c6e147e099bf501474d9931709eb649f01498eeb89ab45ae6b3892f623c41552379a882eb62b0e5754e6c782ddf93cdc2d58e1f612be95aad704",
+            "signed": "0a030a0b0c126a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a40faeb2009a502c6e147e099bf501474d9931709eb649f01498eeb89ab45ae6b3892f623c41552379a882eb62b0e5754e6c782ddf93cdc2d58e1f612be95aad7041801",
             "wireDefaultOrderDiffers": false,
             "wireDefaultSignedOrderDiffers": false
         },
         "flipcash.moderation.v1.ModerateTextRequest": {
             "authTag": 2,
-            "unsigned": "0a0576616c7565",
-            "signature": "bc471e85d4a09eb7f69448c9cee1dba0817c88502d5fcef07917ab2ede24d1e0b17b8c773dfa4331b1b4c7701cee51c6e87e4b4d50b0f74a03599b7ad82aa00b",
-            "signed": "0a0576616c7565126a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a40bc471e85d4a09eb7f69448c9cee1dba0817c88502d5fcef07917ab2ede24d1e0b17b8c773dfa4331b1b4c7701cee51c6e87e4b4d50b0f74a03599b7ad82aa00b",
+            "unsigned": "0a0576616c75651801",
+            "signature": "77a66bd1a48c2d08e649f2075a633c0d61d595be8b5c7be95f45b7cf6ac728fbd045b22244ab1f9f82b34d3b655d5607b4028ea9ac3277d851888b557c74270c",
+            "signed": "0a0576616c7565126a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a4077a66bd1a48c2d08e649f2075a633c0d61d595be8b5c7be95f45b7cf6ac728fbd045b22244ab1f9f82b34d3b655d5607b4028ea9ac3277d851888b557c74270c1801",
             "wireDefaultOrderDiffers": false,
             "wireDefaultSignedOrderDiffers": false
         },

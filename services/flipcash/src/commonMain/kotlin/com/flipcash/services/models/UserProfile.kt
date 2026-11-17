@@ -42,6 +42,11 @@ data class UserProfile(
     val bio: String = "",
     // The user's cover picture, as the renditions it is stored as. Null when unset.
     val coverPicture: MediaItem? = null,
+    // Whether [email] was verified with a code (CheckVerificationCode) rather than linked
+    // unverified (LinkUnverified). Private: only set on the caller's own profile; false for
+    // anyone else's and when no email is linked. Not yet read by anything: [email]'s
+    // `verified` still treats any server-returned address as verified.
+    val isEmailAddressVerified: Boolean = false,
 ): Parcelable {
     /** The phone number only when it has been verified — backwards-compatible accessor. */
     val verifiedPhoneNumber: String? get() = phoneNumber?.takeIf { it.verified }?.value

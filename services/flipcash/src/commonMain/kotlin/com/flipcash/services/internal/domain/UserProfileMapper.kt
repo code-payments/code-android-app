@@ -35,6 +35,7 @@ class UserProfileMapper @Inject constructor(
             isUsernameAutoAssigned = from.isUsernameAutoAssigned,
             bio = from.bio,
             coverPicture = if (from.hasCoverPicture()) from.coverPicture.toMediaItem() else null,
+            isEmailAddressVerified = from.isEmailAddressVerified,
         )
     }
 }

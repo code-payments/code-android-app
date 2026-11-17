@@ -116,4 +116,22 @@ class UserProfileMapperTest {
         assertEquals(true, mapper.map(userProfile { isUsernameAutoAssigned = true }).isUsernameAutoAssigned)
         assertEquals(false, mapper.map(userProfile { displayName = "Ivan" }).isUsernameAutoAssigned)
     }
+
+    @Test
+    fun `maps is_email_address_verified`() {
+        assertEquals(true, mapper.map(userProfile { isEmailAddressVerified = true }).isEmailAddressVerified)
+        assertEquals(false, mapper.map(userProfile { displayName = "Judy" }).isEmailAddressVerified)
+    }
+
+    @Test
+    fun `an email linked unverified still maps as verified until the flag is wired`() {
+        val proto = userProfile {
+            emailAddress = emailAddress { value = "kim@example.com" }
+            isEmailAddressVerified = false
+        }
+
+        val result = mapper.map(proto)
+        assertEquals(false, result.isEmailAddressVerified)
+        assertEquals("kim@example.com", result.verifiedEmailAddress)
+    }
 }
