@@ -61,8 +61,18 @@ internal class InternalFeatureFlagController @Inject constructor(
         // file won't exist after a restore — triggering a full reset.
         val marker = File(context.noBackupFilesDir, "beta-flags-initialized")
         if (!marker.exists()) {
-            reset()
+            clearRestoredFlags()
             marker.createNewFile()
+        }
+    }
+
+    /**
+     * Clears every flag and the beta override. Runs on a fresh install restored from a backup,
+     * where nothing set on the old device should carry over.
+     */
+    internal fun clearRestoredFlags() {
+        dataScope.launch {
+            betaFlags.edit { it.clear() }
         }
     }
 
@@ -185,8 +195,8 @@ internal class InternalFeatureFlagController @Inject constructor(
                             prefs.remove(flag.optionPreferenceKey)
                         }
                     }
-
-                prefs.remove(betaOverrideKey)
+                // The beta override is device-wide and is kept, so the signed-out intro screen
+                // can still open the beta onboarding flow it gates.
             }
         }
     }

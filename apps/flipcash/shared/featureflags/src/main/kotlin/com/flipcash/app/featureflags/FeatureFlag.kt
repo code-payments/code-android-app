@@ -117,6 +117,8 @@ sealed interface FeatureFlag<T: Any> {
     /**
      * The Group Money redesign's two-tab shell (frames node 13729:413 and node 13729:744): Groups and
      * Money in place of today's four tabs. Takes effect only for staff or with the beta override.
+     * Kept through logout: with the beta override it also opens the Group Money onboarding flow
+     * on the signed-out intro screen.
      */
     @FeatureFlagMarker
     data object GroupMoneyUi: FeatureFlag<Boolean> {
@@ -124,7 +126,7 @@ sealed interface FeatureFlag<T: Any> {
         override val default: Boolean = false
         override val launched: Boolean = false
         override val visible: Boolean = true
-        override val persistLogOut: Boolean = false
+        override val persistLogOut: Boolean = true
         override val staffVisible: Boolean = true
     }
 

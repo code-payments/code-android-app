@@ -14,4 +14,9 @@ dependencies {
     implementation(libs.firebase.messaging)
 
     implementation(libs.androidx.datastore)
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.bundles.unit.testing)
+    testImplementation(libs.robolectric)
+    testImplementation(project(":libs:coroutines:test-fixtures"))
 }
