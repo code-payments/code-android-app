@@ -139,7 +139,12 @@ class PassphraseCredentialManager @Inject constructor(
         val entropy = storage.data.map { it[temporaryEntropyKey] }.firstOrNull()
 
         if (tempUserId == null) {
-            return Result.failure(Throwable("No user id found"))
+            // A registration that needs no purchase runs onAccountPurchased during createAccount,
+            // which removes the temporary keys and selects the account. Save that account instead.
+            val selected = getSelectedMetadata()
+                ?: return Result.failure(Throwable("No user id found"))
+            accountStore.upsert(selected.entropy)
+            return Result.success(selected)
         }
 
         if (entropy == null) {
