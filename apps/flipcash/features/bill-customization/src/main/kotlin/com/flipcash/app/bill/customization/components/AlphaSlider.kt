@@ -7,9 +7,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -23,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import com.flipcash.app.theme.FlipcashPreview
 import com.getcode.theme.CodeTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AlphaSlider(
     opacity: Float,
@@ -32,7 +32,12 @@ internal fun AlphaSlider(
     trackHeight: Dp = CodeTheme.dimens.grid.x2,
     thumbDiameter: Dp = 24.dp,
 ) {
+    // Material3 1.5 dropped the value-based Slider that takes a custom thumb and track; the state
+    // overload follows `opacity` the same way the value-based Slider does internally.
+    val sliderState = remember { SliderState(value = opacity) }
+    sliderState.value = opacity
     Slider(
+        state = sliderState,
         track = {
             Box(
                 modifier = Modifier
@@ -50,7 +55,6 @@ internal fun AlphaSlider(
                     .border(2.dp, Color.White, CircleShape)
             )
         },
-        value = opacity,
         onValueChange = {
             onOpacityChange(it, true)
         },
