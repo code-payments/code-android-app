@@ -226,15 +226,19 @@ class AuthManager @Inject constructor(
 
     /**
      * Does what the access key screen does when the user leaves it, for an onboarding flow that
-     * does not show it: marks the key seen, saves it to the account store and credential storage,
+     * does not show it: saves the key to the account store and credential storage, marks it seen,
      * and provisions the core account when registration needs no purchase.
      *
-     * Returns whether registration still needs a purchase. Fails when provisioning fails; the key
-     * is already saved by then, so a retry repeats only these steps.
+     * The screen marks the key seen before saving it, because the key is on screen by then. Here
+     * the save is the user's only backup, so it comes first and a failed save fails the step with
+     * nothing marked seen: a cold launch then resumes at the access key screen.
+     *
+     * Returns whether registration still needs a purchase. Fails when the save or provisioning
+     * fails; a retry repeats only these steps.
      */
     suspend fun completeAccessKeyStep(): Result<Boolean> = runCatching {
+        presentCredentialStorage().getOrThrow()
         onUserAccessKeySeen().getOrThrow()
-        presentCredentialStorage()
         val requiresIap = userFlags.resolvedFlags.value.requiresIapForRegistration.effectiveValue
         if (!requiresIap) {
             ensureCoreAccountProvisioned().getOrThrow()

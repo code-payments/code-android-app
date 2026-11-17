@@ -17,6 +17,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -180,6 +181,40 @@ class HeadlessAccessKeyStepTest {
             assertTrue(result.isFailure)
             assertEquals(1, accountStore.all().size)
             assertTrue(credentialManager.hasSeenAccessKey())
+        }
+
+    // With no access key screen, the save is the user's only backup, so a failed save must fail the
+    // step. Nothing is marked seen until the key is saved: a cold launch then resumes at the access
+    // key screen instead of past it.
+    @Test
+    fun `a failed key save fails the step, marks nothing seen, and a retry repeats only the save`() =
+        runTest(dispatchers.testDispatcher) {
+            registrationRequiresPurchase(false)
+            var saveFails = true
+            // The retry delegates to the real manager: MockK's callOriginal() hands back an
+            // unboxed value for a Result return type.
+            val real = credentialManager
+            credentialManager = spyk(real).also { spy ->
+                coEvery { spy.presentSaveOption() } coAnswers {
+                    if (saveFails) Result.failure(IllegalStateException("save failed")) else real.presentSaveOption()
+                }
+            }
+            authManager = newAuthManager()
+            authManager.createAccount().getOrThrow()
+
+            val failed = authManager.completeAccessKeyStep()
+
+            assertTrue(failed.isFailure)
+            assertFalse(credentialManager.hasSeenAccessKey())
+            coVerify(exactly = 0) { ocpAccountController.ensureCoreAccount(any()) }
+
+            saveFails = false
+            authManager.completeAccessKeyStep().getOrThrow()
+
+            assertEquals(1, accountStore.all().size)
+            assertTrue(credentialManager.hasSeenAccessKey())
+            coVerify(exactly = 2) { credentialManager.presentSaveOption() }
+            coVerify(exactly = 1) { accountController.createAccount() }
         }
 
     // The Group Money onboarding gate is read at the same Create tap. Before sign-in staff standing
