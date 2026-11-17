@@ -251,9 +251,18 @@ class MainActivity : FragmentActivity() {
      *       betaFlags: "coinbase_onramp_sandbox_enabled"
      *
      * The value is a comma-separated list of [FeatureFlag.key]s.
+     *
+     * `betaOverride: true` also turns on the beta override, which is otherwise reachable only
+     * from Settings after sign-in. With `group_money_ui_enabled` it opens the Group Money
+     * onboarding flow on the signed-out intro screen.
      */
     private fun applyBetaFlagLaunchOverrides() {
         if (!BuildConfig.UI_TESTABLE) return
+        // Maestro may pass the value as a boolean or a string extra.
+        @Suppress("DEPRECATION")
+        if (intent.extras?.get(BETA_OVERRIDE)?.toString() == "true") {
+            featureFlagController.enableBetaFeatures()
+        }
         intent.getStringExtra(BETA_FLAGS)
             .orEmpty()
             .split(",")
@@ -268,6 +277,7 @@ class MainActivity : FragmentActivity() {
     companion object {
         private const val UI_TEST = "isUiTest"
         private const val BETA_FLAGS = "betaFlags"
+        private const val BETA_OVERRIDE = "betaOverride"
     }
 }
 
