@@ -13,7 +13,9 @@ import com.flipcash.services.chat.BlobOpenFailure
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -33,7 +35,8 @@ class ChatPhotoKeyer : Keyer<ChatPhoto> {
 
 /**
  * Loads a [ChatPhoto]: the disk cache by blob id first, else a download from a resolved (and, if
- * need be, re-minted) URL, opened when the message is sealed, then cached.
+ * need be, re-minted) URL, opened when the message is sealed, then cached. Loads of one photo at once,
+ * such as its bubble's and its prefetch's, share that download through [downloads].
  *
  * Failures surface as [ChatPhotoUnavailable] so a UI can draw "This photo can't be displayed"
  * for any of them; a [ChatPhotoUnavailable.Open] carrying [BlobOpenFailure.KeyPending] may succeed
@@ -45,6 +48,7 @@ class ChatPhotoKeyer : Keyer<ChatPhoto> {
 class ChatPhotoFetcher internal constructor(
     private val photo: ChatPhoto,
     private val loader: ChatPhotoLoader,
+    private val downloads: ChatPhotoDownloads,
     private val http: OkHttpClient,
     private val imageLoader: ImageLoader,
     private val timeSource: TimeSource = TimeSource.Monotonic,
@@ -75,28 +79,8 @@ class ChatPhotoFetcher internal constructor(
             return it.asResult()
         }
 
-        trace(
-            tag = TAG,
-            message = "Chat photo $key downloading ${photo.rendition.role} (${photo.rendition.blob?.sizeBytes} bytes)",
-            type = TraceType.Silent,
-        )
-        var url = resolveUrl(failedUrl = null)
-        val bytes = download(url).getOrElse {
-            // The signed URL can die before its stated expiry; one re-mint is worth trying.
-            url = resolveUrl(failedUrl = url)
-            download(url).getOrElse { throw ChatPhotoUnavailable.Download(it) }
-        }
-        record.step = ChatPhotoLoadTrace.Step.Decrypt
-        val opened = if (photo.sealed) {
-            val decryptStarted = timeSource.markNow()
-            loader.open(photo, bytes).also { record.decrypt = decryptStarted.elapsedNow() }
-        } else {
-            loader.open(photo, bytes)
-        }
-
-        if (cache != null) {
-            cache.write(key, opened)?.let { return it.asResult() }
-        }
+        val opened = downloads.await(photo, record) { steps -> downloadAndOpen(steps, cache) }
+        cache?.openSnapshot(key)?.let { return it.asResult() }
         val buffer = Buffer().write(opened)
         return SourceFetchResult(
             source = ImageSource(buffer, imageLoader.diskCacheFileSystem()),
@@ -105,10 +89,37 @@ class ChatPhotoFetcher internal constructor(
         )
     }
 
+    /**
+     * Downloads and opens the photo, then writes it to [cache], recording each step on [steps]: the
+     * shared download's trace, which outlives this load when it is cancelled while another waits.
+     */
+    private suspend fun downloadAndOpen(steps: ChatPhotoLoadTrace, cache: DiskCache?): ByteArray {
+        trace(
+            tag = TAG,
+            message = "Chat photo ${photo.cacheKey} downloading ${photo.rendition.role} (${photo.rendition.blob?.sizeBytes} bytes)",
+            type = TraceType.Silent,
+        )
+        var url = resolveUrl(steps, failedUrl = null)
+        val bytes = download(steps, url).getOrElse {
+            // The signed URL can die before its stated expiry; one re-mint is worth trying.
+            url = resolveUrl(steps, failedUrl = url)
+            download(steps, url).getOrElse { throw ChatPhotoUnavailable.Download(it) }
+        }
+        steps.step = ChatPhotoLoadTrace.Step.Decrypt
+        val opened = if (photo.sealed) {
+            val decryptStarted = timeSource.markNow()
+            loader.open(photo, bytes).also { steps.decrypt = decryptStarted.elapsedNow() }
+        } else {
+            loader.open(photo, bytes)
+        }
+        cache?.write(photo.cacheKey, opened)
+        return opened
+    }
+
     /** The URL to download, minting one when the stored URL is missing, expired or [failedUrl]. */
-    private suspend fun resolveUrl(failedUrl: String?): String {
-        record.step = ChatPhotoLoadTrace.Step.Url
-        val attempt = record.newAttempt()
+    private suspend fun resolveUrl(steps: ChatPhotoLoadTrace, failedUrl: String?): String {
+        steps.step = ChatPhotoLoadTrace.Step.Url
+        val attempt = steps.newAttempt()
         val started = timeSource.markNow()
         val resolution = loader.resolve(photo, failedUrl)
         if (resolution.minted) attempt.mint = started.elapsedNow()
@@ -117,11 +128,11 @@ class ChatPhotoFetcher internal constructor(
 
     /**
      * Downloads [url] into the latest attempt's timings. The call blocks its thread, so a cancel
-     * only lands once it returns, and a cancelled load still records the whole download.
+     * only lands once it returns, and the last load to cancel still records the whole download.
      */
-    private suspend fun download(url: String): Result<ByteArray> = withContext(Dispatchers.IO) {
-        record.step = ChatPhotoLoadTrace.Step.Download
-        val attempt = record.attempts.last()
+    private suspend fun download(steps: ChatPhotoLoadTrace, url: String): Result<ByteArray> = withContext(Dispatchers.IO) {
+        steps.step = ChatPhotoLoadTrace.Step.Download
+        val attempt = steps.attempts.last()
         try {
             val request = Request.Builder().url(url).build()
             attempt.host = request.url.host
@@ -146,14 +157,14 @@ class ChatPhotoFetcher internal constructor(
         }
     }
 
-    private fun DiskCache.write(key: String, bytes: ByteArray): DiskCache.Snapshot? {
-        val editor = openEditor(key) ?: return openSnapshot(key)
-        return try {
+    /** Each load opens its own snapshot afterwards; none is made when another write holds [key]. */
+    private fun DiskCache.write(key: String, bytes: ByteArray) {
+        val editor = openEditor(key) ?: return
+        try {
             fileSystem.sink(editor.data).buffer().use { it.write(bytes) }
-            editor.commitAndOpenSnapshot()
+            editor.commit()
         } catch (t: Throwable) {
             runCatching { editor.abort() }
-            null
         }
     }
 
@@ -180,7 +191,10 @@ class ChatPhotoFetcher internal constructor(
     ) : Fetcher.Factory<ChatPhoto> {
         private val http by lazy { OkHttpClient() }
 
+        /** One for every load the image loader runs, so the bubble and the prefetch of a photo share its download. */
+        private val downloads = ChatPhotoDownloads(CoroutineScope(SupervisorJob() + Dispatchers.IO))
+
         override fun create(data: ChatPhoto, options: Options, imageLoader: ImageLoader): Fetcher =
-            ChatPhotoFetcher(data, loader, http, imageLoader)
+            ChatPhotoFetcher(data, loader, downloads, http, imageLoader)
     }
 }
