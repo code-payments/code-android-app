@@ -291,9 +291,10 @@ internal class SettingsViewModel @Inject constructor(
                     listOf(AccessKey, RequireBiometrics),
                 ),
                 SettingsSection(R.string.title_settingsSectionPrivacy, listOf(Blocklist, TrustedWebsites)),
+                // iOS's order, with Link a Desktop (Android only) kept directly under Application Logs.
                 SettingsSection(
                     R.string.title_advancedFeatures,
-                    listOf(/* BillCustomizer, */ DeviceLogs, LinkDesktop, NotificationStatus, BetaFlags, SwitchAccount),
+                    listOf(/* BillCustomizer, */ BetaFlags, DeviceLogs, LinkDesktop, NotificationStatus, SwitchAccount),
                 ),
                 SettingsSection(
                     R.string.title_settingsSectionAccount,

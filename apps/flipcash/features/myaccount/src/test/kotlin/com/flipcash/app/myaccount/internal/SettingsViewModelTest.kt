@@ -9,6 +9,8 @@ import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.android.VersionInfo
 import com.flipcash.app.core.dispatchers.TestDispatchers
+import com.flipcash.app.featureflags.BetaFeature
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.myaccount.internal.settings.AccessKey
 import com.flipcash.app.myaccount.internal.settings.AccountInfo
@@ -16,6 +18,7 @@ import com.flipcash.app.myaccount.internal.settings.BetaFlags
 import com.flipcash.app.myaccount.internal.settings.Blocklist
 import com.flipcash.app.myaccount.internal.settings.DeleteAccount
 import com.flipcash.app.myaccount.internal.settings.DeviceLogs
+import com.flipcash.app.myaccount.internal.settings.LinkDesktop
 import com.flipcash.app.myaccount.internal.settings.NotificationStatus
 import com.flipcash.app.myaccount.internal.settings.LogOut
 import com.flipcash.app.myaccount.internal.settings.RequireBiometrics
@@ -81,10 +84,23 @@ class SettingsViewModelTest {
             listOf(
                 AccessKey, RequireBiometrics,
                 Blocklist, TrustedWebsites,
-                DeviceLogs, NotificationStatus, BetaFlags,
+                BetaFlags, DeviceLogs, NotificationStatus,
                 LogOut, DeleteAccount,
             ),
             state.items(),
+        )
+    }
+
+    @Test
+    fun `advanced lists every row in the iOS order with link a desktop under application logs`() {
+        val state = SettingsViewModel.State().after(
+            SettingsViewModel.Event.OnBetaFeaturesUnlocked(true, manual = true),
+            SettingsViewModel.Event.OnFeatureFlagsUpdated(listOf(BetaFeature(FeatureFlag.LinkDesktop, enabled = true))),
+        )
+        val advanced = state.sections.single { it.title == R.string.title_advancedFeatures }
+        assertEquals(
+            listOf(BetaFlags, DeviceLogs, LinkDesktop, NotificationStatus, SwitchAccount),
+            advanced.items,
         )
     }
 
