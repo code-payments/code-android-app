@@ -1,5 +1,6 @@
 package com.flipcash.app.contact.verification.internal.phone
 
+import androidx.lifecycle.ViewModelStore
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.featureflags.FeatureFlagController
@@ -40,6 +41,10 @@ class PhoneVerificationRetryTest {
 
     private lateinit var dispatchers: TestDispatchers
 
+    // A sent code starts the resend countdown on a java.util.Timer thread. Clearing the view model
+    // stops it before the rule resets Dispatchers.Main; a tick after that throws into a later test.
+    private val viewModels = ViewModelStore()
+
     @Before
     fun setUp() {
         BottomBarManager.clear()
@@ -47,6 +52,7 @@ class PhoneVerificationRetryTest {
 
     @After
     fun tearDown() {
+        viewModels.clear()
         BottomBarManager.clear()
     }
 
@@ -59,7 +65,7 @@ class PhoneVerificationRetryTest {
         resources = FakeResourceHelper(),
         dispatchers = dispatchers,
         analytics = mockk(relaxed = true),
-    )
+    ).also { viewModels.put("phone", it) }
 
     @Test
     fun `a code can be requested again after the attempt limit`() = runTest(mainCoroutineRule.dispatcher) {
