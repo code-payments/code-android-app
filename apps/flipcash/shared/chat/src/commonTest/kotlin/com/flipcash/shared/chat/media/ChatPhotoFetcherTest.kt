@@ -92,7 +92,7 @@ class ChatPhotoFetcherTest {
         ttfb: Duration = 200.milliseconds,
         transfer: Duration = 300.milliseconds,
         xCache: String = "Miss from cloudfront",
-        pop: String = "HKG62-P3",
+        pop: String = "ORD58-P16",
     ): (Request) -> Response = { request ->
         time += ttfb
         Response.Builder()
@@ -138,7 +138,7 @@ class ChatPhotoFetcherTest {
         assertEquals(200, attempt.status)
         assertEquals(3, attempt.bytes)
         assertEquals("Miss from cloudfront", attempt.xCache)
-        assertEquals("HKG62-P3", attempt.pop)
+        assertEquals("ORD58-P16", attempt.pop)
         assertNull(record.decrypt)
         assertEquals(500.milliseconds, record.total)
     }
@@ -153,7 +153,7 @@ class ChatPhotoFetcherTest {
         assertEquals(
             "Chat photo chat-media-0a0b outcome=ok total=500ms role=DISPLAY width=1600 sealed=false cache=miss" +
                 " | try1 url=stored host=d1.cloudfront.net ttfb=200ms transfer=300ms status=200 bytes=3" +
-                " x-cache=\"Miss from cloudfront\" pop=HKG62-P3",
+                " x-cache=\"Miss from cloudfront\" pop=ORD58-P16",
             line,
         )
         assertFalse("Signature" in line || "s3cr3t" in line || "Key-Pair-Id" in line)

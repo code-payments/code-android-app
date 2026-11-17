@@ -59,7 +59,7 @@ internal class ChatPhotoLoadTrace(photo: ChatPhoto) {
         /** CloudFront's `X-Cache`: whether the edge had the object (`Hit from cloudfront`) or went to origin. */
         var xCache: String? = null
 
-        /** CloudFront's `X-Amz-Cf-Pop`: the edge location that answered, e.g. `HKG62-P3`. */
+        /** CloudFront's `X-Amz-Cf-Pop`: the edge location that answered, e.g. `ORD58-P16`. */
         var pop: String? = null
         var error: String? = null
     }
