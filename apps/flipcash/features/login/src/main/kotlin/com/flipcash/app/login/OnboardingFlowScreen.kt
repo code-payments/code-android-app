@@ -86,6 +86,12 @@ import kotlin.time.Duration.Companion.milliseconds
  *    Start → AccessKey ──┬────────────→ Name² → Contacts¹ → Notifications → Home³
  *                         └→ Purchase ─┘
  *
+ *    With the Group Money gate open at Create ([groupMoneyContactRoute]), the access key screen
+ *    and the permissions are not shown:
+ *
+ *    Start ─┬────────────→ Phone → Code → Email → Name → Home³
+ *           └→ Purchase ─┘
+ *
  * 2. Seed restore (ResumePoint.Login → LoggedIn via SeedInput or AccountSelection)
  *
  *    Start ─┬─ AccountSelection ─┬──┬────────────→ Name² → Contacts¹ → Notifications → Home³
@@ -161,10 +167,7 @@ private fun PermissionsPhaseFlowHost(
 
     val home = launchRoute
 
-    val permissionsSteps = buildList {
-        if (!route.skipContacts) add(OnboardingStep.ContactPermission)
-        add(OnboardingStep.NotificationPermission)
-    }
+    val permissionsSteps = route.initialStack.filterIsInstance<OnboardingStep>()
 
     // Compute resumeAt once per steps-list identity, NOT when permissions are granted mid-flow,
     // preventing a stale recomposition from triggering a spurious BackedOutOfRoot exit.
@@ -172,12 +175,11 @@ private fun PermissionsPhaseFlowHost(
         val contactsGranted = checker.isGranted(contactConfig.permission)
         val notificationsGranted = !notificationConfig.requiresRuntimeRequest ||
             checker.isGranted(notificationConfig.permission)
+        val notificationsAt = permissionsSteps.indexOf(OnboardingStep.NotificationPermission)
         when {
             !route.skipContacts && !contactsGranted -> 0
-            !notificationsGranted -> permissionsSteps.indexOfFirst {
-                it is OnboardingStep.NotificationPermission
-            }.coerceAtLeast(0)
-            else -> permissionsSteps.size // all granted
+            notificationsAt >= 0 && !notificationsGranted -> notificationsAt
+            else -> permissionsSteps.size // all granted, or no steps to show
         }
     }
 
@@ -657,7 +659,8 @@ private fun NotificationRationaleStepContent(permanentlyDenied: Boolean) {
 
 /**
  * The Group Money onboarding's steps after Create (and purchase): phone, code and email in the
- * verification flow's onboarding mode, then the name step, then the permissions phase.
+ * verification flow's onboarding mode, then the name step. The permissions phase after it has no
+ * steps, so it releases straight to home: this onboarding asks for no notification permission.
  */
 internal fun groupMoneyContactRoute(): AppRoute.Verification = AppRoute.Verification(
     origin = AppRoute.OnboardingFlow(),
@@ -670,6 +673,7 @@ internal fun groupMoneyContactRoute(): AppRoute.Verification = AppRoute.Verifica
         target = AppRoute.OnboardingFlow(
             phase = AppRoute.OnboardingFlow.Phase.Permissions,
             skipContacts = true,
+            skipNotifications = true,
         ),
         allowBack = false,
     ),

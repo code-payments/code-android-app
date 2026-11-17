@@ -8,6 +8,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.core.dispatchers.TestDispatchers
 import com.flipcash.app.core.DisplayNameSource
+import com.flipcash.app.core.onboarding.OnboardingStep
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.login.router.LoginViewModel
 import com.flipcash.services.controllers.AccountController
@@ -170,11 +171,31 @@ class GroupMoneyOnboardingSpecTest {
                 target = AppRoute.OnboardingFlow(
                     phase = AppRoute.OnboardingFlow.Phase.Permissions,
                     skipContacts = true,
+                    skipNotifications = true,
                 ),
                 allowBack = false,
             ),
             route.target,
         )
+    }
+
+    @Test
+    fun `gate open, the name step goes home with no permission step`() {
+        val afterName = (groupMoneyContactRoute().target as AppRoute.UpdateUserProfile).target
+            as AppRoute.OnboardingFlow
+
+        assertEquals(AppRoute.OnboardingFlow.Phase.Permissions, afterName.phase)
+        assertEquals(emptyList(), afterName.initialStack, "an empty permissions phase releases to home")
+    }
+
+    @Test
+    fun `gate closed, the permissions phase after name still asks for notifications`() {
+        val afterName = AppRoute.OnboardingFlow(
+            phase = AppRoute.OnboardingFlow.Phase.Permissions,
+            skipContacts = true,
+        )
+
+        assertEquals(listOf(OnboardingStep.NotificationPermission), afterName.initialStack)
     }
 
     // endregion
