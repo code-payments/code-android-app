@@ -74,6 +74,9 @@ internal fun NameEntryScreen(
                     }
                 },
             )
+        } else if (forGroups) {
+            // The same empty bar the phone and email steps keep, so the headline sits at their height.
+            AppBarWithTitle()
         } else {
             Spacer(Modifier.statusBarsPadding().padding(2.5.dp))
         }
@@ -102,8 +105,9 @@ private fun NameEntryScreenContent(
         topBar = {
             if (forGroups) {
                 OnboardingHeadline(
+                    // The gap OnboardingStepLayout leaves above the headline on the other steps.
                     modifier = Modifier.padding(
-                        top = CodeTheme.dimens.grid.x2,
+                        top = CodeTheme.dimens.grid.x3,
                         bottom = CodeTheme.dimens.inset
                     ),
                     title = stringResource(R.string.title_onboardingName),
