@@ -71,6 +71,10 @@ internal class PhoneVerificationViewModel @Inject constructor(
         val resetTimeRemaining: Int = 0,
         val attempts: Int = 0,
     ) {
+        /** The number the code went to, with its country code; [formattedPhone] leaves the code out. */
+        internal val codeDestination: String
+            get() = "+${selectedLocale.phoneCode} $formattedPhone"
+
         internal val otpLength = 6
         internal val canConfirmCode: Boolean
             get() = codeTextFieldState.text.length == otpLength

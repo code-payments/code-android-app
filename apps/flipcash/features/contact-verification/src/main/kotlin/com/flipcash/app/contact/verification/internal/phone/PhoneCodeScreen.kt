@@ -88,7 +88,7 @@ private fun PhoneCodeScreenContent(
             OnboardingStepLayout(
                 modifier = Modifier.padding(innerPadding),
                 title = stringResource(R.string.title_onboardingVerificationCode),
-                subtitle = stringResource(R.string.subtitle_onboardingVerificationCode, state.formattedPhone),
+                subtitle = stringResource(R.string.subtitle_onboardingVerificationCode, state.codeDestination),
             ) {
                 OtpInputField(
                     state = state.codeTextFieldState,
