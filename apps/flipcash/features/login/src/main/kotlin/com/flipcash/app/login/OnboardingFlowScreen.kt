@@ -310,6 +310,9 @@ private fun onboardingEntryProvider(
     annotatedEntry<OnboardingStep.Purchase> {
         PurchaseStepContent(purchaseStep)
     }
+    annotatedEntry<OnboardingStep.PurchaseThenVerification> {
+        PurchaseStepContent(purchaseStep, thenVerification = true)
+    }
     annotatedEntry<OnboardingStep.ContactPermission> {
         ContactPermissionStepContent()
     }
@@ -400,6 +403,21 @@ private fun LoginStepContent(seed: String?) {
             .onEach {
                 trace(tag = "Onboarding", message = "Account created — navigating to access key", type = TraceType.Process)
                 flowNavigator.navigateTo(OnboardingStep.AccessKey)
+            }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(vm) {
+        vm.eventFlow
+            .filterIsInstance<LoginViewModel.Event.GroupMoneyAccountReady>()
+            .onEach {
+                if (it.requiresPurchase) {
+                    trace(tag = "Onboarding", message = "Account created — purchase before phone", type = TraceType.Process)
+                    flowNavigator.navigateTo(OnboardingStep.PurchaseThenVerification)
+                } else {
+                    trace(tag = "Onboarding", message = "Account created — collecting phone", type = TraceType.Process)
+                    flowNavigator.navigate(groupMoneyContactRoute())
+                }
             }
             .launchIn(this)
     }
@@ -534,13 +552,22 @@ private fun AccessKeyStepContent() {
 }
 
 @Composable
-private fun PurchaseStepContent(purchaseStep: OnboardingPurchaseStep) {
+private fun PurchaseStepContent(
+    purchaseStep: OnboardingPurchaseStep,
+    thenVerification: Boolean = false,
+) {
     val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
     val userManager = LocalUserManager.current
 
     Column {
         AppBarWithTitle()
-        purchaseStep { flowNavigator.proceedToNameOrPermissions(userManager) }
+        purchaseStep {
+            if (thenVerification) {
+                flowNavigator.navigate(groupMoneyContactRoute())
+            } else {
+                flowNavigator.proceedToNameOrPermissions(userManager)
+            }
+        }
     }
 
     BackHandler { /* swallow back during onboarding permissions */ }
@@ -627,3 +654,23 @@ private fun NotificationRationaleStepContent(permanentlyDenied: Boolean) {
         onComplete = { flowNavigator.proceed() },
     )
 }
+
+/**
+ * The Group Money onboarding's steps after Create (and purchase): phone, code and email in the
+ * verification flow's onboarding mode, then the name step, then the permissions phase.
+ */
+internal fun groupMoneyContactRoute(): AppRoute.Verification = AppRoute.Verification(
+    origin = AppRoute.OnboardingFlow(),
+    includePhone = true,
+    includeEmail = true,
+    onboarding = true,
+    target = AppRoute.UpdateUserProfile(
+        origin = AppRoute.OnboardingFlow(),
+        steps = listOf(UpdateProfileStep.Name(DisplayNameSource.Onboarding, forGroups = true)),
+        target = AppRoute.OnboardingFlow(
+            phase = AppRoute.OnboardingFlow.Phase.Permissions,
+            skipContacts = true,
+        ),
+        allowBack = false,
+    ),
+)

@@ -69,11 +69,19 @@ class LoginViewModel @Inject constructor(
         data object LogInFailed : Event
         data object OnAccountCreated : Event
         data object CreateAccountSettled : Event
+        data class GroupMoneyAccountReady(val requiresPurchase: Boolean) : Event
         data object CreateFailed : Event
         data class OnStoredAccountsChanged(val hasAccounts: Boolean) : Event
     }
 
     private val createInFlight = AtomicBoolean(false)
+
+    /**
+     * Set once Create has registered an account for the Group Money onboarding. The intro stays
+     * on screen until the account setup after it succeeds, so a retry repeats only that setup:
+     * tapping Create again must never register a second account.
+     */
+    private var registeredForGroupMoney = false
 
     /**
      * A second tap while a login is in flight starts a second one, and the two race
@@ -95,10 +103,15 @@ class LoginViewModel @Inject constructor(
             .filter { createInFlight.compareAndSet(false, true) }
             .onEach {
                 analytics.track(ButtonEvents.tapped(Button.CREATE_ACCOUNT))
-                analytics.track(AccountEvents.createAccount())
+                if (!registeredForGroupMoney) analytics.track(AccountEvents.createAccount())
             }
             .onEach {
                 try {
+                    if (registeredForGroupMoney) {
+                        completeGroupMoneyAccountSetup()
+                        return@onEach
+                    }
+                    val groupMoney = authManager.isGroupMoneyOnboardingOpen()
                     authManager.createAccount()
                         .onFailure {
                             dispatchEvent(Event.CreateFailed)
@@ -107,6 +120,12 @@ class LoginViewModel @Inject constructor(
                                 message = resources.getString(R.string.error_description_createAccountFailed)
                             )
                         }.onSuccess {
+                            if (groupMoney) {
+                                registeredForGroupMoney = true
+                                dispatchEvent(Event.OnAccountCreated)
+                                completeGroupMoneyAccountSetup()
+                                return@onSuccess
+                            }
                             viewModelScope.launch {
                                 // Show the success state briefly, then settle back to idle
                                 // as the flow navigates on to the next onboarding step.
@@ -196,6 +215,24 @@ class LoginViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
+    // The access key screen's work, done without showing it. A failure shows the error that
+    // screen shows and leaves Create tappable for a retry.
+    private suspend fun completeGroupMoneyAccountSetup() {
+        authManager.completeAccessKeyStep()
+            .onSuccess { requiresPurchase ->
+                viewModelScope.launch {
+                    delay(1.seconds)
+                    dispatchEvent(Event.GroupMoneyAccountReady(requiresPurchase))
+                }
+            }.onFailure {
+                dispatchEvent(Event.CreateFailed)
+                BottomBarManager.showError(
+                    title = resources.getString(R.string.error_title_accountSetupFailed),
+                    message = resources.getString(R.string.error_description_accountSetupFailed),
+                )
+            }
+    }
+
     internal companion object {
         private const val TAP_THRESHOLD = 6
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
@@ -203,6 +240,7 @@ class LoginViewModel @Inject constructor(
                 Event.CreateAccount -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = true)) }
                 Event.OnAccountCreated -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = false, success = true)) }
                 Event.CreateAccountSettled -> { state -> state.copy(creatingAccount = LoadingSuccessState()) }
+                is Event.GroupMoneyAccountReady -> { state -> state.copy(creatingAccount = LoadingSuccessState()) }
                 Event.CreateFailed -> { state -> state.copy(creatingAccount = LoadingSuccessState(loading = false)) }
 
                 is Event.BetaOptionsUnlocked -> { state -> state.copy(betaOptionsVisible = true) }

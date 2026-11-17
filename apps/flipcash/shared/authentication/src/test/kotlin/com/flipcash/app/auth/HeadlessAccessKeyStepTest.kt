@@ -30,6 +30,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.FeatureFlagController
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -67,6 +69,7 @@ class HeadlessAccessKeyStepTest {
     private val userManager: UserManager = mockk(relaxed = true)
     private val userFlagsCoordinator: UserFlagsCoordinator = mockk(relaxed = true)
     private val networkObserver: NetworkConnectivityListener = mockk(relaxed = true)
+    private val featureFlags: FeatureFlagController = mockk(relaxed = true)
 
     private lateinit var credentialManager: PassphraseCredentialManager
     private lateinit var authManager: AuthManager
@@ -101,7 +104,7 @@ class HeadlessAccessKeyStepTest {
             pushRegistrar = mockk(relaxed = true),
             tokenCoordinator = mockk(relaxed = true),
             persistence = mockk(relaxed = true),
-            featureFlags = mockk(relaxed = true),
+            featureFlags = featureFlags,
             appSettings = mockk(relaxed = true),
             userFlags = userFlagsCoordinator,
             profileCoordinator = mockk(relaxed = true),
@@ -176,4 +179,24 @@ class HeadlessAccessKeyStepTest {
             assertEquals(1, accountStore.all().size)
             assertTrue(credentialManager.hasSeenAccessKey())
         }
+
+    // The Group Money onboarding gate is read at the same Create tap. Before sign-in staff standing
+    // is unknown, so it is the shell's rule with no staff: the flag and the device beta override.
+    private fun gate(groupMoneyUi: Boolean, betaOverride: Boolean): Boolean {
+        every { featureFlags.observe(FeatureFlag.GroupMoneyUi) } returns MutableStateFlow(groupMoneyUi)
+        every { featureFlags.observeOverride() } returns MutableStateFlow(betaOverride)
+        return authManager.isGroupMoneyOnboardingOpen()
+    }
+
+    @Test
+    fun `the onboarding gate is open only with the group money flag and the beta override`() {
+        assertTrue(gate(groupMoneyUi = true, betaOverride = true))
+    }
+
+    @Test
+    fun `the onboarding gate is closed without either one`() {
+        assertFalse(gate(groupMoneyUi = true, betaOverride = false))
+        assertFalse(gate(groupMoneyUi = false, betaOverride = true))
+        assertFalse(gate(groupMoneyUi = false, betaOverride = false))
+    }
 }

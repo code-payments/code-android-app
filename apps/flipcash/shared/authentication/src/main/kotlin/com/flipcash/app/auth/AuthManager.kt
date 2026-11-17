@@ -9,6 +9,7 @@ import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.auth.push.PushRegistrar
 import com.flipcash.app.auth.push.PushRegistrationSource
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.shared.chat.ChatCoordinator
@@ -233,6 +234,15 @@ class AuthManager @Inject constructor(
         }
         requiresIap
     }
+
+    /**
+     * Whether a new account gets the Group Money onboarding (phone, code, email and name, with no
+     * access key screen). Read once, at the Create tap. This is `NavBarShell.resolve`'s rule
+     * without staff standing, which is not known before sign-in: the Group Money flag and the
+     * device beta override.
+     */
+    fun isGroupMoneyOnboardingOpen(): Boolean =
+        featureFlags.observe(FeatureFlag.GroupMoneyUi).value && featureFlags.observeOverride().value
 
     suspend fun onAccountPurchased(): Result<Unit> {
         trace(tag = "Onboarding", message = "Finalizing account purchase", type = TraceType.Process)
