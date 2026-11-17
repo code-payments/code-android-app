@@ -138,9 +138,15 @@ sealed interface AppRoute : NavKey, Parcelable {
         val target: AppRoute? = null,
         val fullScreen: Boolean = false,
         val linkForPayment: Boolean = false,
+        /**
+         * Opened by new-account onboarding after the account is registered: starts at phone
+         * entry, saves the email without a code, and never leaves onboarding except forward to
+         * [target].
+         */
+        val onboarding: Boolean = false,
     ) : AppRoute, FlowRouteWithResult<VerificationResult> {
         override val initialStack: List<NavKey>
-            get() = buildVerificationInitialStack(
+            get() = if (onboarding) listOf(VerificationStep.PhoneEntry) else buildVerificationInitialStack(
                 forOnRamp = target is Token.Swap,
                 includePhone = includePhone,
                 includeEmail = includeEmail,

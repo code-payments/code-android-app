@@ -46,10 +46,11 @@ fun VerificationFlowScreen(
                 route = route,
                 value = NavResultOrCanceled.ReturnValue(result),
             )
-            if (route.target != null && result is VerificationResult.Success) {
-                outerNavigator.replaceAll(route.target!!)
-            } else {
-                outerNavigator.pop()
+            when (val exit = resolveVerificationExit(route, result)) {
+                is VerificationExit.ReplaceAll -> outerNavigator.replaceAll(exit.route)
+                is VerificationExit.Replace -> outerNavigator.replace(exit.route)
+                VerificationExit.Pop -> outerNavigator.pop()
+                VerificationExit.Stay -> Unit
             }
         },
         entryProvider = verificationEntryProvider(route),
@@ -63,12 +64,13 @@ private fun verificationEntryProvider(
         VerificationIntroScreen(step.isForOnRamp)
     }
     annotatedEntry<VerificationStep.PhoneEntry> {
-        PhoneVerificationContent()
+        PhoneVerificationContent(onboarding = route.onboarding)
     }
     annotatedEntry<VerificationStep.PhoneCode> {
         PhoneCodeContent(
-            includeEmail = route.includeEmail,
+            includeEmail = route.includeEmail || route.onboarding,
             linkForPayment = route.linkForPayment,
+            onboarding = route.onboarding,
         )
     }
     annotatedEntry<VerificationStep.PhoneCountryCode> {
@@ -77,6 +79,7 @@ private fun verificationEntryProvider(
     annotatedEntry<VerificationStep.EmailEntry> {
         EmailVerificationContent(
             origin = EmailDeeplinkOrigin.fromRoute(route.origin),
+            onboarding = route.onboarding,
         )
     }
     annotatedEntry<VerificationStep.EmailMagicLink> { step ->

@@ -59,6 +59,8 @@ class EmailVerificationViewModel @Inject constructor(
         val isResendTimerRunning: Boolean = false,
         val resetTimeRemaining: Int = 0,
         val attempts: Int = 0,
+        /** New-account onboarding: the address is linked unverified, with no code step. */
+        val onboarding: Boolean = false,
     ) {
         val canSendCode: Boolean
             get() = email.text.isNotEmpty() && Patterns.EMAIL_ADDRESS.matcher(email.text).matches()
@@ -66,6 +68,7 @@ class EmailVerificationViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnOriginSet(val origin: EmailDeeplinkOrigin?) : Event
+        data class OnOnboardingModeSet(val onboarding: Boolean) : Event
         data class OnDataProvided(val email: String?, val code: String?) : Event
         data object OnSendCodeClicked : Event
         /** Emitted in skip-verification mode once the entered email is persisted locally. */
@@ -117,6 +120,10 @@ class EmailVerificationViewModel @Inject constructor(
             .filterIsInstance<Event.OnSendCodeClicked>()
             .onEach {
                 val emailAddress = stateFlow.value.email.text.toString()
+                if (stateFlow.value.onboarding) {
+                    if (stateFlow.value.canSendCode) linkUnverifiedEmail(emailAddress)
+                    return@onEach
+                }
                 val requiresVerification = userFlags.resolvedFlags.value
                     .requireCoinbaseEmailVerification.effectiveValue
 
@@ -252,6 +259,26 @@ class EmailVerificationViewModel @Inject constructor(
             }
     }
 
+    // Onboarding saves the address on the server without a code. A refusal or a transport
+    // failure keeps the user on this screen with the same error a failed send shows.
+    private fun linkUnverifiedEmail(emailAddress: String) {
+        dispatchEvent(Event.OnSendingCodeChanged(loading = true))
+        viewModelScope.launch {
+            verificationController.linkUnverifiedEmail(ContactMethod.Email(emailAddress))
+                .onSuccess {
+                    dispatchEvent(Event.OnSendingCodeChanged(success = true))
+                    delay(1.seconds)
+                    dispatchEvent(Event.OnEntrySaved)
+                }.onFailure {
+                    dispatchEvent(Event.OnSendingCodeChanged())
+                    BottomBarManager.showError(
+                        title = resources.getString(R.string.error_title_failedToSendCodeToEmail),
+                        message = resources.getString(R.string.error_description_failedToSendCodeToEmail),
+                    )
+                }
+        }
+    }
+
     private fun startTimer() {
         dispatchEvent(
             Event.OnTimerTick(
@@ -289,6 +316,7 @@ class EmailVerificationViewModel @Inject constructor(
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnOriginSet -> { state -> state }
+                is Event.OnOnboardingModeSet -> { state -> state.copy(onboarding = event.onboarding) }
                 Event.OnEntrySaved -> { state -> state }
                 is Event.OnDataProvided -> { state ->
                     state.copy(

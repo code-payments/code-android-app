@@ -9,7 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.flipcash.analytics.OnrampStep
-import com.flipcash.analytics.events.OnrampEvents
+import com.flipcash.app.contact.verification.onrampStepEvent
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.internal.phone.PhoneEntryScreen
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
@@ -26,7 +26,10 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun PhoneVerificationContent() {
+fun PhoneVerificationContent(
+    // New-account onboarding: the account is already registered, so there is no back.
+    onboarding: Boolean = false,
+) {
     val codeNavigator = LocalCodeNavigator.current
     val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
     val viewModel = flowSharedViewModel<PhoneVerificationViewModel>()
@@ -39,9 +42,11 @@ fun PhoneVerificationContent() {
         AppBarWithTitle(
             title = stringResource(R.string.title_connectPhoneNumber),
             titleAlignment = Alignment.CenterHorizontally,
-            onBackIconClicked = {
-                keyboard.hideIfVisible {
-                    codeNavigator.pop()
+            onBackIconClicked = if (onboarding) null else {
+                {
+                    keyboard.hideIfVisible {
+                        codeNavigator.pop()
+                    }
                 }
             },
         )
@@ -50,10 +55,11 @@ fun PhoneVerificationContent() {
 
     val analytics = rememberAnalytics()
     LaunchedEffect(Unit) {
-        analytics.track(OnrampEvents.step(OnrampStep.ENTER_PHONE))
+        onrampStepEvent(OnrampStep.ENTER_PHONE, onboarding)?.let(analytics::track)
     }
 
     BackHandler {
+        if (onboarding) return@BackHandler
         keyboard.hideIfVisible {
             codeNavigator.pop()
         }

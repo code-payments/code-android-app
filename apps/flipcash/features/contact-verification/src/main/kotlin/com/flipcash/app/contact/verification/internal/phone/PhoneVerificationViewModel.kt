@@ -409,7 +409,9 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 Event.OnPhoneVerificationComplete -> { state -> state }
                 is Event.OnPhoneNumberFormatted -> { state -> state.copy(formattedPhone = event.formatted) }
                 Event.OnSendCodeClicked -> { state -> state.copy(attempts = state.attempts + 1) }
-                Event.OnMaxAttemptsReached -> { state -> state }
+                // The limit starts over once it is reached. Outside onboarding the flow closes
+                // here and takes this view model with it; onboarding returns to phone entry.
+                Event.OnMaxAttemptsReached -> { state -> state.copy(attempts = 0) }
                 is Event.OnSendingCodeChanged -> { state ->
                     state.copy(
                         sendingCode = state.sendingCode.copy(

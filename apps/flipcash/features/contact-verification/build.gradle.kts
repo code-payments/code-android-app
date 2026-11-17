@@ -11,6 +11,7 @@ dependencies {
     testImplementation(libs.bundles.unit.testing)
     testImplementation(project(":ui:resources:test-fixtures"))
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.bundles.compose.ui.testing)
 
     implementation(libs.bundles.kotlinx.serialization)
 
