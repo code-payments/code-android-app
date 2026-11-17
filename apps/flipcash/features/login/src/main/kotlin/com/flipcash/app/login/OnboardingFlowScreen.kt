@@ -201,7 +201,9 @@ private fun PermissionsPhaseFlowHost(
                 }
 
                 FlowExitReason.BackedOutOfRoot -> {
-                    // All permissions already granted
+                    // All permissions already granted, or a Group Money new account, whose
+                    // permissions phase has no steps. Only the new account completes onboarding here.
+                    if (route.skipNotifications) analytics.track(AccountEvents.completeOnboarding())
                     trace(tag = "Onboarding", message = "Onboarding complete (permissions already granted) — releasing to $home", type = TraceType.Process)
                     userManager?.set(AuthState.Ready)
                     outerNavigator.navigate(
