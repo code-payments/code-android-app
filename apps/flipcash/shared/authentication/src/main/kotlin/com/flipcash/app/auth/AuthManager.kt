@@ -34,6 +34,7 @@ import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -72,6 +73,12 @@ class AuthManager @Inject constructor(
     private val dispatchers: DispatcherProvider,
     private val analytics: FlipcashAnalytics,
 ) : CoroutineScope by CoroutineScope(dispatchers.IO) {
+
+    // The two values isGroupMoneyOnboardingOpen reads. The controller hands back a new flow on
+    // each call that starts at its default and catches up with DataStore a moment later, so these
+    // are taken once, at construction, and are current by the time the intro screen takes a tap.
+    private val groupMoneyUiFlag: StateFlow<Boolean> = featureFlags.observe(FeatureFlag.GroupMoneyUi)
+    private val betaOverride: StateFlow<Boolean> = featureFlags.observeOverride()
 
     init {
         // Persist onboarding completion when the composable transitions Onboarding → Ready.
@@ -241,8 +248,7 @@ class AuthManager @Inject constructor(
      * without staff standing, which is not known before sign-in: the Group Money flag and the
      * device beta override.
      */
-    fun isGroupMoneyOnboardingOpen(): Boolean =
-        featureFlags.observe(FeatureFlag.GroupMoneyUi).value && featureFlags.observeOverride().value
+    fun isGroupMoneyOnboardingOpen(): Boolean = groupMoneyUiFlag.value && betaOverride.value
 
     suspend fun onAccountPurchased(): Result<Unit> {
         trace(tag = "Onboarding", message = "Finalizing account purchase", type = TraceType.Process)

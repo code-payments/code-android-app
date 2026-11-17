@@ -90,32 +90,34 @@ class HeadlessAccessKeyStepTest {
             accountStore = accountStore,
             dispatchers = dispatchers,
         )
-        authManager = AuthManager(
-            credentialManager = credentialManager,
-            accountStore = accountStore,
-            accountProfileCache = mockk(relaxed = true),
-            userManager = userManager,
-            notificationManager = mockk(relaxed = true),
-            accountController = accountController,
-            ocpAccountController = ocpAccountController,
-            profileController = mockk(relaxed = true),
-            pushController = mockk(relaxed = true),
-            pushTokenProvider = mockk(relaxed = true),
-            pushRegistrar = mockk(relaxed = true),
-            tokenCoordinator = mockk(relaxed = true),
-            persistence = mockk(relaxed = true),
-            featureFlags = featureFlags,
-            appSettings = mockk(relaxed = true),
-            userFlags = userFlagsCoordinator,
-            profileCoordinator = mockk(relaxed = true),
-            contactCoordinator = mockk(relaxed = true),
-            chatCoordinator = mockk(relaxed = true),
-            wrongKeyChats = mockk(relaxed = true),
-            dispatchers = dispatchers,
-            networkObserver = networkObserver,
-            analytics = RecordingAnalytics(),
-        )
+        authManager = newAuthManager()
     }
+
+    private fun newAuthManager() = AuthManager(
+        credentialManager = credentialManager,
+        accountStore = accountStore,
+        accountProfileCache = mockk(relaxed = true),
+        userManager = userManager,
+        notificationManager = mockk(relaxed = true),
+        accountController = accountController,
+        ocpAccountController = ocpAccountController,
+        profileController = mockk(relaxed = true),
+        pushController = mockk(relaxed = true),
+        pushTokenProvider = mockk(relaxed = true),
+        pushRegistrar = mockk(relaxed = true),
+        tokenCoordinator = mockk(relaxed = true),
+        persistence = mockk(relaxed = true),
+        featureFlags = featureFlags,
+        appSettings = mockk(relaxed = true),
+        userFlags = userFlagsCoordinator,
+        profileCoordinator = mockk(relaxed = true),
+        contactCoordinator = mockk(relaxed = true),
+        chatCoordinator = mockk(relaxed = true),
+        wrongKeyChats = mockk(relaxed = true),
+        dispatchers = dispatchers,
+        networkObserver = networkObserver,
+        analytics = RecordingAnalytics(),
+    )
 
     @After
     fun tearDown() {
@@ -182,10 +184,25 @@ class HeadlessAccessKeyStepTest {
 
     // The Group Money onboarding gate is read at the same Create tap. Before sign-in staff standing
     // is unknown, so it is the shell's rule with no staff: the flag and the device beta override.
+    //
+    // The stubs follow the real controller: observe(flag) and observeOverride() build a new
+    // StateFlow on each call that starts at its default and catches up with DataStore later. A
+    // flow made at the Create tap is still at its default, so a gate that called observe() there
+    // was closed on every device.
     private fun gate(groupMoneyUi: Boolean, betaOverride: Boolean): Boolean {
-        every { featureFlags.observe(FeatureFlag.GroupMoneyUi) } returns MutableStateFlow(groupMoneyUi)
-        every { featureFlags.observeOverride() } returns MutableStateFlow(betaOverride)
-        return authManager.isGroupMoneyOnboardingOpen()
+        val flagFlows = mutableListOf<MutableStateFlow<Boolean>>()
+        val overrideFlows = mutableListOf<MutableStateFlow<Boolean>>()
+        every { featureFlags.observe(FeatureFlag.GroupMoneyUi) } answers {
+            MutableStateFlow(FeatureFlag.GroupMoneyUi.default).also(flagFlows::add)
+        }
+        every { featureFlags.observeOverride() } answers { MutableStateFlow(false).also(overrideFlows::add) }
+
+        val authManager = newAuthManager() // app start
+        // DataStore loads; only the flows made so far catch up.
+        flagFlows.forEach { it.value = groupMoneyUi }
+        overrideFlows.forEach { it.value = betaOverride }
+
+        return authManager.isGroupMoneyOnboardingOpen() // the Create tap
     }
 
     @Test
