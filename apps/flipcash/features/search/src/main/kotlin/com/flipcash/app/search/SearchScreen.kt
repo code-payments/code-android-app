@@ -11,6 +11,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.analytics.SearchResultType
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.extensions.navigateAll
+import com.flipcash.app.core.extensions.openChatFromSearch
+import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.core.links.ExternalLinkUriHandler
 import com.flipcash.app.core.links.LocalTrustedWebsites
 import com.flipcash.app.core.tokens.TokenInfoEntry
@@ -39,6 +41,7 @@ fun SearchScreen(
 ) {
     val viewModel = hiltViewModel<SearchViewModel>()
     val navigator = LocalCodeNavigator.current
+    val shell = LocalNavBarShell.current
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val trustedWebsites = LocalTrustedWebsites.current
@@ -62,11 +65,12 @@ fun SearchScreen(
             // A message hit carries its message id; chat rows and recent chats do not.
             viewModel.resultTapped(if (messageId != null) SearchResultType.MESSAGE else SearchResultType.CHAT)
             viewModel.opened(chatId)
-            navigator.push(
-                AppRoute.Messaging.Chat(
+            navigator.openChatFromSearch(
+                shell = shell,
+                chat = AppRoute.Messaging.Chat(
                     identifier = ChatIdentifier.ByChatId(chatId),
                     jumpToMessageId = messageId,
-                )
+                ),
             )
         },
         onOpenCurrency = { token ->

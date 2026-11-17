@@ -2005,6 +2005,13 @@
     <string name="title_tabChat">Chat</string>
     <string name="title_tabWallet">Wallet</string>
     <string name="title_tabYou">You</string>
+    <string name="title_tabGroups">Groups</string>
+    <string name="title_tabMoney">Money</string>
+    <string name="title_moneyRecentActivity">Recent Activity</string>
+    <plurals name="label_currencyCount">
+        <item quantity="one">%1$d currency</item>
+        <item quantity="other">%1$d currencies</item>
+    </plurals>
 
 
     <string name="title_howTokenPriceWorks">How %1$s\'s Price Works</string>

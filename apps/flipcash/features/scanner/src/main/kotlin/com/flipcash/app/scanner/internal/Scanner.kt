@@ -72,7 +72,7 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.time.TimeSource
 
 @Composable
-internal fun Scanner() {
+internal fun Scanner(onClose: (() -> Unit)? = null) {
     val router = LocalRouter.current!!
     val navigator = LocalCodeNavigator.current
     val session = LocalSessionController.current!!
@@ -288,6 +288,7 @@ internal fun Scanner() {
         @SuppressLint("LocalContextGetResourceValueCall")
         ScannableContainer(
             onImagePicked = onImagePicked,
+            onClose = onClose,
             scannerView = {
                 CodeScanner(
                     scanningEnabled = previewing == true,

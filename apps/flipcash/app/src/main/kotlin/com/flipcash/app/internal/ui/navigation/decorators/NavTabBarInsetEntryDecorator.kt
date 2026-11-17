@@ -9,7 +9,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.core.navigation.LocalTabBarPadding
+import com.flipcash.app.core.navigation.isTabHome
 import com.getcode.navigation.core.CodeNavigator
 
 /**
@@ -40,7 +42,8 @@ fun NavTabBarInsetEntryDecorator(
         val route = remember(entry.contentKey) {
             navigator.backStack.firstOrNull { it.toString() == entry.contentKey } as? AppRoute
         }
-        val isTabHome = route is AppRoute.Tabs
+        // The shell's own tab homes only: under GroupMoney, Scanner and You are drawn without the bar.
+        val isTabHome = LocalNavBarShell.current.isTabHome(route)
         val padding = if (isTabHome) PaddingValues(bottom = tabBarHeight.value) else PaddingValues()
 
         CompositionLocalProvider(LocalTabBarPadding provides padding) {

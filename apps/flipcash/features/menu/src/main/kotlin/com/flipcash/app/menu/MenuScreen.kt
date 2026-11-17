@@ -11,10 +11,14 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
+/**
+ * @param onClose leaves You, when it is drawn without the tab bar (the Group Money shell has no tab
+ * for it); it draws a leading close. Null when You is a tab, as it is today.
+ */
 @Composable
-fun MenuScreen() {
+fun MenuScreen(onClose: (() -> Unit)? = null) {
     val viewModel = hiltViewModel<MenuScreenViewModel>()
-    MenuScreenContent(viewModel)
+    MenuScreenContent(viewModel, onClose)
 
     val navigator = LocalCodeNavigator.current
 

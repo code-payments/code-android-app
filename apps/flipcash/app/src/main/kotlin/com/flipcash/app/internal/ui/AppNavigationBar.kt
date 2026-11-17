@@ -33,6 +33,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -42,10 +43,14 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.openAsSheet
 import dev.chrisbanes.haze.HazeState
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.navigation.NavBarButton
 import com.flipcash.app.core.navigation.TabBarVisibilityController
 import com.flipcash.app.core.navigation.asNavBarTab
+import com.flipcash.app.core.navigation.isTabHome
 import com.flipcash.app.core.navigation.destinationRoute
+import com.flipcash.app.core.navigation.selectedTab
 import com.flipcash.app.core.ui.NavigationBar
 import com.flipcash.app.core.ui.NavBarGlyph
 import com.flipcash.app.core.ui.label
@@ -54,6 +59,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.flipcash.app.core.ui.rememberNavigationBarState
 import com.flipcash.app.session.LocalSessionController
+import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.services.user.AuthState
 import com.flipcash.shared.common.ui.ContactAvatar
@@ -79,6 +85,7 @@ internal class AppNavigationBarVisibility(
     private val billUp: State<Boolean>,
     private val tabBarVisibility: TabBarVisibilityController,
     private val cardExpansion: CardExpansionController?,
+    private val shell: State<NavBarShell> = mutableStateOf(NavBarShell.Classic),
 ) {
     /**
      * The tab the bar highlights. Selection follows the base of the backstack (the tab "home"), so it
@@ -93,12 +100,15 @@ internal class AppNavigationBarVisibility(
      * visibility. A BottomBar modal (e.g. Add Money) renders in the nav content, above the bar, and a
      * bill/tip card renders at the app root above everything, so the bar hides under either. A tab
      * home can also hide it without leaving its route (the You tab's tip card expanding in place).
+     *
+     * Only the shell's own tab homes count: under [NavBarShell.GroupMoney] Scanner and You have no
+     * tab, so they are drawn without the bar and its search button (see OffBarTabs).
      */
     val shown: Boolean by derivedStateOf {
         // Search keeps the bar: its pill and button hand over to Search's field (SearchMorph), and
         // come back from it, rather than the whole bar sliding away.
         val top = navigator.currentRouteKey
-        ((top as? AppRoute)?.asNavBarTab() != null || top is AppRoute.Messaging.Search) &&
+        (shell.value.isTabHome(top) || top is AppRoute.Messaging.Search) &&
             bottomBarMessages.value.isEmpty() &&
             !billUp.value &&
             !tabBarVisibility.isHidden
@@ -149,8 +159,9 @@ internal fun rememberAppNavigationBarVisibility(
     val billUp = remember(session) {
         session?.billState?.map { it.bill != null } ?: flowOf(false)
     }.collectAsStateWithLifecycle(initialValue = false)
-    return remember(navigator, tabBarVisibility, cardExpansion, bottomBarMessages, billUp) {
-        AppNavigationBarVisibility(navigator, bottomBarMessages, billUp, tabBarVisibility, cardExpansion)
+    val shell = rememberUpdatedState(LocalNavBarShell.current)
+    return remember(navigator, tabBarVisibility, cardExpansion, bottomBarMessages, billUp, shell) {
+        AppNavigationBarVisibility(navigator, bottomBarMessages, billUp, tabBarVisibility, cardExpansion, shell)
     }
 }
 
@@ -175,7 +186,10 @@ internal fun AppNavigationBar(
     // The same gate as Switch Accounts in Advanced Features: beta flags unlocked, or staff.
     canSwitchAccounts: Boolean = false,
 ) {
-    val selectedTab = visibility.selectedTab
+    // The shell decides which tabs the pill draws. Under Classic every tab home is one of its tabs,
+    // so this is visibility.selectedTab; under GroupMoney a Scanner or You home falls back below.
+    val shell = LocalNavBarShell.current
+    val selectedTab = visibility.selectedTab?.takeIf { it in shell.tabs }
 
     // Unread chats in the Chats list (tip DMs and groups), badged onto the Chats tab, so the badge
     // appears, updates and clears as conversations are read.
@@ -242,6 +256,7 @@ internal fun AppNavigationBar(
                                 hazeState = hazeState,
                                 avatar = avatar,
                                 onYouTabLongClick = youTabLongClick(canSwitchAccounts, navigator),
+                                shell = shell,
                             )
                         }
                     }
@@ -302,15 +317,13 @@ internal fun SearchOriginTabButton(
     onClick: () -> Unit,
 ) {
     // The tab home at the base of the stack, which is the tab Search was pushed over.
-    val tab by remember(navigator) {
-        derivedStateOf {
-            navigator.backStack.firstNotNullOfOrNull { (it as? AppRoute)?.asNavBarTab() }
-                ?: NavBarButton.Chats
-        }
+    val shell = LocalNavBarShell.current
+    val tab by remember(navigator, shell) {
+        derivedStateOf { shell.selectedTab(navigator.backStack) ?: NavBarButton.Chats }
     }
     val unread by rememberChatListUnreadCount()
     val state = rememberNavigationBarState(selectedTab = tab, chatListUnreadCount = unread)
-    val label = stringResource(tab.label)
+    val label = stringResource(tab.label(shell))
     // The glyph sits over the button rather than in it: the button clips to its circle, and the
     // badge has to overhang the corner the way it does on the tab.
     Box(contentAlignment = Alignment.Center) {
@@ -328,6 +341,7 @@ internal fun SearchOriginTabButton(
             badgeCount = state.badgeCount(tab),
             avatar = rememberProfileAvatar(),
             modifier = Modifier.size(SearchOriginGlyphSize),
+            shell = shell,
         )
     }
 }
@@ -344,13 +358,7 @@ private val SearchOriginGlyphSize = 24.dp
  */
 @Composable
 private fun rememberProfileAvatar(): (@Composable (Modifier) -> Unit)? {
-    val userManager = LocalUserManager.current
-    val profile by remember(userManager) {
-        userManager?.state
-            ?.filter { it.authState is AuthState.Ready }
-            ?.map { it.userProfile }
-            ?: flowOf(null)
-    }.collectAsStateWithLifecycle(initialValue = null)
+    val profile by rememberReadyProfile()
 
     val picture = profile?.profilePicture ?: return null
     val displayName = profile?.displayName.orEmpty()
@@ -363,6 +371,40 @@ private fun rememberProfileAvatar(): (@Composable (Modifier) -> Unit)? {
             modifier = modifier,
         )
     }
+}
+
+/**
+ * The account's avatar at the top of the Money tab (node 13729:744), which opens You now that the
+ * Group Money shell has no You tab. Without a photo it is the initials avatar, so the way to You
+ * is always there.
+ */
+@Composable
+internal fun MoneyProfileAvatar(modifier: Modifier = Modifier) {
+    val profile by rememberReadyProfile()
+    val picture = profile?.profilePicture
+    val displayName = profile?.displayName.orEmpty()
+    if (picture != null) {
+        ContactAvatar(
+            image = picture,
+            displayName = displayName,
+            access = BlobAccessContext.Owned,
+            modifier = modifier,
+        )
+    } else {
+        ContactAvatar(photoUri = null, displayName = displayName, modifier = modifier)
+    }
+}
+
+/** The signed-in profile, once auth is Ready (see [rememberProfileAvatar] for why it waits). */
+@Composable
+private fun rememberReadyProfile(): State<UserProfile?> {
+    val userManager = LocalUserManager.current
+    return remember(userManager) {
+        userManager?.state
+            ?.filter { it.authState is AuthState.Ready }
+            ?.map { it.userProfile }
+            ?: flowOf(null)
+    }.collectAsStateWithLifecycle(initialValue = null)
 }
 
 /** The bar's search button, a glass circle that grows into Search's field (see [SearchMorph]). */

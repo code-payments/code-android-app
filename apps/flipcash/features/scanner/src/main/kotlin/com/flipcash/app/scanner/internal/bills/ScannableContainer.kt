@@ -41,6 +41,7 @@ import dev.chrisbanes.haze.rememberHazeState
 internal fun ScannableContainer(
     onImagePicked: (Uri) -> Unit,
     modifier: Modifier = Modifier,
+    onClose: (() -> Unit)? = null,
     scannerView: @Composable () -> Unit,
 ) {
     val session = LocalSessionController.current!!
@@ -131,8 +132,12 @@ internal fun ScannableContainer(
             // gallery button lands on the + and the gear's exact size and center point. It is
             // laid over the full-bleed preview rather than reserving space above it. The corner is
             // the top because the bottom belongs to the hoisted tab bar.
+            // With no tab bar to leave by, a close leads it (iOS ScanScreen's top-leading close).
             AppBarWithTitle(
                 modifier = Modifier.align(Alignment.TopStart),
+                onBackIconClicked = onClose,
+                leadingDismiss = true,
+                hazeState = hazeState,
                 endContent = {
                     GalleryScanButton(
                         onImagePicked = onImagePicked,

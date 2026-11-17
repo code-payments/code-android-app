@@ -55,6 +55,10 @@ kotlin {
             implementation(libs.bundles.unit.testing)
             implementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
             implementation(project(":libs:test-utils"))
+            // Compose-rule renders of the wallet: Robolectric to host them, FlipcashPreview for the theme.
+            implementation(libs.robolectric)
+            implementation(project(":ui:resources:test-fixtures"))
+            implementation(project(":apps:flipcash:shared:theme"))
         }
     }
 }

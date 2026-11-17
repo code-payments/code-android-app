@@ -4,6 +4,13 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.painterResource
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.action_addDollars
+import com.flipcash.core.resources.action_addMoney
+import com.flipcash.core.resources.action_withdraw
+import com.flipcash.core.resources.label_currencyCount
+import com.flipcash.core.resources.title_tabMoney
+import com.getcode.util.resources.ic_chevron_right
+import com.getcode.util.resources.Res as UiRes
+import org.jetbrains.compose.resources.pluralStringResource
 import com.flipcash.core.resources.action_createYourOwnCurrency
 import com.flipcash.core.resources.action_currencyLeaderboard
 import com.flipcash.core.resources.action_withdrawDollars
@@ -25,6 +32,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -62,7 +73,9 @@ import com.flipcash.app.core.navigation.LocalTabBarPadding
 import com.flipcash.app.core.ui.TileButton
 import com.flipcash.app.core.ui.TileButtonStyle
 import com.flipcash.app.tokens.ui.SelectTokenViewModel
+import com.flipcash.shared.transactionhistory.moneyActivitySection
 import com.flipcash.shared.transactionhistory.recentActivitySection
+import com.flipcash.app.core.tokens.TokenPurpose
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 
@@ -72,13 +85,17 @@ private const val TokenStackKey = "tokenStack"
 fun WalletScreen(
     viewModel: WalletViewModel,
     tokenViewModel: SelectTokenViewModel,
+    money: Boolean = false,
+    profileAvatar: @Composable () -> Unit = {},
 ) {
     val balanceState by viewModel.stateFlow.collectAsStateWithLifecycle()
     val tokenState by tokenViewModel.stateFlow.collectAsStateWithLifecycle()
     WalletScreenContent(
         balanceState = balanceState,
         tokenState = tokenState,
-        dispatchEvent = viewModel::dispatchEvent
+        dispatchEvent = viewModel::dispatchEvent,
+        money = money,
+        profileAvatar = profileAvatar,
     )
 }
 
@@ -87,6 +104,8 @@ internal fun WalletScreenContent(
     balanceState: WalletViewModel.State,
     tokenState: SelectTokenViewModel.State,
     dispatchEvent: (WalletViewModel.Event) -> Unit,
+    money: Boolean = false,
+    profileAvatar: @Composable () -> Unit = {},
 ) {
     // Time-to-full-display for a logged-in launch. This tab is where the app lands, and the gate
     // below means "landed" is not the same frame as "composed" -- registering a reporter here holds
@@ -175,7 +194,9 @@ internal fun WalletScreenContent(
             .fillMaxSize()
             .testTag("wallet_content"),
         contentPadding = PaddingValues(
-            top = CodeTheme.dimens.inset,
+            // Money opens on its title, so it clears the status bar itself; the wallet's header starts
+            // 96 dp down and never needed to.
+            top = if (money) statusBarInset + CodeTheme.dimens.grid.x2 else CodeTheme.dimens.inset,
             start = CodeTheme.dimens.inset,
             end = CodeTheme.dimens.inset,
             // Clearance under the last row (the action tiles) once the list is scrolled to the end. The
@@ -184,7 +205,16 @@ internal fun WalletScreenContent(
             bottom = LocalTabBarPadding.current.calculateBottomPadding() + CodeTheme.dimens.grid.x8,
         ),
     ) {
-        item {
+        if (money) {
+            moneyHeader(
+                balance = reveal?.let { LocalFiat.fromUsd(it.totalBefore, tokenState.rate) }
+                    ?: tokenState.totalBalance,
+                currencyCount = tokenState.tokens?.size ?: 0,
+                balanceAlpha = { 1f - heroProgress() },
+                profileAvatar = profileAvatar,
+                dispatchEvent = dispatchEvent,
+            )
+        } else item {
             // v2 wallet header: 96 dp top / 44 dp bottom per Figma node 8966:1578.
             BalanceHeader(
                 modifier = Modifier
@@ -204,14 +234,15 @@ internal fun WalletScreenContent(
             }
         }
 
-        item {
+        if (!money) item {
             Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
         }
 
+        // Money has its own Add Money button, so the row that stands in for one is the wallet's alone.
         // The added-money answer is a read of a local cache that starts empty on a fresh login, so
         // an established account would be shown this row until its history arrived. It has to wait
         // the feed out (see State.showAddMoney) -- drawing it early is wrong, not merely early.
-        if (balanceState.showAddMoney) {
+        if (!money && balanceState.showAddMoney) {
             item {
                 AddMoneyRow(
                     modifier = Modifier
@@ -223,7 +254,8 @@ internal fun WalletScreenContent(
             }
         }
 
-        tokenState.tokens
+        // Money shows the currencies as a count that opens their list instead of the deck.
+        if (!money) tokenState.tokens
             ?.let { tokens ->
                 // A currency the wallet already held: hold that card's own number back too, so it
                 // rolls in step with the total above it instead of sitting there already updated. A
@@ -246,7 +278,9 @@ internal fun WalletScreenContent(
                 TokenCardStack(
                     tokens = tokens,
                     arrival = arrivingMint?.let { TokenCardArrival(mint = it, held = reveal != null) },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("wallet_token_card_stack"),
                     pinInset = statusBarInset + CodeTheme.dimens.grid.x2,
                     scrolledPast = scrolledPast,
                     expansion = expandingMint?.let { mint ->
@@ -276,7 +310,20 @@ internal fun WalletScreenContent(
             }
         }
 
-        if (balanceState.transactions.isNotEmpty()) {
+        if (money && balanceState.transactions.isNotEmpty()) {
+            moneyActivitySection(
+                transactions = balanceState.transactions,
+                modifier = Modifier
+                    .padding(top = grid.x6)
+                    .clickable {
+                        dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Sheets.ActivityHistory))
+                    }
+                    .padding(top = grid.x4, bottom = grid.x1),
+                onItemClick = { item ->
+                    dispatchEvent(WalletViewModel.Event.OpenTransaction(item))
+                },
+            )
+        } else if (balanceState.transactions.isNotEmpty()) {
             // Preview of the most recent activity (newest first); the full paged history lives on its own
             // screen. Tap the header to dive in. Shared with the token-info screen for consistency.
             recentActivitySection(
@@ -293,7 +340,8 @@ internal fun WalletScreenContent(
             )
         }
 
-        if (balanceState.hasReceivedMoney) {
+        // Money moves these to its two buttons and drops the rest (node 13729:744).
+        if (!money && balanceState.hasReceivedMoney) {
             item {
                 Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
             }
@@ -303,6 +351,7 @@ internal fun WalletScreenContent(
                 // equal height and tall enough for the icon (top) and label (bottom) to sit apart —
                 // labels bottom-align even when one wraps to two lines.
                 Column(
+                    modifier = Modifier.testTag("wallet_tiles"),
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                 ) {
                     Row(
@@ -368,6 +417,114 @@ internal fun WalletScreenContent(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * The top of the Money tab (node 13729:744): its title with the profile avatar that opens You, the
+ * balance alone, the number of currencies held, which opens their list, and Add Money beside Withdraw.
+ * Both buttons start today's flows, the same ones the wallet's tiles start.
+ *
+ * @param balanceAlpha The balance's opacity, read in the draw phase so a currency opening over the
+ *   tab fades it the way it fades the wallet's.
+ */
+private fun LazyListScope.moneyHeader(
+    balance: LocalFiat?,
+    currencyCount: Int,
+    balanceAlpha: () -> Float,
+    profileAvatar: @Composable () -> Unit,
+    dispatchEvent: (WalletViewModel.Event) -> Unit,
+) {
+    item(key = "money_title") {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = stringResource(Res.string.title_tabMoney),
+                style = CodeTheme.typography.screenTitleLarge,
+                color = CodeTheme.colors.textMain,
+            )
+            Box(
+                modifier = Modifier
+                    .size(CodeTheme.dimens.staticGrid.x8)
+                    .clip(CircleShape)
+                    .clickable { dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Tabs.Menu)) }
+                    .testTag("money_profile"),
+                contentAlignment = Alignment.Center,
+            ) {
+                profileAvatar()
+            }
+        }
+    }
+
+    item(key = "money_balance") {
+        BalanceHeader(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer { alpha = balanceAlpha() }
+                .testTag("money_balance"),
+            balance = balance,
+            appreciation = null,
+            bottomPadding = CodeTheme.dimens.grid.x1,
+            showCurrency = false,
+        ) {
+            dispatchEvent(WalletViewModel.Event.OpenCurrencySelection)
+        }
+    }
+
+    item(key = "money_currency_count") {
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Row(
+                modifier = Modifier
+                    .clickable {
+                        dispatchEvent(
+                            WalletViewModel.Event.OpenScreen(AppRoute.Sheets.TokenSelection(TokenPurpose.Balance))
+                        )
+                    }
+                    .padding(vertical = CodeTheme.dimens.grid.x1),
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = pluralStringResource(Res.plurals.label_currencyCount, currencyCount, currencyCount),
+                    style = CodeTheme.typography.textSmall,
+                    color = CodeTheme.colors.textSecondary,
+                )
+                Icon(
+                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
+                    painter = painterResource(UiRes.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    tint = CodeTheme.colors.textSecondary,
+                )
+            }
+        }
+    }
+
+    item(key = "money_actions") {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = CodeTheme.dimens.grid.x6),
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+        ) {
+            MoneyActionButton(
+                text = stringResource(Res.string.action_addMoney),
+                primary = true,
+                modifier = Modifier.weight(1f),
+            ) {
+                dispatchEvent(WalletViewModel.Event.PresentDepositOptions)
+            }
+            MoneyActionButton(
+                text = stringResource(Res.string.action_withdraw),
+                primary = false,
+                modifier = Modifier.weight(1f),
+            ) {
+                // No preselected mint, as from the wallet's tile: the flow opens on the currency picker.
+                dispatchEvent(WalletViewModel.Event.OpenScreen(AppRoute.Transfers.Withdrawal(preselectedMint = null)))
             }
         }
     }

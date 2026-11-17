@@ -1,6 +1,7 @@
 package com.flipcash.shared.transactionhistory
 
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.UserProfile
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
@@ -62,4 +63,15 @@ data class TransactionListItem(
     val canCancel: Boolean,
     // The DM a send-back was paid in, so tapping the row opens that chat (see [TransactionRouter]).
     val returnChatId: ChatId? = null,
+    // The group chat the entry happened in: only boosts and request payments carry one, and a
+    // send-back's DM ([returnChatId]) never counts. Set even when the chat can't be named.
+    val chatId: ChatId? = null,
+    // [chatId]'s display name from the local chat store; null when the chat is a DM or isn't
+    // stored. The Money tab titles the row with it, and falls back to [title] without it.
+    val chatName: String? = null,
+    // [chatName]'s group picture; null without a name, or when the group has none stored. The
+    // Money tab draws it in place of [avatar] on a row it titles with [chatName].
+    val chatPicture: MediaItem? = null,
+    // The counterparty's display name, when their profile has landed; null otherwise.
+    val counterpartyName: String? = null,
 )

@@ -136,6 +136,8 @@ internal fun AppContent(
     val tabBarVisibility = remember { TabBarVisibilityController() }
     val barVisibility = rememberAppNavigationBarVisibility(codeNavigator, tabBarVisibility, cardExpansion)
     val searchMorph = remember(codeNavigator) { SearchMorph(codeNavigator) }
+    // Where Scanner and You close back to under the Group Money shell, which has no tab for either.
+    val offBarTabs = rememberOffBarTabs(codeNavigator)
     // Loads what Search fetches over the network while Home is up, so Search, which the bar opens
     // from any tab, starts on loaded results rather than a spinner.
     PreloadSearch()
@@ -302,6 +304,7 @@ internal fun AppContent(
                     deepLink = deepLink,
                     onPendingAction = onPendingAction,
                     searchMorph = searchMorph,
+                    offBarTabs = offBarTabs,
                 ),
             )
         }

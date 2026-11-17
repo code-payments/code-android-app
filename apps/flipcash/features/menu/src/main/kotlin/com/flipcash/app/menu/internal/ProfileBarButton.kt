@@ -17,6 +17,8 @@ import dev.chrisbanes.haze.HazeState
  * The single trailing control the You tab and its profile card draw over their content: Settings on
  * the tab, Download on the card. It sits in an untitled [AppBarWithTitle] so it lands where every
  * other tab's trailing bar button does, and it frosts whatever is under it when given a [hazeState].
+ * Given [onClose] (You drawn without the tab bar, under the Group Money shell), the bar leads with a
+ * close.
  */
 @Composable
 internal fun ProfileBarButton(
@@ -27,9 +29,13 @@ internal fun ProfileBarButton(
     hazeState: HazeState? = null,
     testTag: String? = null,
     showDot: Boolean = false,
+    onClose: (() -> Unit)? = null,
 ) {
     AppBarWithTitle(
         modifier = modifier,
+        onBackIconClicked = onClose,
+        leadingDismiss = true,
+        hazeState = hazeState,
         endContent = {
             // A round button's corner is already empty, so the dot sits on it with no offset.
             WithNotificationDot(isShown = showDot, offset = DpOffset.Zero) {

@@ -87,7 +87,7 @@ import dev.chrisbanes.haze.rememberHazeState
  * settings gear floats over the cover's top trailing corner and scrolls away with the page.
  */
 @Composable
-internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
+internal fun MenuScreenContent(viewModel: MenuScreenViewModel, onClose: (() -> Unit)? = null) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     // v2's tab bar is a hoisted overlay drawn ABOVE this content, so reserve its height as bottom
@@ -116,7 +116,10 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                     // A named account resolves in a frame or two, and a prompt that flashed at it would
                     // be a lie. The gear is still there, so Settings is never out of reach.
                     ProfileState.Unknown -> item(key = "settings_gear") {
-                        SettingsGear(onClick = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) })
+                        SettingsGear(
+                            onClick = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                            onClose = onClose,
+                        )
                     }
 
                     is ProfileState.Unclaimed -> {
@@ -128,6 +131,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                                 onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.EditProfile)) },
                                 onShare = null,
                                 onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                                onClose = onClose,
                             )
                         }
                         item(key = "claim_prompt") {
@@ -147,6 +151,7 @@ internal fun MenuScreenContent(viewModel: MenuScreenViewModel) {
                                 onEdit = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.EditProfile)) },
                                 onShare = { viewModel.dispatchEvent(Event.ShareProfile) },
                                 onSettings = { viewModel.dispatchEvent(Event.OpenScreen(AppRoute.Menu.Settings)) },
+                                onClose = onClose,
                             )
                         }
                         item(key = "stats") {
@@ -197,6 +202,7 @@ private fun OwnProfileHeader(
     onEdit: () -> Unit,
     onShare: (() -> Unit)?,
     onSettings: () -> Unit,
+    onClose: (() -> Unit)? = null,
 ) {
     // The header is what scrolls under the gear, so it is the gear's frosting source.
     val hazeState = rememberHazeState()
@@ -249,6 +255,7 @@ private fun OwnProfileHeader(
             modifier = Modifier.align(Alignment.TopEnd),
             onClick = onSettings,
             hazeState = hazeState,
+            onClose = onClose,
         )
     }
 }
@@ -263,6 +270,7 @@ private fun SettingsGear(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     hazeState: HazeState? = null,
+    onClose: (() -> Unit)? = null,
 ) {
     // Any confirmed newer store build, whatever its priority; gone once the user is on it. The
     // controller never offers one on debug or internal builds, so those never get the dot.
@@ -275,6 +283,7 @@ private fun SettingsGear(
         modifier = modifier,
         hazeState = hazeState,
         testTag = "you-settings",
+        onClose = onClose,
     )
 }
 
