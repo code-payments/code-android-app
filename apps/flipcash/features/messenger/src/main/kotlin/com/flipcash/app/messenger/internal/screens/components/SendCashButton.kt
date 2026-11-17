@@ -42,6 +42,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -64,6 +67,9 @@ import dev.chrisbanes.haze.blur.hazeBlur
  */
 internal val CondensedSymbolFontSize = 22.sp
 
+/** The composer's Send Cash button. */
+internal const val SendCashButtonTag = "chat_send_cash_button"
+
 @Composable
 internal fun RowScope.SendCashButton(
     state: ChatViewModel.State,
@@ -80,6 +86,9 @@ internal fun RowScope.SendCashButton(
     // A group is condensed too: the group is not one counterparty to "Send $" to.
     val isGroupChat = state.chatType == ChatType.GROUP
     val isTyping = canType || isGroupChat
+    // Group Money's group composer (frames 1-06, 1-08, node 13729:670) fills the condensed "$" with
+    // the theme's blue and drops the rim: it is the group's one money action.
+    val blue = isTyping && isGroupChat && LocalNavBarShell.current == NavBarShell.GroupMoney
 
     // Colors ease slowly and independently of the width/label so the fill change reads as one calm
     // transition instead of snapping with the resize — but NOT on the first settle. A tip chat opens
@@ -92,12 +101,20 @@ internal fun RowScope.SendCashButton(
     val colorSpec: AnimationSpec<Color> =
         if (hasSettled) tween(durationMillis = 350) else snap()
     val backgroundColor by animateColorAsState(
-        targetValue = if (isTyping) ChatInputDefaults.ContainerColor else Color.White,
+        targetValue = when {
+            blue -> CodeTheme.colors.badgeFocus
+            isTyping -> ChatInputDefaults.ContainerColor
+            else -> Color.White
+        },
         animationSpec = colorSpec,
         label = "send button background",
     )
     val contentColor by animateColorAsState(
-        targetValue = if (isTyping) CodeTheme.colors.textMain else Color.Black,
+        targetValue = when {
+            blue -> Color.White
+            isTyping -> CodeTheme.colors.textMain
+            else -> Color.Black
+        },
         animationSpec = colorSpec,
         label = "send button content",
     )
@@ -137,6 +154,7 @@ internal fun RowScope.SendCashButton(
     Row(
         modifier = Modifier
             .addIf(!canType) { Modifier.weight(1f) }
+            .testTag(SendCashButtonTag)
             // Match the chat input's single-line height (~54dp; driven by its trailing send-icon
             // stack). Equal min width keeps the collapsed "$" state a square with even padding
             // instead of a short rectangle; the expanded "Send $" content grows past it.
@@ -146,7 +164,7 @@ internal fun RowScope.SendCashButton(
             // naturally as the background eases to transparent when typing begins.
             .hazeBlur(HazeInput.Sources(hazeState), hazeMaterial)
             .background(backgroundColor, shape)
-            .then(if (isTyping) Modifier.border(CodeTheme.dimens.border, ChatInputDefaults.RimBrush, shape) else Modifier)
+            .then(if (isTyping && !blue) Modifier.border(CodeTheme.dimens.border, ChatInputDefaults.RimBrush, shape) else Modifier)
             .clickable(onClick = onClick)
             .padding(
                 horizontal = CodeTheme.dimens.staticGrid.x3,

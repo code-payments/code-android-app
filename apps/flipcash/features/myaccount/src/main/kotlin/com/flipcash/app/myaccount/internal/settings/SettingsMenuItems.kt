@@ -61,6 +61,29 @@ internal data object TrustedWebsites : FullMenuItem<SettingsViewModel.Event>() {
         SettingsViewModel.Event.OpenScreen(AppRoute.Menu.TrustedWebsites)
 }
 
+/**
+ * Group Money shell only, with [CurrencyLeaderboard]: the Money tab drops the wallet tiles that
+ * opened both, so Currencies in Settings is their entry point there. Same glyph, label and route
+ * as the tile.
+ */
+internal data object CreateCurrency : FullMenuItem<SettingsViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(CoreR.drawable.ic_coins_add)
+    override val name: String
+        @Composable get() = stringResource(CoreR.string.action_createYourOwnCurrency)
+    override val action: SettingsViewModel.Event =
+        SettingsViewModel.Event.OpenScreen(AppRoute.Token.CurrencyCreator)
+}
+
+/** Group Money shell only; see [CreateCurrency]. */
+internal data object CurrencyLeaderboard : FullMenuItem<SettingsViewModel.Event>() {
+    override val icon: Painter
+        @Composable get() = painterResource(CoreR.drawable.ic_globe)
+    override val name: String
+        @Composable get() = stringResource(CoreR.string.action_currencyLeaderboard)
+    override val action: SettingsViewModel.Event = SettingsViewModel.Event.OpenScreen(AppRoute.Token.Discovery)
+}
+
 internal data object BillCustomizer : FullMenuItem<SettingsViewModel.Event>() {
     override val icon: Painter
         @Composable get() = rememberVectorPainter(Icons.Outlined.Palette)

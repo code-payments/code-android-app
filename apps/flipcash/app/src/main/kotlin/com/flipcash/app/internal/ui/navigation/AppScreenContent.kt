@@ -32,6 +32,7 @@ import com.flipcash.app.currencycreator.CurrencyCreatorFlowScreen
 import com.flipcash.app.internal.ui.MoneyProfileAvatar
 import com.flipcash.app.internal.ui.SearchMorph
 import com.flipcash.app.internal.ui.SearchOriginTabButton
+import com.flipcash.app.internal.ui.youTabLongClick
 import com.flipcash.app.search.SearchScreen
 import com.flipcash.app.tipping.FindByUsernameScreen
 import com.flipcash.app.tipping.ArchivedChatsScreen
@@ -108,6 +109,9 @@ internal fun appEntryProvider(
     onPendingAction: (DeeplinkAction) -> Unit = {},
     searchMorph: SearchMorph? = null,
     offBarTabs: OffBarTabs? = null,
+    // The Switch Accounts gate the nav bar's You tab uses, read inside the entry that needs it so
+    // the entry follows the gate when it opens after the provider was built.
+    canSwitchAccounts: () -> Boolean = { false },
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
 
     // Loading / splash
@@ -140,10 +144,13 @@ internal fun appEntryProvider(
         // covers the expanded currency-info with correct z-order (iOS WalletScreen structure).
         // The Group Money shell lays the wallet out as its Money tab (node 13729:744).
         val money = LocalNavBarShell.current == NavBarShell.GroupMoney
+        val navigator = LocalCodeNavigator.current
         CardExpandHost {
             WalletScreen(
                 money = money,
                 profileAvatar = { MoneyProfileAvatar(Modifier.fillMaxSize()) },
+                // The shell has no You tab, so the avatar that opens You takes its long press too.
+                onProfileLongClick = youTabLongClick(canSwitchAccounts(), navigator),
             )
         }
     }

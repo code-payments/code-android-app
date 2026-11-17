@@ -86,6 +86,9 @@ import com.flipcash.shared.chat.reactions.ReactionRefreshPlanner
 import com.flipcash.shared.chat.ui.ChatAnimations
 import com.flipcash.shared.chat.ui.GroupInviteCardDefaults
 import com.flipcash.shared.chat.ui.GroupReadyCardBubble
+import com.flipcash.shared.chat.ui.GroupReadyEmptyState
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.shared.chat.ui.GroupInviteLinkCard
 import com.flipcash.shared.chat.ui.QuickReactionStripPlacement
 import com.flipcash.shared.chat.ui.transcriptBubbleMaxWidth
@@ -136,6 +139,7 @@ internal fun MessageList(
     // held in place while it fades out. See GroupReadyCardPresence.
     val groupSubject = state.subject as? ChatSubject.Group
     val memberCount = groupSubject?.memberCount ?: 0L
+    val navBarShell = LocalNavBarShell.current
     val groupReadyPresence = rememberGroupReadyCardPresence(
         show = showsGroupReadyCard(
             isGroup = isGroup,
@@ -780,14 +784,23 @@ internal fun MessageList(
                     // the bar rather than the composer, and this sits right under the bar.
                     if (groupReadyPresence.present) {
                         item(key = "group-ready-card") {
-                            GroupReadyCardBubble(
-                                groupName = groupSubject?.title.orEmpty(),
-                                onInvite = onInvitePeople,
-                                modifier = Modifier
-                                    .collapseHeight { groupReadyPresence.heightFraction.value }
-                                    .padding(bottom = CodeTheme.dimens.grid.x2)
-                                    .graphicsLayer { alpha = groupReadyPresence.alpha.value },
-                            )
+                            val presence = Modifier
+                                .collapseHeight { groupReadyPresence.heightFraction.value }
+                                .padding(bottom = CodeTheme.dimens.grid.x2)
+                                .graphicsLayer { alpha = groupReadyPresence.alpha.value }
+                            // Group Money draws the same moment as a centred empty state (frame
+                            // 1-06), under the same rule and with the same exit.
+                            when (navBarShell) {
+                                NavBarShell.GroupMoney -> GroupReadyEmptyState(
+                                    onInvite = onInvitePeople,
+                                    modifier = presence,
+                                )
+                                NavBarShell.Classic -> GroupReadyCardBubble(
+                                    groupName = groupSubject?.title.orEmpty(),
+                                    onInvite = onInvitePeople,
+                                    modifier = presence,
+                                )
+                            }
                         }
                     }
 

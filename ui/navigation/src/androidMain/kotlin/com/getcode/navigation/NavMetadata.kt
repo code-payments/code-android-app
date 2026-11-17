@@ -35,14 +35,19 @@ enum class NavMetadataKeys(val key: String, ) {
  *
  * Keeping the tag here — at the one place every route is registered — means screen-root
  * test anchors live in a single file and can't drift out of sync with the screens.
+ *
+ * [metadata] replaces individual keys of the type-derived metadata for this registration only,
+ * for a route whose presentation depends on something its type can't know (e.g. a
+ * [WrapContentSheet] that one shell presents at full height).
  */
 inline fun <reified T : NavKey> EntryProviderScope<NavKey>.annotatedEntry(
     testTag: String? = null,
+    metadata: Map<String, Any> = emptyMap(),
     noinline content: @Composable (T) -> Unit
 ) {
     val resolvedTag = testTag ?: screenRootTag(T::class.simpleName)
     val tagged: @Composable (T) -> Unit = { key -> Box(Modifier.testTag(resolvedTag)) { content(key) } }
-    entry(metadata = T::class.metadata(), content = tagged)
+    entry(metadata = T::class.metadata() + metadata, content = tagged)
 }
 
 /**

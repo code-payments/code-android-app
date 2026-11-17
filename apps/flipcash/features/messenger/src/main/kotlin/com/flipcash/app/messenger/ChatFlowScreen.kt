@@ -184,7 +184,7 @@ fun ChatFlowScreen(
 }
 
 @Composable
-private fun chatEntryProvider(
+internal fun chatEntryProvider(
     openKeyboard: Boolean,
     resultStateRegistry: NavResultStateRegistry,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {

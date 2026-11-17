@@ -318,6 +318,27 @@ fun AppBarWithTitle(
     )
 }
 
+/**
+ * A tab home's title bar: [title] in the large screen title style, flush with the inset, and
+ * [endContent] at the end, with no leading control. Tabs that sit side by side draw their titles
+ * through this, so switching between them leaves the title where it is.
+ */
+@Composable
+fun AppBarWithLargeTitle(
+    title: String,
+    modifier: Modifier = Modifier,
+    endContent: @Composable RowScope.() -> Unit = { },
+) {
+    AppBarWithTitle(
+        modifier = modifier,
+        title = title,
+        titleTextStyle = CodeTheme.typography.screenTitleLarge,
+        // With nothing in the leading slot, a Start title sits at the inset.
+        titleAlignment = Alignment.Start,
+        endContent = endContent,
+    )
+}
+
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,

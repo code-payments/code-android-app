@@ -9,7 +9,9 @@ import com.flipcash.app.appsettings.AppSettingsCoordinator
 import com.flipcash.app.auth.AuthManager
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.android.VersionInfo
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.featureflags.BetaFeature
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.menu.MenuItem
 import com.flipcash.app.menu.StaffMenuItem
@@ -72,6 +74,9 @@ internal class SettingsViewModel @Inject constructor(
         // tap-to-unlock easter egg.
         val unlockedBetaFeaturesManually: Boolean = false,
         val flags: List<BetaFeature> = emptyList(),
+        // The tab set the app draws. Currencies shows only under GroupMoney, which hides the wallet
+        // tiles it replaces.
+        val shell: NavBarShell = NavBarShell.Classic,
         val versionTapCount: Int = 0,
         val appVersionInfo: VersionInfo = VersionInfo(),
         val releaseTrack: String = "",
@@ -90,6 +95,7 @@ internal class SettingsViewModel @Inject constructor(
             val manual: Boolean,
         ) : Event
         data class OnFeatureFlagsUpdated(val flags: List<BetaFeature>) : Event
+        data class OnNavBarShellResolved(val shell: NavBarShell) : Event
         data class OnBiometricsSettingChanged(
             val required: Boolean,
             val supported: Boolean,
@@ -134,6 +140,19 @@ internal class SettingsViewModel @Inject constructor(
 
         featureFlags.observe()
             .onEach { dispatchEvent(Event.OnFeatureFlagsUpdated(it)) }
+            .launchIn(viewModelScope)
+
+        // The inputs and resolver HomeViewModel.navBarShell uses, so Currencies shows exactly when
+        // the Group Money shell does: its flag alone is not enough without staff or the override.
+        combine(
+            featureFlags.observe(FeatureFlag.GroupMoneyUi),
+            featureFlags.observeOverride(),
+            userFlags.resolvedFlags.map { it.isStaff.effectiveValue },
+        ) { groupMoneyUi, override, isStaff ->
+            NavBarShell.resolve(groupMoneyUi = groupMoneyUi, betaOverride = override, isStaff = isStaff)
+        }
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnNavBarShellResolved(it)) }
             .launchIn(viewModelScope)
 
         appSettings.settings()
@@ -277,13 +296,14 @@ internal class SettingsViewModel @Inject constructor(
         /**
          * Biometrics drops out on hardware that can't offer it; Beta-badged rows need the beta
          * unlock; flag-gated rows additionally
-         * need their flag switched on server-side. Bill Customizer stays out, as it did on the
-         * Advanced screen.
+         * need their flag switched on server-side. Currencies needs the Group Money [shell]. Bill
+         * Customizer stays out, as it did on the Advanced screen.
          */
         internal fun buildSections(
             biometricsSupported: Boolean,
             betaUnlocked: Boolean,
             flags: List<BetaFeature>,
+            shell: NavBarShell = NavBarShell.Classic,
         ): List<SettingsSection> {
             val all = listOf(
                 SettingsSection(
@@ -292,8 +312,13 @@ internal class SettingsViewModel @Inject constructor(
                 ),
                 SettingsSection(R.string.title_settingsSectionPrivacy, listOf(Blocklist, TrustedWebsites)),
                 SettingsSection(
+                    R.string.title_currencies,
+                    if (shell == NavBarShell.GroupMoney) listOf(CreateCurrency, CurrencyLeaderboard) else emptyList(),
+                ),
+                // iOS's order, with Link a Desktop (Android only) kept directly under Application Logs.
+                SettingsSection(
                     R.string.title_advancedFeatures,
-                    listOf(/* BillCustomizer, */ DeviceLogs, LinkDesktop, NotificationStatus, BetaFlags, SwitchAccount),
+                    listOf(/* BillCustomizer, */ BetaFlags, DeviceLogs, LinkDesktop, NotificationStatus, SwitchAccount),
                 ),
                 SettingsSection(
                     R.string.title_settingsSectionAccount,
@@ -319,11 +344,13 @@ internal class SettingsViewModel @Inject constructor(
             biometricsSupported: Boolean = this.biometricsSupported,
             betaUnlocked: Boolean = this.betaUnlocked,
             flags: List<BetaFeature> = this.flags,
+            shell: NavBarShell = this.shell,
         ) = copy(
             biometricsSupported = biometricsSupported,
             betaUnlocked = betaUnlocked,
             flags = flags,
-            sections = buildSections(biometricsSupported, betaUnlocked, flags),
+            shell = shell,
+            sections = buildSections(biometricsSupported, betaUnlocked, flags, shell),
         )
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
@@ -334,6 +361,8 @@ internal class SettingsViewModel @Inject constructor(
                 }
 
                 is Event.OnFeatureFlagsUpdated -> { state -> state.rebuilt(flags = event.flags) }
+
+                is Event.OnNavBarShellResolved -> { state -> state.rebuilt(shell = event.shell) }
 
                 is Event.OnBiometricsSettingChanged -> { state ->
                     state.rebuilt(biometricsSupported = event.supported).copy(

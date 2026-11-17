@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flipcash.core.R
 import com.getcode.ui.components.glass.floatingGlass
@@ -43,6 +44,18 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.LocalUserManager
 import com.flipcash.app.core.extensions.openAsSheet
 import dev.chrisbanes.haze.HazeState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.ui.graphics.Brush
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeProgressive
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.hazeBlur
 import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.navigation.NavBarButton
@@ -57,7 +70,10 @@ import com.flipcash.app.core.ui.label
 import com.getcode.ui.components.CircularIconButton
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.flipcash.app.core.ui.navigationBarRowPadding
 import com.flipcash.app.core.ui.rememberNavigationBarState
+import com.flipcash.app.featureflags.FeatureFlag
+import com.flipcash.app.featureflags.LocalFeatureFlags
 import com.flipcash.app.session.LocalSessionController
 import com.flipcash.services.models.UserProfile
 import com.flipcash.services.models.chat.BlobAccessContext
@@ -67,7 +83,6 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.Sheet
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.glass.FloatingChrome
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -102,11 +117,12 @@ internal class AppNavigationBarVisibility(
      * home can also hide it without leaving its route (the You tab's tip card expanding in place).
      *
      * Only the shell's own tab homes count: under [NavBarShell.GroupMoney] Scanner and You have no
-     * tab, so they are drawn without the bar and its search button (see OffBarTabs).
+     * tab, so they are drawn without the bar (see OffBarTabs).
      */
     val shown: Boolean by derivedStateOf {
         // Search keeps the bar: its pill and button hand over to Search's field (SearchMorph), and
-        // come back from it, rather than the whole bar sliding away.
+        // come back from it, rather than the whole bar sliding away. Only Classic has the button
+        // that opens Search (see offersSearch).
         val top = navigator.currentRouteKey
         (shell.value.isTabHome(top) || top is AppRoute.Messaging.Search) &&
             bottomBarMessages.value.isEmpty() &&
@@ -146,6 +162,17 @@ internal class AppNavigationBarVisibility(
 
     /** On screen and not faded out by a card expansion. */
     val isVisible: Boolean get() = shown && !fadedOut
+
+    /**
+     * Whether the soft edge under the bar is drawn (see [AppBottomScrollEdge]): only under
+     * [NavBarShell.GroupMoney], over its tab homes, while the bar is. Search, which keeps the bar,
+     * draws its own edge, and Classic has none.
+     */
+    val showsBottomEdge: Boolean by derivedStateOf {
+        shell.value == NavBarShell.GroupMoney &&
+            shell.value.isTabHome(navigator.currentRouteKey) &&
+            isVisible
+    }
 }
 
 @Composable
@@ -197,6 +224,13 @@ internal fun AppNavigationBar(
 
     val avatar = rememberProfileAvatar()
 
+    // The Left-Aligned Tab Bar beta flag, read live so flipping it in Labs moves the bar at once.
+    // Remembered because each observe() starts its own collector. It only moves the Group Money bar;
+    // that shell is already limited to staff and the beta override.
+    val featureFlags = LocalFeatureFlags.current
+    val leftAlignedFlag = remember(featureFlags) { featureFlags.observe(FeatureFlag.LeftAlignedTabBar) }
+    val leftAligned by leftAlignedFlag.collectAsStateWithLifecycle()
+
     Box(
         modifier = Modifier
             .then(modifier)
@@ -218,15 +252,19 @@ internal fun AppNavigationBar(
                     selectedTab = selectedTab ?: NavBarButton.Wallet,
                     chatListUnreadCount = chatListUnreadCount,
                 )
-                // The search button sits at the bar's trailing end, apart from the tabs, where
-                // iOS puts its search tab. It is as tall as the pill, which sizes to its content.
+                // Under Classic the search button sits at the bar's trailing end, apart from the
+                // tabs, where iOS puts its search tab. It is as tall as the pill, which sizes to its
+                // content. GroupMoney has no search button; its pill centres itself in the row, or
+                // starts at the screen's content margin when leftAligned.
                 var pillHeight by remember { mutableStateOf(0.dp) }
                 val density = LocalDensity.current
                 Row(
                     modifier = Modifier
                         .navigationBarsPadding()
-                        // Shared with the toast that rises out of the bar, so it is never wider.
-                        .padding(horizontal = FloatingChrome.horizontalInset)
+                        // FloatingChrome.horizontalInset each edge, shared with the toast that rises
+                        // out of the bar, so it is never wider than this row. The Group Money pill is
+                        // narrower than the row.
+                        .padding(navigationBarRowPadding(shell, leftAligned))
                         .padding(bottom = CodeTheme.dimens.grid.x3),
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
                     verticalAlignment = Alignment.CenterVertically,
@@ -257,22 +295,25 @@ internal fun AppNavigationBar(
                                 avatar = avatar,
                                 onYouTabLongClick = youTabLongClick(canSwitchAccounts, navigator),
                                 shell = shell,
+                                leftAligned = leftAligned,
                             )
                         }
                     }
-                    Box(
-                        modifier = with(searchMorph) {
-                            Modifier
-                                .size(pillHeight.takeIf { it > 0.dp } ?: SearchButtonFallbackSize)
-                                .morphButton()
-                        },
-                    ) {
-                        if (chromeShown) {
-                            SearchButton(
-                                modifier = Modifier.fillMaxSize(),
-                                hazeState = hazeState,
-                                onClick = searchMorph::open,
-                            )
+                    if (shell.offersSearch) {
+                        Box(
+                            modifier = with(searchMorph) {
+                                Modifier
+                                    .size(pillHeight.takeIf { it > 0.dp } ?: SearchButtonFallbackSize)
+                                    .morphButton()
+                            },
+                        ) {
+                            if (chromeShown) {
+                                SearchButton(
+                                    modifier = Modifier.fillMaxSize(),
+                                    hazeState = hazeState,
+                                    onClick = searchMorph::open,
+                                )
+                            }
                         }
                     }
                 }
@@ -282,8 +323,107 @@ internal fun AppNavigationBar(
 }
 
 /**
+ * The soft edge the Group Money bar floats over, after iOS's tab bar: across the full width, the list
+ * softens and dims toward the background as it nears the foot of the screen, rather than running
+ * sharp under the bar. Shown while [AppNavigationBarVisibility.showsBottomEdge] says so, and faded
+ * with the bar through a card expansion.
+ *
+ * [barHeight] is the bar's measured height, system navigation bar included, so it reaches up to the
+ * pill's top. The edge starts [SoftEdgeLeadIn] above the pill. Its blur grows from nothing there to
+ * [SoftEdgeBlurRadius] at the pill's foot, and its dim follows [softEdgeDimStops], so a row beside
+ * the pill stays readable and a row below it has nearly faded out. It draws nothing touchable, so
+ * the list under it still scrolls.
+ */
+@Composable
+internal fun AppBottomScrollEdge(
+    visibility: AppNavigationBarVisibility,
+    hazeState: HazeState,
+    barHeight: () -> Dp,
+    modifier: Modifier = Modifier,
+) {
+    val background = CodeTheme.colors.background
+    // Under the pill: the system navigation bar and the bar row's bottom padding (AppNavigationBar).
+    val belowPill = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+        CodeTheme.dimens.grid.x3
+    val pill = (barHeight() - belowPill).coerceAtLeast(0.dp)
+    val pillFootPx = with(LocalDensity.current) { (SoftEdgeLeadIn + pill).toPx() }
+
+    val style = remember(background, pillFootPx) {
+        HazeBlurStyle {
+            blurRadius(SoftEdgeBlurRadius)
+            noiseFactor(0f)
+            colorEffects(emptyList())
+            backgroundColor(background)
+            progressive(
+                HazeProgressive.verticalGradient(
+                    easing = LinearEasing,
+                    startIntensity = 0f,
+                    endY = pillFootPx,
+                    endIntensity = 1f,
+                ),
+            )
+        }
+    }
+    val dim = remember(background, pill, belowPill) {
+        val stops = softEdgeDimStops(leadIn = SoftEdgeLeadIn, pill = pill, belowPill = belowPill)
+        Brush.verticalGradient(
+            *stops.map { (fraction, alpha) -> fraction to background.copy(alpha = alpha) }.toTypedArray(),
+        )
+    }
+
+    AnimatedVisibility(
+        visible = visibility.showsBottomEdge,
+        modifier = modifier.graphicsLayer { alpha = 1f - visibility.fadeProgress },
+        enter = fadeIn(),
+        exit = fadeOut(),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(SoftEdgeLeadIn + pill + belowPill)
+                .hazeBlur(HazeInput.Sources(hazeState), style)
+                .background(dim),
+        )
+    }
+}
+
+/**
+ * The soft edge's dim, as (fraction of the edge's height, alpha of the background drawn over the
+ * list), read off iOS's tab bar edge: none where it starts, [SoftEdgeLeadIn] above the pill; 0.22 at
+ * the pill's top, 0.5 at its middle and 0.7 at its foot; 0.75 at the bottom of the screen.
+ */
+internal fun softEdgeDimStops(leadIn: Dp, pill: Dp, belowPill: Dp): List<Pair<Float, Float>> {
+    val height = leadIn + pill + belowPill
+    fun at(offset: Dp): Float = if (height > 0.dp) offset / height else 0f
+    return listOf(
+        0f to 0f,
+        at(leadIn) to 0.22f,
+        at(leadIn + pill / 2) to 0.5f,
+        at(leadIn + pill) to 0.7f,
+        1f to 0.75f,
+    )
+}
+
+// How far above the pill's top the soft edge begins, as on iOS (29pt above its tab bar).
+private val SoftEdgeLeadIn = 29.dp
+
+// The soft edge's blur at the pill's foot and below. iOS's reaches a Gaussian sigma of about 3.5pt.
+private val SoftEdgeBlurRadius = 6.dp
+
+/**
+ * Whether the bar draws the search button beside the tabs. Only Classic does: the Group Money bar
+ * holds Groups and Money alone (frames 1-01 and 1-02, node 13729:411), so it has no way into Search.
+ */
+internal val NavBarShell.offersSearch: Boolean
+    get() = when (this) {
+        NavBarShell.Classic -> true
+        NavBarShell.GroupMoney -> false
+    }
+
+/**
  * What a long-press on the You tab does: open the account switcher as a sheet, or nothing while
- * [canSwitchAccounts] is closed. Mirrors iOS `HomeTabView.handleLongPress(on:)`.
+ * [canSwitchAccounts] is closed. Mirrors iOS `HomeTabView.handleLongPress(on:)`. The Group Money
+ * shell has no You tab, so the Money tab's avatar, which opens You, takes this long-press instead.
  *
  * The switcher is the same screen Advanced Features pushes. At a sheet's root its app bar shows a
  * Close, and choosing an account logs out, which App.kt answers by replacing the stack — sheet

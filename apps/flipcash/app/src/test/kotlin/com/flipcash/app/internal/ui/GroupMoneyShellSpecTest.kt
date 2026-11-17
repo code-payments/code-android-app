@@ -99,6 +99,41 @@ class GroupMoneyShellSpecTest {
         assertTrue(FeatureFlag.GroupMoneyUi.isShownInLabs(showAllFlags = true, isStaff = false, onboarding = false))
     }
 
+    // The left-aligned tab bar flag only moves the Group Money bar, so it takes the same gate.
+
+    @Test
+    fun `the left-aligned tab bar flag exists and is off by default`() {
+        val flag = FeatureFlag.LeftAlignedTabBar
+        assertEquals("left_aligned_tab_bar_enabled", flag.key)
+        assertEquals(false, flag.default)
+        assertFalse(flag.launched)
+        assertTrue(flag.visible)
+        assertEquals(FeatureTrack.Internal, flag.minTrack)
+    }
+
+    @Test
+    fun `the left-aligned tab bar flag is listed in Labs with its title and message`() {
+        val flag = FeatureFlag.LeftAlignedTabBar
+        assertTrue(flag in FeatureFlag.entries)
+        assertTrue(flag in FeatureFlag.availableEntries)
+        assertEquals("Left-Aligned Tab Bar", flag.title)
+        assertTrue("Groups and Money" in flag.message, "the message names the flag it needs")
+    }
+
+    @Test
+    fun `Labs shows the left-aligned tab bar toggle to the same users as the group money one`() {
+        listOf(false, true).forEach { showAllFlags ->
+            listOf(false, true).forEach { isStaff ->
+                assertEquals(
+                    FeatureFlag.GroupMoneyUi.isShownInLabs(showAllFlags, isStaff, onboarding = false),
+                    FeatureFlag.LeftAlignedTabBar.isShownInLabs(showAllFlags, isStaff, onboarding = false),
+                    "override $showAllFlags, staff $isStaff",
+                )
+            }
+        }
+        assertFalse(FeatureFlag.LeftAlignedTabBar.isShownInLabs(showAllFlags = false, isStaff = false, onboarding = false))
+    }
+
     @Test
     fun `Labs keeps today's rule for every other flag`() {
         // Staff alone still sees only Production flags; the override still shows everything.

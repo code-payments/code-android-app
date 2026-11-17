@@ -8,19 +8,20 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.flipcash.core.resources.Res as CoreRes
 import com.flipcash.core.resources.label_chatReceipt_yesterday
 import com.flipcash.core.resources.label_chatSeparator_today
+import com.flipcash.core.resources.title_moneyNoActivity
 import com.flipcash.core.resources.title_moneyRecentActivity
 import com.flipcash.services.models.chat.BlobAccessContext
 import com.flipcash.shared.common.ui.ContactAvatar
@@ -36,27 +37,65 @@ import kotlin.time.Instant
 
 /**
  * The Money tab's Recent Activity (node 13729:744): today's tappable header under the Money title,
- * then a [MoneyActivityRow] per entry. The Money counterpart of [recentActivitySection], with the
- * same parameters.
+ * then a [MoneyActivityRow] per entry.
+ *
+ * One block rather than a list item per row, so the tab can stretch it over the height left under
+ * its buttons: given a minimum height it fills it, and with more rows than that it grows past it.
+ * The preview is bounded upstream, so the rows are never many.
+ *
+ * @param showEmpty Whether no rows means no activity. False while the feed is still a cache that
+ *   has not heard from the server, so an established account is not told it has none.
+ * @param headerModifier The header row's padding and click target, as [recentActivitySection]'s
+ *   `modifier` is.
+ * @param onItemClick Opens one entry's details; null leaves the rows inert.
  */
-fun LazyListScope.moneyActivitySection(
+@Composable
+fun MoneyActivitySection(
     transactions: List<TransactionListItem>,
+    showEmpty: Boolean,
     modifier: Modifier = Modifier,
-    itemPadding: PaddingValues = PaddingValues(),
+    headerModifier: Modifier = Modifier,
     onItemClick: ((TransactionListItem) -> Unit)? = null,
 ) {
-    item(key = "recent_activity_header", contentType = "recent_activity_header") {
-        RecentActivityHeader(title = CoreRes.string.title_moneyRecentActivity, modifier = modifier)
+    Column(modifier = modifier.fillMaxWidth()) {
+        RecentActivityHeader(title = CoreRes.string.title_moneyRecentActivity, modifier = headerModifier)
+        if (transactions.isEmpty()) {
+            if (showEmpty) {
+                // Centred in whatever height the section was given below its header; at its own
+                // height when there is none to spare.
+                Spacer(Modifier.weight(1f))
+                MoneyActivityEmpty()
+                Spacer(Modifier.weight(1f))
+            }
+        } else {
+            transactions.forEach { item ->
+                key(item.id) {
+                    MoneyActivityRow(
+                        item = item,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onItemClick?.let { click -> { click(item) } },
+                    )
+                }
+            }
+        }
     }
-    items(transactions, key = { it.id }, contentType = { "money_activity_row" }) { item ->
-        MoneyActivityRow(
-            item = item,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(itemPadding),
-            onClick = onItemClick?.let { click -> { click(item) } },
-        )
-    }
+}
+
+/**
+ * No activity yet, in one line as on iOS. The full history keeps its own two lines ("No Activity"
+ * and what will appear there), in the same type as this.
+ */
+@Composable
+private fun MoneyActivityEmpty() {
+    Text(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = CodeTheme.dimens.grid.x4),
+        text = stringResource(CoreRes.string.title_moneyNoActivity),
+        style = CodeTheme.typography.textLarge,
+        color = CodeTheme.colors.textMain,
+        textAlign = TextAlign.Center,
+    )
 }
 
 /** Which day an activity entry happened on, relative to the viewer's today. */

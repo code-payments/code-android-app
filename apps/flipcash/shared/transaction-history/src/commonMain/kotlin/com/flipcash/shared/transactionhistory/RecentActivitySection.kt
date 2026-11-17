@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Icon
@@ -58,7 +57,7 @@ fun LazyListScope.recentActivitySection(
 }
 
 @Composable
-internal fun LazyItemScope.RecentActivityHeader(title: StringResource, modifier: Modifier) {
+internal fun RecentActivityHeader(title: StringResource, modifier: Modifier) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

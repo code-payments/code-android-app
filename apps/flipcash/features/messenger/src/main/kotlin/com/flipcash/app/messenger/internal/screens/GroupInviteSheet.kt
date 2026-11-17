@@ -76,6 +76,7 @@ import com.flipcash.app.core.chat.ChatStep
 import com.flipcash.app.core.chat.GroupInviteResult
 import com.flipcash.app.core.chat.InviteHostAction
 import com.flipcash.app.core.media.rememberMediaUrl
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.share.SharePreviewImage
 import com.flipcash.app.core.share.TipCodePreview
 import com.flipcash.app.messenger.internal.ChatSubject
@@ -166,18 +167,56 @@ internal fun CodeNavigator.openInvitePeople(target: InvitePeopleTarget) = when (
     InvitePeopleTarget.PlainLink -> openGroupInvite()
 }
 
+/** The screens whose Invite People button can open the host's Invite sheet. */
+internal enum class InviteEntry {
+    /** The group's profile. It opens the sheets it opened before Group Money, in either shell. */
+    GroupInfo,
+
+    /** Join Requests' empty state. */
+    JoinRequests,
+}
+
+/**
+ * Whether [entry] opens the host's Invite sheet ([openInviteHost]) rather than the share sheet
+ * ([openGroupInvite]). The host sheet is for a viewer who can invite. Under Group Money only Group
+ * Info opens it; Join Requests' empty state goes straight to the share sheet ([openInvitePeople]),
+ * as the transcript's Invite People does.
+ */
+internal fun inviteOpensHost(shell: NavBarShell, canInvite: Boolean, entry: InviteEntry): Boolean =
+    canInvite && (shell != NavBarShell.GroupMoney || entry == InviteEntry.GroupInfo)
+
 /**
  * Opens the host's Invite sheet (frame 1m). It returns what to open next and closes, and the next
- * sheet opens from here, once it is gone; [onManageInvites] opens Manage Invites in the chat flow.
+ * sheet opens from here, once it is gone ([onInviteHostPick]).
  */
 internal fun CodeNavigator.openInviteHost(onManageInvites: () -> Unit) {
     navigateForResult<InviteHostAction>(ChatStep.InviteHost) { result ->
         if (result !is NavResultOrCanceled.ReturnValue) return@navigateForResult
-        when (result.value) {
-            InviteHostAction.ShareInvite -> openInviteLinkShare()
-            InviteHostAction.ShareJoin -> openGroupInvite()
-            InviteHostAction.ManageInvites -> onManageInvites()
-        }
+        onInviteHostPick(result.value, onManageInvites)
+    }
+}
+
+/**
+ * Group Info's share button: the host's Invite sheet for a viewer who can invite, the join link
+ * otherwise. These are the sheets it opened before Group Money, in either [shell].
+ */
+internal fun CodeNavigator.openGroupInfoInvite(shell: NavBarShell, canInvite: Boolean, onManageInvites: () -> Unit) {
+    if (inviteOpensHost(shell, canInvite, InviteEntry.GroupInfo)) {
+        openInviteHost(onManageInvites)
+    } else {
+        openGroupInvite()
+    }
+}
+
+/**
+ * Opens what the host picked on their Invite sheet; [onManageInvites] opens Manage Invites in the
+ * chat flow.
+ */
+internal fun CodeNavigator.onInviteHostPick(action: InviteHostAction, onManageInvites: () -> Unit) {
+    when (action) {
+        InviteHostAction.ShareInvite -> openInviteLinkShare()
+        InviteHostAction.ShareJoin -> openGroupInvite()
+        InviteHostAction.ManageInvites -> onManageInvites()
     }
 }
 

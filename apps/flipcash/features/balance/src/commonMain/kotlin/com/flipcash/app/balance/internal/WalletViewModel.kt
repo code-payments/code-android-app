@@ -20,10 +20,12 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
@@ -59,11 +61,17 @@ open class WalletViewModel @Inject constructor(
          */
         val receivedMoney: Boolean? = null,
         /**
-         * Preview of the most recent unified cross-token activity — at most [RECENT_PREVIEW_COUNT]
+         * Preview of the most recent unified cross-token activity — at most [activityPreviewSize]
          * rows. The coordinator owns the mapping and enforces the limit; the full paged history is a
          * separate dive-in screen.
          */
         val transactions: List<TransactionListItem> = emptyList(),
+        /**
+         * How many rows [transactions] previews: [RECENT_PREVIEW_COUNT] for the wallet,
+         * [MONEY_PREVIEW_COUNT] for the Money tab, whose activity runs to the bottom of the screen.
+         * Set by the screen, since only it knows which layout it draws.
+         */
+        val activityPreviewSize: Int = RECENT_PREVIEW_COUNT,
         val feedSyncState: FeedSyncState = FeedSyncState.Unknown,
         /** Whether the account currently holds a balance in any token (see [isAwaitingActivity]). */
         val holdsBalance: Boolean = false,
@@ -108,6 +116,7 @@ open class WalletViewModel @Inject constructor(
             val holdsBalance: Boolean,
         ) : Event
         data class OnTransactionsUpdated(val transactions: List<TransactionListItem>) : Event
+        data class OnActivityPreviewSizeChanged(val rows: Int) : Event
         data class OnPreferredOnRampProviderChanged(val provider: OnRampProvider.Defined?) : Event
         data class OnFeedSyncStateChanged(val syncState: FeedSyncState) : Event
 
@@ -136,8 +145,12 @@ open class WalletViewModel @Inject constructor(
             .onEach { walletReveal.onDisplayed() }
             .launchIn(viewModelScope)
 
-        // Preview of recent activity (bounded to RECENT_PREVIEW_COUNT by the coordinator).
-        feedCoordinator.recentTransactions(limit = RECENT_PREVIEW_COUNT)
+        // Preview of recent activity, bounded by the coordinator to the size the screen asked for.
+        // Resubscribed when that changes, so flipping the Money layout on or off resizes it in place.
+        stateFlow
+            .map { it.activityPreviewSize }
+            .distinctUntilChanged()
+            .flatMapLatest { rows -> feedCoordinator.recentTransactions(limit = rows) }
             .onEach { dispatchEvent(Event.OnTransactionsUpdated(it)) }
             .launchIn(viewModelScope)
 
@@ -191,6 +204,12 @@ open class WalletViewModel @Inject constructor(
         const val RECENT_PREVIEW_COUNT = 3
 
         /**
+         * Rows of recent activity previewed on the Money tab: more than the space under its buttons
+         * holds on a phone (a row is about 70 dp), so the section fills it and scrolls past it.
+         */
+        const val MONEY_PREVIEW_COUNT = 10
+
+        /**
          * A held balance proves money was added; otherwise the feed's answer stands, including its
          * `null` while that answer cannot be believed yet.
          */
@@ -218,6 +237,9 @@ open class WalletViewModel @Inject constructor(
                     state.copy(transactions = event.transactions)
                 }
                 Event.PresentDepositOptions -> { state -> state }
+                is Event.OnActivityPreviewSizeChanged -> { state ->
+                    state.copy(activityPreviewSize = event.rows)
+                }
                 is Event.OpenScreen -> { state -> state }
                 is Event.OpenTransaction -> { state -> state }
             }

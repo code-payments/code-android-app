@@ -15,7 +15,8 @@ import kotlin.test.assertNull
 
 /**
  * The You tab's long-press opens the account switcher only behind the Switch Accounts gate. The
- * tab bar attaches no long-press at all when this is null, so null is "nothing happens".
+ * tab bar attaches no long-press at all when this is null, so null is "nothing happens". The group
+ * money shell has no You tab; the Money tab's avatar takes the same long-press.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
@@ -46,5 +47,30 @@ class YouTabLongClickTest {
             listOf(AppRoute.Tabs.Menu, AppRoute.Main.Sheet(AppRoute.Menu.AccountSelection)),
             navigator.backStack.toList(),
         )
+    }
+
+    @Test
+    fun `gate closed gives the Money avatar no long-press`() {
+        val navigator = navigatorOn(AppRoute.Tabs.Wallet)
+
+        assertNull(youTabLongClick(canSwitchAccounts = false, navigator = navigator))
+        assertEquals(listOf<NavKey>(AppRoute.Tabs.Wallet), navigator.backStack.toList())
+    }
+
+    @Test
+    fun `gate open presents the switcher over Money, and closing it returns to Money`() {
+        val navigator = navigatorOn(AppRoute.Tabs.Wallet)
+
+        val onLongClick = assertNotNull(youTabLongClick(canSwitchAccounts = true, navigator = navigator))
+        onLongClick()
+
+        assertEquals(
+            listOf(AppRoute.Tabs.Wallet, AppRoute.Main.Sheet(AppRoute.Menu.AccountSelection)),
+            navigator.backStack.toList(),
+        )
+
+        navigator.navigateBack()
+
+        assertEquals(listOf<NavKey>(AppRoute.Tabs.Wallet), navigator.backStack.toList())
     }
 }

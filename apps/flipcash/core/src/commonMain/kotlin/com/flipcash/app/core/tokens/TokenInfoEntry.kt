@@ -24,8 +24,9 @@ sealed interface TokenInfoEntry : Parcelable {
     }
 
     /**
-     * The Money tab's currency list (its "N currencies" link, node 13729:744). The list is pushed
-     * over the wallet with no card to grow out of, so the currency is pushed too.
+     * The Money tab's currency list (its "N currencies" link, node 13729:744) drawn as a plain list,
+     * which has no card to grow out of, so the currency is pushed. Under the Group Money shell that
+     * screen draws the card deck and opens a currency in place instead, so it never uses this.
      */
     @Serializable
     data object Currencies : TokenInfoEntry {

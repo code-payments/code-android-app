@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.chat.ReportSubject
 import com.flipcash.app.messenger.internal.InviteLandingState
 import com.flipcash.app.messenger.internal.InviteLandingViewModel
@@ -241,10 +243,13 @@ private fun InvitePreview(
                 )
 
                 // A dead link whose reason is not known gets no line rather than a guessed one.
-                val note = if (state.dead) {
-                    state.deadReason?.let { deadReasonText(it) }
-                } else {
-                    stringResource(R.string.subtitle_privateGroupInvited)
+                // Group Money's preview (frame 2-09, node 13729:1404) has no invited note; a dead
+                // link still says why.
+                val groupMoney = LocalNavBarShell.current == NavBarShell.GroupMoney
+                val note = when {
+                    state.dead -> state.deadReason?.let { deadReasonText(it) }
+                    groupMoney -> null
+                    else -> stringResource(R.string.subtitle_privateGroupInvited)
                 }
                 if (note != null) {
                     PrivateGroupNote(

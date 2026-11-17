@@ -32,6 +32,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +60,7 @@ import com.flipcash.app.core.navigation.destinationRoute
 import com.flipcash.app.core.ui.transitions.CardExpandTransition
 import com.flipcash.app.core.tokens.TokenInfoEntry
 import com.flipcash.app.core.tokens.TokenInfoPresentation
+import com.flipcash.app.internal.ui.AppBottomScrollEdge
 import com.flipcash.app.internal.ui.AppNavigationBar
 import com.flipcash.app.internal.ui.SearchMorph
 import com.flipcash.app.search.PreloadSearch
@@ -138,6 +140,9 @@ internal fun AppContent(
     val searchMorph = remember(codeNavigator) { SearchMorph(codeNavigator) }
     // Where Scanner and You close back to under the Group Money shell, which has no tab for either.
     val offBarTabs = rememberOffBarTabs(codeNavigator)
+    // Read through a State by the Money entry, which takes the You tab's long press under the
+    // Group Money shell. The gate starts closed and opens once the flags load.
+    val switchAccountsGate = rememberUpdatedState(canSwitchAccounts)
     // Loads what Search fetches over the network while Home is up, so Search, which the bar opens
     // from any tab, starts on loaded results rather than a spinner.
     PreloadSearch()
@@ -305,9 +310,19 @@ internal fun AppContent(
                     onPendingAction = onPendingAction,
                     searchMorph = searchMorph,
                     offBarTabs = offBarTabs,
+                    canSwitchAccounts = { switchAccountsGate.value },
                 ),
             )
         }
+
+        // Over the nav content and under the toasts and the bar, which float above it. Left out with
+        // the bar while the biometrics overlay is up.
+        if (!isBiometricsLocked()) AppBottomScrollEdge(
+            visibility = barVisibility,
+            hazeState = hazeState,
+            barHeight = { tabBarHeight.value },
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
 
         // Composed before the bar, so the bar draws over a toast rising out of it.
         AppToastHost(
