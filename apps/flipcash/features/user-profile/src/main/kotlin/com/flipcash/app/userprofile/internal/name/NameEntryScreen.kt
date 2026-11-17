@@ -35,6 +35,7 @@ import com.flipcash.app.core.ui.transitions.RequestFocusWhenSettled
 import com.flipcash.core.R
 import com.getcode.navigation.flow.rememberFlowNavigator
 import com.getcode.theme.CodeTheme
+import com.flipcash.app.core.ui.OnboardingHeadline
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
@@ -47,6 +48,8 @@ import kotlinx.coroutines.flow.onEach
 internal fun NameEntryScreen(
     source: DisplayNameSource,
     allowBack: Boolean = true,
+    // Group Money onboarding: the "Your name" headline, with the line under it instead of under the field.
+    forGroups: Boolean = false,
 ) {
     val flowNavigator = rememberFlowNavigator<UpdateProfileStep, UpdateProfileResult>()
 
@@ -74,7 +77,7 @@ internal fun NameEntryScreen(
         } else {
             Spacer(Modifier.statusBarsPadding().padding(2.5.dp))
         }
-        NameEntryScreenContent(state, source, viewModel::dispatchEvent)
+        NameEntryScreenContent(state, source, forGroups, viewModel::dispatchEvent)
     }
 
     LaunchedEffect(viewModel) {
@@ -89,6 +92,7 @@ internal fun NameEntryScreen(
 private fun NameEntryScreenContent(
     state: NameEntryViewModel.State,
     source: DisplayNameSource,
+    forGroups: Boolean,
     dispatchEvent: (NameEntryViewModel.Event) -> Unit,
 ) {
     val keyboard = rememberKeyboardController()
@@ -96,6 +100,17 @@ private fun NameEntryScreenContent(
         modifier = Modifier
             .padding(horizontal = CodeTheme.dimens.inset),
         topBar = {
+            if (forGroups) {
+                OnboardingHeadline(
+                    modifier = Modifier.padding(
+                        top = CodeTheme.dimens.grid.x2,
+                        bottom = CodeTheme.dimens.inset
+                    ),
+                    title = stringResource(R.string.title_onboardingName),
+                    subtitle = stringResource(R.string.subtitle_onboardingName),
+                )
+                return@CodeScaffold
+            }
             Text(
                 modifier = Modifier
                     .fillMaxWidth(0.7f)
@@ -137,7 +152,7 @@ private fun NameEntryScreenContent(
             DisplayTextInput(
                 state = state.nameFieldState,
                 placeholder = stringResource(R.string.hint_profileName),
-                sublabel = stringResource(R.string.subtitle_profileNameSelection),
+                sublabel = if (forGroups) null else stringResource(R.string.subtitle_profileNameSelection),
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),

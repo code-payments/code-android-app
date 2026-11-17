@@ -29,6 +29,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.ui.OnboardingFieldLabel
+import com.flipcash.app.core.ui.OnboardingStepLayout
 import com.flipcash.features.contact.verification.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
@@ -41,11 +43,13 @@ import com.getcode.ui.utils.rememberKeyboardController
 
 @Composable
 internal fun EmailEntryScreen(
-    viewModel: EmailVerificationViewModel
+    viewModel: EmailVerificationViewModel,
+    onboarding: Boolean = false,
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     EmailEntryScreenContent(
         state = state,
+        onboarding = onboarding,
         dispatchEvent = viewModel::dispatchEvent
     )
 }
@@ -53,6 +57,7 @@ internal fun EmailEntryScreen(
 @Composable
 private fun EmailEntryScreenContent(
     state: EmailVerificationViewModel.State,
+    onboarding: Boolean,
     dispatchEvent: (EmailVerificationViewModel.Event) -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -80,6 +85,28 @@ private fun EmailEntryScreenContent(
             }
         }
     ) { innerPadding ->
+        if (onboarding) {
+            OnboardingStepLayout(
+                modifier = Modifier.padding(innerPadding),
+                title = stringResource(R.string.title_onboardingEmail),
+                subtitle = stringResource(R.string.subtitle_onboardingEmail),
+            ) {
+                OnboardingFieldLabel(stringResource(R.string.title_email))
+                EmailAddressInputField(
+                    state = state.email,
+                    modifier = Modifier.height(CodeTheme.dimens.grid.x12),
+                    enabled = !state.sendingCode.loading && !state.sendingCode.success,
+                    focusRequester = focusRequester,
+                    onSubmit = {
+                        keyboard.hideIfVisible {
+                            dispatchEvent(EmailVerificationViewModel.Event.OnSendCodeClicked)
+                        }
+                    }
+                )
+            }
+            OnWindowFocusedRequester(focusRequester)
+            return@CodeScaffold
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()

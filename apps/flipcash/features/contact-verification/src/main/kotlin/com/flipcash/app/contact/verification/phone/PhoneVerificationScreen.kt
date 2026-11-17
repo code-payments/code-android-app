@@ -40,7 +40,8 @@ fun PhoneVerificationContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            title = stringResource(R.string.title_connectPhoneNumber),
+            // Onboarding puts its title in the step's headline instead.
+            title = if (onboarding) "" else stringResource(R.string.title_connectPhoneNumber),
             titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = if (onboarding) null else {
                 {
@@ -50,7 +51,7 @@ fun PhoneVerificationContent(
                 }
             },
         )
-        PhoneEntryScreen(viewModel)
+        PhoneEntryScreen(viewModel, onboarding)
     }
 
     val analytics = rememberAnalytics()

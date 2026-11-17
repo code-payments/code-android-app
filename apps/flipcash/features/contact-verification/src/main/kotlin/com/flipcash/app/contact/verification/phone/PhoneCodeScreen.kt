@@ -37,11 +37,12 @@ fun PhoneCodeContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            title = stringResource(R.string.title_enterTheCode),
+            // Onboarding puts its title in the step's headline instead.
+            title = if (onboarding) "" else stringResource(R.string.title_enterTheCode),
             titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = { flowNavigator.back() },
         )
-        PhoneCodeScreen(viewModel)
+        PhoneCodeScreen(viewModel, onboarding)
     }
 
     val analytics = rememberAnalytics()

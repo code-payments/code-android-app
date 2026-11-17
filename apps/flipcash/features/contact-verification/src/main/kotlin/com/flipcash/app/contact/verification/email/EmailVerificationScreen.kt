@@ -50,7 +50,8 @@ fun EmailVerificationContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            title = stringResource(R.string.title_connectEmailAddress),
+            // Onboarding puts its title in the step's headline instead.
+            title = if (onboarding) "" else stringResource(R.string.title_connectEmailAddress),
             titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = if (onboarding) null else {
                 {
@@ -60,7 +61,7 @@ fun EmailVerificationContent(
                 }
             },
         )
-        EmailEntryScreen(viewModel)
+        EmailEntryScreen(viewModel, onboarding)
     }
 
     val analytics = rememberAnalytics()

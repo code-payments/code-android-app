@@ -72,7 +72,7 @@ private fun profileUpdateProvider(
     route: AppRoute.UpdateUserProfile,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     annotatedEntry<UpdateProfileStep.Name> { key ->
-        NameEntryScreen(source = key.source, allowBack = route.allowBack)
+        NameEntryScreen(source = key.source, allowBack = route.allowBack, forGroups = key.forGroups)
     }
     annotatedEntry<UpdateProfileStep.Username> {
         UsernameEntryScreen()
