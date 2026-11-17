@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Box
@@ -97,10 +98,15 @@ internal fun MarketCapExplainerSlider(
     val thumbHeight = 24.dp
     val sideInsetPx = with(density) { (thumbWidth / 2).toPx() }
 
+    // Material3 1.5 dropped the value-based Slider that takes a custom thumb and track; the state
+    // overload follows `position` the same way the value-based Slider does internally.
+    val sliderState = remember { SliderState(value = position.coerceIn(0f, 1f)) }
+    sliderState.value = position.coerceIn(0f, 1f)
+
     Column(modifier = modifier.fillMaxWidth()) {
         // Slider supplies the drag, tap and progress semantics; the thumb is the stock M3 handle.
         Slider(
-            value = position.coerceIn(0f, 1f),
+            state = sliderState,
             onValueChange = { change(it) },
             onValueChangeFinished = { currentOnDragEnd() },
             interactionSource = interactionSource,
