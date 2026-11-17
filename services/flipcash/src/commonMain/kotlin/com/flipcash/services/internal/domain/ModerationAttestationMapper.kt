@@ -15,7 +15,7 @@ class ModerationAttestationMapper @Inject constructor(): Mapper<Model.Moderation
         return ModerationResult.Attestation(
             rawValue = from.toByteArray().toList(),
             hash = Sha256Hash.of(from.contentHash.toByteArray()),
-            timestamp = Instant.fromEpochSeconds(from.timestamp.seconds * 1000L),
+            timestamp = Instant.fromEpochSeconds(from.timestamp.seconds, from.timestamp.nanos),
             userId = from.userId.toId(),
             attestor = from.attestor.toPublicKey(),
             signature = from.signature.toSignature()
