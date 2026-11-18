@@ -346,7 +346,8 @@ class PaymentRequestPaymentDelegateTest {
         assertTrue(lines.isNotEmpty())
         lines.forEach { assertFalse(intentBase58.takeLast(6) in it, it) }
         assertTrue(heldWhileSending, "lower layers must see the id masked while it is sent")
-        assertFalse(LiveSecrets.isLive(intentBase58))
+        assertTrue(LiveSecrets.isLive(intentBase58), "the call logs its bodies after it resumes")
+        LiveSecrets.release(intentBase58)
     }
 
     @Test
@@ -356,6 +357,7 @@ class PaymentRequestPaymentDelegateTest {
         assertTrue(lines.isNotEmpty())
         lines.forEach { assertFalse(intentBase58.takeLast(6) in it, it) }
         assertTrue(heldWhileSending)
-        assertFalse(LiveSecrets.isLive(intentBase58))
+        assertTrue(LiveSecrets.isLive(intentBase58), "an unspent id stays masked after a failure")
+        LiveSecrets.release(intentBase58)
     }
 }

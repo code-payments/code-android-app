@@ -131,9 +131,10 @@ class PaymentRequestPaymentDelegate @Inject constructor(
             intentId = intentId,
         )
         if (collection) {
-            // A collection's id never reaches a log, whatever the outcome, and is dropped with
-            // this payment: a retry asks for it again.
-            LiveSecrets.release(idBase58)
+            // A collection's id never reaches a log, whatever the outcome, so it stays held: the
+            // call's bodies are logged when it closes, which can come after this resumes, and later
+            // responses carry the same id in the viewer's paid record. This delegate keeps no copy:
+            // a retry asks for the id again.
             return paid.onSuccess {
                 log("paid collection", TraceType.Log)
                 paymentRequests.fetch(request.id)
