@@ -306,7 +306,7 @@ private fun RequestDetailsContent(
                 )
                 RequestProgressBar(fraction = split.paidFraction, ended = !open)
                 Text(
-                    text = request.statusLine(now).text(),
+                    text = request.statusLine(now)?.text().orEmpty(),
                     style = CodeTheme.typography.caption,
                     color = CodeTheme.colors.textSecondary,
                 )

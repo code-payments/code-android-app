@@ -663,7 +663,7 @@ private fun deckLabel(deck: List<PaymentRequest>, now: Instant, viewerId: ID?): 
         R.string.cd_requestOwed,
         share.amount.requestText(),
         front.deckTitle.orEmpty(),
-        front.statusLine(now).text(),
+        front.statusLine(now)?.text().orEmpty(),
     ) else if (standing != null) stringResource(
         R.string.cd_requestDeckViewer,
         front.deckTitle.orEmpty(),

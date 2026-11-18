@@ -97,6 +97,67 @@ class PaymentRequestStorageTest {
         assertEquals(unsupported.version, decoded.version)
     }
 
+    private fun collection(endsAt: Instant?, text: PaymentRequestText = PaymentRequestText.Plain("Gift", "For Bo")) =
+        request(PaymentRequestText.Plain("t", "")).copy(
+            kind = PaymentRequest.Kind.GroupCollection(
+                chatId = chatId,
+                collection = PaymentCollection(
+                    text = text,
+                    currency = CurrencyCode.USD,
+                    endsAt = endsAt,
+                    amount = CollectionAmount.Fixed(Fiat(quarks = 5_000_000, currencyCode = CurrencyCode.USD)),
+                ),
+            ),
+        )
+
+    @Test
+    fun `a collection with a deadline round trips`() {
+        val request = collection(endsAt = Instant.fromEpochSeconds(1_000))
+
+        assertEquals(request, decodePaymentRequest(request.encodePaymentRequest()))
+    }
+
+    @Test
+    fun `a collection with no deadline round trips without one`() {
+        val request = collection(endsAt = null)
+
+        val parsed = PaymentRequestModel.PaymentRequestMetadata.parseFrom(request.encodePaymentRequest())
+
+        assertEquals(false, parsed.groupChat.collection.hasEndsAt())
+        assertEquals(request, decodePaymentRequest(request.encodePaymentRequest()))
+    }
+
+    @Test
+    fun `an opened collection is stored with the sealed text it came from`() {
+        val opened = collection(endsAt = null).let {
+            val kind = it.kind as PaymentRequest.Kind.GroupCollection
+            it.copy(kind = kind.copy(collection = kind.collection.copy(sealedText = encrypted)))
+        }
+
+        val parsed = PaymentRequestModel.PaymentRequestMetadata.parseFrom(opened.encodePaymentRequest())
+
+        assertEquals(PaymentRequestModel.Collection.TextCase.ENCRYPTED, parsed.groupChat.collection.textCase)
+    }
+
+    @Test
+    fun `the payer summary round trips`() {
+        val request = collection(endsAt = null).copy(
+            payerSummary = PayerSummary(payerCount = 4, paidCount = 4, amountDueQuarks = 0, amountPaidQuarks = 20_000_000),
+        )
+
+        assertEquals(request, decodePaymentRequest(request.encodePaymentRequest()))
+    }
+
+    @Test
+    fun `empty text is written unset and reads back empty`() {
+        val request = request(PaymentRequestText.Plain("", ""))
+
+        val parsed = PaymentRequestModel.PaymentRequestMetadata.parseFrom(request.encodePaymentRequest())
+
+        assertEquals(PaymentRequestModel.Split.TextCase.TEXT_NOT_SET, parsed.groupChat.split.textCase)
+        assertEquals(request, decodePaymentRequest(request.encodePaymentRequest()))
+    }
+
     @Test
     fun `bytes that do not parse read as no request`() {
         assertNull(decodePaymentRequest(byteArrayOf(0x0a, 0x7f, 0x01)))

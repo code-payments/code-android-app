@@ -11,6 +11,7 @@ import com.flipcash.services.internal.network.extensions.asUserId
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.paymentrequest.PayerSection
 import com.flipcash.services.models.paymentrequest.PaymentRequestSection
 import com.getcode.ed25519kmp.Ed25519
 import com.getcode.opencode.internal.network.core.GrpcApi
@@ -104,6 +105,47 @@ internal class PaymentRequestApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.closePaymentRequest(request)
+        }
+    }
+
+    suspend fun getPaymentIntentId(
+        owner: Ed25519.KeyPair,
+        paymentRequestId: Model.PaymentRequestId,
+    ): PaymentrequestService.GetPaymentIntentIdResponse {
+        val request = PaymentrequestService.GetPaymentIntentIdRequest.newBuilder()
+            .setPaymentRequestId(paymentRequestId)
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getPaymentIntentId(request)
+        }
+    }
+
+    suspend fun getPayers(
+        owner: Ed25519.KeyPair,
+        paymentRequestId: Model.PaymentRequestId,
+        section: PayerSection,
+        queryOptions: QueryOptions,
+    ): PaymentrequestService.GetPayersResponse {
+        val request = PaymentrequestService.GetPayersRequest.newBuilder()
+            .setPaymentRequestId(paymentRequestId)
+            .setSection(
+                when (section) {
+                    PayerSection.UNPAID -> PaymentrequestService.GetPayersRequest.Section.UNPAID
+                    PayerSection.PAID -> PaymentrequestService.GetPayersRequest.Section.PAID
+                }
+            )
+            .setQueryOptions(queryOptions.asQueryOptions())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.getPayers(request)
         }
     }
 
