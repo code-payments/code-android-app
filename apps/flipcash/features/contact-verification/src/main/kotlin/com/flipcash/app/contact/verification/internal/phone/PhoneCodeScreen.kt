@@ -28,6 +28,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.ui.transitions.RequestFocusWhenSettled
 import com.flipcash.app.phone.components.OtpInputField
 import com.flipcash.app.phone.components.SmsOtpAutofill
 import com.flipcash.app.core.ui.OnboardingFootnote
@@ -103,7 +104,7 @@ private fun PhoneCodeScreenContent(
                 OnboardingResend(state, dispatchEvent)
                 OnboardingFootnote(stringResource(R.string.footnote_onboardingVerificationCode))
             }
-            OnWindowFocusedRequester(focusRequester)
+            RequestFocusWhenSettled(focusRequester, onlyOnce = true)
             return@CodeScaffold
         }
         Box(

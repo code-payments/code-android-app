@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.ui.OnboardingFieldLabel
 import com.flipcash.app.core.ui.OnboardingStepLayout
+import com.flipcash.app.core.ui.transitions.RequestFocusWhenSettled
 import com.flipcash.features.contact.verification.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
@@ -104,7 +105,7 @@ private fun EmailEntryScreenContent(
                     }
                 )
             }
-            OnWindowFocusedRequester(focusRequester)
+            RequestFocusWhenSettled(focusRequester, onlyOnce = true)
             return@CodeScaffold
         }
         Box(

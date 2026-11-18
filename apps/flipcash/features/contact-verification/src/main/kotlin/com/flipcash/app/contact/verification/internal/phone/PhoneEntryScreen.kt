@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.ui.OnboardingFieldLabel
 import com.flipcash.app.core.ui.OnboardingFootnote
 import com.flipcash.app.core.ui.OnboardingStepLayout
+import com.flipcash.app.core.ui.transitions.RequestFocusWhenSettled
 import com.flipcash.app.phone.components.PhoneInputField
 import com.flipcash.features.contact.verification.R
 import com.getcode.theme.CodeTheme
@@ -92,7 +93,7 @@ private fun PhoneEntryScreenContent(
                 )
                 OnboardingFootnote(stringResource(R.string.footnote_onboardingPhoneNumber))
             }
-            OnWindowFocusedRequester(focusRequester)
+            RequestFocusWhenSettled(focusRequester, onlyOnce = true)
             return@CodeScaffold
         }
         Box(
