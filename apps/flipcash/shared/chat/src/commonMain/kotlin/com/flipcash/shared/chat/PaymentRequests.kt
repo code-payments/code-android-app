@@ -9,6 +9,9 @@ import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.paymentrequest.NewPaymentRequest
+import com.flipcash.services.models.paymentrequest.PaymentIntentId
+import com.flipcash.services.models.paymentrequest.Payer
+import com.flipcash.services.models.paymentrequest.PayerSection
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
 import com.flipcash.services.models.paymentrequest.PaymentRequestPage
@@ -60,6 +63,14 @@ class PaymentRequests @Inject constructor(
 
     /** Requests a fetch found DENIED or NOT_FOUND. Their cards draw as unsupported and aren't refetched. */
     val missing: StateFlow<Set<ID>> = _missing.asStateFlow()
+
+    private val _payers = MutableStateFlow<Map<ID, PaidPayers>>(emptyMap())
+
+    /**
+     * The paid payers of each request whose details have asked for them ([loadPayers]), kept current
+     * by the stream's payer updates. Per-process like [missing]: payers are never stored.
+     */
+    val payers: StateFlow<Map<ID, PaidPayers>> = _payers.asStateFlow()
 
     private val inFlight = MutableStateFlow<Set<ID>>(emptySet())
 
@@ -132,6 +143,36 @@ class PaymentRequests @Inject constructor(
         }
     }
 
+    /**
+     * Loads [id]'s paid payers (`GetPayers` section PAID, newest first), up to [MAX_PAYER_PAGES]
+     * pages, and holds them in [payers]. A list already held at a newer version is kept.
+     */
+    suspend fun loadPayers(id: ID): Result<PaidPayers> = runCatching {
+        var page = controller.getPayers(id, PayerSection.PAID, QueryOptions(limit = PAYER_PAGE)).getOrThrow()
+        // Updates past the first page's version go on top, so it is the list's version.
+        val version = page.version
+        val paid = page.payers.toMutableList()
+        var pages = 1
+        while (page.hasMore && page.pagingToken != null && pages < MAX_PAYER_PAGES) {
+            page = controller.getPayers(id, PayerSection.PAID, QueryOptions(limit = PAYER_PAGE, token = page.pagingToken))
+                .getOrThrow()
+            paid += page.payers
+            pages++
+        }
+        PaidPayers(version, paid.filter { it.isPaid }.distinctBy { it.userId })
+    }.onSuccess { loaded ->
+        _payers.update { held ->
+            val current = held[id]
+            if (current != null && current.version > loaded.version) held else held + (id to loaded)
+        }
+    }.onFailure { if (it is CancellationException) throw it }
+
+    /**
+     * The intent ID to pay [id] under. It is for the one payment: keep it in memory, never store or
+     * log it.
+     */
+    suspend fun paymentIntentId(id: ID): Result<PaymentIntentId> = controller.getPaymentIntentId(id)
+
     suspend fun create(request: NewPaymentRequest, idempotencyKey: IdempotencyKey): Result<PaymentRequest> =
         controller.createPaymentRequest(request, idempotencyKey).map { ingestOne(it) }
 
@@ -172,6 +213,16 @@ class PaymentRequests @Inject constructor(
                     // The whole request at its new version, which the store keeps if it is newer.
                     applied?.let { persist(listOf(it)) }
                     if (stale) refetch += update.paymentRequestId
+                    if (kind is PaymentRequestUpdate.Kind.Updates) {
+                        var gap = false
+                        _payers.update { held ->
+                            val current = held[update.paymentRequestId] ?: return@update held
+                            val merged = mergePayers(current, kind)
+                            gap = merged.gap
+                            held + (update.paymentRequestId to merged.payers)
+                        }
+                        if (gap) refetch += update.paymentRequestId
+                    }
                 }
             }
         }
@@ -185,6 +236,8 @@ class PaymentRequests @Inject constructor(
         if (!claimed) return
         try {
             fetch(id)
+            // A payer list in use is reconciled with the request.
+            if (id in _payers.value) loadPayers(id)
         } finally {
             inFlight.update { it.minusElement(id) }
         }
@@ -194,6 +247,7 @@ class PaymentRequests @Inject constructor(
     fun clear() {
         requests.value = emptyMap()
         _missing.value = emptySet()
+        _payers.value = emptyMap()
         hydrated.value = emptySet()
     }
 
@@ -203,9 +257,10 @@ class PaymentRequests @Inject constructor(
      * is the in-memory half, and un-marks the chat as hydrated so a rejoin loads afresh.
      */
     fun forget(chatId: ChatId) {
-        val gone = requests.value.filterValues { it.chatId == chatId }.keys
+        val gone = requests.value.filterValues { it.groupChatId == chatId }.keys
         requests.update { held -> held - gone }
         _missing.update { it - gone }
+        _payers.update { it - gone }
         hydrated.update { it - chatId }
     }
 
@@ -267,9 +322,52 @@ class PaymentRequests @Inject constructor(
     /** [requests] after an update, and whether the request must be refetched to reconcile it. */
     data class UpdateOutcome(val requests: Map<ID, PaymentRequest>, val refetch: Boolean)
 
+    /**
+     * A request's paid payers as of [version], newest paid first (ties by user id), as `GetPayers`
+     * section PAID lists them.
+     */
+    data class PaidPayers(val version: Long, val payers: List<Payer>)
+
+    /** [payers] after an update, and whether one was skipped so the list must be reloaded. */
+    data class PayersOutcome(val payers: PaidPayers, val gap: Boolean)
+
     companion object {
         const val OPEN_PAGE = 100
         const val RESOLVED_PAGE = 20
+        const val PAYER_PAGE = 100
+        const val MAX_PAYER_PAGES = 5
+
+        /**
+         * [held] with [update]'s payer changes applied, by version (L is the list's, V the update's):
+         * V <= L is already in the list; otherwise each payer replaces the one with its user id (or is
+         * added), a payer not paid leaves the list, and the version becomes V. V > L + 1 still applies,
+         * since a payer change carries the payer as it now is, but reports a gap: a skipped version
+         * may have changed a payer this one does not mention.
+         */
+        fun mergePayers(held: PaidPayers, update: PaymentRequestUpdate.Kind.Updates): PayersOutcome {
+            if (update.version <= held.version) return PayersOutcome(held, gap = false)
+            val changed = update.changes.filterIsInstance<PaymentRequestUpdate.Change.PayerChanged>().map { it.payer }
+            val byUser = held.payers.associateBy { it.userId }.toMutableMap()
+            for (payer in changed) {
+                if (payer.isPaid) byUser[payer.userId] = payer else byUser.remove(payer.userId)
+            }
+            return PayersOutcome(
+                payers = PaidPayers(update.version, byUser.values.sortedWith(newestPaidFirst)),
+                gap = update.version > held.version + 1,
+            )
+        }
+
+        private val newestPaidFirst: Comparator<Payer> =
+            compareByDescending<Payer> { (it.status as? Payer.Status.Paid)?.paid?.paidAt }
+                .thenComparator { a, b -> compareIds(a.userId, b.userId) }
+
+        private fun compareIds(a: ID, b: ID): Int {
+            for (i in 0 until minOf(a.size, b.size)) {
+                val diff = a[i].toUByte().compareTo(b[i].toUByte())
+                if (diff != 0) return diff
+            }
+            return a.size.compareTo(b.size)
+        }
 
         /**
          * [held] with [incoming] merged in by [newerOf]. A copy still sealed never replaces an opened
