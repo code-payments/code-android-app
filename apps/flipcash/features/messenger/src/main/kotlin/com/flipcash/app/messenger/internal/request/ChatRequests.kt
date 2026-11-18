@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal.request
 
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,7 +36,8 @@ internal fun rememberPaymentRequestCards(
     val missing by viewModel.missing.collectAsStateWithLifecycle()
     val now by viewModel.now.collectAsStateWithLifecycle()
     val open by rememberUpdatedState(onOpen)
-    return remember(chatId, held, missing, now) {
+    val collections = LocalNavBarShell.current == NavBarShell.GroupMoney
+    return remember(chatId, held, missing, now, collections) {
         PaymentRequestCards(
             chatId = chatId,
             viewerId = viewModel.viewerId,
@@ -43,6 +46,7 @@ internal fun rememberPaymentRequestCards(
             now = now,
             onNeeded = viewModel::fetchIfAbsent,
             onOpen = { open(chatId, it) },
+            collections = collections,
         )
     }
 }

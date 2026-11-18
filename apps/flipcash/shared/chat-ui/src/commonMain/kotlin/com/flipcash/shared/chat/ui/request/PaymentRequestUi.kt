@@ -1,9 +1,11 @@
 package com.flipcash.shared.chat.ui.request
 
 import com.flipcash.core.resources.Res
+import com.flipcash.core.resources.label_collectionPaid
 import com.flipcash.core.resources.label_paymentRequest_card
 import com.flipcash.core.resources.label_requestClosed
 import com.flipcash.core.resources.label_requestDaysLeft
+import com.flipcash.core.resources.label_requestEachAmount
 import com.flipcash.core.resources.label_requestExpired
 import com.flipcash.core.resources.label_requestHoursLeft
 import com.flipcash.core.resources.label_requestMinutesLeft
@@ -43,6 +45,8 @@ import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.app.core.ui.shimmer
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.StatusLine
+import com.flipcash.services.models.paymentrequest.amountEach
+import com.flipcash.services.models.paymentrequest.collectionPaid
 import com.flipcash.services.models.paymentrequest.ViewerStanding
 import com.flipcash.services.models.paymentrequest.statusLine
 import com.getcode.opencode.model.financial.Fiat
@@ -82,11 +86,19 @@ fun StatusLine.text(): String = when (this) {
     StatusLine.Expired -> stringResource(Res.string.label_requestExpired)
 }
 
-/** "$20 paid, $520 requested". */
+/** "$20 paid, $520 requested" for a split; "$20 paid" for a collection, which asks no total. */
 @Composable
 fun PaymentRequest.progressText(): String {
+    collectionPaid?.let { return stringResource(Res.string.label_collectionPaid, it.requestText()) }
     val split = split ?: return ""
     return stringResource(Res.string.label_requestProgress, split.paid.requestText(), split.requested.requestText())
+}
+
+/** "$10 each": a collection's title, since it carries no text of its own. Null for a split. */
+@Composable
+fun PaymentRequest.collectionTitle(): String? {
+    val each = collection?.amountEach ?: return null
+    return stringResource(Res.string.label_requestEachAmount, each.requestText())
 }
 
 /** The paid fraction as a thin bar; grey once the request has ended. */
@@ -168,7 +180,7 @@ fun PaymentRequestCardContent(
                     modifier = detailModifier,
                 )
                 Text(
-                    text = title.orEmpty(),
+                    text = request?.collectionTitle() ?: title.orEmpty(),
                     style = CodeTheme.typography.textLarge,
                     color = CodeTheme.colors.textMain,
                     maxLines = 2,
@@ -183,7 +195,10 @@ fun PaymentRequestCardContent(
             color = CodeTheme.colors.textMain.copy(alpha = 0.75f),
             modifier = if (loading) Modifier.width(160.dp).shimmer(RoundedCornerShape(4.dp)) else amountsModifier,
         )
-        RequestProgressBar(fraction = request?.split?.paidFraction ?: 0f, ended = ended, modifier = detailModifier)
+        // A collection asks no total, so it has no fraction to fill.
+        if (request?.collection == null) {
+            RequestProgressBar(fraction = request?.split?.paidFraction ?: 0f, ended = ended, modifier = detailModifier)
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,

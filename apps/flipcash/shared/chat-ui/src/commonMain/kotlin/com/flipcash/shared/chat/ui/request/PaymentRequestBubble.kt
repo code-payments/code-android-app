@@ -28,12 +28,15 @@ class PaymentRequestCards(
     /** Fetches a request the store doesn't hold; safe to call on every composition. */
     val onNeeded: (ID) -> Unit,
     val onOpen: (ID) -> Unit,
+    /** Draw collections as cards, as under the Group Money flag; off, they stay unsupported. */
+    val collections: Boolean = false,
 ) {
     fun stateOf(id: ID, isFromSelf: Boolean, senderId: ID?): RequestCardState = requestCardState(
         request = requests[id],
         missing = id in missing,
         chatId = chatId,
         senderId = if (isFromSelf) viewerId else senderId,
+        collections = collections,
     )
 }
 

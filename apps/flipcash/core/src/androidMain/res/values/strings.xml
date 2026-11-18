@@ -1147,6 +1147,11 @@
     <string name="header_openRequests">Open Requests</string>
     <string name="header_previousRequests">Previous Requests</string>
     <string name="label_requestProgress">%1$s paid, %2$s requested</string>
+    <!-- A group collection: what each member pays, and what it has taken in. -->
+    <string name="label_requestEachAmount">%1$s each</string>
+    <string name="label_collectionPaid">%1$s paid</string>
+    <string name="label_collectionHeader">%1$s paid · %2$s each</string>
+    <string name="label_requestNoPayments">No payments yet</string>
     <string name="label_requestCompleted">✓ %1$s paid</string>
     <string name="title_amountPerPerson">Amount Per Person</string>
     <string name="title_newRequest">New Request</string>

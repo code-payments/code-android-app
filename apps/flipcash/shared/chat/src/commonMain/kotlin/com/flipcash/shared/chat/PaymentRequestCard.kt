@@ -13,6 +13,7 @@ sealed interface RequestCardState {
     /** Drawn as the chat's unsupported-message bubble. */
     data object Unsupported : RequestCardState
 
+    /** [title] is a split's; a collection has none, so its card reads its amount instead. */
     data class Ready(val request: PaymentRequest, val title: String) : RequestCardState
 }
 
@@ -22,15 +23,25 @@ sealed interface RequestCardState {
  *
  * A request from another chat, or one the sender didn't create, is unsupported: anyone can paste a
  * request id into a widget, and the card must not lend that request the chat's or sender's name.
+ *
+ * A collection draws only when [collections] is on, as it is under the Group Money flag; otherwise
+ * it stays unsupported, as it was before collections could be drawn.
  */
 fun requestCardState(
     request: PaymentRequest?,
     missing: Boolean,
     chatId: ChatId,
     senderId: ID?,
+    collections: Boolean = false,
 ): RequestCardState {
     if (missing) return RequestCardState.Unsupported
     request ?: return RequestCardState.Loading
+    val collection = request.kind as? PaymentRequest.Kind.GroupCollection
+    if (collection != null && collections) {
+        if (collection.chatId != chatId) return RequestCardState.Unsupported
+        if (senderId == null || request.creator != senderId) return RequestCardState.Unsupported
+        return RequestCardState.Ready(request, title = "")
+    }
     val kind = request.kind as? PaymentRequest.Kind.GroupSplit ?: return RequestCardState.Unsupported
     if (kind.chatId != chatId) return RequestCardState.Unsupported
     if (senderId == null || request.creator != senderId) return RequestCardState.Unsupported

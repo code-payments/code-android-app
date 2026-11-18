@@ -159,6 +159,19 @@ sealed interface CollectionAmount {
     data class Fixed(val amount: Fiat) : CollectionAmount
 }
 
+/** What each payer pays into a fixed-amount collection; null for an amount kind the app does not know. */
+val PaymentCollection.amountEach: Fiat? get() = (amount as? CollectionAmount.Fixed)?.amount
+
+/**
+ * What a collection has taken in: [PaymentRequest.payerSummary]'s paid total, which the server
+ * keeps current, or zero before it sends one. Null for a request that is no collection.
+ */
+val PaymentRequest.collectionPaid: Fiat?
+    get() {
+        val collection = collection ?: return null
+        return payerSummary?.amountPaid(collection.currency) ?: Fiat(quarks = 0L, currencyCode = collection.currency)
+    }
+
 /**
  * One user's part in a request, as `GetPayers` lists it: a split has one per share, the creator's
  * own included; a collection one per member who has contributed, each paid with nothing due.
