@@ -63,7 +63,6 @@ import com.getcode.opencode.model.financial.Fiat
 import com.flipcash.shared.common.ui.amount.AmountChip
 import com.flipcash.shared.common.ui.amount.AmountChipDefaults
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.White10
 import com.getcode.theme.White20
@@ -267,7 +266,7 @@ private fun CreateAction(
     }
     val content = when {
         !enabled -> White50
-        blue -> White
+        blue -> CodeTheme.colors.onAction
         else -> onAccent
     }
 
