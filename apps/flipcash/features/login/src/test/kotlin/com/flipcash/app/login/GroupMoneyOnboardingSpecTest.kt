@@ -89,7 +89,7 @@ class GroupMoneyOnboardingSpecTest {
     @Test
     fun `gate open, Create does the access key work without showing the access key screen`() = runTest(mainCoroutineRule.dispatcher) {
         whenever(authManager.isGroupMoneyOnboardingOpen()).thenReturn(true)
-        whenever(authManager.createAccount()).thenReturn(Result.success(Unit))
+        whenever(authManager.createAccount(true)).thenReturn(Result.success(Unit))
         whenever(authManager.completeAccessKeyStep()).thenReturn(Result.success(false))
         val (vm, events) = viewModel()
 
@@ -104,7 +104,7 @@ class GroupMoneyOnboardingSpecTest {
     @Test
     fun `gate open, an account that must pay to register goes to purchase first`() = runTest(mainCoroutineRule.dispatcher) {
         whenever(authManager.isGroupMoneyOnboardingOpen()).thenReturn(true)
-        whenever(authManager.createAccount()).thenReturn(Result.success(Unit))
+        whenever(authManager.createAccount(true)).thenReturn(Result.success(Unit))
         whenever(authManager.completeAccessKeyStep()).thenReturn(Result.success(true))
         val (vm, events) = viewModel()
 
@@ -117,7 +117,7 @@ class GroupMoneyOnboardingSpecTest {
     @Test
     fun `gate open, a failed account setup shows the access key screen's error and a retry never registers twice`() = runTest(mainCoroutineRule.dispatcher) {
         whenever(authManager.isGroupMoneyOnboardingOpen()).thenReturn(true)
-        whenever(authManager.createAccount()).thenReturn(Result.success(Unit))
+        whenever(authManager.createAccount(true)).thenReturn(Result.success(Unit))
         whenever(authManager.completeAccessKeyStep())
             .thenReturn(Result.failure(RuntimeException("provisioning failed")), Result.success(false))
         val (vm, events) = viewModel()
@@ -131,7 +131,7 @@ class GroupMoneyOnboardingSpecTest {
         vm.dispatchEvent(LoginViewModel.Event.CreateAccount)
         advanceUntilIdle()
 
-        verify(authManager, times(1)).createAccount()
+        verify(authManager, times(1)).createAccount(true)
         verify(authManager, times(2)).completeAccessKeyStep()
         assertTrue(LoginViewModel.Event.GroupMoneyAccountReady(requiresPurchase = false) in events)
     }
@@ -143,7 +143,7 @@ class GroupMoneyOnboardingSpecTest {
     @Test
     fun `gate closed, Create leads to the access key screen and does none of its work`() = runTest(mainCoroutineRule.dispatcher) {
         whenever(authManager.isGroupMoneyOnboardingOpen()).thenReturn(false)
-        whenever(authManager.createAccount()).thenReturn(Result.success(Unit))
+        whenever(authManager.createAccount(false)).thenReturn(Result.success(Unit))
         val (vm, events) = viewModel()
 
         vm.dispatchEvent(LoginViewModel.Event.CreateAccount)

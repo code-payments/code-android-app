@@ -271,4 +271,38 @@ class HeadlessAccessKeyStepTest {
         overrideFlow.value = false
         assertFalse(authManager.isGroupMoneyOnboardingOpen())
     }
+
+    // A relaunch mid-sign-up resumes in the onboarding Create chose. The choice is stored with the
+    // account, so it has to outlast the purchase, which drops the temporary keys and selects it.
+    @Test
+    fun `a Group Money account keeps its onboarding through the purchase`() =
+        runTest(dispatchers.testDispatcher) {
+            registrationRequiresPurchase(true)
+            authManager.createAccount(groupMoney = true).getOrThrow()
+            assertTrue(credentialManager.startedInGroupMoneyOnboarding())
+
+            authManager.completeAccessKeyStep().getOrThrow()
+            authManager.onAccountPurchased().getOrThrow()
+
+            assertTrue(credentialManager.startedInGroupMoneyOnboarding())
+        }
+
+    @Test
+    fun `a Group Money account with no purchase keeps its onboarding`() =
+        runTest(dispatchers.testDispatcher) {
+            registrationRequiresPurchase(false)
+            authManager.createAccount(groupMoney = true).getOrThrow()
+            authManager.completeAccessKeyStep().getOrThrow()
+
+            assertTrue(credentialManager.startedInGroupMoneyOnboarding())
+        }
+
+    @Test
+    fun `a classic account is not marked Group Money`() =
+        runTest(dispatchers.testDispatcher) {
+            registrationRequiresPurchase(false)
+            authManager.createAccount().getOrThrow()
+
+            assertFalse(credentialManager.startedInGroupMoneyOnboarding())
+        }
 }

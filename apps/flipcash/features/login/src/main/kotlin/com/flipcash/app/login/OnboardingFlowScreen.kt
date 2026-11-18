@@ -107,7 +107,9 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * 4. Mid-flow resume (ResumePoint.AccessKey / AccessKeyThenPurchase / DisplayName)
  *
- *    Same as (1) but initialStack resumes at the AccessKey, Purchase, or Name step.
+ *    Same as (1) but initialStack resumes at the AccessKey, Purchase, or Name step. An account
+ *    created with the Group Money gate open resumes at that onboarding's name step
+ *    ([groupMoneyNameRoute]) whatever the gate reads now.
  * ```
  *
  * ¹ Already-granted permissions are auto-skipped via [PermissionsPhaseFlowHost].
@@ -669,14 +671,20 @@ internal fun groupMoneyContactRoute(): AppRoute.Verification = AppRoute.Verifica
     includePhone = true,
     includeEmail = true,
     onboarding = true,
-    target = AppRoute.UpdateUserProfile(
-        origin = AppRoute.OnboardingFlow(),
-        steps = listOf(UpdateProfileStep.Name(DisplayNameSource.Onboarding, forGroups = true)),
-        target = AppRoute.OnboardingFlow(
-            phase = AppRoute.OnboardingFlow.Phase.Permissions,
-            skipContacts = true,
-            skipNotifications = true,
-        ),
-        allowBack = false,
+    target = groupMoneyNameRoute(),
+)
+
+/**
+ * The Group Money onboarding's name step, the last of [groupMoneyContactRoute]'s steps. A relaunch
+ * of an account created in that onboarding resumes here when it has no name yet.
+ */
+fun groupMoneyNameRoute(): AppRoute.UpdateUserProfile = AppRoute.UpdateUserProfile(
+    origin = AppRoute.OnboardingFlow(),
+    steps = listOf(UpdateProfileStep.Name(DisplayNameSource.Onboarding, forGroups = true)),
+    target = AppRoute.OnboardingFlow(
+        phase = AppRoute.OnboardingFlow.Phase.Permissions,
+        skipContacts = true,
+        skipNotifications = true,
     ),
+    allowBack = false,
 )

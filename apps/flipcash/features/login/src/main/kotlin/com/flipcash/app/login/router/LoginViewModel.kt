@@ -112,7 +112,7 @@ class LoginViewModel @Inject constructor(
                         return@onEach
                     }
                     val groupMoney = authManager.isGroupMoneyOnboardingOpen()
-                    authManager.createAccount()
+                    authManager.createAccount(groupMoney)
                         .onFailure {
                             dispatchEvent(Event.CreateFailed)
                             BottomBarManager.showError(
