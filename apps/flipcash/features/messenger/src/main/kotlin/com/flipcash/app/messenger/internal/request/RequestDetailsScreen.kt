@@ -49,11 +49,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.ui.TokenSelectionPill
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.paymentrequest.PaymentRequest
-import com.flipcash.services.models.paymentrequest.Share
+import com.flipcash.services.models.paymentrequest.Payer
+import com.flipcash.services.models.paymentrequest.amountEach
+import com.flipcash.services.models.paymentrequest.collectionPaid
 import com.flipcash.services.models.paymentrequest.statusLine
 import com.flipcash.shared.chat.ui.request.RequestProgressBar
 import com.flipcash.shared.chat.ui.request.progressText
@@ -89,8 +94,9 @@ internal fun RequestDetailsScreen(
     pushed: Boolean = false,
 ) {
     val viewModel = hiltViewModel<RequestDetailsViewModel>()
+    val collections = LocalNavBarShell.current == NavBarShell.GroupMoney
     LaunchedEffect(chatId, requestId) {
-        viewModel.open(chatId, requestId)
+        viewModel.open(chatId, requestId, collections)
     }
 
     // Fetch on open and every 45 s while the screen is visible with the app in the foreground.
@@ -113,9 +119,12 @@ internal fun RequestDetailsScreen(
     val pay by viewModel.pay.collectAsStateWithLifecycle()
     val now by viewModel.now.collectAsStateWithLifecycle()
     val unavailable by viewModel.unavailable.collectAsStateWithLifecycle()
+    val paidPayers by viewModel.paidPayers.collectAsStateWithLifecycle()
     val viewerId = viewModel.viewerId
 
     val current = request
+    // Group Money on: a collection takes the collection rules; a split keeps the shipped screen.
+    val collection = current?.let { collectionDetailsOf(it, collections) }
     val isCreatorOnOpen = current != null && viewerId != null &&
         current.creator == viewerId && current.isOpen(now)
 
@@ -154,7 +163,26 @@ internal fun RequestDetailsScreen(
             )
         },
         bottomBar = {
-            val share = current?.let { sendableShareOf(it, viewerId, now, state.hasPaymentIntent) }
+            val each = collection?.let {
+                payableCollectionAmount(it, viewerId, now, state.callerPaid, paidPayers, state.nothingToPay)
+            }
+            if (each != null) {
+                CodeButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = CodeTheme.dimens.inset)
+                        .padding(bottom = CodeTheme.dimens.grid.x2)
+                        .testTag("request_details_send"),
+                    text = stringResource(R.string.action_payShare, each.inDisplayCurrency().collectionText()),
+                    buttonState = ButtonState.Filled,
+                    isLoading = pay.preparing,
+                    onClick = viewModel::payTapped,
+                )
+                return@CodeScaffold
+            }
+            val share = current?.takeIf { collection == null }
+                ?.let { sendableShareOf(it, viewerId, now, state.hasPaymentIntent) }
             if (share != null) {
                 CodeButton(
                     modifier = Modifier
@@ -171,7 +199,7 @@ internal fun RequestDetailsScreen(
             }
         },
     ) { padding ->
-        if (current == null) {
+        if (current == null || (collection != null && state.payUnavailable)) {
             if (unavailable) {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(padding).padding(CodeTheme.dimens.inset),
@@ -186,6 +214,17 @@ internal fun RequestDetailsScreen(
                     )
                 }
             }
+            return@CodeScaffold
+        }
+        if (collection != null) {
+            CollectionDetailsContent(
+                request = collection,
+                members = members,
+                viewerId = viewerId,
+                paid = paidPayers,
+                now = now,
+                contentPadding = padding,
+            )
             return@CodeScaffold
         }
         RequestDetailsContent(
@@ -280,25 +319,7 @@ private fun RequestDetailsContent(
                     style = CodeTheme.typography.displayCompact,
                     color = CodeTheme.colors.textMain,
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-                ) {
-                    if (creator != null) {
-                        ContactAvatar(
-                            userProfile = creator.userProfile,
-                            modifier = Modifier
-                                .requiredSize(CodeTheme.dimens.staticGrid.x4)
-                                .clip(CircleShape),
-                        )
-                    }
-                    Text(
-                        text = if (request.creator == viewerId) stringResource(R.string.label_requestedByYou)
-                        else stringResource(R.string.label_requestedBy, memberName(creator)),
-                        style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary,
-                    )
-                }
+                RequestedBy(request, creator, viewerId)
                 Text(
                     text = request.progressText(),
                     style = CodeTheme.typography.displaySmall,
@@ -317,10 +338,115 @@ private fun RequestDetailsContent(
             ShareRow(
                 member = members[share.userId],
                 isViewer = share.userId == viewerId,
-                share = share,
+                paid = share.isPaid,
+                amount = share.amount.requestText(),
                 requestOpen = open,
                 onClick = if (tappable) ({ onRowTapped(share.userId) }) else null,
             )
+        }
+    }
+}
+
+/** "Requested by <name>" with the creator's avatar, or "Requested by you". */
+@Composable
+private fun RequestedBy(request: PaymentRequest, creator: ChatMember?, viewerId: ID?) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+    ) {
+        if (creator != null) {
+            ContactAvatar(
+                userProfile = creator.userProfile,
+                modifier = Modifier
+                    .requiredSize(CodeTheme.dimens.staticGrid.x4)
+                    .clip(CircleShape),
+            )
+        }
+        Text(
+            text = if (request.creator == viewerId) stringResource(R.string.label_requestedByYou)
+            else stringResource(R.string.label_requestedBy, memberName(creator)),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+        )
+    }
+}
+
+/**
+ * Frames 3.1 and 3.3: a collection's details. Its header is what came in and what each member pays,
+ * then its paid payers newest first, or "No payments yet". There is no bar, deadline or Mark as Paid.
+ */
+@Composable
+private fun CollectionDetailsContent(
+    request: PaymentRequest,
+    members: Map<ID, ChatMember>,
+    viewerId: ID?,
+    paid: List<Payer>,
+    now: Instant,
+    contentPadding: PaddingValues,
+) {
+    val collection = request.collection ?: return
+    val each = collection.amountEach ?: return
+    val total = request.collectionPaid ?: return
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = CodeTheme.dimens.inset)
+                .padding(top = CodeTheme.dimens.grid.x4, bottom = CodeTheme.dimens.grid.x3),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+        ) {
+            RequestedBy(request, members[request.creator], viewerId)
+            Text(
+                text = stringResource(
+                    R.string.label_collectionHeader,
+                    total.inDisplayCurrency().collectionText(),
+                    each.inDisplayCurrency().collectionText(),
+                ),
+                style = CodeTheme.typography.displaySmall,
+                color = CodeTheme.colors.textMain,
+                modifier = Modifier.testTag("request_details_header"),
+            )
+            // "Closed" once the creator closes it; an open collection has no status line.
+            request.statusLine(now)?.let { line ->
+                Text(
+                    text = line.text(),
+                    style = CodeTheme.typography.caption,
+                    color = CodeTheme.colors.textSecondary,
+                )
+            }
+        }
+        if (paid.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.label_requestNoPayments),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textSecondary,
+                    modifier = Modifier.testTag("request_details_no_payments"),
+                )
+            }
+            return@Column
+        }
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            contentPadding = PaddingValues(bottom = CodeTheme.dimens.grid.x4),
+        ) {
+            items(paid, key = { it.userId }) { payer ->
+                ShareRow(
+                    member = members[payer.userId],
+                    isViewer = payer.userId == viewerId,
+                    paid = true,
+                    amount = payer.amountPaid(collection.currency).inDisplayCurrency().collectionText(),
+                    requestOpen = request.isOpen(now),
+                    onClick = null,
+                )
+            }
         }
     }
 }
@@ -329,7 +455,8 @@ private fun RequestDetailsContent(
 private fun ShareRow(
     member: ChatMember?,
     isViewer: Boolean,
-    share: Share,
+    paid: Boolean,
+    amount: String,
     requestOpen: Boolean,
     onClick: (() -> Unit)?,
 ) {
@@ -356,7 +483,7 @@ private fun ShareRow(
             )
             // Fades to the paid state when the share turns paid while the screen is up.
             Crossfade(
-                targetState = if (share.isPaid) 2 else if (requestOpen) 1 else 0,
+                targetState = if (paid) 2 else if (requestOpen) 1 else 0,
                 animationSpec = RequestMotion.change(),
                 label = "share state",
             ) { state ->
@@ -372,7 +499,7 @@ private fun ShareRow(
             }
         }
         Text(
-            text = share.amount.requestText(),
+            text = amount,
             style = CodeTheme.typography.textMedium,
             color = CodeTheme.colors.textMain,
         )
