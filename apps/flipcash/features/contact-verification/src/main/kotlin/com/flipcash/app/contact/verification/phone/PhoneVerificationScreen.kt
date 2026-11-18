@@ -80,8 +80,13 @@ fun PhoneVerificationContent(
         viewModel.eventFlow
             .filterIsInstance<PhoneVerificationViewModel.Event.OnCodeSent>()
             .onEach {
-                keyboard.hideIfVisible {
+                if (onboarding) {
+                    // The keyboard stays up and the code step takes focus as it arrives.
                     flowNavigator.navigateTo(VerificationStep.PhoneCode)
+                } else {
+                    keyboard.hideIfVisible {
+                        flowNavigator.navigateTo(VerificationStep.PhoneCode)
+                    }
                 }
             }.launchIn(this)
     }

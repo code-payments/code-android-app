@@ -83,17 +83,24 @@ private fun PhoneEntryScreenContent(
                     focusManager = focusManager,
                     focusRequester = focusRequester,
                     locale = state.selectedLocale,
-                    enabled = !state.sendingCode.loading && !state.sendingCode.success,
+                    // Locked rather than disabled while the code is sent: a disabled field ends
+                    // its input session and takes the keyboard down, and the code step wants it up.
+                    locked = !state.sendingCode.isIdle,
                     state = state.numberTextFieldState,
                     placeholder = stringResource(R.string.label_onboardingPhoneNumber),
                     openCountrySelector = {
                         dispatchEvent(PhoneVerificationViewModel.Event.OpenCountrySelector)
                     },
-                    onSubmit = { dispatchEvent(PhoneVerificationViewModel.Event.OnSendCodeClicked) }
+                    onSubmit = {
+                        // The field stays focused while the code is sent, so Done can come again.
+                        if (state.canSendCode && state.sendingCode.isIdle) {
+                            dispatchEvent(PhoneVerificationViewModel.Event.OnSendCodeClicked)
+                        }
+                    }
                 )
                 OnboardingFootnote(stringResource(R.string.footnote_onboardingPhoneNumber))
             }
-            RequestFocusWhenSettled(focusRequester, onlyOnce = true)
+            RequestFocusWhenSettled(focusRequester, onlyOnce = true, immediatelyIfImeVisible = true)
             return@CodeScaffold
         }
         Box(

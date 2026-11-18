@@ -90,8 +90,13 @@ fun EmailVerificationContent(
         viewModel.eventFlow
             .filterIsInstance<EmailVerificationViewModel.Event.OnEntrySaved>()
             .onEach {
-                keyboard.hideIfVisible {
+                if (onboarding) {
+                    // The keyboard stays up and the name step takes focus as it arrives.
                     flowNavigator.exitWithResult(VerificationResult.Success)
+                } else {
+                    keyboard.hideIfVisible {
+                        flowNavigator.exitWithResult(VerificationResult.Success)
+                    }
                 }
             }.launchIn(this)
     }

@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -80,8 +82,13 @@ private fun EmailEntryScreenContent(
                 isLoading = state.sendingCode.loading,
                 isSuccess = state.sendingCode.success,
             ) {
-                keyboard.hideIfVisible {
+                if (onboarding) {
+                    // The keyboard stays up through the save and on into the name step.
                     dispatchEvent(EmailVerificationViewModel.Event.OnSendCodeClicked)
+                } else {
+                    keyboard.hideIfVisible {
+                        dispatchEvent(EmailVerificationViewModel.Event.OnSendCodeClicked)
+                    }
                 }
             }
         }
@@ -96,16 +103,20 @@ private fun EmailEntryScreenContent(
                 EmailAddressInputField(
                     state = state.email,
                     modifier = Modifier.height(CodeTheme.dimens.grid.x12),
-                    enabled = !state.sendingCode.loading && !state.sendingCode.success,
+                    // Locked rather than disabled while the address is saved: a disabled field ends
+                    // its input session and takes the keyboard down, and the name step wants it up.
+                    locked = !state.sendingCode.isIdle,
                     focusRequester = focusRequester,
                     onSubmit = {
-                        keyboard.hideIfVisible {
+                        // The field stays focused while the address is saved, so Done can come
+                        // again.
+                        if (state.canSendCode && state.sendingCode.isIdle) {
                             dispatchEvent(EmailVerificationViewModel.Event.OnSendCodeClicked)
                         }
                     }
                 )
             }
-            RequestFocusWhenSettled(focusRequester, onlyOnce = true)
+            RequestFocusWhenSettled(focusRequester, onlyOnce = true, immediatelyIfImeVisible = true)
             return@CodeScaffold
         }
         Box(
@@ -151,6 +162,8 @@ private fun EmailAddressInputField(
     state: TextFieldState,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    // Rejects edits but leaves the field editable to the keyboard, so a focused field keeps it up.
+    locked: Boolean = false,
     focusRequester: FocusRequester = remember { FocusRequester() },
     onSubmit: () -> Unit = {},
 ) {
@@ -158,6 +171,7 @@ private fun EmailAddressInputField(
         modifier = modifier.focusRequester(focusRequester),
         state = state,
         enabled = enabled,
+        inputTransformation = if (locked) RejectEdits else null,
         placeholder = stringResource(R.string.title_email),
         placeholderStyle = CodeTheme.typography.textMedium,
         maxLines = 1,
@@ -169,4 +183,8 @@ private fun EmailAddressInputField(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
         onKeyboardAction = { onSubmit() },
     )
+}
+
+private val RejectEdits = object : InputTransformation {
+    override fun TextFieldBuffer.transformInput() = revertAllChanges()
 }

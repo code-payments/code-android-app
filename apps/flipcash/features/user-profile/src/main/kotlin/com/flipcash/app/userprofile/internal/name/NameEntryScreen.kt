@@ -176,6 +176,8 @@ private fun NameEntryScreenContent(
             )
         }
 
-        RequestFocusWhenSettled(focusRequester)
+        // In Group Money onboarding the email step hands over with the keyboard up; take focus as
+        // the step arrives so the keyboard changes type rather than dropping.
+        RequestFocusWhenSettled(focusRequester, immediatelyIfImeVisible = forGroups)
     }
 }

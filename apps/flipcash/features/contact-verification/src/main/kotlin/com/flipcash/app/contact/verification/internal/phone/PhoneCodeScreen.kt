@@ -95,16 +95,15 @@ private fun PhoneCodeScreenContent(
                     state = state.codeTextFieldState,
                     lengthNeeded = state.otpLength,
                     focusRequester = focusRequester,
+                    // The keyboard stays up through the check and on into the email step.
                     onLengthReached = {
-                        keyboard.hideIfVisible {
-                            dispatchEvent(PhoneVerificationViewModel.Event.OnVerifyCodeClicked)
-                        }
+                        dispatchEvent(PhoneVerificationViewModel.Event.OnVerifyCodeClicked)
                     }
                 )
                 OnboardingResend(state, dispatchEvent)
                 OnboardingFootnote(stringResource(R.string.footnote_onboardingVerificationCode))
             }
-            RequestFocusWhenSettled(focusRequester, onlyOnce = true)
+            RequestFocusWhenSettled(focusRequester, onlyOnce = true, immediatelyIfImeVisible = true)
             return@CodeScaffold
         }
         Box(
