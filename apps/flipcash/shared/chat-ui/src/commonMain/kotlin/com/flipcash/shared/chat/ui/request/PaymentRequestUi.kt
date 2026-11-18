@@ -199,18 +199,21 @@ fun PaymentRequestCardContent(
         if (request?.collection == null) {
             RequestProgressBar(fraction = request?.split?.paidFraction ?: 0f, ended = ended, modifier = detailModifier)
         }
+        val status = request?.takeUnless { loading }?.statusLine(now)?.text()
+        val viewer = standing?.takeUnless { loading }?.text()
+        // An open collection has no deadline to count down, so it draws no empty line under its total.
+        if (request?.collection != null && !loading && status == null && viewer == null) return@Column
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         ) {
             Text(
-                text = request?.takeUnless { loading }?.statusLine(now)?.text().orEmpty(),
+                text = status.orEmpty(),
                 style = CodeTheme.typography.caption,
                 color = CodeTheme.colors.textSecondary,
                 modifier = if (loading) Modifier.width(100.dp).shimmer(RoundedCornerShape(4.dp)) else detailModifier,
             )
-            val viewer = standing?.takeUnless { loading }?.text()
             if (viewer != null) {
                 Spacer(Modifier.weight(1f))
                 // The viewer's part cross-fades when it changes, as a share turns paid.
