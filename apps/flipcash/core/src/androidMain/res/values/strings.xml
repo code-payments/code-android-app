@@ -1256,6 +1256,7 @@
     <string name="cd_timeToPayDial">Pick a time on the dial</string>
     <string name="action_timeToPayOk">OK</string>
     <string name="title_sendRequestConfirm">Send Request?</string>
+    <string name="title_requestEachConfirm">Request %1$s each?</string>
     <string name="description_sendRequestConfirm">You will receive and hold the money collected</string>
     <string name="action_sendRequest">Send Request</string>
     <string name="error_title_cantSendRequest">Can\'t Send Request</string>

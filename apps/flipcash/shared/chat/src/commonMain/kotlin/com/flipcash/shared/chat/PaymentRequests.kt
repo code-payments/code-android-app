@@ -8,7 +8,7 @@ import com.flipcash.services.models.GetPaymentRequestError
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.paymentrequest.NewSplitRequest
+import com.flipcash.services.models.paymentrequest.NewPaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
 import com.flipcash.services.models.paymentrequest.PaymentRequestPage
@@ -132,7 +132,7 @@ class PaymentRequests @Inject constructor(
         }
     }
 
-    suspend fun create(request: NewSplitRequest, idempotencyKey: IdempotencyKey): Result<PaymentRequest> =
+    suspend fun create(request: NewPaymentRequest, idempotencyKey: IdempotencyKey): Result<PaymentRequest> =
         controller.createPaymentRequest(request, idempotencyKey).map { ingestOne(it) }
 
     suspend fun close(id: ID): Result<PaymentRequest> =
