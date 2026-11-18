@@ -56,25 +56,8 @@ emit() {
 }
 
 # --- mint access token ---
-NOW=$(date +%s); EXP=$((NOW + 3600))
-CLIENT_EMAIL=$(jq -r .client_email "$SA_PATH")
-PRIVATE_KEY=$(jq -r .private_key "$SA_PATH")
-
-HEADER=$(echo -n '{"alg":"RS256","typ":"JWT"}' | base64 | tr '+/' '-_' | tr -d '=\n')
-PAYLOAD=$(jq -nc \
-  --arg iss "$CLIENT_EMAIL" \
-  --arg scope "https://www.googleapis.com/auth/androidpublisher" \
-  --argjson iat $NOW --argjson exp $EXP \
-  '{iss:$iss, scope:$scope, aud:"https://oauth2.googleapis.com/token", iat:$iat, exp:$exp}' \
-  | base64 | tr '+/' '-_' | tr -d '=\n')
-SIG=$(printf '%s.%s' "$HEADER" "$PAYLOAD" \
-  | openssl dgst -sha256 -sign <(echo "$PRIVATE_KEY") \
-  | base64 | tr '+/' '-_' | tr -d '=\n')
-ACCESS=$(curl -s -X POST https://oauth2.googleapis.com/token \
-  -d "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer" \
-  -d "assertion=$HEADER.$PAYLOAD.$SIG" | jq -r .access_token)
-
-[ "$ACCESS" = "null" ] && { echo "Token request failed"; exit 1; }
+source "$(dirname "$0")/lib/play-api.sh"
+ACCESS=$(play_access_token "$SA_PATH") || exit 1
 echo "Got access token"
 
 # --- fetch tracks ---
@@ -141,8 +124,10 @@ jq -n \
   --argjson beta "${TRACK_OBJS[beta]}" \
   --argjson alpha "${TRACK_OBJS[alpha]}" \
   --argjson internal "${TRACK_OBJS[internal]}" \
+  --argjson dappStore "$(echo "$EXISTING" | jq -c '.dappStore // null')" \
   --arg updated "$(date -u +%FT%TZ)" \
-  '{updated: $updated, tracks: {production:$production, beta:$beta, alpha:$alpha, internal:$internal}}' \
+  '{updated: $updated, tracks: {production:$production, beta:$beta, alpha:$alpha, internal:$internal}}
+    + (if $dappStore == null then {} else {dappStore: $dappStore} end)' \
   > "$MANIFEST_PATH"
 
 echo "Manifest written:"
@@ -151,6 +136,15 @@ cat "$MANIFEST_PATH"
 emit "old_prod" "${OLD_PROD:-null}"
 emit "new_prod" "${NEW_PROD:-null}"
 emit "new_prod_name" "${NEW_PROD_NAME:-null}"
+
+# --- dApp Store drift: dapp-store-publish.yml records what it last published ---
+DAPP_CODE=$(jq -r '.dappStore.versionCode // empty' "$MANIFEST_PATH")
+if [ -n "$NEW_PROD" ] && { [ -z "$DAPP_CODE" ] || [ "$NEW_PROD" -gt "$DAPP_CODE" ]; }; then
+  echo "::warning::Solana dApp Store is behind Play production (dApp Store ${DAPP_CODE:-<none>}, Play $NEW_PROD)"
+  emit "dapp_behind" "true"
+else
+  emit "dapp_behind" "false"
+fi
 
 # --- detect whether any track changed ---
 if diff -q <(jq -S .tracks "$MANIFEST_PATH") <(echo "$EXISTING" | jq -S '.tracks // {}') >/dev/null 2>&1; then
