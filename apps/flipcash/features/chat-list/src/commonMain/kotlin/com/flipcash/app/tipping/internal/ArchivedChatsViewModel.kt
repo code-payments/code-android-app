@@ -1,5 +1,6 @@
 package com.flipcash.app.tipping.internal
 
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.getcode.opencode.exchange.Exchange
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.data.Loadable
@@ -99,6 +100,14 @@ internal open class ArchivedChatsViewModel @Inject constructor(
         endSelection()
     }
 
+    // Collections preview by what each member pays under the Group Money flag, which only the
+    // screen can read; until it says so they preview as untitled requests, as before the flag.
+    private val collections = MutableStateFlow(false)
+
+    fun showCollections(on: Boolean) {
+        collections.value = on
+    }
+
     init {
         combine(
             chatCoordinator.archivedChatListFeed(),
@@ -107,12 +116,13 @@ internal open class ArchivedChatsViewModel @Inject constructor(
             // A payment preview reads at the display currency's rate and the sent currency's, so
             // either one landing redraws the rows. Paired to stay at five typed flows.
             combine(exchange.observePreferredRate(), exchange.observeRates(), ::Pair),
-            combine(paymentRequests.state, hostLobbies.state, ::Pair),
-        ) { summaries, tokens, senderProfiles, _, (requests, lobbies) ->
+            combine(paymentRequests.state, hostLobbies.state, collections, ::Triple),
+        ) { summaries, tokens, senderProfiles, _, (requests, lobbies, collections) ->
             mapConversations(
                 summaries, tokens, senderProfiles, userManager.accountId, resources, chatCoordinator, exchange, requests,
                 requestPaymentRequest = { id -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id) } },
                 lobbies = lobbies,
+                collections = collections,
             ).sortedByDescending { it.rowActivity }
         }
             .flowOn(dispatchers.Default)

@@ -1,5 +1,6 @@
 package com.flipcash.app.tipping.internal
 
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.getcode.opencode.exchange.Exchange
 import androidx.lifecycle.viewModelScope
 import com.flipcash.app.core.data.Loadable
@@ -197,6 +198,14 @@ open class ChatsViewModel @Inject constructor(
         endSelection()
     }
 
+    // Collections preview by what each member pays under the Group Money flag, which only the
+    // screen can read; until it says so they preview as untitled requests, as before the flag.
+    private val collections = MutableStateFlow(false)
+
+    fun showCollections(on: Boolean) {
+        collections.value = on
+    }
+
     init {
         // No push says a join request was answered; an admitted group only shows up once the feed
         // is synced, which refresh() does when GetChat says a request has left its lobby.
@@ -212,10 +221,11 @@ open class ChatsViewModel @Inject constructor(
             senderProfiles: Map<String, UserProfile>?,
             requests: Map<ID, PaymentRequest>,
             lobbies: Map<ChatId, List<LobbyMember>>,
+            collections: Boolean,
         ): Event.ChatsUpdated {
             val fetchRequest: (ID) -> Unit = { id -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id) } }
-            val mainRows = mapConversations(feeds.main, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest, lobbies)
-            val archivedRows = mapConversations(feeds.archived, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest, lobbies)
+            val mainRows = mapConversations(feeds.main, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest, lobbies, collections)
+            val archivedRows = mapConversations(feeds.archived, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest, lobbies, collections)
 
             // The projection sees every chat so the chips, the Archived row and the badge number
             // come from the one function the fixture tests. Hidden chats never reach the feeds, so
@@ -249,6 +259,7 @@ open class ChatsViewModel @Inject constructor(
                     senderProfiles = chatCoordinator.currentSenderProfiles(),
                     requests = paymentRequests.state.value,
                     lobbies = hostLobbies.state.value,
+                    collections = collections.value,
                 )
             )
         }
@@ -263,9 +274,9 @@ open class ChatsViewModel @Inject constructor(
             chatCoordinator.observeSenderProfiles(),
             // Paired so the combine stays at five typed flows.
             combine(exchange.observePreferredRate(), exchange.observeRates(), ::Pair),
-            combine(paymentRequests.state, hostLobbies.state, ::Pair),
-        ) { feeds, tokens, senderProfiles, _, (requests, lobbies) ->
-            content(feeds, tokens, senderProfiles, requests, lobbies)
+            combine(paymentRequests.state, hostLobbies.state, collections, ::Triple),
+        ) { feeds, tokens, senderProfiles, _, (requests, lobbies, collections) ->
+            content(feeds, tokens, senderProfiles, requests, lobbies, collections)
         }
             // Off the main thread: on a cold launch the first mapping lands while the main thread
             // is drawing the app's first screens, and waiting for it holds the Chats tab blank.

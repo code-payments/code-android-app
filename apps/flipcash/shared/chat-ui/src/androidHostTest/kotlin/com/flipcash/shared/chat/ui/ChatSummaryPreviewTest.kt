@@ -1,5 +1,8 @@
 package com.flipcash.shared.chat.ui
 
+import com.flipcash.services.models.paymentrequest.PaymentCollection
+import com.flipcash.services.models.paymentrequest.CollectionAmount
+import com.flipcash.core.resources.label_requestEachAmount
 import com.flipcash.core.resources.Res
 import com.flipcash.core.resources.label_sharePayment
 import com.flipcash.core.resources.label_chat_preview_sharePaid_toViewer
@@ -692,5 +695,49 @@ class ChatSummaryPreviewTest {
     fun `cash that pays no request names none`() {
         val cash = MessageContent.Cash(intentId = listOf(1), amount = 40.toFiat(), mint = Mint.usdf, receiver = alex)
         assertNull(groupSummary(listOf(cash), senderId = jordan).previewedPaymentRequestId())
+    }
+
+    private fun collection(each: Fiat) = request(each).copy(
+        kind = PaymentRequest.Kind.GroupCollection(
+            chatId = ChatId(byteArrayOf(9)),
+            collection = PaymentCollection(PaymentRequestText.Plain("", ""), CurrencyCode.USD, null, CollectionAmount.Fixed(each)),
+        ),
+    )
+
+    @Test
+    fun `a collection previews as who sent it and what each member pays, under the Group Money flag`() {
+        val ten = Fiat(10.0, CurrencyCode.USD)
+        val shown = ten.formatted(Fiat.FormattingRule.Truncated)
+        every { resources.getString(Res.string.label_requestEachAmount, shown) } returns "$shown each"
+        every {
+            resources.getString(Res.string.label_chat_preview_sentRequest_bySender, "Alice", "$shown each")
+        } returns "Alice sent request for $shown each"
+        every { resources.getString(Res.string.label_chat_preview_sentRequest, "$shown each") } returns "You sent request for $shown each"
+        val widget = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
+        val requests = mapOf(requestId to collection(ten))
+
+        fun groupPreview(senderId: ID) = groupSummary(widget, senderId, "Alice")
+            .toConversationReference(self, emptyMap(), resources, paymentRequests = requests, collections = true)
+            .lastMessagePreview
+
+        assertEquals("Alice sent request for $shown each", groupPreview(other))
+        assertEquals("You sent request for $shown each", groupPreview(self))
+    }
+
+    @Test
+    fun `a collection previews as an untitled request with the Group Money flag off, as before it`() {
+        every {
+            resources.getString(Res.string.label_chat_preview_sentRequest_untitled_bySender, "Alice")
+        } returns "Alice sent request"
+        every { resources.getString(Res.string.label_chat_preview_sentRequest_untitled) } returns "You sent request"
+        val widget = listOf(MessageContent.Widget(WidgetContent.PaymentRequest(requestId)))
+        val requests = mapOf(requestId to collection(Fiat(10.0, CurrencyCode.USD)))
+
+        fun groupPreview(senderId: ID) = groupSummary(widget, senderId, "Alice")
+            .toConversationReference(self, emptyMap(), resources, paymentRequests = requests)
+            .lastMessagePreview
+
+        assertEquals("Alice sent request", groupPreview(other))
+        assertEquals("You sent request", groupPreview(self))
     }
 }

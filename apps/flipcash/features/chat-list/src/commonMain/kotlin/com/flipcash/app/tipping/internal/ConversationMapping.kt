@@ -35,6 +35,8 @@ internal fun mapConversations(
     requestPaymentRequest: (ID) -> Unit,
     // Hosted groups' lobbies; a row shows the ones waiting on a group the viewer hosts.
     lobbies: Map<ChatId, List<LobbyMember>> = emptyMap(),
+    // Previews collections by what each member pays, as under the Group Money flag.
+    collections: Boolean = false,
 ): List<ConversationReference> {
     val tokensByMint = tokens.associateBy { it.address }
     return summaries.map { summary ->
@@ -47,7 +49,7 @@ internal fun mapConversations(
         summary.previewedPaymentRequestId()
             ?.takeIf { it !in paymentRequests }
             ?.let(requestPaymentRequest)
-        summary.toConversationReference(selfId, tokensByMint, resources, senderProfiles.orEmpty(), exchange, paymentRequests)
+        summary.toConversationReference(selfId, tokensByMint, resources, senderProfiles.orEmpty(), exchange, paymentRequests, collections)
             .copy(joinRequests = lobbies.waitingFor(summary.metadata, selfId).sortedByDescending { it.enteredAt })
     }
 }
