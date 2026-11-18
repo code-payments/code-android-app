@@ -49,7 +49,10 @@ class KeyboardController(
     private val focusManager: FocusManager,
     private val coroutineScope: CoroutineScope,
 ) {
-    var visible by mutableStateOf(false)
+    // Starts from the window's insets rather than false. A field composed while the keyboard is
+    // already up, such as a flow step that takes focus as it arrives, would otherwise read hidden
+    // for its first frame, and TextInput clears focus when the keyboard reads hidden.
+    var visible by mutableStateOf(view.isImeVisible())
         private set
 
     fun show() {
@@ -96,8 +99,7 @@ class KeyboardController(
         val viewTreeObserver = view.viewTreeObserver
         DisposableEffect(viewTreeObserver) {
             val listener = ViewTreeObserver.OnGlobalLayoutListener {
-                visible = ViewCompat.getRootWindowInsets(view)
-                    ?.isVisible(WindowInsetsCompat.Type.ime()) ?: false
+                visible = view.isImeVisible()
             }
             viewTreeObserver.addOnGlobalLayoutListener(listener)
             onDispose { viewTreeObserver.removeOnGlobalLayoutListener(listener) }
@@ -121,3 +123,5 @@ fun rememberKeyboardController(): KeyboardController {
     return keyboardController
 }
 
+private fun View.isImeVisible(): Boolean =
+    ViewCompat.getRootWindowInsets(this)?.isVisible(WindowInsetsCompat.Type.ime()) ?: false

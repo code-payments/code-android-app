@@ -85,6 +85,7 @@ sealed interface AppRoute : NavKey, Parcelable {
         val fromDeeplink: Boolean = false,
         val resumeAt: ResumePoint = ResumePoint.Login,
         val skipContacts: Boolean = true,
+        val skipNotifications: Boolean = false,
     ) : AppRoute, FlowRoute {
         enum class Phase { Account, Permissions }
         enum class ResumePoint { Login, AccessKey, AccessKeyThenPurchase, PostAccessKey }
@@ -100,7 +101,7 @@ sealed interface AppRoute : NavKey, Parcelable {
                 }
                 Phase.Permissions -> buildList {
                     if (!skipContacts) add(OnboardingStep.ContactPermission)
-                    add(OnboardingStep.NotificationPermission)
+                    if (!skipNotifications) add(OnboardingStep.NotificationPermission)
                 }
             }
     }
@@ -138,9 +139,15 @@ sealed interface AppRoute : NavKey, Parcelable {
         val target: AppRoute? = null,
         val fullScreen: Boolean = false,
         val linkForPayment: Boolean = false,
+        /**
+         * Opened by new-account onboarding after the account is registered: starts at phone
+         * entry, saves the email without a code, and never leaves onboarding except forward to
+         * [target].
+         */
+        val onboarding: Boolean = false,
     ) : AppRoute, FlowRouteWithResult<VerificationResult> {
         override val initialStack: List<NavKey>
-            get() = buildVerificationInitialStack(
+            get() = if (onboarding) listOf(VerificationStep.PhoneEntry) else buildVerificationInitialStack(
                 forOnRamp = target is Token.Swap,
                 includePhone = includePhone,
                 includeEmail = includeEmail,

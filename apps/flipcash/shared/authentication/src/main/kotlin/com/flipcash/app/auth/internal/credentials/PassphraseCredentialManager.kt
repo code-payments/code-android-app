@@ -49,6 +49,8 @@ class PassphraseCredentialManager @Inject constructor(
             booleanPreferencesKey("${accountId}_unregistered")
         private fun completedOnboardingKey(accountId: String) =
             booleanPreferencesKey("${accountId}_completedOnboarding")
+        private fun groupMoneyOnboardingKey(accountId: String) =
+            booleanPreferencesKey("${accountId}_groupMoneyOnboarding")
     }
 
     private val dataScope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatchers.IO)
@@ -62,7 +64,11 @@ class PassphraseCredentialManager @Inject constructor(
         produceFile = { context.preferencesDataStoreFile("credentials") }
     )
 
-    suspend fun createAccount(): Result<String> {
+    /**
+     * @param groupMoney the Group Money onboarding gate as read at the Create tap. Stored with the
+     * account so a relaunch mid-sign-up resumes in the same onboarding even if the gate has moved.
+     */
+    suspend fun createAccount(groupMoney: Boolean = false): Result<String> {
         // Setup as new
         val seedB64 = Ed25519.createSeed16().encodeBase64()
         userManager.establish(seedB64)
@@ -89,6 +95,7 @@ class PassphraseCredentialManager @Inject constructor(
         storage.edit { preferences ->
             preferences[temporaryUserIdKey] = userId.base58
             preferences[completedOnboardingKey(userId.base58)] = false
+            preferences[groupMoneyOnboardingKey(userId.base58)] = groupMoney
         }
 
         updateUserManager(userId, AuthState.Onboarding(AuthState.ResumePoint.AccessKey))
@@ -134,12 +141,28 @@ class PassphraseCredentialManager @Inject constructor(
         return storage.data.map { it[completedOnboardingKey(accountId)] }.firstOrNull() ?: true
     }
 
+    /**
+     * Whether the account was created through the Group Money onboarding. False for an account
+     * created on another device, restored from a key, or created before this was recorded.
+     */
+    suspend fun startedInGroupMoneyOnboarding(): Boolean {
+        val accountId = storage.data.map { it[selectedAccountIdKey] }.firstOrNull()
+            ?: storage.data.map { it[temporaryUserIdKey] }.firstOrNull()
+            ?: return false
+        return storage.data.map { it[groupMoneyOnboardingKey(accountId)] }.firstOrNull() ?: false
+    }
+
     suspend fun presentSaveOption(): Result<AccountMetadata> {
         val tempUserId = storage.data.map { it[temporaryUserIdKey] }.firstOrNull()
         val entropy = storage.data.map { it[temporaryEntropyKey] }.firstOrNull()
 
         if (tempUserId == null) {
-            return Result.failure(Throwable("No user id found"))
+            // A registration that needs no purchase runs onAccountPurchased during createAccount,
+            // which removes the temporary keys and selects the account. Save that account instead.
+            val selected = getSelectedMetadata()
+                ?: return Result.failure(Throwable("No user id found"))
+            accountStore.upsert(selected.entropy)
+            return Result.success(selected)
         }
 
         if (entropy == null) {

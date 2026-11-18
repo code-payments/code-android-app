@@ -636,7 +636,9 @@ private fun com.codeinc.flipcash.gen.profile.v1.Model.UserProfile.toMemberUserPr
         displayName = displayName,
         socialAccounts = emptyList(),
         phoneNumber = phoneNumber.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
-        email = emailAddress.value.takeIf { it.isNotEmpty() }?.let { VerifiableContactMethod(it, verified = true) },
+        email = emailAddress.value.takeIf { it.isNotEmpty() }?.let {
+            VerifiableContactMethod(it, verified = isEmailAddressVerified)
+        },
         profilePicture = if (hasProfilePicture()) profilePicture.toMediaItem() else null,
         userId = if (hasUserId()) userId.toId() else fallbackUserId,
         username = if (hasUsername()) username.value else null,

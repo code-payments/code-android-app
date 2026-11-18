@@ -8,7 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.flipcash.analytics.OnrampStep
-import com.flipcash.analytics.events.OnrampEvents
+import com.flipcash.app.contact.verification.onrampStepEvent
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.internal.phone.PhoneCodeScreen
 import com.flipcash.app.contact.verification.internal.phone.PhoneVerificationViewModel
@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.onEach
 fun PhoneCodeContent(
     includeEmail: Boolean,
     linkForPayment: Boolean = false,
+    // New-account onboarding: running out of attempts returns to phone entry, never out of the flow.
+    onboarding: Boolean = false,
 ) {
     val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
     val viewModel = flowSharedViewModel<PhoneVerificationViewModel>()
@@ -35,22 +37,23 @@ fun PhoneCodeContent(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            title = stringResource(R.string.title_enterTheCode),
+            // Onboarding puts its title in the step's headline instead.
+            title = if (onboarding) "" else stringResource(R.string.title_enterTheCode),
             titleAlignment = Alignment.CenterHorizontally,
             onBackIconClicked = { flowNavigator.back() },
         )
-        PhoneCodeScreen(viewModel)
+        PhoneCodeScreen(viewModel, onboarding)
     }
 
     val analytics = rememberAnalytics()
     LaunchedEffect(Unit) {
-        analytics.track(OnrampEvents.step(OnrampStep.CONFIRM_PHONE))
+        onrampStepEvent(OnrampStep.CONFIRM_PHONE, onboarding)?.let(analytics::track)
     }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<PhoneVerificationViewModel.Event.OnMaxAttemptsReached>()
-            .onEach { flowNavigator.exitCanceled() }
+            .onEach { if (onboarding) flowNavigator.back() else flowNavigator.exitCanceled() }
             .launchIn(this)
     }
 

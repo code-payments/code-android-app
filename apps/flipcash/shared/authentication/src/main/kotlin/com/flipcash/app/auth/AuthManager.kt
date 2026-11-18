@@ -9,6 +9,7 @@ import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.auth.push.PushRegistrar
 import com.flipcash.app.auth.push.PushRegistrationSource
 import com.flipcash.app.contacts.ContactCoordinator
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.shared.chat.ChatCoordinator
@@ -33,6 +34,7 @@ import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -71,6 +73,12 @@ class AuthManager @Inject constructor(
     private val dispatchers: DispatcherProvider,
     private val analytics: FlipcashAnalytics,
 ) : CoroutineScope by CoroutineScope(dispatchers.IO) {
+
+    // The two values isGroupMoneyOnboardingOpen reads. The controller hands back a new flow on
+    // each call that starts at its default and catches up with DataStore a moment later, so these
+    // are taken once, at construction, and are current by the time the intro screen takes a tap.
+    private val groupMoneyUiFlag: StateFlow<Boolean> = featureFlags.observe(FeatureFlag.GroupMoneyUi)
+    private val betaOverride: StateFlow<Boolean> = featureFlags.observeOverride()
 
     init {
         // Persist onboarding completion when the composable transitions Onboarding → Ready.
@@ -170,9 +178,13 @@ class AuthManager @Inject constructor(
         return ocpAccountController.ensureCoreAccount(owner)
     }
 
-    suspend fun createAccount(): Result<Unit> {
+    /**
+     * @param groupMoney [isGroupMoneyOnboardingOpen] as read at the Create tap. It is stored with
+     * the account, and a relaunch before onboarding finishes resumes in that onboarding.
+     */
+    suspend fun createAccount(groupMoney: Boolean = false): Result<Unit> {
         trace(tag = "Onboarding", message = "Registering new account", type = TraceType.Process)
-        return credentialManager.createAccount()
+        return credentialManager.createAccount(groupMoney)
             .fold(
                 onSuccess = { entropy ->
                     accountController.getUserFlags()
@@ -215,6 +227,36 @@ class AuthManager @Inject constructor(
                 }
             }.map { Unit }
     }
+
+    /**
+     * Does what the access key screen does when the user leaves it, for an onboarding flow that
+     * does not show it: saves the key to the account store and credential storage, marks it seen,
+     * and provisions the core account when registration needs no purchase.
+     *
+     * The screen marks the key seen before saving it, because the key is on screen by then. Here
+     * the save is the user's only backup, so it comes first and a failed save fails the step with
+     * nothing marked seen: a cold launch then resumes at the access key screen.
+     *
+     * Returns whether registration still needs a purchase. Fails when the save or provisioning
+     * fails; a retry repeats only these steps.
+     */
+    suspend fun completeAccessKeyStep(): Result<Boolean> = runCatching {
+        presentCredentialStorage().getOrThrow()
+        onUserAccessKeySeen().getOrThrow()
+        val requiresIap = userFlags.resolvedFlags.value.requiresIapForRegistration.effectiveValue
+        if (!requiresIap) {
+            ensureCoreAccountProvisioned().getOrThrow()
+        }
+        requiresIap
+    }
+
+    /**
+     * Whether a new account gets the Group Money onboarding (phone, code, email and name, with no
+     * access key screen). Read once, at the Create tap. This is `NavBarShell.resolve`'s rule
+     * without staff standing, which is not known before sign-in: the Group Money flag and the
+     * device beta override.
+     */
+    fun isGroupMoneyOnboardingOpen(): Boolean = groupMoneyUiFlag.value && betaOverride.value
 
     suspend fun onAccountPurchased(): Result<Unit> {
         trace(tag = "Onboarding", message = "Finalizing account purchase", type = TraceType.Process)
@@ -269,7 +311,11 @@ class AuthManager @Inject constructor(
                             else credentialManager.hasCompletedOnboarding()
 
                         if (isSoftLogin) {
-                            resumeFromLocalState(seenAccessKey, completedOnboarding)
+                            resumeFromLocalState(
+                                seenAccessKey = seenAccessKey,
+                                completedOnboarding = completedOnboarding,
+                                groupMoney = credentialManager.startedInGroupMoneyOnboarding(),
+                            )
                         } else {
                             val flags = fetchUserFlags()
                             if (flags != null) {
@@ -277,8 +323,10 @@ class AuthManager @Inject constructor(
                             } else {
                                 taggedTrace("Failed to get user flags after retries", type = TraceType.Error)
                             }
+                            // An interactive login lands in the onboarding flow it was started
+                            // from, so it does not read the Group Money marker.
                             publishAuthState(
-                                state = resolveAuthState(flags, seenAccessKey, completedOnboarding),
+                                state = resolveAuthState(flags, seenAccessKey, completedOnboarding, groupMoney = false),
                                 flagsAvailable = flags != null,
                             )
                         }
@@ -328,9 +376,13 @@ class AuthManager @Inject constructor(
      * That correction is skipped when something else has moved the state on in the meantime, so it
      * cannot pull the user out of a step they have since started.
      */
-    private suspend fun resumeFromLocalState(seenAccessKey: Boolean, completedOnboarding: Boolean) {
+    private suspend fun resumeFromLocalState(
+        seenAccessKey: Boolean,
+        completedOnboarding: Boolean,
+        groupMoney: Boolean,
+    ) {
         val restoredFlags = userManager.userFlags
-        val resolved = resolveAuthState(restoredFlags, seenAccessKey, completedOnboarding)
+        val resolved = resolveAuthState(restoredFlags, seenAccessKey, completedOnboarding, groupMoney)
         publishAuthState(state = resolved, flagsAvailable = restoredFlags != null)
 
         if (!networkObserver.isConnected) return
@@ -345,7 +397,7 @@ class AuthManager @Inject constructor(
             }
 
             userManager.set(flags)
-            val corrected = resolveAuthState(flags, seenAccessKey, completedOnboarding)
+            val corrected = resolveAuthState(flags, seenAccessKey, completedOnboarding, groupMoney)
             if (corrected != resolved && userManager.authState == resolved) {
                 taggedTrace("User flags moved auth state $resolved => $corrected")
                 publishAuthState(state = corrected, flagsAvailable = true)
@@ -362,11 +414,14 @@ class AuthManager @Inject constructor(
      * neither is available. Null reads as registered: [seenAccessKey] and [completedOnboarding] are
      * the local record of having got that far, and distrusting them would strand a user without a
      * usable connection on onboarding they have already finished.
+     *
+     * [groupMoney] is the onboarding the account was created in, carried on the resume state.
      */
     private fun resolveAuthState(
         flags: UserFlags?,
         seenAccessKey: Boolean,
         completedOnboarding: Boolean,
+        groupMoney: Boolean,
     ): AuthState {
         val registered = flags?.isRegistered ?: true
         if (registered && seenAccessKey && completedOnboarding) return AuthState.Ready
@@ -381,7 +436,7 @@ class AuthManager @Inject constructor(
             displayNameMissing -> AuthState.ResumePoint.DisplayName
             else -> AuthState.ResumePoint.PostAccessKey
         }
-        return AuthState.Onboarding(resumePoint)
+        return AuthState.Onboarding(resumePoint, groupMoney = groupMoney)
     }
 
     private fun publishAuthState(state: AuthState, flagsAvailable: Boolean) {

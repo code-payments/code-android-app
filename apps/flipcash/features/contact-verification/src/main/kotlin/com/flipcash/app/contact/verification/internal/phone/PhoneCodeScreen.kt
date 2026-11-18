@@ -1,5 +1,6 @@
 package com.flipcash.app.contact.verification.internal.phone
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,8 +28,11 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.ui.transitions.RequestFocusWhenSettled
 import com.flipcash.app.phone.components.OtpInputField
 import com.flipcash.app.phone.components.SmsOtpAutofill
+import com.flipcash.app.core.ui.OnboardingFootnote
+import com.flipcash.app.core.ui.OnboardingStepLayout
 import com.flipcash.features.contact.verification.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnWindowFocusedRequester
@@ -41,15 +45,17 @@ import com.getcode.utils.replaceParam
 
 @Composable
 internal fun PhoneCodeScreen(
-    viewModel: PhoneVerificationViewModel
+    viewModel: PhoneVerificationViewModel,
+    onboarding: Boolean = false,
 ) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    PhoneCodeScreenContent(state, viewModel::dispatchEvent)
+    PhoneCodeScreenContent(state, onboarding, viewModel::dispatchEvent)
 }
 
 @Composable
 private fun PhoneCodeScreenContent(
     state: PhoneVerificationViewModel.State,
+    onboarding: Boolean,
     dispatchEvent: (PhoneVerificationViewModel.Event) -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -79,6 +85,37 @@ private fun PhoneCodeScreenContent(
             ) { dispatchEvent(PhoneVerificationViewModel.Event.OnVerifyCodeClicked) }
         }
     ) { innerPadding ->
+        if (onboarding) {
+            OnboardingStepLayout(
+                modifier = Modifier.padding(innerPadding),
+                title = stringResource(R.string.title_onboardingVerificationCode),
+                // No-break spaces keep the number whole: it wraps onto the next line as one piece.
+                subtitle = stringResource(
+                    R.string.subtitle_onboardingVerificationCode,
+                    state.codeDestination.replace(' ', '\u00A0'),
+                ),
+            ) {
+                OtpInputField(
+                    state = state.codeTextFieldState,
+                    lengthNeeded = state.otpLength,
+                    focusRequester = focusRequester,
+                    fillWidth = true,
+                    // The keyboard stays up through the check and on into the email step.
+                    onLengthReached = {
+                        dispatchEvent(PhoneVerificationViewModel.Event.OnVerifyCodeClicked)
+                    }
+                )
+                OnboardingResend(
+                    state = state,
+                    dispatchEvent = dispatchEvent,
+                    // The same gap the footnote keeps under it.
+                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
+                )
+                OnboardingFootnote(stringResource(R.string.footnote_onboardingVerificationCode))
+            }
+            RequestFocusWhenSettled(focusRequester, onlyOnce = true, immediatelyIfImeVisible = true)
+            return@CodeScaffold
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -157,5 +194,37 @@ private fun PhoneCodeScreenContent(
         }
 
         OnWindowFocusedRequester(focusRequester)
+    }
+}
+
+/** "Resend code" under the code boxes, or the wait before it, when onboarding. */
+@Composable
+private fun OnboardingResend(
+    state: PhoneVerificationViewModel.State,
+    dispatchEvent: (PhoneVerificationViewModel.Event) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when {
+        state.isResendTimerRunning -> Text(
+            modifier = modifier,
+            text = stringResource(R.string.subtitle_requestNewOneIn)
+                .replaceParam(
+                    "0:${if (state.resetTimeRemaining < 10) "0" else ""}${state.resetTimeRemaining}"
+                ),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+        )
+        state.sendingCode.loading -> CodeCircularProgressIndicator(
+            strokeWidth = CodeTheme.dimens.thickBorder,
+            modifier = modifier.size(CodeTheme.dimens.grid.x4),
+        )
+        else -> Text(
+            modifier = modifier.clickable {
+                dispatchEvent(PhoneVerificationViewModel.Event.OnCodeResendClicked)
+            },
+            text = stringResource(R.string.action_onboardingResendCode),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textMain,
+        )
     }
 }

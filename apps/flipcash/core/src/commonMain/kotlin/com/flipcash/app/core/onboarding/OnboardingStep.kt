@@ -36,6 +36,14 @@ sealed interface OnboardingStep : FlowStep, Parcelable {
     @Serializable
     data object Purchase : OnboardingStep
 
+    /**
+     * The Group Money onboarding's purchase, straight after Create for an account that must pay
+     * to register. Leads to the phone and email steps instead of the name step.
+     */
+    @Parcelize
+    @Serializable
+    data object PurchaseThenVerification : OnboardingStep
+
     @Parcelize
     @Serializable
     data object ContactPermission : OnboardingStep

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +59,9 @@ fun PhoneInputField(
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    // Rejects edits but leaves the field editable to the keyboard. readOnly and enabled = false
+    // both end the input session, which takes the keyboard down; this keeps it up.
+    locked: Boolean = false,
     placeholder: String = "",
     phoneUtils: PhoneUtils = LocalPhoneUtils.current,
     locale: CountryLocale = phoneUtils.defaultCountryLocale,
@@ -74,6 +79,7 @@ fun PhoneInputField(
             .focusRequester(focusRequester),
         state = state,
         enabled = enabled,
+        inputTransformation = if (locked) RejectEdits else null,
         style = CodeTheme.typography.textLarge.copy(color = CodeTheme.colors.textMain),
         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Done),
         onKeyboardAction = { onSubmit() },
@@ -186,4 +192,8 @@ private fun Preview_PhoneEntry() {
             }
         }
     }
+}
+
+private val RejectEdits = object : InputTransformation {
+    override fun TextFieldBuffer.transformInput() = revertAllChanges()
 }

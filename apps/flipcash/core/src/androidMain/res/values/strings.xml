@@ -2293,4 +2293,18 @@
     <string name="subtitle_notificationCheckLastConfirmed">Last confirmed %1$s</string>
     <string name="subtitle_notificationCheckLastConfirmedJustNow">Last confirmed just now</string>
     <string name="subtitle_notificationCheckFailedProblem">Registration failed</string>
+    <!-- New-account steps when the Group Money gate is open (frames 2-03 to 2-06, nodes 13729:1484, 13729:1502, 13729:1524, 13729:1207). -->
+    <string name="title_onboardingPhoneNumber">Your phone number</string>
+    <string name="subtitle_onboardingPhoneNumber">Enter your phone number to create your account.</string>
+    <string name="label_onboardingPhoneNumber">Phone number</string>
+    <string name="footnote_onboardingPhoneNumber">We’ll text you a verification code.</string>
+    <string name="title_onboardingVerificationCode">Enter verification code</string>
+    <!-- %1$s is the phone number the code was sent to, e.g. "+1 (202) 555-0148" -->
+    <string name="subtitle_onboardingVerificationCode">Enter the 6-digit code we sent to %1$s.</string>
+    <string name="action_onboardingResendCode">Resend code</string>
+    <string name="footnote_onboardingVerificationCode">This confirms that this number belongs to you.</string>
+    <string name="title_onboardingEmail">Your email</string>
+    <string name="subtitle_onboardingEmail">Add an email address to your account.</string>
+    <string name="title_onboardingName">Your name</string>
+    <string name="subtitle_onboardingName">This is how you’ll appear in your groups.</string>
 </resources>

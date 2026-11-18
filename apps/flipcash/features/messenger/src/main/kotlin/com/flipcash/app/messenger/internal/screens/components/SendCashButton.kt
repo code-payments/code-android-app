@@ -111,7 +111,7 @@ internal fun RowScope.SendCashButton(
     )
     val contentColor by animateColorAsState(
         targetValue = when {
-            blue -> Color.White
+            blue -> CodeTheme.colors.onAction
             isTyping -> CodeTheme.colors.textMain
             else -> Color.Black
         },

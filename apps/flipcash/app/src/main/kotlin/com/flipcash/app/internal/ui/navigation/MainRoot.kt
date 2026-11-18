@@ -39,6 +39,7 @@ import com.flipcash.app.router.LocalRouter
 import com.flipcash.app.router.Router
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.app.featureflags.LocalFeatureFlags
+import com.flipcash.app.login.groupMoneyNameRoute
 import com.flipcash.services.user.AuthState
 import com.flipcash.shared.chat.share.LocalPendingChatShares
 import com.flipcash.shared.chat.share.PendingChatShares
@@ -255,6 +256,11 @@ internal fun buildNavGraphForLaunch(
 ): LaunchNavGraph? {
     return when (state) {
         is AuthState.Onboarding -> when (state.resumePoint) {
+            // An account created in the Group Money onboarding resumes at its name step, which
+            // goes home with no permission steps.
+            AuthState.ResumePoint.DisplayName if state.groupMoney ->
+                LaunchNavGraph(listOf(groupMoneyNameRoute()))
+
             // Access key already seen; resume into display-name entry. On success it replaces
             // the stack with the permissions phase (see UpdateUserProfileFlowScreen target).
             AuthState.ResumePoint.DisplayName -> LaunchNavGraph(

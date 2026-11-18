@@ -433,7 +433,7 @@ class RealSessionController @Inject constructor(
                                     AuthState.ResumePoint.DisplayName -> currentState.resumePoint
                                 }
                                 if (corrected != currentState.resumePoint) {
-                                    userManager.set(authState = AuthState.Onboarding(corrected))
+                                    userManager.set(authState = currentState.copy(resumePoint = corrected))
                                 }
                             }
                         }
