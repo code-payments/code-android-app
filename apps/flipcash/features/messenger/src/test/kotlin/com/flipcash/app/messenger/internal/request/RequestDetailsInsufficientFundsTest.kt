@@ -61,7 +61,7 @@ class RequestDetailsInsufficientFundsTest {
     private var balance = Fiat(100.0)
     private val ready = ShareToPay.Ready(
         request = mockk(relaxed = true),
-        share = mockk(relaxed = true) { every { amount } returns Fiat(50.0) },
+        amount = Fiat(50.0),
         intentId = mockk(relaxed = true),
     )
 

@@ -65,7 +65,7 @@ class RequestPayFlowTest {
     private var nothingToPay = 0
     private val ready = ShareToPay.Ready(
         request = mockk(relaxed = true),
-        share = mockk(relaxed = true) { every { amount } returns Fiat(50.0) },
+        amount = Fiat(50.0),
         intentId = mockk(relaxed = true),
     )
 
@@ -232,8 +232,7 @@ class RequestPayFlowTest {
         val state = f.state.value
         assertEquals(true, state.open)
         assertEquals(true, state.progress.success)
-        assertEquals(ready.share, state.share)
-        assertEquals(Fiat(50.0), state.share?.amount)
+        assertEquals(Fiat(50.0), state.amount)
     }
 
     @Test
@@ -243,7 +242,7 @@ class RequestPayFlowTest {
 
         f.dismiss()
 
-        assertEquals(null, f.state.value.share)
+        assertEquals(null, f.state.value.amount)
         assertEquals(null, f.state.value.creator)
     }
 }

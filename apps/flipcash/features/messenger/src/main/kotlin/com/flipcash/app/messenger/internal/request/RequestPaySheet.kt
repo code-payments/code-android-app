@@ -51,7 +51,6 @@ import com.flipcash.app.core.ui.TokenSelectionPill
 import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
-import com.flipcash.services.models.paymentrequest.Share
 import com.flipcash.services.models.paymentrequest.statusLine
 import com.flipcash.shared.chat.ui.request.RequestProgressBar
 import com.flipcash.shared.chat.ui.request.progressText
@@ -60,6 +59,7 @@ import com.flipcash.shared.chat.ui.request.text
 import com.flipcash.shared.common.ui.ContactAvatar
 import com.flipcash.shared.common.ui.profile.chatterName
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
@@ -77,7 +77,7 @@ import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
  * The swipe-to-pay sheet for the share [pay] holds, drawn while [pay] is open. In-window, so the
  * entry decorator's bar lands above it. Shared by Request details and the chat.
  *
- * The share comes from [pay], not the live request: the request reads paid during the success
+ * The amount comes from [pay], not the live request: the request reads paid during the success
  * hold, and the sheet keeps its amount until it has gone.
  */
 @Composable
@@ -88,10 +88,10 @@ internal fun RequestPaySheet(
     actions: SwipePayActions,
 ) {
     if (!pay.open) return
-    val share = pay.share ?: return
+    val amount = pay.amount ?: return
     PayShareSheet(
         creator = pay.creator?.let(members::get),
-        share = share,
+        amount = amount,
         swipePay = requestPaySwipeState(pay, token),
         actions = actions,
     )
@@ -108,13 +108,13 @@ internal fun requestPaySwipeState(pay: RequestPayFlow.State, token: Token?): Swi
     )
 
 /**
- * Frame 10: who is being paid, the share, the token, and the swipe. The token pill opens the
+ * Frame 10: who is being paid, the share (or a collection's amount), the token, and the swipe. The token pill opens the
  * currency list as a half sheet over this one, as on the group send confirm sheet.
  */
 @Composable
 private fun PayShareSheet(
     creator: ChatMember?,
-    share: Share,
+    amount: Fiat,
     swipePay: SwipePayUiState,
     actions: SwipePayActions,
 ) {
@@ -142,7 +142,7 @@ private fun PayShareSheet(
         },
         amount = {
             Text(
-                text = share.amount.requestText(),
+                text = amount.requestText(),
                 style = CodeTheme.typography.displayMedium,
                 color = CodeTheme.colors.textMain,
             )

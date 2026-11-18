@@ -3,7 +3,6 @@ package com.flipcash.app.messenger.internal.request
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
-import com.flipcash.services.models.paymentrequest.Share
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -27,7 +26,6 @@ class RequestPaySheetTest {
     val composeTestRule = createComposeRule()
 
     private val creator: ID = List(16) { 1 }
-    private val debtor: ID = List(16) { 2 }
 
     @Test
     fun `the sheet shows the held share during the success hold`() {
@@ -35,7 +33,7 @@ class RequestPaySheetTest {
             requestId = List(16) { 9 },
             open = true,
             progress = LoadingSuccessState(success = true),
-            share = Share(debtor, Fiat(20.0, CurrencyCode.USD), paid = null),
+            amount = Fiat(20.0, CurrencyCode.USD),
             creator = creator,
         )
 
