@@ -276,6 +276,52 @@ class PaymentRequestTest {
     fun `32 - the viewer has no share`() =
         assertEquals(ViewerStanding.NoShare, request().viewerStanding(member(7), now))
 
+    private fun collection(endsIn: Duration?) = request().copy(
+        kind = PaymentRequest.Kind.GroupCollection(
+            chatId = chatId,
+            collection = PaymentCollection(
+                text = PaymentRequestText.Plain("Gift", ""),
+                currency = CurrencyCode.USD,
+                endsAt = endsIn?.let { now + it },
+                amount = CollectionAmount.Fixed(Fiat(20, CurrencyCode.USD)),
+            ),
+        ),
+    )
+
+    @Test
+    fun `an open collection with no deadline stays open and shows no time left`() {
+        val r = collection(endsIn = null)
+
+        assertTrue(r.isOpen(now + 365.days))
+        assertNull(r.resolvedClosedAt(now + 365.days))
+        assertNull(r.statusLine(now))
+    }
+
+    @Test
+    fun `a collection counts down to its deadline`() =
+        assertEquals(StatusLine.DaysLeft(3), collection(endsIn = 3.days).statusLine(now))
+
+    @Test
+    fun `a collection past its deadline reads expired, closed at the deadline`() {
+        val r = collection(endsIn = (-1).hours)
+
+        assertEquals(PaymentRequestStatus.Expired, r.resolvedStatus(now))
+        assertEquals(now - 1.hours, r.resolvedClosedAt(now))
+        assertEquals(StatusLine.Expired, r.statusLine(now))
+    }
+
+    @Test
+    fun `a member of a collection holds no share`() =
+        assertEquals(ViewerStanding.NoShare, collection(endsIn = null).viewerStanding(member(2), now))
+
+    @Test
+    fun `a payer's amounts take the request's currency`() {
+        val payer = Payer(member(2), amountDueQuarks = 0, amountPaidQuarks = 20_000_000, status = Payer.Status.Unpaid)
+
+        assertEquals(Fiat(20, CurrencyCode.USD), payer.amountPaid(CurrencyCode.USD))
+        assertFalse(payer.isPaid)
+    }
+
     @Test
     fun `an unpaid share on an ended request owes nothing`() =
         assertEquals(
