@@ -29,17 +29,29 @@ fun OnboardingStepLayout(
             .padding(horizontal = CodeTheme.dimens.inset)
             .padding(top = CodeTheme.dimens.grid.x3),
     ) {
-        OnboardingHeadline(title = title, subtitle = subtitle)
-        Spacer(Modifier.height(CodeTheme.dimens.grid.x6))
+        // The line under the title holds two lines' height, so the fields start at the same
+        // place whether it wraps or not (the code step's line wraps; phone and email don't).
+        OnboardingHeadline(title = title, subtitle = subtitle, subtitleMinLines = 2)
+        Spacer(Modifier.height(CodeTheme.dimens.grid.x3))
         Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
             content()
         }
     }
 }
 
-/** The title and the line under it, for a step that lays out its own fields. */
+/**
+ * The title and the line under it, for a step that lays out its own fields.
+ *
+ * @param subtitleMinLines the height the line under the title keeps, in lines, however short
+ *   its text is.
+ */
 @Composable
-fun OnboardingHeadline(title: String, subtitle: String, modifier: Modifier = Modifier) {
+fun OnboardingHeadline(
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    subtitleMinLines: Int = 1,
+) {
     Column(modifier = modifier) {
         Text(
             text = title,
@@ -51,6 +63,7 @@ fun OnboardingHeadline(title: String, subtitle: String, modifier: Modifier = Mod
             text = subtitle,
             style = CodeTheme.typography.textMedium,
             color = CodeTheme.colors.textSecondary,
+            minLines = subtitleMinLines,
         )
     }
 }

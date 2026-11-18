@@ -89,18 +89,28 @@ private fun PhoneCodeScreenContent(
             OnboardingStepLayout(
                 modifier = Modifier.padding(innerPadding),
                 title = stringResource(R.string.title_onboardingVerificationCode),
-                subtitle = stringResource(R.string.subtitle_onboardingVerificationCode, state.codeDestination),
+                // No-break spaces keep the number whole: it wraps onto the next line as one piece.
+                subtitle = stringResource(
+                    R.string.subtitle_onboardingVerificationCode,
+                    state.codeDestination.replace(' ', '\u00A0'),
+                ),
             ) {
                 OtpInputField(
                     state = state.codeTextFieldState,
                     lengthNeeded = state.otpLength,
                     focusRequester = focusRequester,
+                    fillWidth = true,
                     // The keyboard stays up through the check and on into the email step.
                     onLengthReached = {
                         dispatchEvent(PhoneVerificationViewModel.Event.OnVerifyCodeClicked)
                     }
                 )
-                OnboardingResend(state, dispatchEvent)
+                OnboardingResend(
+                    state = state,
+                    dispatchEvent = dispatchEvent,
+                    // The same gap the footnote keeps under it.
+                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
+                )
                 OnboardingFootnote(stringResource(R.string.footnote_onboardingVerificationCode))
             }
             RequestFocusWhenSettled(focusRequester, onlyOnce = true, immediatelyIfImeVisible = true)
@@ -192,9 +202,11 @@ private fun PhoneCodeScreenContent(
 private fun OnboardingResend(
     state: PhoneVerificationViewModel.State,
     dispatchEvent: (PhoneVerificationViewModel.Event) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     when {
         state.isResendTimerRunning -> Text(
+            modifier = modifier,
             text = stringResource(R.string.subtitle_requestNewOneIn)
                 .replaceParam(
                     "0:${if (state.resetTimeRemaining < 10) "0" else ""}${state.resetTimeRemaining}"
@@ -204,10 +216,10 @@ private fun OnboardingResend(
         )
         state.sendingCode.loading -> CodeCircularProgressIndicator(
             strokeWidth = CodeTheme.dimens.thickBorder,
-            modifier = Modifier.size(CodeTheme.dimens.grid.x4),
+            modifier = modifier.size(CodeTheme.dimens.grid.x4),
         )
         else -> Text(
-            modifier = Modifier.clickable {
+            modifier = modifier.clickable {
                 dispatchEvent(PhoneVerificationViewModel.Event.OnCodeResendClicked)
             },
             text = stringResource(R.string.action_onboardingResendCode),
