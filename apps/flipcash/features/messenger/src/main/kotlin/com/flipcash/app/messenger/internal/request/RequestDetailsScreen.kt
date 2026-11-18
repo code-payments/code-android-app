@@ -124,7 +124,8 @@ internal fun RequestDetailsScreen(
 
     val current = request
     // Group Money on: a collection takes the collection rules; a split keeps the shipped screen.
-    val collection = current?.let { collectionDetailsOf(it, collections) }
+    // The flag as the view model opened with it, which decides whether payers load.
+    val collection = current?.let { collectionDetailsOf(it, state.collections) }
     val isCreatorOnOpen = current != null && viewerId != null &&
         current.creator == viewerId && current.isOpen(now)
 

@@ -63,6 +63,7 @@ class RequestPayFlowTest {
 
     private var balance = Fiat(100.0)
     private var nothingToPay = 0
+    private var paid = 0
     private val ready = ShareToPay.Ready(
         request = mockk(relaxed = true),
         amount = Fiat(50.0),
@@ -101,6 +102,7 @@ class RequestPayFlowTest {
         analytics = analytics,
         openScreen = {},
         onNothingToPay = { nothingToPay++ },
+        onPaid = { paid++ },
     ).also { f -> scope.launch { f.token.collect {} } }
 
     @Test
@@ -233,6 +235,17 @@ class RequestPayFlowTest {
         assertEquals(true, state.open)
         assertEquals(true, state.progress.success)
         assertEquals(Fiat(50.0), state.amount)
+    }
+
+    @Test
+    fun `a landed payment reports it, and a failed one does not`() {
+        coEvery { payments.pay(any(), any(), any()) } returns Result.failure(IllegalStateException("boom"))
+        flow().apply { start(listOf<Byte>(2)); confirm() }
+        assertEquals(0, paid)
+
+        coEvery { payments.pay(any(), any(), any()) } returns Result.success(Unit)
+        flow().apply { start(listOf<Byte>(2)); confirm() }
+        assertEquals(1, paid)
     }
 
     @Test

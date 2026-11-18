@@ -112,7 +112,9 @@ internal fun RequestMoneyScreen(
     // The chat flow's navigator, read before this screen's own FlowHost shadows it.
     val chatNavigator = LocalCodeNavigator.current
     val back = { if (!viewModel.back()) onClose() }
-    val target = stackFor(state.stage, collections)
+    // The flag as the view model opened this chat with it, so a later flip can't split the
+    // stack from the flow it drives; the live flag only until then.
+    val target = stackFor(state.stage, if (state.chatId == chatId) state.collections else collections)
     // Seeded once. FlowHost re-seeds, without a transition, when initialStack changes before
     // the stack has moved, so passing the live target swapped History for Amount unanimated.
     // FollowStage makes every move after the first frame.

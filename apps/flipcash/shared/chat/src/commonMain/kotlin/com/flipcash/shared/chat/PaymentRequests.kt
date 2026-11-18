@@ -146,8 +146,19 @@ class PaymentRequests @Inject constructor(
     /**
      * Loads [id]'s paid payers (`GetPayers` section PAID, newest first), up to [MAX_PAYER_PAGES]
      * pages, and holds them in [payers]. A list already held at a newer version is kept.
+     *
+     * Payer updates are merged only into a list already held, so one that lands while the first
+     * list loads is lost. If the request moved past the version the list was read at, it loads once
+     * more.
      */
-    suspend fun loadPayers(id: ID): Result<PaidPayers> = runCatching {
+    suspend fun loadPayers(id: ID): Result<PaidPayers> {
+        val loaded = readPayers(id)
+        val requestVersion = requests.value[id]?.version ?: return loaded
+        val listVersion = loaded.getOrNull()?.version ?: return loaded
+        return if (requestVersion > listVersion) readPayers(id) else loaded
+    }
+
+    private suspend fun readPayers(id: ID): Result<PaidPayers> = runCatching {
         var page = controller.getPayers(id, PayerSection.PAID, QueryOptions(limit = PAYER_PAGE)).getOrThrow()
         // Updates past the first page's version go on top, so it is the list's version.
         val version = page.version

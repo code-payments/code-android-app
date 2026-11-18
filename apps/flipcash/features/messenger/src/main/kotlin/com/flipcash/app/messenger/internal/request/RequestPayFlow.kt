@@ -62,6 +62,8 @@ internal class RequestPayFlow(
     private val onNothingToPay: () -> Unit = {},
     /** The viewer can no longer reach the request (a collection's DENIED or NOT_FOUND). */
     private val onUnavailable: () -> Unit = {},
+    /** The payment landed, before the refetched request may say so. */
+    private val onPaid: () -> Unit = {},
 ) {
     data class State(
         val requestId: ID? = null,
@@ -153,6 +155,7 @@ internal class RequestPayFlow(
         scope.launch {
             payments.pay(pending, token, owner.withTimelockForToken(token))
                 .onSuccess {
+                    onPaid()
                     holdPaymentSuccess(
                         show = { _state.update { it.copy(progress = LoadingSuccessState(success = true)) } },
                         release = {

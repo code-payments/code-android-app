@@ -208,6 +208,8 @@ internal class RequestDetailsViewModel @Inject constructor(
             reloadCollectionPayers()
         },
         onUnavailable = { _state.update { it.copy(payUnavailable = true) } },
+        // Pay stays hidden even if the payer list is slow to show the viewer.
+        onPaid = { _state.update { it.copy(callerPaid = true) } },
     )
 
     /** After Pay found a collection already paid, the payer list catches up with the refetch. */
