@@ -9,6 +9,7 @@ import com.flipcash.services.models.GetPaymentIntentIdError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.paymentrequest.NewCollectionRequest
 import com.flipcash.services.models.paymentrequest.NewShare
 import com.flipcash.services.models.paymentrequest.NewSplitRequest
 import com.flipcash.services.models.paymentrequest.Payer
@@ -20,13 +21,16 @@ import com.getcode.opencode.model.financial.Fiat
 import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
 import io.mockk.coEvery
+import io.mockk.slot
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 import com.codeinc.flipcash.gen.paymentrequest.v1.Model as PaymentRequestModel
 
@@ -51,6 +55,44 @@ class PaymentRequestServiceTest {
         val result = service.createPaymentRequest(owner, newSplit(), IdempotencyKey(ByteArray(16)))
 
         assertIs<CreatePaymentRequestError.InvalidAmount>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `createPaymentRequest for a collection sends the fixed amount and currency, with no text or deadline`() = runTest {
+        val sent = slot<PaymentRequestModel.GroupChatPaymentRequest>()
+        coEvery { api.createPaymentRequest(any(), capture(sent), any()) } returns
+            PaymentrequestService.CreatePaymentRequestResponse.newBuilder()
+                .setResult(PaymentrequestService.CreatePaymentRequestResponse.Result.DENIED)
+                .build()
+        val chatId = ChatId(ByteArray(32) { 3 })
+
+        service.createPaymentRequest(
+            owner,
+            NewCollectionRequest(chatId, Fiat(quarks = 10_000_000, currencyCode = CurrencyCode.CAD)),
+            IdempotencyKey(ByteArray(16)),
+        )
+
+        assertContentEquals(chatId.bytes, sent.captured.chatId.value.toByteArray())
+        assertEquals(PaymentRequestModel.GroupChatPaymentRequest.TypeCase.COLLECTION, sent.captured.typeCase)
+        val collection = sent.captured.collection
+        assertEquals("cad", collection.currency)
+        assertTrue(collection.hasFixed())
+        assertEquals(10.0, collection.fixed.nativeAmount)
+        assertEquals(PaymentRequestModel.Collection.TextCase.TEXT_NOT_SET, collection.textCase)
+        assertFalse(collection.hasEndsAt())
+    }
+
+    @Test
+    fun `createPaymentRequest for a split still sends a split`() = runTest {
+        val sent = slot<PaymentRequestModel.GroupChatPaymentRequest>()
+        coEvery { api.createPaymentRequest(any(), capture(sent), any()) } returns
+            PaymentrequestService.CreatePaymentRequestResponse.newBuilder()
+                .setResult(PaymentrequestService.CreatePaymentRequestResponse.Result.DENIED)
+                .build()
+
+        service.createPaymentRequest(owner, newSplit(), IdempotencyKey(ByteArray(16)))
+
+        assertEquals(PaymentRequestModel.GroupChatPaymentRequest.TypeCase.SPLIT, sent.captured.typeCase)
     }
 
     // endregion

@@ -3,7 +3,7 @@ package com.flipcash.services.repository
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.paymentrequest.NewSplitRequest
+import com.flipcash.services.models.paymentrequest.NewPaymentRequest
 import com.flipcash.services.models.paymentrequest.PayerPage
 import com.flipcash.services.models.paymentrequest.PayerSection
 import com.flipcash.services.models.paymentrequest.PaymentIntentId
@@ -18,7 +18,7 @@ import com.getcode.opencode.model.core.ID
 interface PaymentRequestRepository {
     suspend fun createPaymentRequest(
         owner: KeyPair,
-        request: NewSplitRequest,
+        request: NewPaymentRequest,
         idempotencyKey: IdempotencyKey,
     ): Result<PaymentRequest>
 
