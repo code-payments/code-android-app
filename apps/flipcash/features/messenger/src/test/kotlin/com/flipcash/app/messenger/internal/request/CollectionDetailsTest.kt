@@ -123,6 +123,13 @@ class CollectionDetailsTest {
     }
 
     @Test
+    fun `a fetch that started before the payment landed keeps the viewer paid`() {
+        assertEquals(true, callerPaidAfterFetch(heldPaid = true, fetchedPaid = false))
+        assertEquals(true, callerPaidAfterFetch(heldPaid = false, fetchedPaid = true))
+        assertEquals(false, callerPaidAfterFetch(heldPaid = false, fetchedPaid = false))
+    }
+
+    @Test
     fun `no Pay once Pay found nothing to pay, and none for a split`() {
         assertNull(payableCollectionAmount(collection(), viewer, now, callerPaid = false, paid = emptyList(), nothingToPay = true))
         assertNull(payableCollectionAmount(split(), viewer, now, callerPaid = false, paid = emptyList()))

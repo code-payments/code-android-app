@@ -103,7 +103,7 @@ internal class RequestDetailsViewModel @Inject constructor(
         val hasPaymentIntent: Boolean = false,
         /** Group Money is on, so a collection gets its own details (group-collections spec). */
         val collections: Boolean = false,
-        /** The last fetch's `caller_payer` says the viewer has paid this collection. */
+        /** The viewer has paid this collection: the last fetch's `caller_payer`, or a payment that landed here. */
         val callerPaid: Boolean = false,
         /** Pay found nothing to pay (ALREADY_PAID or NOT_A_PAYER), so it stays hidden here. */
         val nothingToPay: Boolean = false,
@@ -164,7 +164,16 @@ internal class RequestDetailsViewModel @Inject constructor(
     fun open(chatId: ChatId, requestId: String, collections: Boolean = false) {
         val id = runCatching { requestId.decodeBase58().toList() }.getOrNull() ?: return
         if (_state.value.requestId == id) return
-        _state.update { it.copy(chatId = chatId, requestId = id, collections = collections) }
+        _state.update {
+            it.copy(
+                chatId = chatId,
+                requestId = id,
+                collections = collections,
+                callerPaid = false,
+                nothingToPay = false,
+                payUnavailable = false,
+            )
+        }
         if (rosters.state.value[chatId] == null) viewModelScope.launch { rosters.load(chatId) }
     }
 
@@ -180,7 +189,7 @@ internal class RequestDetailsViewModel @Inject constructor(
                     _state.update {
                         it.copy(
                             hasPaymentIntent = details.paymentIntentId != null,
-                            callerPaid = details.callerPayer?.isPaid == true,
+                            callerPaid = callerPaidAfterFetch(it.callerPaid, details.callerPayer?.isPaid == true),
                         )
                     }
                     // A collection's details list its paid payers beside the request.
@@ -336,6 +345,12 @@ internal fun payableCollectionAmount(
     if (callerPaid || nothingToPay || paid.any { it.userId == viewerId }) return null
     return each
 }
+
+/**
+ * Whether the viewer has paid after a fetch lands. Paid never goes back to unpaid, so a fetch that
+ * started before the viewer's payment landed cannot bring Pay back.
+ */
+internal fun callerPaidAfterFetch(heldPaid: Boolean, fetchedPaid: Boolean): Boolean = heldPaid || fetchedPaid
 
 /**
  * "<total paid> paid · <amount> each", as "$0 paid · $10.00 each": nothing paid reads as a whole
