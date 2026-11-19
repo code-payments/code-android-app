@@ -11,6 +11,7 @@ import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.GetSwapError
+import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -286,34 +287,127 @@ class CollectionFunderTest {
         assertTrue(store.legs(requestId).isEmpty())
     }
 
-    @Test
-    fun `a kept swap stuck in CREATED fails each retry until the server ends it, then converts afresh`() = runTest {
+    /** A first attempt whose leg was submitted but never settled, leaving its record kept. */
+    private suspend fun keepUnsettledLeg(): FundingLegRecord {
         hold(Token.usdf to "2.00", al to "20.00")
         coEvery { transactions.pollSwapForState(any(), owner, SwapState.FINALIZED, any(), any()) } returns
-            Result.failure(IllegalStateException("timed out"))
-
+            Result.failure(SwapError.Timeout())
         assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isFailure)
-        val kept = store.legs(requestId).single()
+        return store.legs(requestId).single()
+    }
 
-        // The swap started but its funding never landed. A retry waits on it rather than funding
-        // it again, so it fails and keeps the leg.
-        coEvery { swaps.getSwap(kept.swapId, any()) } returns
-            Result.success(mockk<Swap> { every { this@mockk.state } returns SwapState.CREATED })
-        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isFailure)
-        assertEquals(1, submitted.size)
-        assertEquals(kept.swapId, store.legs(requestId).single().swapId)
+    private fun serverSays(record: FundingLegRecord, state: SwapState) {
+        coEvery { swaps.getSwap(record.swapId, any()) } returns
+            Result.success(mockk<Swap> { every { this@mockk.state } returns state })
+    }
 
-        // Once the server cancels it, the next retry drops it and converts under new ids.
-        coEvery { swaps.getSwap(kept.swapId, any()) } returns
-            Result.success(mockk<Swap> { every { this@mockk.state } returns SwapState.CANCELLED })
+    private fun legsSettle() {
         coEvery { transactions.pollSwapForState(any(), owner, SwapState.FINALIZED, any(), any()) } answers {
-            land(submitted.last())
+            land(submitted.last { it.swapId == swapIdOf(firstArg()) })
             Result.success(mockk())
         }
+    }
+
+    @Test
+    fun `a retry resubmits a kept swap the server reports CREATED under its kept ids`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CREATED)
+        legsSettle()
+
         assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
 
         assertEquals(2, submitted.size)
-        assertTrue(kept.swapId != submitted[1].swapId)
+        assertEquals(kept.swapId, submitted[1].swapId)
+        assertEquals(kept.fundingIntentId, submitted[1].fundingId)
+        // It was resubmitted, not waited on before the resubmit.
+        coVerify(exactly = 0) { transactions.pollSwapForState(kept.swapId, owner, SwapState.CANCELLED, any(), any()) }
+        assertTrue(store.legs(requestId).isEmpty())
+    }
+
+    @Test
+    fun `a resubmitted swap that still hasn't settled stops on the pending state and keeps its ids`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CREATED)
+
+        val result = fund(Fiat("10.00", CurrencyCode.USD), Token.usdf)
+
+        assertIs<CollectionFundingError.ConversionPending>(result.exceptionOrNull())
+        assertEquals(listOf(kept.swapId, kept.swapId), submitted.map { it.swapId })
+        assertEquals(kept, store.legs(requestId).single())
+    }
+
+    @Test
+    fun `a kept swap the server reports FAILED gets a fresh id`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.FAILED)
+        legsSettle()
+
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
+
+        assertEquals(2, submitted.size)
+        assertNotEquals(kept.swapId, submitted[1].swapId)
+        assertNotEquals(kept.fundingIntentId, submitted[1].fundingId)
+        // Only the first attempt waited on the failed swap; the retry doesn't.
+        coVerify(exactly = 1) { transactions.pollSwapForState(kept.swapId, owner, any(), any(), any()) }
+        assertTrue(store.legs(requestId).isEmpty())
+    }
+
+    @Test
+    fun `a kept swap the server reports CANCELLED is treated as failed and gets a fresh id`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CANCELLED)
+        legsSettle()
+
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
+
+        assertEquals(2, submitted.size)
+        assertNotEquals(kept.swapId, submitted[1].swapId)
+        assertTrue(store.legs(requestId).isEmpty())
+    }
+
+    @Test
+    fun `a kept swap that is CANCELLING is waited on, and mints a fresh id only once cancelled`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CANCELLING)
+        coEvery { transactions.pollSwapForState(kept.swapId, owner, SwapState.CANCELLED, any(), any()) } returns
+            Result.failure(SwapError.Timeout())
+
+        // Still cancelling: nothing new is submitted, and the ids stay kept.
+        assertIs<CollectionFundingError.ConversionPending>(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).exceptionOrNull())
+        assertEquals(1, submitted.size)
+        assertEquals(kept, store.legs(requestId).single())
+
+        // Once the server cancels it, the retry converts under new ids.
+        coEvery { transactions.pollSwapForState(kept.swapId, owner, SwapState.CANCELLED, any(), any()) } returns
+            Result.success(mockk())
+        legsSettle()
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
+
+        assertEquals(2, submitted.size)
+        assertNotEquals(kept.swapId, submitted[1].swapId)
+        assertTrue(store.legs(requestId).isEmpty())
+    }
+
+    @Test
+    fun `a kept swap still in flight after waiting stops on the pending state and converts nothing`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.FUNDING)
+
+        val result = fund(Fiat("10.00", CurrencyCode.USD), Token.usdf)
+
+        assertIs<CollectionFundingError.ConversionPending>(result.exceptionOrNull())
+        assertEquals(1, submitted.size)
+        assertEquals(kept, store.legs(requestId).single())
+    }
+
+    @Test
+    fun `a leg the server fails while waiting drops its ids, so the retry mints anew`() = runTest {
+        hold(Token.usdf to "2.00", al to "20.00")
+        coEvery { transactions.pollSwapForState(any(), owner, SwapState.FINALIZED, any(), any()) } returns
+            Result.failure(SwapError.Terminal(SwapState.FAILED))
+
+        assertIs<SwapError.Terminal>(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).exceptionOrNull())
+
         assertTrue(store.legs(requestId).isEmpty())
     }
 

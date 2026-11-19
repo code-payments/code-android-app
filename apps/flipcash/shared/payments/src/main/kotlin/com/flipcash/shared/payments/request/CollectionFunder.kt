@@ -13,6 +13,7 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.core.errors.GetSwapError
+import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
@@ -41,8 +42,11 @@ import kotlin.time.Duration.Companion.seconds
  * on-chain. Each leg is waited on until it finalises; the payment itself is the caller's.
  *
  * A leg's swap id and funding intent id are kept by payment request id before it is submitted, so
- * a retry after an unknown outcome waits on that swap, or resubmits under the same ids when the
- * server never saw it, instead of converting twice. After legs land it plans again from the
+ * a retry after an unknown outcome asks the server about that swap first instead of converting
+ * twice: it waits on a swap in flight, resubmits under the same ids one the server never saw or
+ * that is still CREATED (the server dedupes on the swap id), and mints fresh ids only once the
+ * server says the swap FAILED or was CANCELLED. A swap that still hasn't settled after that stops
+ * funding with [CollectionFundingError.ConversionPending]. After legs land it plans again from the
  * balances as fetched, and converts more only if the balances cover the gap.
  */
 @Singleton
@@ -77,11 +81,9 @@ class CollectionFunder @Inject constructor(
                 // A short plan's legs describe the payment after a top-up, so none of them runs.
                 if (!plan.payableWithoutTopUp) return@withLock Result.failure(CollectionFundingError.Short(plan))
                 val legs = plan.legs.filter { it.conversion }
-                if (legs.isEmpty()) {
-                    // Whatever is still kept never reached the server: nothing to wait on.
-                    store.clear(requestId)
-                    return@withLock Result.success(Unit)
-                }
+                // Anything still kept (never seen, or CREATED) is left for paying to clear: a swap
+                // whose funding may yet land must not lose its ids to a later retry.
+                if (legs.isEmpty()) return@withLock Result.success(Unit)
                 val before = tokenCoordinator.currentBalance(paying.address)
                 for (leg in legs) {
                     runLeg(requestId, leg, paying, balances, rate, owner)
@@ -108,9 +110,16 @@ class CollectionFunder @Inject constructor(
     fun lastPaid(): Flow<Mint?> = store.lastPaid()
 
     /**
-     * Waits out every leg a previous attempt submitted. One that finalised, failed or was
-     * cancelled is dropped; one the server never saw is kept, so the next leg for the same pair
-     * reuses its ids.
+     * Settles every leg a previous attempt kept, by the server's state of its swap:
+     * - FINALIZED, FAILED or CANCELLED: the outcome is known, so the record goes. A failed pair
+     *   gets fresh ids if the plan still needs it.
+     * - Never seen, or CREATED (its funding never landed): kept, so the next leg for the same pair
+     *   resubmits under its ids.
+     * - CANCELLING: waited on until the server cancels it. In flight: waited on until it
+     *   finalises.
+     * A wait that ends without an outcome stops funding with
+     * [CollectionFundingError.ConversionPending] and keeps the record: no new id is minted while
+     * the old swap may still settle.
      */
     private suspend fun settleStarted(requestId: ID, owner: AccountCluster): Result<Unit> {
         for (record in store.legs(requestId)) {
@@ -122,13 +131,26 @@ class CollectionFunder @Inject constructor(
                 return Result.failure(error ?: IllegalStateException("getSwap returned nothing"))
             }
             when (swap.state) {
-                SwapState.FINALIZED, SwapState.FAILED, SwapState.CANCELLING, SwapState.CANCELLED -> Unit
-                else -> transactions.pollSwapForState(record.swapId, owner, SwapState.FINALIZED)
+                SwapState.FINALIZED, SwapState.FAILED, SwapState.CANCELLED -> Unit
+                SwapState.CREATED -> continue
+                SwapState.CANCELLING -> awaitOutcome(record, owner, SwapState.CANCELLED)
+                    .onFailure { return Result.failure(it) }
+                else -> awaitOutcome(record, owner, SwapState.FINALIZED)
                     .onFailure { return Result.failure(it) }
             }
             store.remove(requestId, record.swapId)
         }
         return Result.success(Unit)
+    }
+
+    /**
+     * Polls [record]'s swap for [target]. Reaching it, or the server failing or cancelling the
+     * swap, is an outcome; anything else is [CollectionFundingError.ConversionPending].
+     */
+    private suspend fun awaitOutcome(record: FundingLegRecord, owner: AccountCluster, target: SwapState): Result<Unit> {
+        val polled = transactions.pollSwapForState(record.swapId, owner, target)
+        val error = polled.exceptionOrNull() ?: return Result.success(Unit)
+        return if (error.endedSwap) Result.success(Unit) else Result.failure(CollectionFundingError.ConversionPending())
     }
 
     private suspend fun runLeg(
@@ -141,7 +163,8 @@ class CollectionFunder @Inject constructor(
     ): Result<Unit> {
         val from = tokenCoordinator.cachedToken(Mint(leg.source))
             ?: return Result.failure(CollectionFundingError.UnknownCurrency())
-        val record = store.legs(requestId).firstOrNull { it.from == from.address && it.to == paying.address }
+        val kept = store.legs(requestId).firstOrNull { it.from == from.address && it.to == paying.address }
+        val record = kept
             ?: FundingLegRecord(
                 from = from.address,
                 to = paying.address,
@@ -166,11 +189,22 @@ class CollectionFunder @Inject constructor(
         }
         // An unknown outcome keeps the record, so the retry asks the server about this swap first.
         submitted.onFailure { return Result.failure(it) }
-        transactions.pollSwapForState(record.swapId, owner, SwapState.FINALIZED)
-            .onFailure { return Result.failure(it) }
+        transactions.pollSwapForState(record.swapId, owner, SwapState.FINALIZED).onFailure { error ->
+            if (error.endedSwap) {
+                // The server failed or cancelled it: its outcome is known, so a retry may mint anew.
+                store.remove(requestId, record.swapId)
+                return Result.failure(error)
+            }
+            // A resubmitted swap that still hasn't settled may yet: the retry must wait on it.
+            return Result.failure(if (kept != null) CollectionFundingError.ConversionPending() else error)
+        }
         store.remove(requestId, record.swapId)
         return Result.success(Unit)
     }
+
+    /** The poll ended because the server failed or cancelled the swap, so it can no longer settle. */
+    private val Throwable.endedSwap: Boolean
+        get() = this is SwapError.Terminal
 
     /**
      * The amount [leg] sells, in [from]. A drained leg sells every quark held rather than the
@@ -214,6 +248,12 @@ sealed class CollectionFundingError(message: String) : Exception(message) {
 
     /** A conversion finalised but the paying balance didn't move, so nothing more is converted. */
     class Unsettled : CollectionFundingError("a conversion's result hasn't reached the balance")
+
+    /**
+     * A conversion kept from an earlier attempt still hasn't settled, after waiting on it or
+     * resubmitting it. Nothing new is converted while it may still land; try again shortly.
+     */
+    class ConversionPending : CollectionFundingError("a conversion is still pending")
 
     /** The plan named a currency the wallet no longer knows. */
     class UnknownCurrency : CollectionFundingError("a funding currency is no longer known")

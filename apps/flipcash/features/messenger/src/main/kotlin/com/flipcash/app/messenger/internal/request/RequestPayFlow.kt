@@ -367,6 +367,8 @@ internal class RequestPayFlow(
 
     private fun presentPaymentError(cause: Throwable) {
         val (title, message) = when (cause) {
+            is CollectionFundingError.ConversionPending ->
+                R.string.error_title_collectionConversionPending to R.string.error_description_collectionConversionPending
             is ComputeVerifiedFiatError.AmountBelowMinimum ->
                 R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
             is ComputeVerifiedFiatError ->

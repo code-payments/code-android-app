@@ -375,6 +375,24 @@ class RequestPayFlowTest {
     }
 
     @Test
+    fun `a conversion still pending says so and keeps the sheet up for a retry`() {
+        every { resources.getString(any<Int>()) } answers { "string ${firstArg<Int>()}" }
+        every { payments.planCollection(any(), any()) } returns plan(payable = true)
+        coEvery { payments.pay(any(), any(), any(), any()) } returns
+            Result.failure(CollectionFundingError.ConversionPending())
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+
+        f.confirm()
+
+        assertEquals(true, f.state.value.open)
+        assertEquals(true, f.state.value.progress.isIdle)
+        val shown = BottomBarManager.messages.value.single()
+        assertEquals("string ${R.string.error_title_collectionConversionPending}", shown.title)
+        assertEquals("string ${R.string.error_description_collectionConversionPending}", shown.subtitle)
+    }
+
+    @Test
     fun `a first collection payment defaults to Dollars`() {
         val f = fundingFlow()
         f.start(listOf<Byte>(2), fund = true)
