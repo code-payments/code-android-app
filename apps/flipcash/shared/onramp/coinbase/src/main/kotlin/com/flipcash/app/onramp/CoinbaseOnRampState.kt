@@ -16,8 +16,9 @@ data class OnrampOrder(
 
 sealed interface CoinbaseOnRampState {
     data object Idle : CoinbaseOnRampState
-    data class Paying(val order: OnrampOrder, val token: Token, val amount: VerifiedFiat, val swapId: SwapId? = null) : CoinbaseOnRampState
-    data class Completed(val swapId: SwapId?, val token: Token, val amount: VerifiedFiat, val orderId: String) : CoinbaseOnRampState
+    /** [amount] is null for a collection's top-up, which reports on [CoinbaseOnRampOutcome] only. */
+    data class Paying(val order: OnrampOrder, val token: Token, val amount: VerifiedFiat?, val swapId: SwapId? = null) : CoinbaseOnRampState
+    data class Completed(val swapId: SwapId?, val token: Token, val amount: VerifiedFiat?, val orderId: String) : CoinbaseOnRampState
     data class Failed(val error: CoinbaseOnRampWebError) : CoinbaseOnRampState
 }
 
@@ -31,6 +32,24 @@ enum class CoinbaseOnRampMilestone {
 
     /** Coinbase's `onramp_api.polling_success` webview event. */
     PaymentCompleted,
+}
+
+/**
+ * How the payment webview ended for an order. Unlike [CoinbaseOnRampState] these are not
+ * conflated, and each names its order, so a caller that subscribed before opening the webview
+ * sees its own end even when the state is reset straight after.
+ */
+sealed interface CoinbaseOnRampOutcome {
+    val orderId: String
+
+    /** Coinbase reported the payment complete. The asset lands on-chain later. */
+    data class Succeeded(override val orderId: String) : CoinbaseOnRampOutcome
+
+    /** The webview reported a failure. It may come after authorization, so the order can still settle. */
+    data class Failed(override val orderId: String) : CoinbaseOnRampOutcome
+
+    /** The webview was closed before Coinbase reported an end. */
+    data class Cancelled(override val orderId: String) : CoinbaseOnRampOutcome
 }
 
 sealed interface CoinbaseOnRampCompletion {
