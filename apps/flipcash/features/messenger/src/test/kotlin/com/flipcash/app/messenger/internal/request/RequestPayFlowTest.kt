@@ -8,11 +8,13 @@ import com.flipcash.app.analytics.RecordingAnalytics
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.features.messenger.R
+import com.flipcash.app.tokens.CollectionFundingPlan
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.shared.chat.PaymentRequests
+import com.flipcash.shared.payments.request.CollectionFundingError
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
 import com.getcode.manager.BottomBarManager
@@ -22,6 +24,8 @@ import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdf
+import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -82,6 +86,8 @@ class RequestPayFlowTest {
         every { tokenCoordinator.balanceForToken(any<Token>()) } answers { balance }
         every { transactionController.limits } returns MutableStateFlow(null)
         coEvery { payments.prepare(any(), any()) } returns Result.success(ready)
+        // A relaxed Result<Unit> holds a bare Object, and onSuccess's cast throws in the flow's scope.
+        coEvery { payments.pay(any(), any(), any(), any()) } returns Result.success(Unit)
     }
 
     @After
@@ -159,7 +165,7 @@ class RequestPayFlowTest {
 
         f.confirm()
 
-        assertEquals(emptyList(), analytics.events)
+        assertEquals(0, analytics.events.size)
     }
 
     @Test
@@ -257,5 +263,193 @@ class RequestPayFlowTest {
 
         assertEquals(null, f.state.value.amount)
         assertEquals(null, f.state.value.creator)
+    }
+
+    // --- Group Money: a collection funded by conversion (group-collections spec, "Funding a payment") ---
+
+    private val jeffy = mockk<Token>(relaxed = true) { every { this@mockk.address } returns Mint(List(32) { 7 }) }
+    private val walletTokens = MutableStateFlow(listOf(Token.usdf, jeffy))
+    private val lastPaid = MutableStateFlow<Mint?>(null)
+    private val collection = ShareToPay.Ready(
+        request = mockk(relaxed = true) { every { this@mockk.collection } returns mockk(relaxed = true) },
+        amount = Fiat(10.0),
+        intentId = mockk(relaxed = true),
+    )
+
+    private fun plan(payable: Boolean) = mockk<CollectionFundingPlan>(relaxed = true) {
+        every { payableWithoutTopUp } returns payable
+    }
+
+    private fun fundingFlow(): RequestPayFlow {
+        every { tokenCoordinator.tokens } returns walletTokens
+        every { tokenCoordinator.tokenBalances } returns flowOf(emptyList())
+        every { payments.lastPaidCollectionCurrency() } returns lastPaid
+        coEvery { payments.prepare(any(), any()) } returns Result.success(collection)
+        return flow().also { f -> scope.launch { f.plan.collect {} } }
+    }
+
+    @Test
+    fun `a short collection that conversions cover goes through the swipe and is paid with funding`() {
+        balance = Fiat(2.0)
+        every { payments.planCollection(any(), any()) } returns plan(payable = true)
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+
+        f.confirm()
+
+        assertEquals(true, f.state.value.funding)
+        verify(exactly = 0) { payer.presentInsufficientBalance(any(), any()) }
+        coVerify(exactly = 1) { payments.pay(collection, Token.usdf, owner, true) }
+    }
+
+    @Test
+    fun `a short collection that conversions can't cover keeps today's short state and pays nothing`() {
+        balance = Fiat(2.0)
+        every { payments.planCollection(any(), any()) } returns plan(payable = false)
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+
+        f.confirm()
+
+        assertEquals(true, f.state.value.open)
+        verify(exactly = 1) { payer.presentInsufficientBalance(any(), any()) }
+        coVerify(exactly = 0) { payments.pay(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `with Group Money off a short collection is blocked as before and nothing is planned`() {
+        balance = Fiat(2.0)
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = false)
+
+        f.confirm()
+
+        assertEquals(false, f.state.value.funding)
+        verify(exactly = 1) { payer.presentInsufficientBalance(any(), any()) }
+        verify(exactly = 0) { payments.planCollection(any(), any()) }
+        coVerify(exactly = 0) { payments.pay(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a covered collection with Group Money off pays from the selected token without funding`() {
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = false)
+
+        f.confirm()
+
+        coVerify(exactly = 1) { payments.pay(collection, token, owner, false) }
+    }
+
+    @Test
+    fun `a split is never funded, even with Group Money on`() {
+        every { ready.request.collection } returns null
+        coEvery { payments.prepare(any(), any()) } returns Result.success(ready)
+        val f = flow()
+        f.start(listOf<Byte>(2), fund = true)
+
+        f.confirm()
+
+        assertEquals(false, f.state.value.funding)
+        coVerify(exactly = 1) { payments.pay(ready, token, owner, false) }
+    }
+
+    @Test
+    fun `funding falling short after the swipe shows the short state without a refetch`() {
+        every { payments.planCollection(any(), any()) } returns plan(payable = true)
+        coEvery { payments.pay(any(), any(), any(), any()) } returns
+            Result.failure(CollectionFundingError.Short(plan(payable = false)))
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+
+        f.confirm()
+
+        assertEquals(true, f.state.value.open)
+        assertEquals(true, f.state.value.progress.isIdle)
+        verify(exactly = 1) { payer.presentInsufficientBalance(any(), any()) }
+        coVerify(exactly = 1) { payments.prepare(any(), any()) }
+        assertEquals(0, analytics.events.size)
+    }
+
+    @Test
+    fun `a first collection payment defaults to Dollars`() {
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+
+        assertEquals(Token.usdf, f.token.value)
+    }
+
+    @Test
+    fun `a later collection defaults to the currency last paid in`() {
+        lastPaid.value = jeffy.address
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+
+        assertEquals(jeffy, f.token.value)
+    }
+
+    @Test
+    fun `the collection currency is shown even with no balance in it`() {
+        // Jeffy is known to the wallet but has no balance: tokenBalances is empty.
+        lastPaid.value = jeffy.address
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+
+        assertEquals(jeffy, f.token.value)
+        assertEquals(Fiat(10.0), f.state.value.amount)
+    }
+
+    @Test
+    fun `a collection ignores the wallet's selected token`() {
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+
+        assertEquals(Token.usdf, f.token.value)
+        f.confirm()
+        coVerify(exactly = 0) { payments.pay(any(), token, any(), any()) }
+    }
+
+    @Test
+    fun `picking another currency replans and starts no payment or purchase`() {
+        val dollarsPlan = plan(payable = true)
+        val jeffyPlan = plan(payable = true)
+        every { payments.planCollection(any(), Token.usdf) } returns dollarsPlan
+        every { payments.planCollection(any(), jeffy) } returns jeffyPlan
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+        assertEquals(dollarsPlan, f.plan.value)
+
+        f.pickCollectionCurrency(jeffy.address)
+
+        assertEquals(jeffy, f.token.value)
+        assertEquals(jeffyPlan, f.plan.value)
+        coVerify(exactly = 0) { payments.pay(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { tokenCoordinator.selectToken(any()) }
+        assertEquals(null, lastPaid.value)
+    }
+
+    @Test
+    fun `a pick lasts only as long as the sheet`() {
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+        f.pickCollectionCurrency(jeffy.address)
+
+        f.dismiss()
+        f.start(listOf<Byte>(2), fund = true)
+
+        assertEquals(Token.usdf, f.token.value)
+    }
+
+    @Test
+    fun `the send limit still blocks a funded collection`() {
+        every { payments.planCollection(any(), any()) } returns plan(payable = true)
+        every { transactionController.limits } returns MutableStateFlow(
+            mockk(relaxed = true) { every { sendLimitFor(any()) } returns mockk(relaxed = true) { every { nextTransaction } returns 5.0 } },
+        )
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+
+        f.confirm()
+
+        coVerify(exactly = 0) { payments.pay(any(), any(), any(), any()) }
     }
 }

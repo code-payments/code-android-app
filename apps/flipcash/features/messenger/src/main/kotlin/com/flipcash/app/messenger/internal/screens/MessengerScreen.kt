@@ -57,6 +57,8 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.chat.ChatIdentifier
@@ -540,6 +542,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     }
 
     val requestPay = hiltViewModel<RequestPayViewModel>()
+    val groupMoney = LocalNavBarShell.current == NavBarShell.GroupMoney
     val requestPayState by requestPay.state.collectAsStateWithLifecycle()
     val requestPayMembers by requestPay.members.collectAsStateWithLifecycle()
     val requestPayToken by requestPay.token.collectAsStateWithLifecycle()
@@ -649,7 +652,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                 // Straight to the swipe sheet over the chat; the card body opens details.
                                 onPay = { request ->
                                     state.chatId?.let { chatId ->
-                                        keyboard.hideIfVisible { requestPay.pay(chatId, request.id) }
+                                        keyboard.hideIfVisible { requestPay.pay(chatId, request.id, collections = groupMoney) }
                                     }
                                 },
                             )

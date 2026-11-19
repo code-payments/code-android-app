@@ -1,5 +1,6 @@
 package com.flipcash.shared.payments.request
 
+import com.flipcash.app.tokens.CollectionFundingPlan
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ResolverController
 import com.flipcash.services.models.GetPaymentIntentIdError
@@ -17,12 +18,14 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.LiveSecrets
 import com.getcode.utils.TraceType
 import com.getcode.utils.maskedSuffix
 import com.getcode.utils.trace
+import kotlinx.coroutines.flow.Flow
 import kotlin.time.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -59,6 +62,15 @@ class PaymentRequestPaymentDelegate @Inject constructor(
     internal var log: (message: String, type: TraceType) -> Unit = { message, type ->
         trace(tag = "PaymentRequest", message = message, type = type)
     }
+
+    /**
+     * How a collection's [amount] would be paid in [paying] when [pay] funds it, from the balances
+     * as they stand: the pay sheet's gate and fee line. Null with no rate for [amount]'s currency.
+     */
+    fun planCollection(amount: Fiat, paying: Token): CollectionFundingPlan? = funder.plan(amount, paying.address)
+
+    /** The currency a collection was last paid in on this account, the next one's default; null before the first. */
+    fun lastPaidCollectionCurrency(): Flow<Mint?> = funder.lastPaid()
 
     /** Says whether [viewer] has something to pay into [requestId] now. */
     suspend fun prepare(requestId: ID, viewer: ID): Result<ShareToPay> {

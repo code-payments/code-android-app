@@ -8,9 +8,11 @@ import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
+import com.flipcash.app.tokens.CollectionFundingPlan
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.payments.request.CollectionFundingError
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
 import com.getcode.manager.BottomBarManager
@@ -20,10 +22,19 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.usdf
+import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.LoadingSuccessState
 import com.getcode.view.holdPaymentSuccess
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -76,13 +87,49 @@ internal class RequestPayFlow(
         val amount: Fiat? = null,
         /** Who it is paid to. */
         val creator: ID? = null,
+        /**
+         * Group Money is on and the open sheet pays a collection: a short balance in [token] is
+         * covered by converting the viewer's other balances first, and [token] is the collection's
+         * own currency, not the wallet's selected one (group-collections spec, "Funding a payment").
+         */
+        val funding: Boolean = false,
     )
 
     private val _state = MutableStateFlow(State())
     val state: StateFlow<State> = _state.asStateFlow()
 
-    val token: StateFlow<Token?> = payer.observeSelectedToken()
+    /** The currency picked in the open collection sheet; null until the viewer picks one. */
+    private val collectionPick = MutableStateFlow<Mint?>(null)
+
+    /**
+     * What the sheet pays from. A split pays from the wallet's selected token. A collection being
+     * funded pays in the currency picked in its sheet, else the one the viewer last paid a
+     * collection in, else Dollars, and shows it whatever its balance.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val token: StateFlow<Token?> = _state.map { it.funding }.distinctUntilChanged()
+        .flatMapLatest { funding -> if (funding) collectionToken() else payer.observeSelectedToken() }
         .stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private fun collectionToken(): Flow<Token> =
+        combine(collectionPick, payments.lastPaidCollectionCurrency(), tokenCoordinator.tokens) { pick, lastPaid, tokens ->
+            val known = tokens.associateBy { it.address }
+            listOfNotNull(pick, lastPaid).firstNotNullOfOrNull { known[it] } ?: known[Mint.usdf] ?: Token.usdf
+        }
+
+    /**
+     * How the open collection sheet's amount would be paid in [token] from the balances as they
+     * stand, for its fee line and Payment Details. Null unless [State.funding]. Planning moves no
+     * money: picking another currency only replans.
+     */
+    val plan: StateFlow<CollectionFundingPlan?> = combine(
+        _state,
+        token,
+        tokenCoordinator.tokenBalances.map { }.onStart { emit(Unit) },
+    ) { state, token, _ ->
+        val amount = state.amount
+        if (!state.funding || amount == null || token == null) null else payments.planCollection(amount, token)
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
 
     private var ready: ShareToPay.Ready? = null
 
@@ -91,8 +138,12 @@ internal class RequestPayFlow(
     /** Everything the sheet asks of this flow, in one place. */
     val actions = SwipePayActions(onConfirm = ::confirm, onDismiss = ::dismiss)
 
-    /** "Send <share>" / the deck's Pay: refetch for the intent id, then show the sheet if there is still a share to pay. */
-    fun start(requestId: ID) {
+    /**
+     * "Send <share>" / the deck's Pay: refetch for the intent id, then show the sheet if there is
+     * still a share to pay. [fund] is the Group Money flag: with it, a collection is paid in its
+     * own currency and funded by conversion when short (see [State.funding]).
+     */
+    fun start(requestId: ID, fund: Boolean = false) {
         val viewer = viewerId ?: return
         if (_state.value.preparing || _state.value.open) return
         _state.update { it.copy(requestId = requestId, preparing = true) }
@@ -114,12 +165,14 @@ internal class RequestPayFlow(
                             // No per-share balance check here: the payer picks the token in the sheet,
                             // and the check runs against that pick when they swipe.
                             ready = found
+                            collectionPick.value = null
                             _state.update {
                                 it.copy(
                                     open = true,
                                     progress = LoadingSuccessState(),
                                     amount = found.amount,
                                     creator = found.request.creator,
+                                    funding = fund && found.request.collection != null,
                                 )
                             }
                         }
@@ -145,15 +198,16 @@ internal class RequestPayFlow(
         }
         val owner = userManager.accountCluster ?: return
         if (!_state.value.progress.isIdle) return
+        val funding = _state.value.funding
         // The token or the balance can change while the sheet is up; the modal shows over it.
-        payBlock(pending.amount, token)?.let { blocked ->
+        payBlock(pending.amount, token, funding)?.let { blocked ->
             present(blocked)
             return
         }
 
         _state.update { it.copy(progress = LoadingSuccessState(loading = true)) }
         scope.launch {
-            payments.pay(pending, token, owner.withTimelockForToken(token))
+            payments.pay(pending, token, owner.withTimelockForToken(token), fund = funding)
                 .onSuccess {
                     onPaid()
                     holdPaymentSuccess(
@@ -164,8 +218,26 @@ internal class RequestPayFlow(
                         },
                     )
                 }
-                .onFailure { cause -> afterFailedPayment(pending, cause) }
+                .onFailure { cause ->
+                    if (cause is CollectionFundingError.Short) {
+                        // Conversions can't cover it, so nothing was paid: the same short state as
+                        // the check before the swipe. Adding money is a later step (S5).
+                        _state.update { it.copy(progress = LoadingSuccessState()) }
+                        present(PayBlock.OverBalance)
+                    } else {
+                        afterFailedPayment(pending, cause)
+                    }
+                }
         }
+    }
+
+    /**
+     * The currency pill's pick in an open collection sheet. It replans [plan] and buys nothing:
+     * the wallet's selected token and the last paid currency stay as they were.
+     */
+    fun pickCollectionCurrency(mint: Mint) {
+        if (!_state.value.funding) return
+        collectionPick.value = mint
     }
 
     /**
@@ -201,7 +273,10 @@ internal class RequestPayFlow(
     fun dismiss() {
         if (!_state.value.progress.isIdle && !_state.value.progress.success) return
         ready = null
-        _state.update { it.copy(open = false, progress = LoadingSuccessState(), amount = null, creator = null) }
+        collectionPick.value = null
+        _state.update {
+            it.copy(open = false, progress = LoadingSuccessState(), amount = null, creator = null, funding = false)
+        }
     }
 
     /** "Add Money" from a modal: the sheet closes, then the deposit screen opens. */
@@ -212,11 +287,19 @@ internal class RequestPayFlow(
 
     private enum class PayBlock { OverBalance, OverSendLimit }
 
-    /** Why [amount] can't be paid from [token] right now, or null when it can. Presents nothing. */
-    private fun payBlock(amount: Fiat, token: Token): PayBlock? {
-        exchange.rateFor(amount.currencyCode)?.let { rate ->
-            val balance = tokenCoordinator.balanceForToken(token).convertingTo(rate)
-            if (amount.valueGreaterThan(balance)) return PayBlock.OverBalance
+    /**
+     * Why [amount] can't be paid from [token] right now, or null when it can. Presents nothing.
+     * With [funding], a short [token] balance is fine when converting other balances covers it.
+     */
+    private fun payBlock(amount: Fiat, token: Token, funding: Boolean): PayBlock? {
+        if (funding) {
+            val plan = payments.planCollection(amount, token)
+            if (plan != null && !plan.payableWithoutTopUp) return PayBlock.OverBalance
+        } else {
+            exchange.rateFor(amount.currencyCode)?.let { rate ->
+                val balance = tokenCoordinator.balanceForToken(token).convertingTo(rate)
+                if (amount.valueGreaterThan(balance)) return PayBlock.OverBalance
+            }
         }
         val limit = transactionController.limits.value?.sendLimitFor(amount.currencyCode)
         if (limit != null && amount.toDouble() > limit.nextTransaction) return PayBlock.OverSendLimit

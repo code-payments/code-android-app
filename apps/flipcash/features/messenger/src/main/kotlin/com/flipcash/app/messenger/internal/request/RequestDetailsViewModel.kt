@@ -234,7 +234,7 @@ internal class RequestDetailsViewModel @Inject constructor(
 
     /** "Send <share>". */
     fun payTapped() {
-        _state.value.requestId?.let(payFlow::start)
+        _state.value.requestId?.let { payFlow.start(it, fund = _state.value.collections) }
     }
 
     fun confirmPay() = payFlow.confirm()

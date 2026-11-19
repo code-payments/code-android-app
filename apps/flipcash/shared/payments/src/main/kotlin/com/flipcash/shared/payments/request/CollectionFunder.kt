@@ -25,6 +25,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -99,6 +100,12 @@ class CollectionFunder @Inject constructor(
 
     /** Nothing is left to pay into [requestId], so nothing kept for it can be needed. */
     suspend fun forget(requestId: ID) = store.clear(requestId)
+
+    /** How [amount] would be paid in [paying] from the balances as they stand; null with no rate. */
+    fun plan(amount: Fiat, paying: Mint): CollectionFundingPlan? = planner.plan(amount, paying)
+
+    /** The currency a collection was last paid in on this account, or null before the first. */
+    fun lastPaid(): Flow<Mint?> = store.lastPaid()
 
     /**
      * Waits out every leg a previous attempt submitted. One that finalised, failed or was

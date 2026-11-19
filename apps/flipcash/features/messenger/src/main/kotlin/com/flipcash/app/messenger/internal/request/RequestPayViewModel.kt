@@ -75,9 +75,10 @@ internal class RequestPayViewModel @Inject constructor(
         all[id].orEmpty().associateBy { it.userId }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
-    fun pay(chatId: ChatId, requestId: ID) {
+    /** [collections] is the Group Money flag: with it, a collection is funded by conversion when short. */
+    fun pay(chatId: ChatId, requestId: ID, collections: Boolean = false) {
         this.chatId.value = chatId
         if (rosters.state.value[chatId] == null) viewModelScope.launch { rosters.load(chatId) }
-        flow.start(requestId)
+        flow.start(requestId, fund = collections)
     }
 }
