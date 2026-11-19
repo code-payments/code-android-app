@@ -155,6 +155,13 @@ fun PaymentRequestCardContent(
         RequestMotion.change(),
         label = "request glyph fill",
     )
+    val titleStyle = CodeTheme.typography.textLarge
+    val titleColor = CodeTheme.colors.textMain
+    val progressStyle = CodeTheme.typography.textSmall
+    val progressColor = CodeTheme.colors.textMain.copy(alpha = 0.75f)
+    // A collection asks no total, so its card leads with what's been paid and "$10 each" is the
+    // quiet line (frame 1.13). The placeholders keep the split's styles.
+    val leadsWithPaid = !loading && request.collection != null
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
@@ -181,8 +188,8 @@ fun PaymentRequestCardContent(
                 )
                 Text(
                     text = request?.collectionTitle() ?: title.orEmpty(),
-                    style = CodeTheme.typography.textLarge,
-                    color = CodeTheme.colors.textMain,
+                    style = if (leadsWithPaid) progressStyle else titleStyle,
+                    color = if (leadsWithPaid) progressColor else titleColor,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = if (loading) Modifier.width(120.dp).shimmer(RoundedCornerShape(4.dp)) else titleModifier,
@@ -191,8 +198,8 @@ fun PaymentRequestCardContent(
         }
         Text(
             text = request?.takeUnless { loading }?.progressText().orEmpty(),
-            style = CodeTheme.typography.textSmall,
-            color = CodeTheme.colors.textMain.copy(alpha = 0.75f),
+            style = if (leadsWithPaid) titleStyle else progressStyle,
+            color = if (leadsWithPaid) titleColor else progressColor,
             modifier = if (loading) Modifier.width(160.dp).shimmer(RoundedCornerShape(4.dp)) else amountsModifier,
         )
         // A collection asks no total, so it has no fraction to fill.
