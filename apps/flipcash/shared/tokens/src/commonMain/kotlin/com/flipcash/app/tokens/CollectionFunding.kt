@@ -16,6 +16,9 @@ package com.flipcash.app.tokens
  * iOS planner both reproduce; `docs/specs/group-collections.md`, *Funding a payment*, has the rules.
  *
  * - The paying currency is [selected], else [lastPaid], else [dollarsId], held or not.
+ * - A balance worth less than half the minor unit (5,000 micros in USD) is dust: it would display
+ *   as $0.00, so it is dropped before anything else, Dollars and the paying currency included. It
+ *   adds nothing to the capacity and gets no leg; the dust stays in the wallet.
  * - Funding order: the paying currency, then Dollars, then the other balances smallest first, ties
  *   by id. Each source covers only what is still needed; a source the plan doesn't reach is left
  *   alone.
@@ -51,23 +54,24 @@ fun planCollectionFunding(
 
     val paying = selected ?: lastPaid ?: dollarsId
     val order = FundingOrder(paying, dollarsId)
+    val unit = minorUnitMicros(minorDigits)
+    val live = balances.filterNot { isDust(it.fiatMicros, unit) }
 
-    val capacity = balances.sumOf { order.spendable(it) }
+    val capacity = live.sumOf { order.spendable(it) }
     val shortfall = (amountMicros - capacity).coerceAtLeast(0)
 
     var topUp = 0L
-    var funded = balances
+    var funded = live
     if (shortfall > 0) {
-        val unit = minorUnitMicros(minorDigits)
         topUp = maxOf(ceilDiv(shortfall, unit) * unit, minTopUpMicros)
-        funded = if (balances.any { it.id == dollarsId }) {
-            balances.map { if (it.id == dollarsId) it.copy(fiatMicros = it.fiatMicros + topUp) else it }
+        funded = if (live.any { it.id == dollarsId }) {
+            live.map { if (it.id == dollarsId) it.copy(fiatMicros = it.fiatMicros + topUp) else it }
         } else {
-            balances + FundingBalance(dollarsId, topUp, sellFeeBps = 0)
+            live + FundingBalance(dollarsId, topUp, sellFeeBps = 0)
         }
     }
 
-    val dollarsBeforeTopUp = balances.firstOrNull { it.id == dollarsId }?.fiatMicros ?: 0L
+    val dollarsBeforeTopUp = live.firstOrNull { it.id == dollarsId }?.fiatMicros ?: 0L
     val legs = order.fund(amountMicros, funded).map { leg ->
         if (leg.source != dollarsId) return@map leg
         val fromBalance = minOf(dollarsBeforeTopUp, leg.soldMicros)
@@ -187,6 +191,12 @@ internal fun minorUnitMicros(minorDigits: Int): Long {
 }
 
 /** `round(x × bps / 10_000)`, half-up: `launchpadSellFee` on micros. */
+/**
+ * Whether [micros] is under half of [unitMicros], the minor unit, so it displays as zero. Exactly
+ * half is not dust: it rounds half-up to one minor unit.
+ */
+internal fun isDust(micros: Long, unitMicros: Long): Boolean = micros * 2 < unitMicros
+
 internal fun sellFee(micros: Long, bps: Int): Long =
     divideHalfUp(micros * bps.coerceIn(0, BPS_DENOMINATOR.toInt()), BPS_DENOMINATOR)
 

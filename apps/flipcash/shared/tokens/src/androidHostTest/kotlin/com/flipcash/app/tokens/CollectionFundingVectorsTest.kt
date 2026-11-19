@@ -37,6 +37,15 @@ class CollectionFundingVectorsTest {
     private val formatter = CollectionFundingFormatter(CurrencyCode.USD, minorDigits, topUpSourceName = "Google Pay")
 
     @Test
+    fun `the dust floor is half the minor unit`() {
+        val unit = minorUnitMicros(minorDigits)
+        val floor = fixture.obj("constants").long("dust_floor_micros")
+        assertEquals(unit / 2, floor)
+        assertEquals(true, isDust(floor - 1, unit))
+        assertEquals(false, isDust(floor, unit))
+    }
+
+    @Test
     fun `every case plans and draws as the fixture says`() {
         val cases = fixture.array("cases")
         assertTrue(cases.isNotEmpty(), "collection_funding.json loaded no cases")
