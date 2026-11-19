@@ -47,6 +47,15 @@ internal data class CollectionFundingUi(
     /** The line under the amount, "plus ~$0.02 of conversion fees"; null when none is drawn. */
     val modalFee: String?,
     val details: PaymentDetailsUi,
+    /** The short state in place of the swipe; null when the balances cover the payment. */
+    val short: CollectionShortUi? = null,
+)
+
+/** Frames 4.2, 7.2, 8.2: "You’re $2.04 Short", "Add $5.00 and Pay $11.00", and the minimum. */
+internal data class CollectionShortUi(
+    val shortBy: String,
+    val addButton: String,
+    val footnote: String,
 )
 
 /** Payment Details (frames 5.3, 6.5, 9.3), each currency row paired with its token's icon. */
@@ -62,8 +71,9 @@ internal data class PaymentDetailsTokenRow(val token: Token?, val row: PaymentDe
  * Formats [plan] for the pay sheet with the shared [CollectionFundingFormatter], so the fee line and
  * Payment Details read as the group-collections spec's "Fee display" and its vectors do.
  *
- * A plan that needs a top-up draws no fee line: its conversions assume money this build cannot
- * add, and paying it ends in the short state.
+ * A plan that needs a top-up is the plan after the top-up, so its fee line and Payment Details
+ * are what paying after the top-up costs (7.3, 8.2), and [CollectionFundingUi.short] carries the
+ * short state with [topUpFootnote] under its button.
  *
  * @param tokenOf a planner id's token, or null when the wallet does not know it.
  * @param nameOf a token's display name ("Dollars" for the reserve).
@@ -75,6 +85,7 @@ internal fun collectionFundingUi(
     tokenOf: (String) -> Token?,
     nameOf: (Token) -> String,
     topUpSourceName: String,
+    topUpFootnote: String,
     strings: CollectionFundingStrings,
 ): CollectionFundingUi {
     val display = CollectionFundingFormatter(
@@ -88,12 +99,15 @@ internal fun collectionFundingUi(
         PaymentDetailsTokenRow(tokenOf(leg.source), row)
     }
     return CollectionFundingUi(
-        modalFee = display.modalFee.takeIf { plan.topUpMicros == 0L },
+        modalFee = display.modalFee,
         details = PaymentDetailsUi(
             pay = PaymentDetailsTokenRow(tokenOf(plan.payingCurrency), display.details.pay),
             use = use,
             total = display.details.total,
         ),
+        short = display.shortBy?.let { shortBy ->
+            display.addButton?.let { addButton -> CollectionShortUi(shortBy, addButton, topUpFootnote) }
+        },
     )
 }
 

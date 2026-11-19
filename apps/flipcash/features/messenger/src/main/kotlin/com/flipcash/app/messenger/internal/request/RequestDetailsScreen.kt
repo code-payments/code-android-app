@@ -250,6 +250,7 @@ internal fun RequestDetailsScreen(
         collectionCurrencies = collectionCurrencies,
         onPickCollectionCurrency = viewModel::pickCollectionCurrency,
         funding = fundingUi,
+        onAddAndPay = viewModel.onAddAndPay,
     )
     when (val sheet = state.sheet) {
         RequestDetailsViewModel.Sheet.None -> Unit

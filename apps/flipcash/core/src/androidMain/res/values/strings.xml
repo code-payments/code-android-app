@@ -2327,4 +2327,12 @@
     <string name="label_collectionFromBalance">%1$s from balance</string>
     <!-- Payment Details, under Dollars. %1$s is the part of the top-up used, %2$s how it is paid ("Google Pay"). -->
     <string name="label_collectionFromTopUp">%1$s from %2$s</string>
+    <!-- Under the short state's button (frames 4.2, 7.2, 8.2). %1$s is how it is paid ("Google Pay"), %2$s the minimum ("$5"). -->
+    <string name="label_collectionTopUpMinimum">The minimum you can add with %1$s is %2$s.</string>
+    <!-- While a collection's top-up lands and the payment runs (frames 1.3, 4.4, 7.5, 8.4). -->
+    <string name="title_collectionFinishingPayment">Finishing Payment</string>
+    <string name="subtitle_collectionFinishingPayment">This usually takes about 10 seconds</string>
+    <!-- A top-up's Dollars haven't shown yet. It is kept, so trying again waits on it and orders nothing. No frame draws this state. -->
+    <string name="error_title_collectionTopUpPending">Money Still on Its Way</string>
+    <string name="error_description_collectionTopUpPending">The money you added hasn\'t arrived yet. Try again shortly and you won\'t be charged again.</string>
 </resources>

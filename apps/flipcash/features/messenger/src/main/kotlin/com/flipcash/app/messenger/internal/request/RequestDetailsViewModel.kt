@@ -22,6 +22,7 @@ import com.flipcash.services.models.paymentrequest.unpaidShareOf
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.shared.chat.PaymentRequests
+import com.flipcash.shared.payments.request.CollectionTopUp
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
 import com.getcode.manager.BottomBarManager
@@ -71,6 +72,7 @@ internal class RequestDetailsViewModel @Inject constructor(
     private val requests: PaymentRequests,
     private val rosters: GroupRosters,
     private val payments: PaymentRequestPaymentDelegate,
+    private val topUp: CollectionTopUp,
     private val payer: StartChattingPayer,
     private val tokenCoordinator: TokenCoordinator,
     private val transactionController: TransactionController,
@@ -206,6 +208,7 @@ internal class RequestDetailsViewModel @Inject constructor(
     private val payFlow = RequestPayFlow(
         scope = viewModelScope,
         payments = payments,
+        topUp = topUp,
         payer = payer,
         tokenCoordinator = tokenCoordinator,
         transactionController = transactionController,
@@ -238,6 +241,8 @@ internal class RequestDetailsViewModel @Inject constructor(
     val fundingUi: StateFlow<CollectionFundingUi?> get() = payFlow.fundingUi
 
     fun pickCollectionCurrency(mint: Mint) = payFlow.pickCollectionCurrency(mint)
+
+    val onAddAndPay: () -> Unit get() = payFlow.onAddAndPay
 
     /** "Send <share>". */
     fun payTapped() {

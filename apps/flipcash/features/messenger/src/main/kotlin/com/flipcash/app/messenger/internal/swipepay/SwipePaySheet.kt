@@ -85,7 +85,8 @@ internal fun rememberSwipePaySheetState(locked: Boolean): SwipePaySheetState {
 }
 
 /**
- * The swipe-to-pay sheet: [header] (who), [amount], the currency pill, and the swipe.
+ * The swipe-to-pay sheet: [header] (who), [amount], the currency pill, and the swipe, or [action]
+ * in the swipe's place. [replacement], when set, is drawn instead of all of it, in the same sheet.
  *
  * Drawn in the host's own window, so a bottom bar the route raises lands above it. A token pick
  * opens the currency list as a half sheet over this one, which stays up beneath it with its
@@ -100,6 +101,8 @@ internal fun SwipePaySheet(
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit,
     amount: @Composable () -> Unit,
+    action: (@Composable (Modifier) -> Unit)? = null,
+    replacement: (@Composable () -> Unit)? = null,
 ) {
     val pickCurrency = LocalSwipePayCurrencyPicker.current
     val navigator = LocalCodeNavigator.current
@@ -111,7 +114,7 @@ internal fun SwipePaySheet(
         dismissOnScrimTap = !state.backOnly,
         gesturesEnabled = !state.backOnly,
     ) {
-        val swipe: @Composable (Modifier) -> Unit = { extra ->
+        val swipe: @Composable (Modifier) -> Unit = action ?: { extra ->
             SlideToConfirm(
                 onConfirm = actions.onConfirm,
                 modifier = Modifier.fillMaxWidth().then(extra).let {
@@ -135,8 +138,10 @@ internal fun SwipePaySheet(
                 if (state.tokenPickable) CodeTheme.dimens.grid.x3 else CodeTheme.dimens.grid.x8
             ),
         ) {
-            header()
-            if (state.tokenPickable) {
+            if (replacement != null) {
+                replacement()
+            } else if (state.tokenPickable) {
+                header()
                 amount()
                 TokenSelectionPill(
                     token = state.token,
@@ -151,6 +156,7 @@ internal fun SwipePaySheet(
                 )
                 swipe(Modifier.padding(top = CodeTheme.dimens.grid.x3))
             } else {
+                header()
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),

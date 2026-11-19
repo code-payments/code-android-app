@@ -83,11 +83,17 @@ class CollectionPaymentDetailsTest {
             tokenOf = tokens::get,
             nameOf = { it.name },
             topUpSourceName = "Google Pay",
+            topUpFootnote = FOOTNOTE,
             strings = strings,
         )
     }
 
-    private fun showSheet(funding: CollectionFundingUi?, isFunding: Boolean = true) {
+    private fun showSheet(
+        funding: CollectionFundingUi?,
+        isFunding: Boolean = true,
+        finishing: Boolean = false,
+        onAddAndPay: () -> Unit = {},
+    ) {
         composeTestRule.setContent {
             DesignSystem {
                 RequestPaySheet(
@@ -97,11 +103,13 @@ class CollectionPaymentDetailsTest {
                         amount = Fiat(10.0, CurrencyCode.USD),
                         creator = List(16) { 1 },
                         funding = isFunding,
+                        finishing = finishing,
                     ),
                     members = emptyMap(),
                     token = null,
                     actions = SwipePayActions(onConfirm = {}, onDismiss = {}),
                     funding = funding,
+                    onAddAndPay = onAddAndPay,
                 )
             }
         }
@@ -175,29 +183,92 @@ class CollectionPaymentDetailsTest {
         composeTestRule.onNodeWithTag(COLLECTION_FEE_LINE_TAG).assertExists()
     }
 
-    @Test
-    fun `a plan that needs a top-up draws no fee line`() {
-        val short = planCollectionFunding(
-            amountMicros = 10_000_000,
-            minorDigits = 2,
-            minTopUpMicros = 5_000_000,
-            dollarsId = "dollars",
-            selected = null,
-            lastPaid = null,
-            balances = listOf(FundingBalance("dollars", 2_000_000, 0), FundingBalance("jeffy", 3_000_000, 100)),
-        )
-        val ui = collectionFundingUi(
-            plan = short,
-            amount = Fiat(quarks = 10_000_000, currencyCode = CurrencyCode.USD),
-            tokenOf = { null },
-            nameOf = { it.name },
-            topUpSourceName = "Google Pay",
-            strings = strings,
-        )
-        assertNull(ui.modalFee)
+    /**
+     * Frames 1, 2, 4.2, 7.2 and 8.2: the short state takes the swipe's place with the vector's
+     * drawn short line and button, the Google Pay minimum under it, and the fee line of the plan
+     * after the top-up (none for 4.2 and 7.2, "plus ~$0.04" for 8.2).
+     */
+    private fun assertDrawsShort(name: String) {
+        val display = case(name).getJSONObject("display")
+        val ui = ui(case(name))
+        assertEquals(display.getString("short_by"), ui.short?.shortBy)
+        assertEquals(display.getString("add_button"), ui.short?.addButton)
+        assertEquals(display.optString("modal_fee").takeIf { !display.isNull("modal_fee") }, ui.modalFee)
 
-        showSheet(ui)
-        composeTestRule.onNodeWithTag(COLLECTION_FEE_LINE_TAG).assertDoesNotExist()
+        var taps = 0
+        showSheet(ui, onAddAndPay = { taps++ })
+        composeTestRule.onNodeWithText(display.getString("short_by")).assertExists()
+        composeTestRule.onNodeWithText(FOOTNOTE).assertExists()
+        composeTestRule.onNodeWithTag("request_pay_add").assertExists()
+        composeTestRule.onNodeWithText(display.getString("add_button")).performClick()
+        composeTestRule.waitForIdle()
+        assertEquals(1, taps)
+        if (ui.modalFee == null) {
+            composeTestRule.onNodeWithTag(COLLECTION_FEE_LINE_TAG).assertDoesNotExist()
+        } else {
+            composeTestRule.onNodeWithText(ui.modalFee!!).assertExists()
+        }
+    }
+
+    @Test
+    fun `1 - an empty wallet shows the short state for the whole amount`() {
+        assertDrawsShort("s1-no-balance")
+    }
+
+    @Test
+    fun `2 - under the minimum, the button adds the minimum`() {
+        assertDrawsShort("s2-min-top-up")
+    }
+
+    @Test
+    fun `4_2 - Dollars short of the amount, the button adds $5 and pays $10`() {
+        assertDrawsShort("s4-add-then-pay")
+    }
+
+    @Test
+    fun `7_2 - short by $2_04, the button adds $5 and pays $11 with no fee line`() {
+        assertDrawsShort("s7-short-under-min")
+    }
+
+    @Test
+    fun `8_2 - short over the minimum, the button adds $12_04 with the post-top-up fee`() {
+        assertDrawsShort("s8-short-over-min")
+    }
+
+    @Test
+    fun `7_3 - Payment Details before the top-up show the plan after it`() {
+        val display = case("s7-short-under-min").getJSONObject("display")
+        val details = ui(case("s7-short-under-min")).details
+        val expected = display.getJSONObject("details")
+
+        assertEquals(expected.getJSONObject("pay").getString("name"), details.pay.row.name)
+        assertEquals(expected.getJSONObject("pay").getString("amount"), details.pay.row.amount)
+        assertEquals(
+            expected.getJSONArray("use").objects().map { row ->
+                listOf(row.getString("name")) +
+                    row.getJSONArray("sublabels").strings().map { it.replace(" from Apple Pay", " from Google Pay") } +
+                    row.getString("amount")
+            },
+            details.use.map { listOf(it.row.name) + it.row.sublabels + it.row.amount },
+        )
+        assertEquals(expected.getJSONObject("total").getString("amount"), details.total.amount)
+    }
+
+    @Test
+    fun `a plan the balances cover has no short state`() {
+        assertNull(ui(case("s5-s6-convert-shortfall")).short)
+        showSheet(ui(case("s5-s6-convert-shortfall")))
+        composeTestRule.onNodeWithTag("request_pay_add").assertDoesNotExist()
+    }
+
+    @Test
+    fun `1_3 and 4_4 - Finishing Payment replaces the sheet while the top-up lands`() {
+        showSheet(ui(case("s4-add-then-pay")), finishing = true)
+
+        composeTestRule.onNodeWithTag("request_pay_finishing").assertExists()
+        composeTestRule.onNodeWithText("Finishing Payment").assertExists()
+        composeTestRule.onNodeWithText("This usually takes about 10 seconds").assertExists()
+        composeTestRule.onNodeWithTag("request_pay_add").assertDoesNotExist()
     }
 
     @Test
@@ -220,5 +291,6 @@ class CollectionPaymentDetailsTest {
 
     private companion object {
         const val FIXTURE = "../../shared/tokens/src/androidHostTest/resources/collection_funding.json"
+        const val FOOTNOTE = "The minimum you can add with Google Pay is $5."
     }
 }

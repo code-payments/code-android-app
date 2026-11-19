@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.shared.payments.request.CollectionTopUp
 import javax.inject.Inject
 
 /**
@@ -39,6 +40,7 @@ import javax.inject.Inject
 internal class RequestPayViewModel @Inject constructor(
     private val rosters: GroupRosters,
     payments: PaymentRequestPaymentDelegate,
+    topUp: CollectionTopUp,
     payer: StartChattingPayer,
     tokenCoordinator: TokenCoordinator,
     transactionController: TransactionController,
@@ -56,6 +58,7 @@ internal class RequestPayViewModel @Inject constructor(
     private val flow = RequestPayFlow(
         scope = viewModelScope,
         payments = payments,
+        topUp = topUp,
         payer = payer,
         tokenCoordinator = tokenCoordinator,
         transactionController = transactionController,
@@ -76,6 +79,8 @@ internal class RequestPayViewModel @Inject constructor(
     val fundingUi: StateFlow<CollectionFundingUi?> get() = flow.fundingUi
 
     fun pickCollectionCurrency(mint: Mint) = flow.pickCollectionCurrency(mint)
+
+    val onAddAndPay: () -> Unit get() = flow.onAddAndPay
 
     /** The chat's members by id, for the creator's name and avatar on the sheet. */
     val members: StateFlow<Map<ID, ChatMember>> = combine(chatId, rosters.state) { id, all ->

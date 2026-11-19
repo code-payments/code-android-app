@@ -6,6 +6,8 @@ import com.flipcash.analytics.events.TransferEvents
 import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.analytics.analytics
 import com.flipcash.app.core.AppRoute
+import com.flipcash.app.core.tokens.FundingSource
+import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.flipcash.app.tokens.CollectionFundingPlan
@@ -16,14 +18,20 @@ import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.request.CollectionFundingError
+import com.flipcash.shared.payments.request.CollectionTopUp
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
+import com.flipcash.shared.payments.request.TopUpBlock
+import com.flipcash.shared.payments.request.TopUpResult
+import com.getcode.manager.BottomBarAction
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
+import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.Fiat.FormattingRule
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.usdf
@@ -36,6 +44,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -64,6 +73,8 @@ import kotlinx.coroutines.launch
 internal class RequestPayFlow(
     private val scope: CoroutineScope,
     private val payments: PaymentRequestPaymentDelegate,
+    /** Adds the Dollars a collection payment is short by, through Google Pay. */
+    private val topUp: CollectionTopUp,
     private val payer: StartChattingPayer,
     private val tokenCoordinator: TokenCoordinator,
     private val transactionController: TransactionController,
@@ -97,6 +108,11 @@ internal class RequestPayFlow(
          * own currency, not the wallet's selected one (group-collections spec, "Funding a payment").
          */
         val funding: Boolean = false,
+        /**
+         * "Finishing Payment" in place of the sheet: a top-up has been charged and its Dollars are
+         * landing, then the payment runs (frames 1.3, 4.4, 7.5, 8.4).
+         */
+        val finishing: Boolean = false,
     )
 
     private val _state = MutableStateFlow(State())
@@ -162,6 +178,11 @@ internal class RequestPayFlow(
             tokenOf = known::get,
             nameOf = { it.brandedName(resources) },
             topUpSourceName = resources.getString(R.string.label_topUpSourceGooglePay),
+            topUpFootnote = resources.getString(
+                R.string.label_collectionTopUpMinimum,
+                resources.getString(R.string.label_topUpSourceGooglePay),
+                payments.collectionTopUpMinimum.formatted(FormattingRule.Truncated),
+            ),
             strings = ResourceCollectionFundingStrings(resources),
         )
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
@@ -172,6 +193,9 @@ internal class RequestPayFlow(
 
     /** Everything the sheet asks of this flow, in one place. */
     val actions = SwipePayActions(onConfirm = ::confirm, onDismiss = ::dismiss)
+
+    /** The short state's "Add $5.00 and Pay $11.00" (frames 4.2, 7.2, 8.2). */
+    val onAddAndPay: () -> Unit = { addAndPay(checkGates = true) }
 
     /**
      * "Send <share>" / the deck's Pay: refetch for the intent id, then show the sheet if there is
@@ -188,10 +212,12 @@ internal class RequestPayFlow(
                     _state.update { it.copy(preparing = false) }
                     when (found) {
                         is ShareToPay.Ready -> {
+                            val funding = fund && found.request.collection != null
                             // The same gate as Send, after the refetch so a closed request still reads
                             // "Request Closed": with nothing to give, say so before the sheet opens, since
-                            // it would have no token to show or swipe with.
-                            if (!payer.mayProceed(
+                            // it would have no token to show or swipe with. A collection being funded
+                            // always has one, Dollars, and an empty wallet reaches its top-up.
+                            if (!funding && !payer.mayProceed(
                                     onAddMoney = { scope.launch { payer.depositRoute()?.let(openScreen) } },
                                     onDiscoverCurrencies = { openScreen(AppRoute.Token.Discovery) },
                                     noBalanceMessage = R.string.description_noBalanceYetToPayRequest,
@@ -207,9 +233,12 @@ internal class RequestPayFlow(
                                     progress = LoadingSuccessState(),
                                     amount = found.amount,
                                     creator = found.request.creator,
-                                    funding = fund && found.request.collection != null,
+                                    funding = funding,
                                 )
                             }
+                            // A top-up kept from before a relaunch or a failed attempt is waited on
+                            // and then paid; nothing new is ordered.
+                            if (funding && topUp.pending(found.request.id)) resumeTopUp(found)
                         }
                         is ShareToPay.NothingToPay -> onNothingToPay()
                         is ShareToPay.Closed -> presentClosed()
@@ -242,28 +271,189 @@ internal class RequestPayFlow(
 
         _state.update { it.copy(progress = LoadingSuccessState(loading = true)) }
         scope.launch {
-            payments.pay(pending, token, owner.withTimelockForToken(token), fund = funding)
-                .onSuccess {
-                    onPaid()
+            if (funding) {
+                // One payment per request at a time, so it can't run beside a top-up's.
+                topUp.exclusive(pending.request.id) { pay(pending, token, owner) }
+            } else {
+                pay(pending, token, owner)
+            }
+        }
+    }
+
+    private suspend fun pay(pending: ShareToPay.Ready, token: Token, owner: AccountCluster) {
+        _state.update { it.copy(progress = LoadingSuccessState(loading = true)) }
+        payments.pay(pending, token, owner.withTimelockForToken(token), fund = _state.value.funding)
+            .onSuccess {
+                onPaid()
+                // Outside the caller's lock, so the hold doesn't keep another screen's Pay waiting.
+                scope.launch {
                     holdPaymentSuccess(
-                        show = { _state.update { it.copy(progress = LoadingSuccessState(success = true)) } },
+                        show = {
+                            _state.update { it.copy(progress = LoadingSuccessState(success = true), finishing = false) }
+                        },
                         release = {
                             analytics.track(sentCash(AnalyticsState.SUCCESS, pending, null))
                             dismiss()
                         },
                     )
                 }
-                .onFailure { cause ->
-                    if (cause is CollectionFundingError.Short) {
-                        // Conversions can't cover it, so nothing was paid: the same short state as
-                        // the check before the swipe. Adding money is a later step (S5).
-                        _state.update { it.copy(progress = LoadingSuccessState()) }
-                        present(PayBlock.OverBalance)
-                    } else {
-                        afterFailedPayment(pending, cause)
-                    }
+            }
+            .onFailure { cause ->
+                if (cause is CollectionFundingError.Short) {
+                    // Conversions can't cover it, so nothing was paid. Fresh balances replan the
+                    // sheet into the short state, which asks before adding anything.
+                    _state.update { it.copy(progress = LoadingSuccessState(), finishing = false) }
+                    tokenCoordinator.update()
+                } else {
+                    afterFailedPayment(pending, cause)
                 }
+            }
+    }
+
+    /**
+     * Adds the Dollars the open collection sheet is short by, then pays once they land, with no
+     * second confirmation (group-collections spec, "Adding money and recovery"). Inside the
+     * request's lock, a top-up already kept is waited on and nothing new is ordered; otherwise the
+     * share is refetched (stopping if it's paid or closed) and replanned, so a second tap after the
+     * Dollars landed pays instead of ordering. The send limit is checked before any order, so no
+     * Dollars are bought that couldn't then be sent. [checkGates] false is "Continue Anyway".
+     */
+    private fun addAndPay(checkGates: Boolean) {
+        val pending = ready ?: return
+        val owner = userManager.accountCluster ?: return
+        if (!_state.value.funding || !_state.value.progress.isIdle) return
+        if (overSendLimit(pending.amount)) {
+            present(PayBlock.OverSendLimit)
+            return
         }
+        _state.update { it.copy(progress = LoadingSuccessState(loading = true)) }
+        scope.launch {
+            val token = token.filterNotNull().first()
+            topUp.exclusive(pending.request.id) {
+                val kept = topUp.resume(pending.request.id, owner)
+                if (kept != null) {
+                    afterTopUp(pending, token, owner, kept)
+                    return@exclusive
+                }
+                val found = refetch(pending) ?: return@exclusive
+                val plan = payments.planCollection(found.amount, token)
+                if (plan == null || plan.payableWithoutTopUp) {
+                    pay(found, token, owner)
+                    return@exclusive
+                }
+                val cents = payments.collectionTopUpCents(plan, found.amount) ?: run {
+                    stopTopUp()
+                    presentTopUpFailed()
+                    return@exclusive
+                }
+                val result = topUp.topUp(
+                    requestId = found.request.id,
+                    usdCents = cents,
+                    owner = owner,
+                    checkGates = checkGates,
+                    onCharged = { _state.update { it.copy(finishing = true) } },
+                )
+                afterTopUp(found, token, owner, result)
+            }
+        }
+    }
+
+    /** The sheet opened on a request with a top-up kept: "Finishing Payment" until it lands and pays. */
+    private fun resumeTopUp(pending: ShareToPay.Ready) {
+        val owner = userManager.accountCluster ?: return
+        _state.update { it.copy(progress = LoadingSuccessState(loading = true), finishing = true) }
+        scope.launch {
+            val token = token.filterNotNull().first()
+            topUp.exclusive(pending.request.id) {
+                val kept = topUp.resume(pending.request.id, owner)
+                if (kept != null) {
+                    afterTopUp(pending, token, owner, kept)
+                } else {
+                    // Another screen's top-up settled while this one waited; it may have paid.
+                    refetch(pending)?.let { stopTopUp() }
+                }
+            }
+        }
+    }
+
+    /**
+     * Once the Dollars land, refetch (another member may have paid meanwhile, or the request
+     * closed) and replan from the balances as observed: pay if they cover it, else draw the short
+     * state again so the user confirms any further top-up. The Dollars stay either way.
+     */
+    private suspend fun afterTopUp(pending: ShareToPay.Ready, token: Token, owner: AccountCluster, result: TopUpResult) {
+        when (result) {
+            TopUpResult.Landed -> {
+                val found = refetch(pending) ?: return
+                val plan = payments.planCollection(found.amount, token)
+                if (plan == null || plan.payableWithoutTopUp) {
+                    _state.update { it.copy(finishing = true) }
+                    pay(found, token, owner)
+                } else {
+                    stopTopUp()
+                }
+            }
+            TopUpResult.NotCharged -> stopTopUp()
+            TopUpResult.Failed -> {
+                stopTopUp()
+                presentTopUpFailed()
+            }
+            TopUpResult.StillPending -> {
+                stopTopUp()
+                BottomBarManager.showError(
+                    title = resources.getString(R.string.error_title_collectionTopUpPending),
+                    message = resources.getString(R.string.error_description_collectionTopUpPending),
+                )
+            }
+            is TopUpResult.Blocked -> {
+                stopTopUp()
+                present(result.block)
+            }
+        }
+    }
+
+    /**
+     * GetPaymentIntentId again before a top-up and before paying after one: null, with the outcome
+     * shown, when there is no longer a share to pay or the refetch failed.
+     */
+    private suspend fun refetch(pending: ShareToPay.Ready): ShareToPay.Ready? {
+        val viewer = viewerId ?: return null
+        val found = payments.prepare(pending.request.id, viewer).getOrElse {
+            stopTopUp()
+            presentSendFailed()
+            return null
+        }
+        when (found) {
+            is ShareToPay.Ready -> {
+                ready = found
+                _state.update { it.copy(amount = found.amount, creator = found.request.creator) }
+                return found
+            }
+            is ShareToPay.NothingToPay -> {
+                close()
+                onNothingToPay()
+            }
+            is ShareToPay.Closed -> {
+                close()
+                presentClosed()
+            }
+            is ShareToPay.Unavailable -> {
+                close()
+                onUnavailable()
+            }
+        }
+        return null
+    }
+
+    /** Back to the sheet as the balances now plan it: the short state, or the swipe. */
+    private fun stopTopUp() {
+        _state.update { it.copy(progress = LoadingSuccessState(), finishing = false) }
+    }
+
+    /** Closes the sheet mid top-up, where [dismiss] would wait for the spinner. */
+    private fun close() {
+        stopTopUp()
+        dismiss()
     }
 
     /**
@@ -281,7 +471,7 @@ internal class RequestPayFlow(
      */
     private suspend fun afterFailedPayment(pending: ShareToPay.Ready, cause: Throwable) {
         analytics.track(sentCash(AnalyticsState.FAILURE, pending, cause.analytics))
-        _state.update { it.copy(progress = LoadingSuccessState()) }
+        _state.update { it.copy(progress = LoadingSuccessState(), finishing = false) }
         val viewer = viewerId ?: return
         when (val found = payments.prepare(pending.request.id, viewer).getOrNull()) {
             is ShareToPay.Closed -> {
@@ -310,7 +500,14 @@ internal class RequestPayFlow(
         ready = null
         collectionPick.value = null
         _state.update {
-            it.copy(open = false, progress = LoadingSuccessState(), amount = null, creator = null, funding = false)
+            it.copy(
+                open = false,
+                progress = LoadingSuccessState(),
+                amount = null,
+                creator = null,
+                funding = false,
+                finishing = false,
+            )
         }
     }
 
@@ -320,7 +517,13 @@ internal class RequestPayFlow(
         scope.launch { payer.depositRoute()?.let(openScreen) }
     }
 
-    private enum class PayBlock { OverBalance, OverSendLimit }
+    private enum class PayBlock {
+        OverBalance,
+        OverSendLimit,
+
+        /** A collection the balances can't cover: the sheet draws the short state, not a modal. */
+        Short,
+    }
 
     /**
      * Why [amount] can't be paid from [token] right now, or null when it can. Presents nothing.
@@ -329,19 +532,24 @@ internal class RequestPayFlow(
     private fun payBlock(amount: Fiat, token: Token, funding: Boolean): PayBlock? {
         if (funding) {
             val plan = payments.planCollection(amount, token)
-            if (plan != null && !plan.payableWithoutTopUp) return PayBlock.OverBalance
+            if (plan != null && !plan.payableWithoutTopUp) return PayBlock.Short
         } else {
             exchange.rateFor(amount.currencyCode)?.let { rate ->
                 val balance = tokenCoordinator.balanceForToken(token).convertingTo(rate)
                 if (amount.valueGreaterThan(balance)) return PayBlock.OverBalance
             }
         }
-        val limit = transactionController.limits.value?.sendLimitFor(amount.currencyCode)
-        if (limit != null && amount.toDouble() > limit.nextTransaction) return PayBlock.OverSendLimit
+        if (overSendLimit(amount)) return PayBlock.OverSendLimit
         return null
     }
 
+    private fun overSendLimit(amount: Fiat): Boolean {
+        val limit = transactionController.limits.value?.sendLimitFor(amount.currencyCode) ?: return false
+        return amount.toDouble() > limit.nextTransaction
+    }
+
     private fun present(block: PayBlock) = when (block) {
+        PayBlock.Short -> Unit
         PayBlock.OverBalance -> payer.presentInsufficientBalance(
             onAddMoney = ::presentDeposit,
             // A share is a fixed amount, so the way out is another currency, not a smaller amount.
@@ -350,6 +558,54 @@ internal class RequestPayFlow(
         PayBlock.OverSendLimit -> BottomBarManager.showAlert(
             resources.getString(R.string.error_title_sendLimitReached),
             resources.getString(R.string.error_description_sendLimitReached),
+        )
+    }
+
+    /** Why a top-up couldn't start, as the Add Cash screen says it (SwapViewModel's purchase gates). */
+    private fun present(block: TopUpBlock) {
+        when (block) {
+            TopUpBlock.GooglePayNotSupported -> BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampGooglePayNotSupported),
+                message = resources.getString(R.string.error_description_onrampGooglePayNotSupported),
+            )
+            TopUpBlock.GooglePayNoPaymentMethod -> BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampGooglePayNotReady),
+                message = resources.getString(R.string.error_description_onrampGooglePayNotReady),
+            )
+            is TopUpBlock.WebViewWarning -> BottomBarManager.showAlert(
+                title = resources.getString(R.string.error_title_onrampNonStableWebView),
+                message = resources.getString(R.string.error_description_onrampNonStableWebView, block.channel),
+                actions = listOf(
+                    BottomBarAction(
+                        text = resources.getString(R.string.action_cancel),
+                        style = BottomBarManager.BottomBarButtonStyle.Filled,
+                    ) {},
+                    BottomBarAction(
+                        text = resources.getString(R.string.action_continueAnyway),
+                        style = BottomBarManager.BottomBarButtonStyle.Text,
+                    ) { addAndPay(checkGates = false) },
+                ),
+            )
+            // Coinbase needs a verified phone or email first. The sheet closes for it; Pay again
+            // after verifying starts the top-up over.
+            is TopUpBlock.Verification -> {
+                close()
+                openScreen(
+                    AppRoute.Verification(
+                        origin = AppRoute.Token.Swap(SwapPurpose.Buy(Mint.usdf, FundingSource.Coinbase)),
+                        includePhone = block.phone,
+                        includeEmail = block.email,
+                    )
+                )
+            }
+            is TopUpBlock.OrderFailed -> presentTopUpFailed()
+        }
+    }
+
+    private fun presentTopUpFailed() {
+        BottomBarManager.showError(
+            title = resources.getString(R.string.error_title_buySellFailed),
+            message = resources.getString(R.string.error_description_buySellFailed),
         )
     }
 

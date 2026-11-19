@@ -854,6 +854,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         collectionCurrencies = requestPayCurrencies,
         onPickCollectionCurrency = requestPay::pickCollectionCurrency,
         funding = requestPayFunding,
+        onAddAndPay = requestPay.onAddAndPay,
     )
     ExpandedRequests(
         deck = drawnDeck,

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -70,6 +71,7 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.flipcash.app.messenger.internal.swipepay.LocalSwipePayCurrencyPicker
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
@@ -87,7 +89,9 @@ import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
  * A collection being funded ([RequestPayFlow.State.funding]) picks its currency from
  * [collectionCurrencies] in its own sheet, through [onPickCollectionCurrency], instead of the
  * wallet's currency list: the pick is this payment's alone. Its [funding] fee line opens Payment
- * Details over the sheet.
+ * Details over the sheet. When the balances can't cover it, [CollectionFundingUi.short] takes the
+ * swipe's place and [onAddAndPay] adds the rest; [RequestPayFlow.State.finishing] then draws
+ * "Finishing Payment" until it's paid.
  */
 @Composable
 internal fun RequestPaySheet(
@@ -98,16 +102,28 @@ internal fun RequestPaySheet(
     collectionCurrencies: List<TokenWithLocalizedBalance> = emptyList(),
     onPickCollectionCurrency: (Mint) -> Unit = {},
     funding: CollectionFundingUi? = null,
+    onAddAndPay: () -> Unit = {},
 ) {
     if (!pay.open) return
     val amount = pay.amount ?: return
     val sheet = @Composable { feeLine: (@Composable () -> Unit)? ->
+        val swipePay = requestPaySwipeState(pay, token)
         PayShareSheet(
             creator = pay.creator?.let(members::get),
             amount = amount,
-            swipePay = requestPaySwipeState(pay, token),
+            swipePay = swipePay,
             actions = actions,
             feeLine = feeLine,
+            action = funding?.short?.takeIf { pay.funding }?.let { short ->
+                @Composable { modifier: Modifier ->
+                    CollectionShortAction(short, swipePay, onAddAndPay, modifier)
+                }
+            },
+            replacement = if (pay.finishing) {
+                @Composable { CollectionFinishing() }
+            } else {
+                null
+            },
         )
     }
     if (!pay.funding) {
@@ -154,11 +170,15 @@ private fun PayShareSheet(
     swipePay: SwipePayUiState,
     actions: SwipePayActions,
     feeLine: (@Composable () -> Unit)? = null,
+    action: (@Composable (Modifier) -> Unit)? = null,
+    replacement: (@Composable () -> Unit)? = null,
 ) {
     SwipePaySheet(
         state = swipePay,
         actions = actions,
         sheetState = rememberSwipePaySheetState(locked = swipePay.locked),
+        action = action,
+        replacement = replacement,
         header = {
             MemberAvatar(creator, Modifier.requiredSize(CodeTheme.dimens.staticGrid.x10))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -201,3 +221,69 @@ private fun PayShareSheet(
     )
 }
 
+/**
+ * Frames 4.2, 7.2, 8.2, in the swipe's place: "You’re $2.04 Short", "Add $5.00 and Pay $11.00",
+ * and the minimum Google Pay takes.
+ */
+@Composable
+private fun CollectionShortAction(
+    short: CollectionShortUi,
+    swipePay: SwipePayUiState,
+    onAddAndPay: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+    ) {
+        Text(
+            text = short.shortBy,
+            style = CodeTheme.typography.textMedium,
+            color = CodeTheme.colors.textMain,
+            textAlign = TextAlign.Center,
+        )
+        CodeButton(
+            text = short.addButton,
+            modifier = Modifier.fillMaxWidth().testTag("request_pay_add"),
+            isLoading = swipePay.progress.loading,
+            isSuccess = swipePay.progress.success,
+            enabled = swipePay.progress.isIdle,
+            buttonState = ButtonState.Filled,
+            onClick = onAddAndPay,
+        )
+        Text(
+            text = short.footnote,
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/** Frames 1.3, 4.4, 7.5, 8.4: a top-up is landing and the payment runs after it. */
+@Composable
+private fun CollectionFinishing() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = CodeTheme.dimens.grid.x8)
+            .testTag("request_pay_finishing"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+    ) {
+        CodeCircularProgressIndicator(modifier = Modifier.size(CodeTheme.dimens.staticGrid.x8))
+        Text(
+            text = stringResource(R.string.title_collectionFinishingPayment),
+            style = CodeTheme.typography.textLarge,
+            color = CodeTheme.colors.textMain,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = stringResource(R.string.subtitle_collectionFinishingPayment),
+            style = CodeTheme.typography.textSmall,
+            color = CodeTheme.colors.textSecondary,
+            textAlign = TextAlign.Center,
+        )
+    }
+}

@@ -17,6 +17,8 @@ import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.shared.chat.PaymentRequests
 import com.flipcash.shared.payments.request.CollectionFundingError
+import com.flipcash.shared.payments.request.CollectionTopUp
+import com.flipcash.shared.payments.request.CollectionTopUpLocks
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
 import com.getcode.manager.BottomBarManager
@@ -69,6 +71,12 @@ class RequestPayFlowTest {
     private val owner = mockk<AccountCluster>(relaxed = true)
     private val scope = CoroutineScope(Dispatchers.Unconfined)
     private val analytics = RecordingAnalytics()
+    private val topUp = CollectionTopUp(
+        FakeCollectionTopUpRail(addDollars = {}),
+        InMemoryCollectionFundingStore(),
+        tokenCoordinator,
+        CollectionTopUpLocks(),
+    )
 
     private var balance = Fiat(100.0)
     private var nothingToPay = 0
@@ -104,6 +112,7 @@ class RequestPayFlowTest {
     private fun flow() = RequestPayFlow(
         scope = scope,
         payments = payments,
+        topUp = topUp,
         payer = payer,
         tokenCoordinator = tokenCoordinator,
         transactionController = transactionController,
@@ -308,7 +317,7 @@ class RequestPayFlowTest {
     }
 
     @Test
-    fun `a short collection that conversions can't cover keeps today's short state and pays nothing`() {
+    fun `a short collection that conversions can't cover draws the short state, not the old modal, and pays nothing`() {
         balance = Fiat(2.0)
         every { payments.planCollection(any(), any()) } returns plan(payable = false)
         val f = fundingFlow()
@@ -317,7 +326,7 @@ class RequestPayFlowTest {
         f.confirm()
 
         assertEquals(true, f.state.value.open)
-        verify(exactly = 1) { payer.presentInsufficientBalance(any(), any()) }
+        verify(exactly = 0) { payer.presentInsufficientBalance(any(), any()) }
         coVerify(exactly = 0) { payments.pay(any(), any(), any(), any()) }
     }
 
@@ -359,7 +368,7 @@ class RequestPayFlowTest {
     }
 
     @Test
-    fun `funding falling short after the swipe shows the short state without a refetch`() {
+    fun `funding falling short after the swipe replans into the short state without a refetch`() {
         every { payments.planCollection(any(), any()) } returns plan(payable = true)
         coEvery { payments.pay(any(), any(), any(), any()) } returns
             Result.failure(CollectionFundingError.Short(plan(payable = false)))
@@ -370,7 +379,8 @@ class RequestPayFlowTest {
 
         assertEquals(true, f.state.value.open)
         assertEquals(true, f.state.value.progress.isIdle)
-        verify(exactly = 1) { payer.presentInsufficientBalance(any(), any()) }
+        verify(exactly = 0) { payer.presentInsufficientBalance(any(), any()) }
+        coVerify(exactly = 1) { tokenCoordinator.update() }
         coVerify(exactly = 1) { payments.prepare(any(), any()) }
         assertEquals(0, analytics.events.size)
     }

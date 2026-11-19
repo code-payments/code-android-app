@@ -16,6 +16,7 @@ import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
+import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
@@ -71,6 +72,10 @@ class PaymentRequestPaymentDelegate @Inject constructor(
 
     /** What to order, in USD cents, to add [plan]'s top-up for [amount]; null with none or no rate. */
     fun collectionTopUpCents(plan: CollectionFundingPlan, amount: Fiat): Long? = funder.topUpUsdCents(plan, amount)
+
+    /** The smallest top-up Google Pay takes, $5, for the short state's footnote. */
+    val collectionTopUpMinimum: Fiat
+        get() = Fiat(CollectionFundingPlanner.MIN_TOP_UP_USD_MICROS, CurrencyCode.USD)
 
     /** The currency a collection was last paid in on this account, the next one's default; null before the first. */
     fun lastPaidCollectionCurrency(): Flow<Mint?> = funder.lastPaid()
