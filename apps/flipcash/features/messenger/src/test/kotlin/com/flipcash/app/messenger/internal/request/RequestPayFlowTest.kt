@@ -10,6 +10,8 @@ import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.features.messenger.R
 import com.flipcash.app.tokens.CollectionFundingPlan
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.app.tokens.FundingBalance
+import com.flipcash.app.tokens.planCollectionFunding
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.GroupRosters
@@ -26,6 +28,7 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -45,6 +48,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 /** The pay unit on its own: what the chat's deck Pay runs, with no Request details around it. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -425,6 +429,37 @@ class RequestPayFlowTest {
         coVerify(exactly = 0) { payments.pay(any(), any(), any(), any()) }
         coVerify(exactly = 0) { tokenCoordinator.selectToken(any()) }
         assertEquals(null, lastPaid.value)
+    }
+
+    @Test
+    fun `the fee line and Payment Details name each currency as the wallet does`() {
+        // Frames 5.2/5.3: $10.00 from $8.00 Dollars and $6.00 Jeffy at a 1% sell fee.
+        val dollarsId = Token.usdf.address.base58()
+        val jeffyId = jeffy.address.base58()
+        every { jeffy.name } returns "Jeffy"
+        every { resources.getString(R.string.displayName_dollars) } returns "Dollars"
+        every { resources.getString(R.string.label_topUpSourceGooglePay) } returns "Google Pay"
+        // The reserve is never cached as a wallet token; the flow knows it anyway.
+        every { tokenCoordinator.cachedTokens() } returns listOf(jeffy)
+        every { payments.planCollection(any(), any()) } returns planCollectionFunding(
+            amountMicros = 10_000_000,
+            minorDigits = 2,
+            minTopUpMicros = 5_000_000,
+            dollarsId = dollarsId,
+            selected = dollarsId,
+            lastPaid = null,
+            balances = listOf(FundingBalance(dollarsId, 8_000_000, 0), FundingBalance(jeffyId, 6_000_000, 100)),
+        )
+        val f = fundingFlow()
+        scope.launch { f.fundingUi.collect {} }
+        f.start(listOf<Byte>(2), fund = true)
+
+        val ui = assertNotNull(f.fundingUi.value)
+        assertEquals("plus ~$0.02 of conversion fees", ui.modalFee)
+        assertEquals("Dollars", ui.details.pay.row.name)
+        assertEquals(Token.usdf, ui.details.pay.token)
+        assertEquals(listOf("Dollars", "Jeffy"), ui.details.use.map { it.row.name })
+        assertEquals(listOf(Token.usdf, jeffy), ui.details.use.map { it.token })
     }
 
     @Test

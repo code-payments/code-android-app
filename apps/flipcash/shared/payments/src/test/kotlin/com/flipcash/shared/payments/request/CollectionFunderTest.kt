@@ -287,6 +287,37 @@ class CollectionFunderTest {
     }
 
     @Test
+    fun `a kept swap stuck in CREATED fails each retry until the server ends it, then converts afresh`() = runTest {
+        hold(Token.usdf to "2.00", al to "20.00")
+        coEvery { transactions.pollSwapForState(any(), owner, SwapState.FINALIZED, any(), any()) } returns
+            Result.failure(IllegalStateException("timed out"))
+
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isFailure)
+        val kept = store.legs(requestId).single()
+
+        // The swap started but its funding never landed. A retry waits on it rather than funding
+        // it again, so it fails and keeps the leg.
+        coEvery { swaps.getSwap(kept.swapId, any()) } returns
+            Result.success(mockk<Swap> { every { this@mockk.state } returns SwapState.CREATED })
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isFailure)
+        assertEquals(1, submitted.size)
+        assertEquals(kept.swapId, store.legs(requestId).single().swapId)
+
+        // Once the server cancels it, the next retry drops it and converts under new ids.
+        coEvery { swaps.getSwap(kept.swapId, any()) } returns
+            Result.success(mockk<Swap> { every { this@mockk.state } returns SwapState.CANCELLED })
+        coEvery { transactions.pollSwapForState(any(), owner, SwapState.FINALIZED, any(), any()) } answers {
+            land(submitted.last())
+            Result.success(mockk())
+        }
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
+
+        assertEquals(2, submitted.size)
+        assertTrue(kept.swapId != submitted[1].swapId)
+        assertTrue(store.legs(requestId).isEmpty())
+    }
+
+    @Test
     fun `a retry drops a kept swap that already finalised`() = runTest {
         hold(Token.usdf to "12.00")
         val finalised = FundingLegRecord(al.address, Mint.usdf, SwapId.generate(), List(32) { 3 })
