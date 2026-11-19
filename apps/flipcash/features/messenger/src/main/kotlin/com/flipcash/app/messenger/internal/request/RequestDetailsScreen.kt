@@ -120,7 +120,12 @@ internal fun RequestDetailsScreen(
     val now by viewModel.now.collectAsStateWithLifecycle()
     val unavailable by viewModel.unavailable.collectAsStateWithLifecycle()
     val paidPayers by viewModel.paidPayers.collectAsStateWithLifecycle()
+    val directPay by viewModel.directPay.collectAsStateWithLifecycle()
     val viewerId = viewModel.viewerId
+    // The Request screen's button started a top-up, which has landed and is paying (frame 1.3):
+    // "Finishing Payment" covers the screen, and back waits for it.
+    val directFinishing = pay.direct && pay.finishing
+    BackHandler(enabled = directFinishing) { }
 
     val current = request
     // Group Money on: a collection takes the collection rules; a split keeps the shipped screen.
@@ -131,6 +136,7 @@ internal fun RequestDetailsScreen(
 
     CodeScaffold(
         topBar = {
+            if (directFinishing) return@CodeScaffold
             AppBarWithTitle(
                 title = stringResource(R.string.title_requestDetails),
                 titleAlignment = Alignment.CenterHorizontally,
@@ -164,20 +170,19 @@ internal fun RequestDetailsScreen(
             )
         },
         bottomBar = {
+            if (directFinishing) return@CodeScaffold
             val each = collection?.let {
                 payableCollectionAmount(it, viewerId, now, state.callerPaid, paidPayers, state.nothingToPay)
             }
             if (each != null) {
-                CodeButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(horizontal = CodeTheme.dimens.inset)
-                        .padding(bottom = CodeTheme.dimens.grid.x2)
-                        .testTag("request_details_send"),
-                    text = stringResource(R.string.action_payShare, each.inDisplayCurrency().collectionText()),
-                    buttonState = ButtonState.Filled,
-                    isLoading = pay.preparing,
+                CollectionPayButton(
+                    // With no balance to fund it, the button is the top-up: "Pay $10.00" when the
+                    // top-up is the amount (frame 1.1), "Add $5.00 and Pay $2.00" over Google Pay's
+                    // minimum (2.1). It spins while Google Pay is up.
+                    text = directPay?.button
+                        ?: stringResource(R.string.action_payShare, each.inDisplayCurrency().collectionText()),
+                    footnote = directPay?.footnote,
+                    isLoading = pay.preparing || (pay.direct && !pay.progress.isIdle),
                     onClick = viewModel::payTapped,
                 )
                 return@CodeScaffold
@@ -200,6 +205,15 @@ internal fun RequestDetailsScreen(
             }
         },
     ) { padding ->
+        if (directFinishing) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center,
+            ) {
+                CollectionFinishing()
+            }
+            return@CodeScaffold
+        }
         if (current == null || (collection != null && state.payUnavailable)) {
             if (unavailable) {
                 Box(
@@ -582,3 +596,39 @@ internal fun MemberAvatar(member: ChatMember?, modifier: Modifier) {
 }
 
 private fun firstName(name: String): String = name.trim().substringBefore(' ').ifEmpty { name }
+
+/** A collection's Pay, with the minimum top-up's footnote under it when there is one (frame 2.1). */
+@Composable
+internal fun CollectionPayButton(
+    text: String,
+    footnote: String?,
+    isLoading: Boolean,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = CodeTheme.dimens.inset)
+            .padding(bottom = CodeTheme.dimens.grid.x2),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+    ) {
+        CodeButton(
+            modifier = Modifier.fillMaxWidth().testTag("request_details_send"),
+            text = text,
+            buttonState = ButtonState.Filled,
+            isLoading = isLoading,
+            onClick = onClick,
+        )
+        if (footnote != null) {
+            Text(
+                modifier = Modifier.testTag("request_details_send_footnote"),
+                text = footnote,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}

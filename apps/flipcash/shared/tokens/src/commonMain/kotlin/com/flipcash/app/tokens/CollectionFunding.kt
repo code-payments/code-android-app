@@ -107,6 +107,14 @@ data class CollectionFundingPlan(
 ) {
     val payableWithoutTopUp: Boolean get() = shortfallMicros == 0L
     val totalFeeMicros: Long get() = legs.sumOf { it.feeMicros }
+
+    /**
+     * No balance at or above the dust floor funds the payment: the top-up covers the whole amount
+     * (group-collections spec, "Adding money and recovery", sections 1 and 2). A balance the plan
+     * leaves untouched, such as one the minimum top-up made unnecessary, doesn't count.
+     */
+    val fundedByTopUpAlone: Boolean
+        get() = topUpMicros > 0 && legs.all { it.dollarsSplit?.fromBalanceMicros == 0L }
 }
 
 data class FundingLeg(

@@ -254,6 +254,15 @@ class CollectionPaymentDetailsTest {
         assertEquals(expected.getJSONObject("total").getString("amount"), details.total.amount)
     }
 
+    /** Frames 1.1 and 2.1: the Request screen's button reads "Pay $10.00" only when the top-up is the amount. */
+    @Test
+    fun `the top-up is the amount only in section 1`() {
+        assertEquals(true, ui(case("s1-no-balance")).short?.topUpIsAmount)
+        for (name in listOf("s2-min-top-up", "s4-add-then-pay", "s7-short-under-min", "s8-short-over-min")) {
+            assertEquals(name, false, ui(case(name)).short?.topUpIsAmount)
+        }
+    }
+
     @Test
     fun `a plan the balances cover has no short state`() {
         assertNull(ui(case("s5-s6-convert-shortfall")).short)

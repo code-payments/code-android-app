@@ -2,6 +2,9 @@ package com.flipcash.app.messenger.internal.request
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.hasContentDescriptionExactly
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -223,5 +226,25 @@ class RequestPaySheetTest {
 
         composeTestRule.onNodeWithTag(collectionCurrencyRowTag(jeffy.address)).assertIsSelected()
         composeTestRule.onNodeWithTag(collectionCurrencyRowTag(Token.usdf.address)).assertIsNotSelected()
+    }
+
+    /** Frames 1.1 and 2.1: the Request screen's collection Pay, with Google Pay's minimum under it. */
+    @Test
+    fun `the Request screen's Pay draws the footnote only when one is given`() {
+        var footnote by mutableStateOf<String?>("Google Pay adds a $5.00 minimum")
+        var taps = 0
+        composeTestRule.setContent {
+            DesignSystem {
+                CollectionPayButton(text = "Add $5.00 and Pay $2.00", footnote = footnote, isLoading = false, onClick = { taps++ })
+            }
+        }
+
+        composeTestRule.onNodeWithTag("request_details_send_footnote").assertExists()
+        composeTestRule.onNodeWithText("Add $5.00 and Pay $2.00").performClick()
+        assertEquals(1, taps)
+
+        footnote = null
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("request_details_send_footnote").assertDoesNotExist()
     }
 }

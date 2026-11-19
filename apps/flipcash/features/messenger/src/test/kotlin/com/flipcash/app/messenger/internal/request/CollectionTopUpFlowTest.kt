@@ -39,8 +39,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.json.JSONArray
 import org.json.JSONObject
@@ -421,6 +423,217 @@ class CollectionTopUpFlowTest {
 
         assertEquals(listOf(500L, 500L), rail.orders)
         assertEquals(1, paid)
+    }
+
+    /** The Request screen's Pay, which tops up without the sheet when nothing funds the collection. */
+    private fun tapRequestScreenPay(f: RequestPayFlow) = f.start(REQUEST_ID, fund = true, direct = true)
+
+    private fun directPayNow(f: RequestPayFlow): CollectionDirectPayUi? = runBlocking {
+        f.directPay(flowOf(request.amount)).first()
+    }
+
+    /**
+     * Sections 1 and 2: no balance funds it, so the Request screen's button is the top-up. It
+     * orders the case's cents ($10.00, $5.00) and pays once the Dollars land, with no sheet.
+     */
+    @Test
+    fun `sections 1 and 2 - the Request screen's Pay tops up and pays without the sheet`() {
+        for (name in listOf("s1-no-balance", "s2-min-top-up")) {
+            setUp()
+            rail.orders.clear()
+            paid = 0
+            val case = useCase(name)
+            rail.googlePay = CompletableDeferred()
+            val f = flow()
+
+            tapRequestScreenPay(f)
+
+            assertEquals(listOf(expectedCents(case)), rail.orders, name)
+            assertEquals(false, f.state.value.open, "$name: Google Pay opens over the Request screen")
+            assertTrue(f.state.value.direct, name)
+            assertTrue(f.state.value.progress.loading, "$name: the button spins")
+
+            rail.googlePay!!.complete(Unit)
+
+            assertEquals(1, paid, name)
+            assertEquals(false, f.state.value.open, name)
+            assertTrue(store.topUps.isEmpty(), name)
+        }
+        coVerify(exactly = 2) { payments.pay(any(), Token.usdf, owner, true) }
+    }
+
+    /** Sections 4, 7 and 8: a balance funds part of it, so Pay opens the sheet and orders nothing. */
+    @Test
+    fun `sections 4, 7 and 8 - the Request screen's Pay opens the sheet`() {
+        for (name in listOf("s4-add-then-pay", "s7-short-under-min", "s8-short-over-min")) {
+            setUp()
+            useCase(name)
+            val f = flow()
+
+            tapRequestScreenPay(f)
+
+            assertTrue(f.state.value.open, name)
+            assertEquals(false, f.state.value.direct, name)
+            assertTrue(f.state.value.progress.isIdle, name)
+            assertTrue(rail.orders.isEmpty(), name)
+            assertEquals(null, directPayNow(f), "$name: the button reads Pay and opens the sheet")
+        }
+    }
+
+    /** Frames 1.1 and 2.1: "Pay $10.00" when the top-up is the amount, else the Add and Pay label. */
+    @Test
+    fun `the Request screen's label is Pay for section 1 and Add and Pay for section 2`() {
+        useCase("s1-no-balance")
+        assertEquals(CollectionDirectPayUi(), directPayNow(flow()))
+
+        useCase("s2-min-top-up")
+        val two = directPayNow(flow())
+        assertTrue(two?.button != null && two.footnote != null, "section 2 adds the minimum: $two")
+    }
+
+    @Test
+    fun `a balance that arrived after the label was drawn opens the sheet instead`() {
+        useCase("s1-no-balance")
+        val f = flow()
+        assertEquals(CollectionDirectPayUi(), directPayNow(f))
+        // $5.00 lands in Dollars before the tap: it now funds half, so the sheet asks first.
+        dollarsMicros = 5_000_000L
+
+        tapRequestScreenPay(f)
+
+        assertTrue(f.state.value.open)
+        assertEquals(false, f.state.value.direct)
+        assertTrue(rail.orders.isEmpty())
+        assertEquals(null, directPayNow(f))
+    }
+
+    /** Recovery 2 from the Request screen: taps while Google Pay is up order nothing more. */
+    @Test
+    fun `taps on the Request screen's Pay while Google Pay is open order nothing more`() {
+        useCase("s1-no-balance")
+        rail.googlePay = CompletableDeferred()
+        val topUp = CollectionTopUp(rail, store, tokenCoordinator, CollectionTopUpLocks())
+        val details = flow(topUp)
+        tapRequestScreenPay(details)
+        tapRequestScreenPay(details)
+        details.onAddAndPay()
+
+        // The chat's deck Pay on the same request waits on the kept top-up.
+        val chat = openSheet(flow(topUp))
+        assertTrue(chat.state.value.finishing)
+
+        rail.googlePay!!.complete(Unit)
+
+        assertEquals(listOf(1000L), rail.orders)
+        assertEquals(1, paid)
+        coVerify(exactly = 1) { payments.pay(any(), any(), any(), any()) }
+    }
+
+    /** Frame 1.3: "Finishing Payment" covers the Request screen from Google Pay closing until paid. */
+    @Test
+    fun `the Request screen shows Finishing Payment while the Dollars land`() {
+        useCase("s1-no-balance")
+        rail.delivery = CompletableDeferred()
+        val f = flow()
+
+        tapRequestScreenPay(f)
+        assertTrue(f.state.value.direct && f.state.value.finishing)
+        assertEquals(false, f.state.value.open)
+        assertEquals(0, paid)
+
+        rail.delivery!!.complete(Unit)
+        assertEquals(1, paid)
+    }
+
+    /** Recovery 1 from the Request screen: the relaunch's tap, or the deck's Pay, waits and pays once. */
+    @Test
+    fun `process death after the Request screen's top-up - the next Pay waits on it and orders nothing`() {
+        for (reopen in listOf("request screen", "deck")) {
+            setUp()
+            rail.orders.clear()
+            store.topUps.clear()
+            paid = 0
+            useCase("s2-min-top-up")
+            rail.googlePay = CompletableDeferred()
+            tapRequestScreenPay(flow())
+            assertTrue(store.topUps.isNotEmpty(), "$reopen: kept before Google Pay opened")
+            scopes.forEach { it.cancel() }
+
+            val relaunched = flow()
+            if (reopen == "deck") openSheet(relaunched) else tapRequestScreenPay(relaunched)
+
+            assertEquals(listOf(500L), rail.orders, reopen)
+            assertEquals(1, paid, reopen)
+            assertTrue(store.topUps.isEmpty(), reopen)
+            assertEquals(reopen == "deck", relaunched.state.value.open, reopen)
+        }
+    }
+
+    /** Recovery 4 from the Request screen: still short after the Dollars land, the sheet asks. */
+    @Test
+    fun `a short delivery from the Request screen opens the sheet's short state`() {
+        useCase("s1-no-balance")
+        rail.deliverMicros = 4_000_000L
+        val f = flow()
+
+        tapRequestScreenPay(f)
+
+        assertEquals(listOf(1000L), rail.orders)
+        assertEquals(0, paid)
+        assertTrue(f.state.value.open)
+        assertEquals(false, f.state.value.direct)
+        assertTrue(f.state.value.progress.isIdle)
+        assertEquals(1, rail.orders.size, "nothing more is ordered without a tap")
+    }
+
+    @Test
+    fun `closing Google Pay over the Request screen keeps nothing, and the next tap orders again`() {
+        useCase("s1-no-balance")
+        rail.payment = TopUpPayment.NotCharged
+        val f = flow()
+
+        tapRequestScreenPay(f)
+        assertTrue(store.topUps.isEmpty())
+        assertTrue(f.state.value.progress.isIdle)
+        assertEquals(false, f.state.value.open)
+        assertEquals(0, paid)
+
+        rail.payment = TopUpPayment.Succeeded
+        tapRequestScreenPay(f)
+
+        assertEquals(listOf(1000L, 1000L), rail.orders)
+        assertEquals(1, paid)
+    }
+
+    @Test
+    fun `the send limit is checked before the Request screen's top-up orders`() {
+        useCase("s1-no-balance")
+        val limit = mockk<SendLimit>(relaxed = true) { every { nextTransaction } returns 1.0 }
+        every { transactionController.limits } returns MutableStateFlow<Limits?>(
+            mockk<Limits>(relaxed = true) { every { sendLimitFor(any()) } returns limit },
+        )
+        val f = flow()
+
+        tapRequestScreenPay(f)
+
+        assertTrue(rail.orders.isEmpty())
+        assertTrue(f.state.value.progress.isIdle)
+    }
+
+    /** Group Money off: a split's Pay is the shipped sheet, whatever the button asks for. */
+    @Test
+    fun `without funding, the Request screen's Pay opens the shipped sheet`() {
+        useCase("s1-no-balance")
+        coEvery { payer.mayProceed(any(), any(), any()) } returns true
+        val f = flow()
+
+        f.start(REQUEST_ID, fund = false, direct = true)
+
+        assertTrue(f.state.value.open)
+        assertEquals(false, f.state.value.funding)
+        assertEquals(false, f.state.value.direct)
+        assertTrue(rail.orders.isEmpty())
+        assertEquals(null, runBlocking { f.directPay(flowOf(null)).first() }, "no amount with the flag off")
     }
 
     private fun JSONArray.objects(): List<JSONObject> = (0 until length()).map(::getJSONObject)

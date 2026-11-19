@@ -265,11 +265,14 @@ private fun CollectionShortAction(
     }
 }
 
-/** Frames 1.3, 4.4, 7.5, 8.4: a top-up is landing and the payment runs after it. */
+/**
+ * Frames 1.3, 4.4, 7.5, 8.4: a top-up is landing and the payment runs after it. In the sheet, or
+ * over the Request screen when its button started the top-up (1.3).
+ */
 @Composable
-private fun CollectionFinishing() {
+internal fun CollectionFinishing(modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = CodeTheme.dimens.grid.x8)
             .testTag("request_pay_finishing"),

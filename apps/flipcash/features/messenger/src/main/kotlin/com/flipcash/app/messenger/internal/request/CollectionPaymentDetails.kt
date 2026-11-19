@@ -56,6 +56,11 @@ internal data class CollectionShortUi(
     val shortBy: String,
     val addButton: String,
     val footnote: String,
+    /**
+     * The top-up reads the same as the amount, as when nothing funds it and no minimum applies:
+     * the Request screen's button then reads "Pay $10.00" (frame 1.1), not [addButton] (2.1).
+     */
+    val topUpIsAmount: Boolean = false,
 )
 
 /** Payment Details (frames 5.3, 6.5, 9.3), each currency row paired with its token's icon. */
@@ -106,7 +111,9 @@ internal fun collectionFundingUi(
             total = display.details.total,
         ),
         short = display.shortBy?.let { shortBy ->
-            display.addButton?.let { addButton -> CollectionShortUi(shortBy, addButton, topUpFootnote) }
+            display.addButton?.let { addButton ->
+                CollectionShortUi(shortBy, addButton, topUpFootnote, topUpIsAmount = display.topUp == display.details.pay.amount)
+            }
         },
     )
 }

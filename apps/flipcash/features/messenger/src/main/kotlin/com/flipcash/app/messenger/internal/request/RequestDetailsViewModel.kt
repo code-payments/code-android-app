@@ -240,13 +240,25 @@ internal class RequestDetailsViewModel @Inject constructor(
 
     val fundingUi: StateFlow<CollectionFundingUi?> get() = payFlow.fundingUi
 
+    /**
+     * The Pay button as the top-up itself, when no balance funds the collection (sections 1 and 2):
+     * Pay then opens Google Pay without the sheet. Null when Group Money is off, for a split, or when
+     * a balance funds part of it.
+     */
+    val directPay: StateFlow<CollectionDirectPayUi?> = payFlow.directPay(
+        combine(_state, request) { s, request ->
+            request?.let { collectionDetailsOf(it, s.collections) }?.collection?.amountEach
+        },
+    ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     fun pickCollectionCurrency(mint: Mint) = payFlow.pickCollectionCurrency(mint)
 
     val onAddAndPay: () -> Unit get() = payFlow.onAddAndPay
 
-    /** "Send <share>". */
+    /** "Send <share>", or a collection's Pay, which tops up without the sheet when nothing funds it. */
     fun payTapped() {
-        _state.value.requestId?.let { payFlow.start(it, fund = _state.value.collections) }
+        val collections = _state.value.collections
+        _state.value.requestId?.let { payFlow.start(it, fund = collections, direct = collections) }
     }
 
     fun confirmPay() = payFlow.confirm()

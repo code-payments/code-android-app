@@ -70,6 +70,7 @@ class CollectionFundingVectorsTest {
         assertTrue(names.containsAll(required), "missing ${required - names.toSet()}")
 
         val failures = mutableListOf<String>()
+        val fundedByTopUpAlone = mutableListOf<String>()
         var ran = 0
         for (element in cases) {
             val case = element.jsonObject
@@ -103,6 +104,11 @@ class CollectionFundingVectorsTest {
             failures.check(name, "top-up", expected.long("top_up_micros"), plan.topUpMicros)
             failures.check(name, "total fee", expected.long("total_fee_micros"), plan.totalFeeMicros)
             failures.check(name, "legs", expected.array("legs").map { it.jsonObject.toLeg(name, failures) }, plan.legs)
+            // The fixture has no field for it: a top-up and every leg's Dollars from the top-up.
+            val toppedUpAlone = expected.long("top_up_micros") > 0 &&
+                expected.array("legs").all { it.jsonObject["from_balance_micros"]?.jsonPrimitive?.long == 0L }
+            failures.check(name, "funded by top-up alone", toppedUpAlone, plan.fundedByTopUpAlone)
+            if (plan.fundedByTopUpAlone) fundedByTopUpAlone += name
 
             val currencyNames = balances.associate { it.string("id") to it.string("name") } + (DOLLARS to "Dollars")
             val display = formatter.display(plan, input.long("amount_micros")) { currencyNames[it] ?: it }
@@ -122,6 +128,16 @@ class CollectionFundingVectorsTest {
         println("collection_funding: $ran of ${cases.size} cases ran")
         assertEquals(cases.size, ran)
         failures.assertNone()
+        // Sections 1 and 2 take the Request screen's button; 4, 7 and 8 open the modal. A Dollars
+        // balance under the dust floor funds nothing.
+        assertTrue(
+            fundedByTopUpAlone.containsAll(listOf("s1-no-balance", "s2-min-top-up", "dust-paying-and-dollars")),
+            "funded by top-up alone: $fundedByTopUpAlone",
+        )
+        assertTrue(
+            fundedByTopUpAlone.none { it in listOf("s4-add-then-pay", "s7-short-under-min", "s8-short-over-min") },
+            "funded by top-up alone: $fundedByTopUpAlone",
+        )
     }
 
     @Test
