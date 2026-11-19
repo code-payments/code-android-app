@@ -2305,7 +2305,7 @@
     <string name="subtitle_notificationCheckFailedProblem">Registration failed</string>
     <!-- Funding a collection payment (group-collections spec, "Funding a payment"). -->
     <!-- A conversion kept from an earlier attempt hasn't settled; no frame draws this state yet. -->
-    <string name="error_title_collectionConversionPending">Conversion Still Pending</string>
+    <string name="error_title_collectionConversionPending">Conversion Pending</string>
     <string name="error_description_collectionConversionPending">Your conversion is still pending. Try again shortly.</string>
     <!-- The fee line under a collection's amount when something converts at no fee. -->
     <string name="label_collectionNoConversionFees">no conversion fees</string>

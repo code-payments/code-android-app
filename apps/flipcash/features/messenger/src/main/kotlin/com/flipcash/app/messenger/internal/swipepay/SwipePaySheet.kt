@@ -13,21 +13,21 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.flipcash.app.core.ui.TokenSelectionPill
 import com.flipcash.app.core.chat.ChatStep
-import com.getcode.navigation.core.LocalCodeNavigator
-import androidx.compose.runtime.staticCompositionLocalOf
+import com.flipcash.app.core.ui.TokenSelectionPill
 import com.flipcash.features.messenger.R
-import com.getcode.opencode.model.financial.Token
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.scenes.InWindowBottomSheet
 import com.getcode.navigation.scenes.InWindowSheetState
 import com.getcode.navigation.scenes.rememberInWindowSheetState
+import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White10
@@ -47,6 +47,11 @@ internal data class SwipePayUiState(
     val progress: LoadingSuccessState,
     /** True to show the currency picker on the pill; false for a currency fixed by the flow. */
     val tokenPickable: Boolean,
+    /**
+     * False drops the dropdown mark from a pickable pill, which still opens the picker: a
+     * collection's pill (frame 5.2, node 13952:58) has none.
+     */
+    val pillDropdownMark: Boolean = true,
     /** True when only back closes the sheet: no drag, no tap on the scrim. */
     val backOnly: Boolean = false,
     /** The swipe's label: "Swipe to Send" unless the flow pays a request. */
@@ -152,6 +157,7 @@ internal fun SwipePaySheet(
                         horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
                         vertical = CodeTheme.dimens.grid.x1 - 1.dp,
                     ),
+                    showsDropdownMark = state.pillDropdownMark,
                     onClick = { if (!state.locked) openPicker() },
                 )
                 swipe(Modifier.padding(top = CodeTheme.dimens.grid.x3))

@@ -1,10 +1,17 @@
 package com.flipcash.app.messenger.internal.request
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.test.hasContentDescriptionExactly
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.flipcash.app.messenger.internal.swipepay.LocalSwipePayCurrencyPicker
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
+import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ChatMember
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
@@ -141,5 +148,80 @@ class RequestPaySheetTest {
 
         assertEquals(listOf(Token.usdf.address), picks)
         composeTestRule.onNodeWithText("Select Payment Currency").assertDoesNotExist()
+    }
+
+    // Frame 5.2 (node 13952:58) drops the handle and the pill's dropdown mark from a collection's
+    // sheet. A share's sheet, and any sheet with the collections flag off, keeps both.
+
+    private val member = ChatMember(
+        creator,
+        UserProfile(
+            displayName = "Ted Livingston",
+            socialAccounts = emptyList(),
+            phoneNumber = null,
+            email = null,
+            username = "ted",
+        ),
+        emptyList(),
+    )
+
+    private fun setSheet(pay: RequestPayFlow.State, onPicker: () -> Unit) {
+        composeTestRule.setContent {
+            DesignSystem {
+                CompositionLocalProvider(LocalSwipePayCurrencyPicker provides onPicker) {
+                    RequestPaySheet(
+                        pay = pay,
+                        members = mapOf(creator to member),
+                        token = jeffy,
+                        actions = SwipePayActions(onConfirm = {}, onDismiss = {}),
+                    )
+                }
+            }
+        }
+    }
+
+    // The pill's dropdown mark is the only image drawn with an empty description.
+    private fun dropdownMarks() =
+        composeTestRule.onAllNodes(hasContentDescriptionExactly("")).fetchSemanticsNodes().size
+
+    @Test
+    fun `a share's sheet keeps the handle and the pill's dropdown mark`() {
+        var opened = 0
+        setSheet(collection.copy(funding = false), onPicker = { opened++ })
+
+        composeTestRule.onNodeWithText("Ted Livingston").assertExists()
+        composeTestRule.onNodeWithText("@ted").assertExists()
+        assertEquals(1, dropdownMarks())
+        composeTestRule.onNodeWithText("Jeffy").performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun `a collection's sheet drops the handle and the dropdown mark, and its pill still opens the list`() {
+        setFundingSheet(onPick = {})
+
+        composeTestRule.onNodeWithText("@", substring = true).assertDoesNotExist()
+        assertEquals(0, dropdownMarks())
+        composeTestRule.onNodeWithText("Jeffy").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("Select Payment Currency").assertExists()
+    }
+
+    @Test
+    fun `a collection's sheet names the creator without the handle`() {
+        setSheet(collection, onPicker = {})
+
+        composeTestRule.onNodeWithText("Ted Livingston").assertExists()
+        composeTestRule.onNodeWithText("@ted").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the list fills the paying currency's radio and no other`() {
+        setFundingSheet(onPick = {})
+        composeTestRule.onNodeWithText("Jeffy").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag(collectionCurrencyRowTag(jeffy.address)).assertIsSelected()
+        composeTestRule.onNodeWithTag(collectionCurrencyRowTag(Token.usdf.address)).assertIsNotSelected()
     }
 }

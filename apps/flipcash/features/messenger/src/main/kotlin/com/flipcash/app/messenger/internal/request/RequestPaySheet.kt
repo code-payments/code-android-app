@@ -114,6 +114,7 @@ internal fun RequestPaySheet(
             swipePay = swipePay,
             actions = actions,
             feeLine = feeLine,
+            showsHandle = !pay.funding,
             action = funding?.short?.takeIf { pay.funding }?.let { short ->
                 @Composable { modifier: Modifier ->
                     CollectionShortAction(short, swipePay, onAddAndPay, modifier)
@@ -155,6 +156,7 @@ internal fun requestPaySwipeState(pay: RequestPayFlow.State, token: Token?): Swi
         token = token,
         progress = pay.progress,
         tokenPickable = true,
+        pillDropdownMark = !pay.funding,
         swipeLabel = R.string.action_swipeToPay,
         swipeTestTag = "request_pay_swipe",
     )
@@ -172,6 +174,7 @@ private fun PayShareSheet(
     feeLine: (@Composable () -> Unit)? = null,
     action: (@Composable (Modifier) -> Unit)? = null,
     replacement: (@Composable () -> Unit)? = null,
+    showsHandle: Boolean = true,
 ) {
     SwipePaySheet(
         state = swipePay,
@@ -188,7 +191,8 @@ private fun PayShareSheet(
                     color = CodeTheme.colors.textMain,
                     textAlign = TextAlign.Center,
                 )
-                creator?.userProfile?.username?.takeIf { it.isNotBlank() }?.let { username ->
+                // A collection's sheet (5.2) names the creator without the handle.
+                creator?.userProfile?.username?.takeIf { it.isNotBlank() && showsHandle }?.let { username ->
                     Text(
                         text = "@$username",
                         style = CodeTheme.typography.textSmall,
