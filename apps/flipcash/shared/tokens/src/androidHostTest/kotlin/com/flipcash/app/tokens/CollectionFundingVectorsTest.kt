@@ -17,10 +17,10 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
- * `test-vectors/collection_funding.json`, a verbatim copy of the orchestrator's canonical fixture
- * that iOS's `CollectionFundingVectorTests` asserts too. A failure here is either a real regression
- * or a cross-platform decision that has to be made in the canonical fixture and re-synced to both
- * platforms, never a local edit.
+ * `collection_funding.json`, a verbatim copy of the orchestrator's canonical
+ * `test-vectors/collection_funding.json`. A failure here is either a real regression or a
+ * cross-platform decision that has to be made in the canonical fixture and re-synced, never a local
+ * edit.
  *
  * The fixture's strings say "Apple Pay"; Android pays a top-up with Google Pay, so the expected
  * sublabels are read with that one name swapped.
@@ -90,7 +90,7 @@ class CollectionFundingVectorsTest {
             failures.check(name, "top_up", want.stringOrNull("top_up"), display.topUp)
             failures.check(name, "modal_fee", want.stringOrNull("modal_fee"), display.modalFee)
             val details = want.obj("details")
-            failures.check(name, "details.pay", details.obj("pay").toRow(sublabels = false), display.details.pay)
+            failures.check(name, "details.pay", details.obj("pay").toRow(), display.details.pay)
             failures.check(name, "details.use", details.array("use").map { it.jsonObject.toRow() }, display.details.use)
             val total = details.obj("total")
             failures.check(name, "details.total", PaymentDetailsRow(total.string("label"), total.string("amount")), display.details.total)
@@ -164,14 +164,12 @@ class CollectionFundingVectorsTest {
         )
     }
 
-    /** The fixture's "You’ll Pay" row has no sublabels key; every "You’ll Use" row has one. */
-    private fun JsonObject.toRow(sublabels: Boolean = true) = PaymentDetailsRow(
+    /** The fixture's "You’ll Pay" rows carry no sublabels key, which reads as no sublabels. */
+    private fun JsonObject.toRow() = PaymentDetailsRow(
         name = string("name"),
         amount = string("amount"),
-        sublabels = if (sublabels) {
-            array("sublabels").map { it.jsonPrimitive.content.replace(" from Apple Pay", " from Google Pay") }
-        } else {
-            emptyList()
+        sublabels = (get("sublabels") as JsonArray?).orEmpty().map {
+            it.jsonPrimitive.content.replace(" from Apple Pay", " from Google Pay")
         },
     )
 
