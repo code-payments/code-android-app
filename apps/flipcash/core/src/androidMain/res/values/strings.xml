@@ -471,6 +471,10 @@
 
     <string name="title_selectCurrency">Select Currency</string>
     <string name="title_selectPaymentCurrency">Select Payment Currency</string>
+    <string name="title_paymentDetails">Payment Details</string>
+    <string name="subtitle_youllPay">You’ll Pay</string>
+    <string name="subtitle_youllUse">You’ll Use</string>
+    <string name="label_topUpSourceGooglePay">Google Pay</string>
     <string name="title_selectRegion">Select Region</string>
     <string name="title_recentRegions">Recent Regions</string>
     <string name="title_otherRegions">Other Regions</string>

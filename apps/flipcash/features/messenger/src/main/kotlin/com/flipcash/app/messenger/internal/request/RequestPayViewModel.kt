@@ -73,6 +73,8 @@ internal class RequestPayViewModel @Inject constructor(
     val actions: SwipePayActions = flow.actions
     val collectionCurrencies: StateFlow<List<TokenWithLocalizedBalance>> get() = flow.collectionCurrencies
 
+    val fundingUi: StateFlow<CollectionFundingUi?> get() = flow.fundingUi
+
     fun pickCollectionCurrency(mint: Mint) = flow.pickCollectionCurrency(mint)
 
     /** The chat's members by id, for the creator's name and avatar on the sheet. */

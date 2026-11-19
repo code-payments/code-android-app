@@ -235,6 +235,8 @@ internal class RequestDetailsViewModel @Inject constructor(
     val swipePayActions: SwipePayActions = payFlow.actions
     val collectionCurrencies: StateFlow<List<TokenWithLocalizedBalance>> get() = payFlow.collectionCurrencies
 
+    val fundingUi: StateFlow<CollectionFundingUi?> get() = payFlow.fundingUi
+
     fun pickCollectionCurrency(mint: Mint) = payFlow.pickCollectionCurrency(mint)
 
     /** "Send <share>". */

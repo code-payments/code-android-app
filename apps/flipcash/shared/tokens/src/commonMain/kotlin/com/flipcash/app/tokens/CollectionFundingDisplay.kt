@@ -97,17 +97,10 @@ class CollectionFundingFormatter(
             modalFee = modalFee(plan.totalFeeMicros, conversion = plan.legs.any { it.conversion }),
             details = PaymentDetailsDisplay(
                 pay = PaymentDetailsRow(nameOf(plan.payingCurrency), amount),
-                use = detailsOrder(plan).map { leg -> PaymentDetailsRow(nameOf(leg.source), amount(leg.soldMicros), sublabels(leg)) },
+                use = plan.paymentDetailsOrder().map { leg -> PaymentDetailsRow(nameOf(leg.source), amount(leg.soldMicros), sublabels(leg)) },
                 total = PaymentDetailsRow("Total", amount(plan.legs.sumOf { it.soldMicros })),
             ),
         )
-    }
-
-    /** The paying currency, then Dollars, then the rest by amount sold, largest first. */
-    private fun detailsOrder(plan: CollectionFundingPlan): List<FundingLeg> {
-        val (paying, others) = plan.legs.partition { it.source == plan.payingCurrency }
-        val (dollars, rest) = others.partition { it.dollarsSplit != null }
-        return paying + dollars + rest.sortedWith(compareByDescending<FundingLeg> { it.soldMicros }.thenBy { it.source })
     }
 
     /** Dollars name where a top-up comes in, the balance first; a sold community currency its fee. */
@@ -132,6 +125,17 @@ class CollectionFundingFormatter(
     private fun minorUnits(units: Long): String =
         Fiat(quarks = units * minorUnitMicros(minorDigits), currencyCode = currency)
             .formatted(Fiat.FormattingRule.Length(minorDigits))
+}
+
+/**
+ * The legs in Payment Details' "You’ll Use" order: the paying currency, then Dollars, then the
+ * rest by amount sold, largest first. [CollectionFundingFormatter.display] lists its rows in this
+ * order, so a caller can pair each row with its currency.
+ */
+fun CollectionFundingPlan.paymentDetailsOrder(): List<FundingLeg> {
+    val (paying, others) = legs.partition { it.source == payingCurrency }
+    val (dollars, rest) = others.partition { it.dollarsSplit != null }
+    return paying + dollars + rest.sortedWith(compareByDescending<FundingLeg> { it.soldMicros }.thenBy { it.source })
 }
 
 data class CollectionFundingDisplay(

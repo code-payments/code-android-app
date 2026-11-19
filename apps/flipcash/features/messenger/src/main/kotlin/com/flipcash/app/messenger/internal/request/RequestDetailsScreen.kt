@@ -241,6 +241,7 @@ internal fun RequestDetailsScreen(
     val unnamed = stringResource(R.string.title_unnamedUser)
     val name = { userId: ID -> memberName(members[userId], unnamed) }
     val collectionCurrencies by viewModel.collectionCurrencies.collectAsStateWithLifecycle()
+    val fundingUi by viewModel.fundingUi.collectAsStateWithLifecycle()
     RequestPaySheet(
         pay = pay,
         members = members,
@@ -248,6 +249,7 @@ internal fun RequestDetailsScreen(
         actions = viewModel.swipePayActions,
         collectionCurrencies = collectionCurrencies,
         onPickCollectionCurrency = viewModel::pickCollectionCurrency,
+        funding = fundingUi,
     )
     when (val sheet = state.sheet) {
         RequestDetailsViewModel.Sheet.None -> Unit

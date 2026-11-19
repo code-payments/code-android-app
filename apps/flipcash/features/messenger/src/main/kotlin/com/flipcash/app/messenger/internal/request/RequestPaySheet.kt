@@ -86,7 +86,8 @@ import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
  *
  * A collection being funded ([RequestPayFlow.State.funding]) picks its currency from
  * [collectionCurrencies] in its own sheet, through [onPickCollectionCurrency], instead of the
- * wallet's currency list: the pick is this payment's alone.
+ * wallet's currency list: the pick is this payment's alone. Its [funding] fee line opens Payment
+ * Details over the sheet.
  */
 @Composable
 internal fun RequestPaySheet(
@@ -96,23 +97,32 @@ internal fun RequestPaySheet(
     actions: SwipePayActions,
     collectionCurrencies: List<TokenWithLocalizedBalance> = emptyList(),
     onPickCollectionCurrency: (Mint) -> Unit = {},
+    funding: CollectionFundingUi? = null,
 ) {
     if (!pay.open) return
     val amount = pay.amount ?: return
-    val sheet = @Composable {
+    val sheet = @Composable { feeLine: (@Composable () -> Unit)? ->
         PayShareSheet(
             creator = pay.creator?.let(members::get),
             amount = amount,
             swipePay = requestPaySwipeState(pay, token),
             actions = actions,
+            feeLine = feeLine,
         )
     }
     if (!pay.funding) {
-        sheet()
+        sheet(null)
         return
     }
     var picking by rememberSaveable { mutableStateOf(false) }
-    CompositionLocalProvider(LocalSwipePayCurrencyPicker provides { picking = true }) { sheet() }
+    var details by rememberSaveable { mutableStateOf(false) }
+    val feeLine = funding?.modalFee?.let { fee ->
+        @Composable { CollectionFeeLine(fee = fee, onDetails = { details = true }) }
+    }
+    CompositionLocalProvider(LocalSwipePayCurrencyPicker provides { picking = true }) { sheet(feeLine) }
+    if (details && funding != null) {
+        PaymentDetailsSheet(details = funding.details, onClosed = { details = false })
+    }
     if (picking) {
         CollectionCurrencySheet(
             currencies = collectionCurrencies,
@@ -143,6 +153,7 @@ private fun PayShareSheet(
     amount: Fiat,
     swipePay: SwipePayUiState,
     actions: SwipePayActions,
+    feeLine: (@Composable () -> Unit)? = null,
 ) {
     SwipePaySheet(
         state = swipePay,
@@ -167,11 +178,25 @@ private fun PayShareSheet(
             }
         },
         amount = {
-            Text(
-                text = amount.requestText(),
-                style = CodeTheme.typography.displayMedium,
-                color = CodeTheme.colors.textMain,
-            )
+            val amountText = @Composable {
+                Text(
+                    text = amount.requestText(),
+                    style = CodeTheme.typography.displayMedium,
+                    color = CodeTheme.colors.textMain,
+                )
+            }
+            if (feeLine == null) {
+                amountText()
+            } else {
+                // Frames 5.2, 6.4, 9.2: the fee line sits between the amount and the pill.
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+                ) {
+                    amountText()
+                    feeLine()
+                }
+            }
         },
     )
 }

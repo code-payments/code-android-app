@@ -9,6 +9,8 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.flipcash.app.tokens.CollectionFundingPlan
+import com.getcode.solana.keys.base58
+import com.flipcash.app.core.tokens.brandedName
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.features.messenger.R
 import com.flipcash.services.user.UserManager
@@ -146,6 +148,21 @@ internal class RequestPayFlow(
         val rate = exchange.rateFor(amount.currencyCode) ?: exchange.rateForUsd()
         collectionCurrencies(balances, token, rate)
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** The open collection sheet's fee line and Payment Details, from [plan]. */
+    val fundingUi: StateFlow<CollectionFundingUi?> = combine(_state, plan) { state, plan ->
+        val amount = state.amount
+        if (plan == null || amount == null) return@combine null
+        val known = tokenCoordinator.cachedTokens().associateBy { it.address.base58() } +
+            (Token.usdf.address.base58() to Token.usdf)
+        collectionFundingUi(
+            plan = plan,
+            amount = amount,
+            tokenOf = known::get,
+            nameOf = { it.brandedName(resources) },
+            topUpSourceName = resources.getString(R.string.label_topUpSourceGooglePay),
+        )
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
 
     private var ready: ShareToPay.Ready? = null
 

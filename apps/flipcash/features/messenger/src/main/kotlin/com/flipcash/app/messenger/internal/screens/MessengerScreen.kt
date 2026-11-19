@@ -845,6 +845,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
 
     // In-window, over the conversation and the deck, so the bottom bar draws above it.
     val requestPayCurrencies by requestPay.collectionCurrencies.collectAsStateWithLifecycle()
+    val requestPayFunding by requestPay.fundingUi.collectAsStateWithLifecycle()
     RequestPaySheet(
         pay = requestPayState,
         members = requestPayMembers,
@@ -852,6 +853,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         actions = requestPay.actions,
         collectionCurrencies = requestPayCurrencies,
         onPickCollectionCurrency = requestPay::pickCollectionCurrency,
+        funding = requestPayFunding,
     )
     ExpandedRequests(
         deck = drawnDeck,
