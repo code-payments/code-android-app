@@ -380,7 +380,13 @@ fun ContentBubble(
                                 onAction = { updateAction?.onClick?.invoke() },
                             )
                         } else {
-                            val width = minOf(bubbleMaxWidth, PaymentRequestBubbleDefaults.WIDTH)
+                            // A collection takes the message card width, as iOS sizes the card. A
+                            // split and the placeholder keep node 12254:1929's width.
+                            val isCollection = (state as? RequestCardState.Ready)?.request?.collection != null
+                            val width = minOf(
+                                bubbleMaxWidth,
+                                if (isCollection) messageCardWidth else PaymentRequestBubbleDefaults.WIDTH,
+                            )
                             Bubble(
                                 isFromSelf = item.isFromSelf,
                                 position = position,

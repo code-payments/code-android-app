@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -130,11 +131,14 @@ fun RequestProgressBar(fraction: Float, ended: Boolean, modifier: Modifier = Mod
 
 /**
  * The request card's contents (frames 07 and 08): label, title, progress line, bar and status
- * line. [title] null draws the placeholders while the request loads. The caller supplies the
- * surface: a chat bubble in the transcript, a full-width card in the expanded deck.
- * [detailModifier] goes on the pieces the deck pill has no counterpart for (label, bar, status
- * line), so the deck can fade them apart from the card. [standing], given in the deck, puts the
- * viewer's part at the footer's trailing end and the paid badge on the glyph.
+ * line. A split leads with its glyph. A collection (frame 1.13) has no glyph and no bar, stacks its
+ * lines down the leading edge and dims to half once it has ended, as on iOS. [title] null draws the
+ * placeholders while the request loads, without a glyph as iOS draws them, since the kind isn't
+ * known until the request is held. The caller supplies the surface: a chat bubble in the
+ * transcript, a full-width card in the expanded deck. [detailModifier] goes on the pieces the deck
+ * pill has no counterpart for (label, bar, status line), so the deck can fade them apart from the
+ * card. [standing], given in the deck, which holds only splits, puts the viewer's part at the
+ * footer's trailing end and the paid badge on the split's glyph.
  */
 @Composable
 fun PaymentRequestCardContent(
@@ -160,28 +164,39 @@ fun PaymentRequestCardContent(
     val progressStyle = CodeTheme.typography.textSmall
     val progressColor = CodeTheme.colors.textMain.copy(alpha = 0.75f)
     // A collection asks no total, so its card leads with what's been paid and "$10 each" is the
-    // quiet line (frame 1.13). The placeholders keep the split's styles.
+    // quiet line (frame 1.13). The placeholders keep the split's line styles.
     val leadsWithPaid = !loading && request.collection != null
+    // Only a held split draws the glyph.
+    val drawsGlyph = !loading && request.collection == null
+    // iOS sets the label and status line in its small text style, which is textSmall here. A split
+    // keeps the caption it shipped with.
+    val quietStyle = if (drawsGlyph) CodeTheme.typography.caption else CodeTheme.typography.textSmall
+    val dim = animateFloatAsState(
+        if (leadsWithPaid && ended) 0.5f else 1f,
+        RequestMotion.change(),
+        label = "request ended dim",
+    )
     Column(
-        modifier = modifier,
+        // iOS dims an ended collection's whole card to half; its surface stays as it was.
+        modifier = modifier.graphicsLayer { alpha = dim.value },
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
-        if (leadsWithPaid) {
-            // A collection draws no glyph: "Request", "$10 each" and "$20 paid" stack down the
-            // card's leading edge, as on iOS.
+        if (!drawsGlyph) {
+            // "Request", "$10 each" and "$20 paid" stack down the card's leading edge, as on iOS.
+            // The placeholders take the same edge, with every line blanked as iOS redacts them.
             Text(
                 text = stringResource(Res.string.label_paymentRequest_card),
-                style = CodeTheme.typography.caption,
-                color = CodeTheme.colors.textSecondary,
-                modifier = detailModifier,
+                style = quietStyle,
+                color = if (loading) Color.Transparent else CodeTheme.colors.textSecondary,
+                modifier = if (loading) Modifier.shimmer(RoundedCornerShape(4.dp)) else detailModifier,
             )
             Text(
                 text = request?.collectionTitle().orEmpty(),
-                style = progressStyle,
+                style = if (loading) titleStyle else progressStyle,
                 color = CodeTheme.colors.textSecondary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = titleModifier,
+                modifier = if (loading) Modifier.width(120.dp).shimmer(RoundedCornerShape(4.dp)) else titleModifier,
             )
         } else {
             Row(
@@ -205,12 +220,12 @@ fun PaymentRequestCardContent(
                         modifier = detailModifier,
                     )
                     Text(
-                        text = request?.collectionTitle() ?: title.orEmpty(),
+                        text = title.orEmpty(),
                         style = titleStyle,
                         color = titleColor,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = if (loading) Modifier.width(120.dp).shimmer(RoundedCornerShape(4.dp)) else titleModifier,
+                        modifier = titleModifier,
                     )
                 }
             }
@@ -236,7 +251,7 @@ fun PaymentRequestCardContent(
         ) {
             Text(
                 text = status.orEmpty(),
-                style = CodeTheme.typography.caption,
+                style = quietStyle,
                 color = CodeTheme.colors.textSecondary,
                 modifier = if (loading) Modifier.width(100.dp).shimmer(RoundedCornerShape(4.dp)) else detailModifier,
             )

@@ -1,7 +1,13 @@
 package com.flipcash.app.messenger.internal.request
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -28,13 +34,16 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import kotlin.math.roundToInt
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 /**
  * What a collection's chat card reads: what each member pays, what came in, and "Closed" once
- * closed. It stacks those lines with no glyph (frame 1.13); a split keeps its glyph.
+ * closed. It stacks those lines with no glyph (frame 1.13) and dims to half once ended, as iOS
+ * does; a split keeps its glyph and is never dimmed. The placeholder draws no glyph either.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "en")
@@ -83,19 +92,40 @@ class CollectionCardTest {
     private lateinit var titleStyle: TextStyle
     private lateinit var progressStyle: TextStyle
     private lateinit var quietStyle: TextStyle
+    private lateinit var captionStyle: TextStyle
 
     // A collection's card state carries an empty title (requestCardState); null means loading.
-    private fun show(request: PaymentRequest, title: String = "") {
+    private fun show(request: PaymentRequest?, title: String? = "") = showAll(request to title)
+
+    // Each card on black, so a card's brightness reads straight off its pixels.
+    private fun showAll(vararg cards: Pair<PaymentRequest?, String?>) {
         composeTestRule.setContent {
             DesignSystem {
                 titleStyle = CodeTheme.typography.textLarge.copy(color = CodeTheme.colors.textMain)
                 progressStyle = CodeTheme.typography.textSmall.copy(color = CodeTheme.colors.textMain.copy(alpha = 0.75f))
                 quietStyle = CodeTheme.typography.textSmall.copy(color = CodeTheme.colors.textSecondary)
+                captionStyle = CodeTheme.typography.caption.copy(color = CodeTheme.colors.textSecondary)
                 CompositionLocalProvider(LocalExchange provides ExchangeStub()) {
-                    PaymentRequestCardContent(request = request, title = title, now = t0)
+                    Column(Modifier.background(Color.Black)) {
+                        cards.forEach { (request, title) ->
+                            PaymentRequestCardContent(request = request, title = title, now = t0)
+                        }
+                    }
                 }
             }
         }
+    }
+
+    /** The brightest red value [text]'s pixels reach, 0 to 255. */
+    private fun brightestIn(text: String): Int {
+        val pixels = composeTestRule.onNodeWithText(text, useUnmergedTree = true).captureToImage().toPixelMap()
+        var brightest = 0
+        for (x in 0 until pixels.width) {
+            for (y in 0 until pixels.height) {
+                brightest = maxOf(brightest, (pixels[x, y].red * 255).roundToInt())
+            }
+        }
+        return brightest
     }
 
     private fun styleOf(text: String): TextStyle {
@@ -164,5 +194,52 @@ class CollectionCardTest {
     fun `a split keeps its glyph`() {
         show(split(), title = "Dinner")
         composeTestRule.onNodeWithText("\$", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `a collection sets its label and status line in the small text style, as iOS does`() {
+        show(collection(status = PaymentRequestStatus.Closed))
+        assertDrawnIn(quietStyle, "Request")
+        assertDrawnIn(quietStyle, "Closed")
+    }
+
+    @Test
+    fun `a split keeps its caption label`() {
+        show(split(), title = "Dinner")
+        assertDrawnIn(captionStyle, "Request")
+    }
+
+    @Test
+    fun `the placeholder draws no glyph and blanks its label, as iOS redacts it`() {
+        show(request = null, title = null)
+        composeTestRule.onNodeWithText("\$", useUnmergedTree = true).assertDoesNotExist()
+        val label = styleOf("Request")
+        assertEquals(Color.Transparent, label.color)
+        assertEquals(quietStyle.fontSize, label.fontSize)
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `an ended collection dims to half`() {
+        showAll(
+            collection(paid = usd(20.0)) to "",
+            collection(status = PaymentRequestStatus.Closed, paid = usd(30.0)) to "",
+        )
+        val open = brightestIn("\$20 paid")
+        val ended = brightestIn("\$30 paid")
+        val ratio = ended.toFloat() / open
+        assertTrue(ratio in 0.4f..0.6f, "ended $ended against open $open")
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `an ended split is not dimmed`() {
+        showAll(
+            split() to "Dinner",
+            split().copy(status = PaymentRequestStatus.Closed) to "Lunch",
+        )
+        val open = brightestIn("Dinner")
+        val ended = brightestIn("Lunch")
+        assertTrue(ended >= open * 0.95f, "ended $ended against open $open")
     }
 }
