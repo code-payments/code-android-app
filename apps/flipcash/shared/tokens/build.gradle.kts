@@ -71,6 +71,8 @@ kotlin {
             implementation(libs.mockito.kotlin)
             implementation(libs.kotlinx.serialization.json)
             implementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
+            // CollectionFundingVectorsTest renders the vectors' English from the real string resources.
+            implementation(libs.robolectric)
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.flipcash.app.tokens
 
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.util.resources.AndroidResources
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -11,6 +12,9 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -26,7 +30,11 @@ import kotlin.test.fail
  * sublabels are read with that one name swapped.
  *
  * Every mismatch across a run is collected, so one failure lists every case that disagrees.
+ *
+ * The formatter reads the app's real string resources, so the vectors' English holds for what
+ * Android renders.
  */
+@RunWith(RobolectricTestRunner::class)
 class CollectionFundingVectorsTest {
 
     private val fixture: JsonObject = Json.parseToJsonElement(
@@ -34,7 +42,12 @@ class CollectionFundingVectorsTest {
     ).jsonObject
 
     private val minorDigits = fixture.obj("constants").int("minor_digits")
-    private val formatter = CollectionFundingFormatter(CurrencyCode.USD, minorDigits, topUpSourceName = "Google Pay")
+    private val formatter = CollectionFundingFormatter(
+        currency = CurrencyCode.USD,
+        minorDigits = minorDigits,
+        topUpSourceName = "Google Pay",
+        strings = ResourceCollectionFundingStrings(AndroidResources(RuntimeEnvironment.getApplication())),
+    )
 
     @Test
     fun `the dust floor is half the minor unit`() {

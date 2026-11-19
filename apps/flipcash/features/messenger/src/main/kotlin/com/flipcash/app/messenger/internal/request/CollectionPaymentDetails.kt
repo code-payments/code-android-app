@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import com.flipcash.app.core.ui.TokenIcon
 import com.flipcash.app.tokens.CollectionFundingFormatter
+import com.flipcash.app.tokens.CollectionFundingStrings
 import com.flipcash.app.tokens.CollectionFundingPlan
 import com.flipcash.app.tokens.PaymentDetailsRow
 import com.flipcash.app.tokens.paymentDetailsOrder
@@ -66,6 +67,7 @@ internal data class PaymentDetailsTokenRow(val token: Token?, val row: PaymentDe
  *
  * @param tokenOf a planner id's token, or null when the wallet does not know it.
  * @param nameOf a token's display name ("Dollars" for the reserve).
+ * @param strings the text around each amount, from string resources.
  */
 internal fun collectionFundingUi(
     plan: CollectionFundingPlan,
@@ -73,11 +75,13 @@ internal fun collectionFundingUi(
     tokenOf: (String) -> Token?,
     nameOf: (Token) -> String,
     topUpSourceName: String,
+    strings: CollectionFundingStrings,
 ): CollectionFundingUi {
     val display = CollectionFundingFormatter(
         currency = amount.currencyCode,
         minorDigits = amount.currencyCode.fractionDigits,
         topUpSourceName = topUpSourceName,
+        strings = strings,
     ).display(plan, amount.quarks) { id -> tokenOf(id)?.let(nameOf) ?: id }
     // display lists "You'll Use" in paymentDetailsOrder, one row per leg.
     val use = plan.paymentDetailsOrder().zip(display.details.use) { leg, row ->

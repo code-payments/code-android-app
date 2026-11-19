@@ -13,12 +13,14 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.flipcash.app.tokens.FundingBalance
+import com.flipcash.app.tokens.ResourceCollectionFundingStrings
 import com.flipcash.app.tokens.planCollectionFunding
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.DesignSystem
+import com.getcode.util.resources.AndroidResources
 import io.mockk.every
 import io.mockk.mockk
 import org.json.JSONArray
@@ -30,6 +32,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.io.File
 
@@ -44,6 +47,8 @@ class CollectionPaymentDetailsTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    private val strings = ResourceCollectionFundingStrings(AndroidResources(RuntimeEnvironment.getApplication()))
 
     /** The fixture CollectionFundingVectorsTest runs; unit tests run from the module directory. */
     private val fixture: JSONObject = File(FIXTURE).let {
@@ -78,6 +83,7 @@ class CollectionPaymentDetailsTest {
             tokenOf = tokens::get,
             nameOf = { it.name },
             topUpSourceName = "Google Pay",
+            strings = strings,
         )
     }
 
@@ -186,6 +192,7 @@ class CollectionPaymentDetailsTest {
             tokenOf = { null },
             nameOf = { it.name },
             topUpSourceName = "Google Pay",
+            strings = strings,
         )
         assertNull(ui.modalFee)
 

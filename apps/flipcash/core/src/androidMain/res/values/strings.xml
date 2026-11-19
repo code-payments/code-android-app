@@ -2307,4 +2307,24 @@
     <!-- A conversion kept from an earlier attempt hasn't settled; no frame draws this state yet. -->
     <string name="error_title_collectionConversionPending">Conversion Still Pending</string>
     <string name="error_description_collectionConversionPending">Your conversion is still pending. Try again shortly.</string>
+    <!-- The fee line under a collection's amount when something converts at no fee. -->
+    <string name="label_collectionNoConversionFees">no conversion fees</string>
+    <!-- %1$s is the summed conversion fee, e.g. "~$0.02", "<$0.01" or "$0.04". -->
+    <string name="label_collectionPlusConversionFees">plus %1$s of conversion fees</string>
+    <!-- Payment Details, under a sold currency. %1$s is its fee, e.g. "~$0.02". -->
+    <string name="label_collectionConversionFee">%1$s conversion fee</string>
+    <!-- A fee above 0 and under half the minor unit. %1$s is one minor unit, e.g. "$0.01". -->
+    <string name="label_collectionFeeUnderMinor">&lt;%1$s</string>
+    <!-- A fee that isn't a whole number of minor units. %1$s is the fee rounded half-up, e.g. "$0.02". -->
+    <string name="label_collectionFeeApprox">~%1$s</string>
+    <!-- %1$s is the shortfall rounded up to the minor unit, e.g. "$2.04". -->
+    <string name="title_collectionShortBy">You’re %1$s Short</string>
+    <!-- %1$s is the top-up, %2$s the collection's amount, e.g. "Add $5.00 and Pay $11.00". -->
+    <string name="action_collectionAddAndPay">Add %1$s and Pay %2$s</string>
+    <!-- Payment Details' last row, the sum of the amounts sold. -->
+    <string name="label_paymentDetailsTotal">Total</string>
+    <!-- Payment Details, under Dollars. %1$s is the part of the balance used, e.g. "$6.00". -->
+    <string name="label_collectionFromBalance">%1$s from balance</string>
+    <!-- Payment Details, under Dollars. %1$s is the part of the top-up used, %2$s how it is paid ("Google Pay"). -->
+    <string name="label_collectionFromTopUp">%1$s from %2$s</string>
 </resources>

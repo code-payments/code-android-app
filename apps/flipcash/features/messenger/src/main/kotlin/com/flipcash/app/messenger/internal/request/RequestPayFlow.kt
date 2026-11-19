@@ -9,6 +9,7 @@ import com.flipcash.app.core.AppRoute
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.flipcash.app.tokens.CollectionFundingPlan
+import com.flipcash.app.tokens.ResourceCollectionFundingStrings
 import com.getcode.solana.keys.base58
 import com.flipcash.app.core.tokens.brandedName
 import com.flipcash.app.tokens.TokenCoordinator
@@ -161,6 +162,7 @@ internal class RequestPayFlow(
             tokenOf = known::get,
             nameOf = { it.brandedName(resources) },
             topUpSourceName = resources.getString(R.string.label_topUpSourceGooglePay),
+            strings = ResourceCollectionFundingStrings(resources),
         )
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
 

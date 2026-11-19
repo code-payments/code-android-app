@@ -30,6 +30,7 @@ import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.util.resources.ResourceHelper
+import io.mockk.MockKAnswerScope
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -457,6 +458,11 @@ class RequestPayFlowTest {
         every { jeffy.name } returns "Jeffy"
         every { resources.getString(R.string.displayName_dollars) } returns "Dollars"
         every { resources.getString(R.string.label_topUpSourceGooglePay) } returns "Google Pay"
+        // CollectionFundingVectorsTest renders these from the real resources; here they only pass through.
+        every { resources.getString(R.string.label_collectionFeeApprox, *anyVararg()) } answers { "~${formatArg()}" }
+        every { resources.getString(R.string.label_collectionPlusConversionFees, *anyVararg()) } answers {
+            "plus ${formatArg()} of conversion fees"
+        }
         // The reserve is never cached as a wallet token; the flow knows it anyway.
         every { tokenCoordinator.cachedTokens() } returns listOf(jeffy)
         every { payments.planCollection(any(), any()) } returns planCollectionFunding(
@@ -505,4 +511,7 @@ class RequestPayFlowTest {
 
         coVerify(exactly = 0) { payments.pay(any(), any(), any(), any()) }
     }
+
+    /** The first format argument a mocked [ResourceHelper.getString] was called with. */
+    private fun MockKAnswerScope<String, String>.formatArg(): Any? = (args[1] as Array<*>)[0]
 }

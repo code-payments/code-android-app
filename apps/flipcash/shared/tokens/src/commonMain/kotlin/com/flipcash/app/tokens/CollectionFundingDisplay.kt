@@ -51,11 +51,13 @@ fun roundedMinorUnits(micros: Long, minorDigits: Int): Long =
  * rounds the shortfall up, so it never reads less than is missing.
  *
  * @param topUpSourceName how the top-up is paid, as its sublabel names it: "Google Pay".
+ * @param strings the text around each amount, from the app's string resources.
  */
 class CollectionFundingFormatter(
     private val currency: CurrencyCode,
     private val minorDigits: Int,
     private val topUpSourceName: String,
+    private val strings: CollectionFundingStrings,
 ) {
 
     /** [micros] rounded half-up to the minor unit: "$9.51" for 9_505_000. */
@@ -65,15 +67,15 @@ class CollectionFundingFormatter(
     fun modalFee(feeMicros: Long, conversion: Boolean): String? =
         when (conversionFeeKind(feeMicros, conversion, minorDigits)) {
             ConversionFeeKind.None -> null
-            ConversionFeeKind.Zero -> "no conversion fees"
-            else -> "plus ${feeText(feeMicros)} of conversion fees"
+            ConversionFeeKind.Zero -> strings.noConversionFees
+            else -> strings.plusConversionFees(feeText(feeMicros))
         }
 
     /** The fee line under a sold currency in Payment Details, or null when it carries none. */
     fun feeSublabel(feeMicros: Long, conversion: Boolean): String? =
         when (conversionFeeKind(feeMicros, conversion, minorDigits)) {
             ConversionFeeKind.None, ConversionFeeKind.Zero -> null
-            else -> "${feeText(feeMicros)} conversion fee"
+            else -> strings.conversionFee(feeText(feeMicros))
         }
 
     /**
@@ -91,14 +93,14 @@ class CollectionFundingFormatter(
         val short = plan.topUpMicros > 0
         val unit = minorUnitMicros(minorDigits)
         return CollectionFundingDisplay(
-            shortBy = if (short) "You’re ${minorUnits(ceilDiv(plan.shortfallMicros, unit))} Short" else null,
-            addButton = if (short) "Add ${amount(plan.topUpMicros)} and Pay $amount" else null,
+            shortBy = if (short) strings.shortBy(minorUnits(ceilDiv(plan.shortfallMicros, unit))) else null,
+            addButton = if (short) strings.addAndPay(topUp = amount(plan.topUpMicros), amount = amount) else null,
             topUp = if (short) amount(plan.topUpMicros) else null,
             modalFee = modalFee(plan.totalFeeMicros, conversion = plan.legs.any { it.conversion }),
             details = PaymentDetailsDisplay(
                 pay = PaymentDetailsRow(nameOf(plan.payingCurrency), amount),
                 use = plan.paymentDetailsOrder().map { leg -> PaymentDetailsRow(nameOf(leg.source), amount(leg.soldMicros), sublabels(leg)) },
-                total = PaymentDetailsRow("Total", amount(plan.legs.sumOf { it.soldMicros })),
+                total = PaymentDetailsRow(strings.total, amount(plan.legs.sumOf { it.soldMicros })),
             ),
         )
     }
@@ -109,22 +111,58 @@ class CollectionFundingFormatter(
         if (split != null) {
             if (split.fromTopUpMicros == 0L) return emptyList()
             return buildList {
-                if (split.fromBalanceMicros > 0) add("${amount(split.fromBalanceMicros)} from balance")
-                add("${amount(split.fromTopUpMicros)} from $topUpSourceName")
+                if (split.fromBalanceMicros > 0) add(strings.fromBalance(amount(split.fromBalanceMicros)))
+                add(strings.fromTopUp(amount(split.fromTopUpMicros), topUpSourceName))
             }
         }
         return listOfNotNull(feeSublabel(leg.feeMicros, leg.conversion))
     }
 
     private fun feeText(feeMicros: Long): String = when (conversionFeeKind(feeMicros, true, minorDigits)) {
-        ConversionFeeKind.UnderMinor -> "<${minorUnits(1)}"
-        ConversionFeeKind.Approx -> "~${amount(feeMicros)}"
+        ConversionFeeKind.UnderMinor -> strings.feeUnderMinor(minorUnits(1))
+        ConversionFeeKind.Approx -> strings.feeApprox(amount(feeMicros))
         else -> amount(feeMicros)
     }
 
     private fun minorUnits(units: Long): String =
         Fiat(quarks = units * minorUnitMicros(minorDigits), currencyCode = currency)
             .formatted(Fiat.FormattingRule.Length(minorDigits))
+}
+
+/**
+ * The text a [CollectionFundingFormatter] puts around its amounts. Android reads each from a string
+ * resource, its format arguments in the order the vectors' English text has them.
+ */
+interface CollectionFundingStrings {
+    /** "no conversion fees". */
+    val noConversionFees: String
+
+    /** "plus ~$0.02 of conversion fees", from the fee text. */
+    fun plusConversionFees(fee: String): String
+
+    /** "~$0.02 conversion fee", from the fee text. */
+    fun conversionFee(fee: String): String
+
+    /** "<$0.01", from one minor unit. */
+    fun feeUnderMinor(minorUnit: String): String
+
+    /** "~$0.02", from the fee rounded half-up. */
+    fun feeApprox(fee: String): String
+
+    /** "You’re $2.04 Short", from the shortfall rounded up. */
+    fun shortBy(shortfall: String): String
+
+    /** "Add $5.00 and Pay $11.00". */
+    fun addAndPay(topUp: String, amount: String): String
+
+    /** "Total". */
+    val total: String
+
+    /** "$6.00 from balance". */
+    fun fromBalance(amount: String): String
+
+    /** "$5.00 from Google Pay". */
+    fun fromTopUp(amount: String, source: String): String
 }
 
 /**
