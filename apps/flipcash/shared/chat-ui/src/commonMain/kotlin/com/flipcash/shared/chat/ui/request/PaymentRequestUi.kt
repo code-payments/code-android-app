@@ -166,34 +166,53 @@ fun PaymentRequestCardContent(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-        ) {
-            Box(
-                modifier = glyphModifier
-                    .size(34.dp)
-                    .background(glyphFill, CircleShape),
-                contentAlignment = Alignment.Center,
+        if (leadsWithPaid) {
+            // A collection draws no glyph: "Request", "$10 each" and "$20 paid" stack down the
+            // card's leading edge, as on iOS.
+            Text(
+                text = stringResource(Res.string.label_paymentRequest_card),
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textSecondary,
+                modifier = detailModifier,
+            )
+            Text(
+                text = request?.collectionTitle().orEmpty(),
+                style = progressStyle,
+                color = CodeTheme.colors.textSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = titleModifier,
+            )
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
             ) {
-                Text(text = "$", style = CodeTheme.typography.textLarge, color = Color.Black)
-                PaidBadge(glyph = 34.dp, ended = ended, paid = standing is ViewerStanding.Paid)
-            }
-            Column {
-                Text(
-                    text = stringResource(Res.string.label_paymentRequest_card),
-                    style = CodeTheme.typography.caption,
-                    color = CodeTheme.colors.textSecondary,
-                    modifier = detailModifier,
-                )
-                Text(
-                    text = request?.collectionTitle() ?: title.orEmpty(),
-                    style = if (leadsWithPaid) progressStyle else titleStyle,
-                    color = if (leadsWithPaid) progressColor else titleColor,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = if (loading) Modifier.width(120.dp).shimmer(RoundedCornerShape(4.dp)) else titleModifier,
-                )
+                Box(
+                    modifier = glyphModifier
+                        .size(34.dp)
+                        .background(glyphFill, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = "$", style = CodeTheme.typography.textLarge, color = Color.Black)
+                    PaidBadge(glyph = 34.dp, ended = ended, paid = standing is ViewerStanding.Paid)
+                }
+                Column {
+                    Text(
+                        text = stringResource(Res.string.label_paymentRequest_card),
+                        style = CodeTheme.typography.caption,
+                        color = CodeTheme.colors.textSecondary,
+                        modifier = detailModifier,
+                    )
+                    Text(
+                        text = request?.collectionTitle() ?: title.orEmpty(),
+                        style = titleStyle,
+                        color = titleColor,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = if (loading) Modifier.width(120.dp).shimmer(RoundedCornerShape(4.dp)) else titleModifier,
+                    )
+                }
             }
         }
         Text(

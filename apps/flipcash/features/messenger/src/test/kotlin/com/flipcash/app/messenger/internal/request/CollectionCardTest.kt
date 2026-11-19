@@ -2,6 +2,7 @@ package com.flipcash.app.messenger.internal.request
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextLayoutResult
@@ -28,9 +29,13 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
-/** What a collection's chat card reads: what each member pays, what came in, and "Closed" once closed. */
+/**
+ * What a collection's chat card reads: what each member pays, what came in, and "Closed" once
+ * closed. It stacks those lines with no glyph (frame 1.13); a split keeps its glyph.
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "en")
 class CollectionCardTest {
@@ -77,6 +82,7 @@ class CollectionCardTest {
 
     private lateinit var titleStyle: TextStyle
     private lateinit var progressStyle: TextStyle
+    private lateinit var quietStyle: TextStyle
 
     // A collection's card state carries an empty title (requestCardState); null means loading.
     private fun show(request: PaymentRequest, title: String = "") {
@@ -84,6 +90,7 @@ class CollectionCardTest {
             DesignSystem {
                 titleStyle = CodeTheme.typography.textLarge.copy(color = CodeTheme.colors.textMain)
                 progressStyle = CodeTheme.typography.textSmall.copy(color = CodeTheme.colors.textMain.copy(alpha = 0.75f))
+                quietStyle = CodeTheme.typography.textSmall.copy(color = CodeTheme.colors.textSecondary)
                 CompositionLocalProvider(LocalExchange provides ExchangeStub()) {
                     PaymentRequestCardContent(request = request, title = title, now = t0)
                 }
@@ -125,7 +132,25 @@ class CollectionCardTest {
     fun `a collection leads with what came in, and its amount each is the quiet line`() {
         show(collection(paid = usd(20.0)))
         assertDrawnIn(titleStyle, "\$20 paid")
-        assertDrawnIn(progressStyle, "\$10 each")
+        assertDrawnIn(quietStyle, "\$10 each")
+    }
+
+    @Test
+    fun `a collection draws no glyph`() {
+        show(collection(paid = usd(20.0)))
+        composeTestRule.onNodeWithText("\$", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a collection stacks Request, its amount each, then what came in, down one edge`() {
+        show(collection(paid = usd(20.0)))
+        val lines = listOf("Request", "\$10 each", "\$20 paid").map {
+            composeTestRule.onNodeWithText(it, useUnmergedTree = true).getBoundsInRoot()
+        }
+        lines.zipWithNext().forEach { (above, below) ->
+            assertTrue(above.bottom <= below.top, "expected $above above $below")
+        }
+        assertEquals(1, lines.map { it.left }.distinct().size, "left edges of ${lines.map { it.left }}")
     }
 
     @Test
@@ -133,5 +158,11 @@ class CollectionCardTest {
         show(split(), title = "Dinner")
         assertDrawnIn(titleStyle, "Dinner")
         assertDrawnIn(progressStyle, "\$0 paid, \$0 requested")
+    }
+
+    @Test
+    fun `a split keeps its glyph`() {
+        show(split(), title = "Dinner")
+        composeTestRule.onNodeWithText("\$", useUnmergedTree = true).assertExists()
     }
 }
