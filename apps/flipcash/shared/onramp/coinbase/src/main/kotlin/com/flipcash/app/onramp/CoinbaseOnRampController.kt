@@ -94,7 +94,7 @@ class CoinbaseOnRampController @Inject constructor(
     private val _milestones = MutableSharedFlow<CoinbaseOnRampMilestone>(extraBufferCapacity = 4)
     val milestones: SharedFlow<CoinbaseOnRampMilestone> = _milestones.asSharedFlow()
 
-    private val _outcomes = MutableSharedFlow<CoinbaseOnRampOutcome>(extraBufferCapacity = 4)
+    private val _outcomes = MutableSharedFlow<CoinbaseOnRampOutcome>(extraBufferCapacity = 8)
     val outcomes: SharedFlow<CoinbaseOnRampOutcome> = _outcomes.asSharedFlow()
 
     private val payingOrderId: String?
@@ -109,8 +109,10 @@ class CoinbaseOnRampController @Inject constructor(
     }
 
     fun onPaymentAuthorized() {
-        if (_state.value is CoinbaseOnRampState.Paying) {
+        val current = _state.value
+        if (current is CoinbaseOnRampState.Paying) {
             _milestones.tryEmit(CoinbaseOnRampMilestone.PaymentAuthorized)
+            _outcomes.tryEmit(CoinbaseOnRampOutcome.Authorized(current.order.orderId))
         }
     }
 

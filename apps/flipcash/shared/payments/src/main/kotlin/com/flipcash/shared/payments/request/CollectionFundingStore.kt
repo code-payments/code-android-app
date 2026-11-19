@@ -36,6 +36,22 @@ data class FundingLegRecord(
 )
 
 /**
+ * A top-up this device ordered to fund a collection payment, kept from before Google Pay opens
+ * until its Dollars are seen or the order is known to have failed, so a retry, a relaunch or a
+ * second tap waits on it and never orders again (group-collections spec, "Adding money and
+ * recovery" item 1).
+ *
+ * @property orderId the Coinbase order.
+ * @property usdCents what the order lands, in US cents.
+ * @property baselineDollarsMicros the Dollars balance, in USD micros, just before the order.
+ */
+data class PendingTopUpRecord(
+    val orderId: String,
+    val usdCents: Long,
+    val baselineDollarsMicros: Long,
+)
+
+/**
  * What collection funding keeps across attempts and launches. Legs are keyed by payment request id
  * and live only until their swap's outcome is known; the last paid currency is the default for the
  * next collection payment.
@@ -45,6 +61,11 @@ interface CollectionFundingStore {
     suspend fun put(requestId: ID, leg: FundingLegRecord)
     suspend fun remove(requestId: ID, swapId: SwapId)
     suspend fun clear(requestId: ID)
+
+    /** The top-up ordered for [requestId] whose outcome isn't known yet, or null. [clear] keeps it. */
+    suspend fun pendingTopUp(requestId: ID): PendingTopUpRecord?
+    suspend fun putPendingTopUp(requestId: ID, record: PendingTopUpRecord)
+    suspend fun clearPendingTopUp(requestId: ID)
 
     /** The currency of the last successful collection payment, or null before the first. */
     fun lastPaid(): Flow<Mint?>
@@ -99,6 +120,21 @@ internal class DataStoreCollectionFundingStore(
         dataStore.edit { it.remove(legsKey(owner, requestId)) }
     }
 
+    override suspend fun pendingTopUp(requestId: ID): PendingTopUpRecord? {
+        val owner = currentOwner() ?: return null
+        return data.first()[topUpKey(owner, requestId)]?.let(::decodeTopUp)
+    }
+
+    override suspend fun putPendingTopUp(requestId: ID, record: PendingTopUpRecord) {
+        val owner = currentOwner() ?: return
+        dataStore.edit { it[topUpKey(owner, requestId)] = encodeTopUp(record) }
+    }
+
+    override suspend fun clearPendingTopUp(requestId: ID) {
+        val owner = currentOwner() ?: return
+        dataStore.edit { it.remove(topUpKey(owner, requestId)) }
+    }
+
     override fun lastPaid(): Flow<Mint?> =
         combine(owners.distinctUntilChanged(), data) { owner, prefs ->
             owner?.let { prefs[lastPaidKey(it)] }?.let(::Mint)
@@ -113,6 +149,17 @@ internal class DataStoreCollectionFundingStore(
         stringSetPreferencesKey("legs-$owner-${requestId.hexEncodedString()}")
 
     private fun lastPaidKey(owner: String) = stringPreferencesKey("last-paid-$owner")
+
+    private fun topUpKey(owner: String, requestId: ID) =
+        stringPreferencesKey("top-up-$owner-${requestId.hexEncodedString()}")
+
+    private fun encodeTopUp(record: PendingTopUpRecord): String =
+        listOf(record.orderId, record.usdCents, record.baselineDollarsMicros).joinToString(SEPARATOR)
+
+    private fun decodeTopUp(value: String): PendingTopUpRecord? = runCatching {
+        val (orderId, cents, baseline) = value.split(SEPARATOR)
+        PendingTopUpRecord(orderId, cents.toLong(), baseline.toLong())
+    }.getOrNull()
 
     private fun encode(leg: FundingLegRecord): String = listOf(
         leg.from.base58(),

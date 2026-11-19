@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /** [CollectionFundingStore] in memory, to read what funding kept. */
 internal class InMemoryCollectionFundingStore : CollectionFundingStore {
     val kept = mutableMapOf<ID, List<FundingLegRecord>>()
+    val topUps = mutableMapOf<ID, PendingTopUpRecord>()
     private val lastPaid = MutableStateFlow<Mint?>(null)
 
     override suspend fun legs(requestId: ID): List<FundingLegRecord> = kept[requestId].orEmpty()
@@ -23,6 +24,16 @@ internal class InMemoryCollectionFundingStore : CollectionFundingStore {
 
     override suspend fun clear(requestId: ID) {
         kept.remove(requestId)
+    }
+
+    override suspend fun pendingTopUp(requestId: ID): PendingTopUpRecord? = topUps[requestId]
+
+    override suspend fun putPendingTopUp(requestId: ID, record: PendingTopUpRecord) {
+        topUps[requestId] = record
+    }
+
+    override suspend fun clearPendingTopUp(requestId: ID) {
+        topUps.remove(requestId)
     }
 
     override fun lastPaid(): Flow<Mint?> = lastPaid

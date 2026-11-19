@@ -58,6 +58,29 @@ class DataStoreCollectionFundingStoreTest {
     }
 
     @Test
+    fun `a pending top-up reads back per request and outlives clearing the legs`() = runTest {
+        val topUp = PendingTopUpRecord(orderId = "order-1", usdCents = 637, baselineDollarsMicros = 2_010_000)
+        store.put(requestId, first)
+        store.putPendingTopUp(requestId, topUp)
+
+        store.clear(requestId)
+
+        assertEquals(topUp, store.pendingTopUp(requestId))
+        assertEquals(null, store.pendingTopUp(other))
+        store.clearPendingTopUp(requestId)
+        assertEquals(null, store.pendingTopUp(requestId))
+    }
+
+    @Test
+    fun `a pending top-up belongs to the account that ordered it`() = runTest {
+        store.putPendingTopUp(requestId, PendingTopUpRecord("order-1", 500, 0))
+
+        owner.value = "bb02"
+
+        assertEquals(null, store.pendingTopUp(requestId))
+    }
+
+    @Test
     fun `the last paid currency belongs to the account that paid`() = runTest {
         assertNull(store.lastPaid().first())
 

@@ -340,6 +340,7 @@ class CoinbaseOnRampControllerTest {
         }
 
         controller.startTopUpPayment(OnrampOrder("order-1", "https://pay"))
+        controller.onPaymentAuthorized()
         controller.onPaymentSuccess("order-1")
         controller.reset()
         controller.startTopUpPayment(OnrampOrder("order-2", "https://pay"))
@@ -349,6 +350,7 @@ class CoinbaseOnRampControllerTest {
 
         assertEquals(
             listOf(
+                CoinbaseOnRampOutcome.Authorized("order-1"),
                 CoinbaseOnRampOutcome.Succeeded("order-1"),
                 CoinbaseOnRampOutcome.Cancelled("order-2"),
                 CoinbaseOnRampOutcome.Failed("order-3"),

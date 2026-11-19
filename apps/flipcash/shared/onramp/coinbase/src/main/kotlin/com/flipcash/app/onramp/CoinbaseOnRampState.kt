@@ -42,6 +42,9 @@ enum class CoinbaseOnRampMilestone {
 sealed interface CoinbaseOnRampOutcome {
     val orderId: String
 
+    /** The user authorized the payment. Coinbase may still settle the order whatever follows. */
+    data class Authorized(override val orderId: String) : CoinbaseOnRampOutcome
+
     /** Coinbase reported the payment complete. The asset lands on-chain later. */
     data class Succeeded(override val orderId: String) : CoinbaseOnRampOutcome
 
