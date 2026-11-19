@@ -7,9 +7,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
@@ -43,7 +46,8 @@ import kotlin.time.Instant
 /**
  * What a collection's chat card reads: what each member pays, what came in, and "Closed" once
  * closed. It stacks those lines with no glyph (frame 1.13) and dims to half once ended, as iOS
- * does; a split keeps its glyph and is never dimmed. The placeholder draws no glyph either.
+ * does; a split keeps its glyph and is never dimmed. The placeholder is the one that shipped, glyph
+ * included, since a loading card can't tell a split from a collection.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "en")
@@ -128,18 +132,20 @@ class CollectionCardTest {
         return brightest
     }
 
-    private fun styleOf(text: String): TextStyle {
+    private fun styleOf(node: SemanticsNodeInteraction): TextStyle {
         val results = mutableListOf<TextLayoutResult>()
-        composeTestRule.onNodeWithText(text, useUnmergedTree = true).fetchSemanticsNode()
-            .config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        node.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
         return results.single().layoutInput.style
     }
 
-    private fun assertDrawnIn(expected: TextStyle, text: String) {
-        val actual = styleOf(text)
-        assertEquals(expected.fontSize, actual.fontSize, "font size of \"$text\"")
-        assertEquals(expected.fontWeight, actual.fontWeight, "font weight of \"$text\"")
-        assertEquals(expected.color, actual.color, "colour of \"$text\"")
+    private fun assertDrawnIn(expected: TextStyle, text: String) =
+        assertDrawnIn(expected, composeTestRule.onNodeWithText(text, useUnmergedTree = true), "\"$text\"")
+
+    private fun assertDrawnIn(expected: TextStyle, node: SemanticsNodeInteraction, name: String) {
+        val actual = styleOf(node)
+        assertEquals(expected.fontSize, actual.fontSize, "font size of $name")
+        assertEquals(expected.fontWeight, actual.fontWeight, "font weight of $name")
+        assertEquals(expected.color, actual.color, "colour of $name")
     }
 
     @Test
@@ -210,12 +216,17 @@ class CollectionCardTest {
     }
 
     @Test
-    fun `the placeholder draws no glyph and blanks its label, as iOS redacts it`() {
+    fun `the placeholder is the one that shipped, glyph and all`() {
         show(request = null, title = null)
-        composeTestRule.onNodeWithText("\$", useUnmergedTree = true).assertDoesNotExist()
-        val label = styleOf("Request")
-        assertEquals(Color.Transparent, label.color)
-        assertEquals(quietStyle.fontSize, label.fontSize)
+        composeTestRule.onNodeWithText("\$", useUnmergedTree = true).assertExists()
+        assertDrawnIn(captionStyle, "Request")
+        // The blank title, progress and status lines keep the styles, and so the heights, they
+        // shipped with.
+        val blanks = composeTestRule.onAllNodesWithText("", useUnmergedTree = true)
+        blanks.assertCountEquals(3)
+        listOf(titleStyle, progressStyle, captionStyle).forEachIndexed { line, style ->
+            assertDrawnIn(style, blanks[line], "blank line $line")
+        }
     }
 
     @Test
