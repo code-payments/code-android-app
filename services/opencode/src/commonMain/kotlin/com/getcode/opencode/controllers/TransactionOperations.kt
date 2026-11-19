@@ -38,10 +38,17 @@ interface TransactionOperations {
         fund: (suspend (StatefulSwapRequest) -> Result<Unit>)? = null,
     ): Result<SwapId>
 
+    /**
+     * Sells [amount] of [of] into Dollars. Pass [swapId] and a [SwapFundingSource.SubmitIntent] with
+     * a kept id to make a retry ask for the same swap rather than start another; left out, each call
+     * mints its own.
+     */
     suspend fun sell(
         owner: AccountCluster,
         amount: VerifiedFiat,
         of: Token,
+        swapId: SwapId? = null,
+        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
     ): Result<SwapId>
 
     /**

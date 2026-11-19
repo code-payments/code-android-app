@@ -63,6 +63,8 @@ interface TransactionRepository {
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
+        swapId: SwapId? = null,
+        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         verifiedState: VerifiedState,
     ): Result<SwapId>
 

@@ -219,6 +219,7 @@ internal class TransactionService @Inject constructor(
         amount: LocalFiat,
         of: Token,
         owner: AccountCluster,
+        swapId: SwapId? = null,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         verifiedState: VerifiedState,
     ): Result<SwapId> {
@@ -226,7 +227,7 @@ internal class TransactionService @Inject constructor(
 
         val request = StatefulSwapRequest(
             owner = tokenCluster,
-            swapId = SwapId.generate(),
+            swapId = swapId ?: SwapId.generate(),
             swapAuthority = Ed25519.createKeyPair(),
             program = SwapProgram.Reserve(
                 fromMint = of.address,

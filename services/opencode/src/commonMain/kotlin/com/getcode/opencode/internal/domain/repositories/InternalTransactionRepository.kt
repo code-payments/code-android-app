@@ -93,12 +93,16 @@ internal class InternalTransactionRepository @Inject constructor(
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
+        swapId: SwapId?,
+        source: SwapFundingSource,
         verifiedState: VerifiedState,
     ): Result<SwapId> = service.sell(
         scope = scope,
         amount = amount,
         of = of,
         owner = owner,
+        swapId = swapId,
+        source = source,
         verifiedState = verifiedState
     ).onFailure { ErrorUtils.handleError(it) }
 
