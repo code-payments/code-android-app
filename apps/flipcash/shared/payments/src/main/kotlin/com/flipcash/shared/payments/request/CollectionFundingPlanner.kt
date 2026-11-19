@@ -11,6 +11,8 @@ import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.sellFeeBpsOrHouseRate
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
+import java.math.BigDecimal
+import java.math.RoundingMode
 import javax.inject.Inject
 import kotlin.math.roundToLong
 
@@ -32,14 +34,14 @@ class CollectionFundingPlanner @Inject constructor(
      */
     fun plan(amount: Fiat, paying: Mint): CollectionFundingPlan? {
         val rate = exchange.rateFor(amount.currencyCode) ?: return null
-        return plan(amount, paying, balances(rate))
+        return plan(amount, paying, balances(rate), rate)
     }
 
-    fun plan(amount: Fiat, paying: Mint, balances: List<FundingBalance>): CollectionFundingPlan =
+    fun plan(amount: Fiat, paying: Mint, balances: List<FundingBalance>, rate: Rate): CollectionFundingPlan =
         planCollectionFunding(
             amountMicros = amount.quarks,
             minorDigits = amount.currencyCode.fractionDigits,
-            minTopUpMicros = MIN_TOP_UP_USD_MICROS,
+            minTopUpMicros = minTopUpMicros(rate, amount.currencyCode.fractionDigits),
             dollarsId = Mint.usdf.base58(),
             // The caller has already chosen: the pick in this sheet, else the last paid currency,
             // else Dollars.
@@ -63,11 +65,31 @@ class CollectionFundingPlanner @Inject constructor(
             )
         }
 
-    private companion object {
-        /**
-         * The planner needs a minimum to size a top-up. S4 never tops up, so this only shapes the
-         * short state's numbers; S5 takes it from the on-ramp.
-         */
+    /**
+     * What to order for [plan]'s top-up, in USD cents: the top-up in the request's currency
+     * converted back at [rate] and rounded up, so what lands covers the plan. Null without one.
+     */
+    fun topUpUsdCents(plan: CollectionFundingPlan, rate: Rate): Long? {
+        if (plan.topUpMicros <= 0L) return null
+        val usdMicros = BigDecimal(plan.topUpMicros).divide(BigDecimal.valueOf(rate.fx), 0, RoundingMode.CEILING)
+        return usdMicros.divide(BigDecimal(USD_MICROS_PER_CENT), 0, RoundingMode.CEILING).toLong()
+    }
+
+    internal companion object {
+        /** Google Pay's smallest top-up through Coinbase guest checkout: $5.00. */
         const val MIN_TOP_UP_USD_MICROS = 5_000_000L
+        private const val USD_MICROS_PER_CENT = 10_000L
+
+        /**
+         * The $5.00 minimum in [rate]'s currency, rounded up to its minor unit, as the spec has the
+         * caller convert it (group-collections spec, "Funding a payment").
+         */
+        fun minTopUpMicros(rate: Rate, minorDigits: Int): Long {
+            val micros = BigDecimal(MIN_TOP_UP_USD_MICROS).multiply(BigDecimal.valueOf(rate.fx))
+            val unit = BigDecimal.TEN.pow(MICRO_DIGITS - minorDigits.coerceIn(0, MICRO_DIGITS))
+            return micros.divide(unit, 0, RoundingMode.CEILING).multiply(unit).toLong()
+        }
+
+        private const val MICRO_DIGITS = 6
     }
 }

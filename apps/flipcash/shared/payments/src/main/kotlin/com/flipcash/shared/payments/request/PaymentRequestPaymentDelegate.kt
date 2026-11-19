@@ -69,6 +69,9 @@ class PaymentRequestPaymentDelegate @Inject constructor(
      */
     fun planCollection(amount: Fiat, paying: Token): CollectionFundingPlan? = funder.plan(amount, paying.address)
 
+    /** What to order, in USD cents, to add [plan]'s top-up for [amount]; null with none or no rate. */
+    fun collectionTopUpCents(plan: CollectionFundingPlan, amount: Fiat): Long? = funder.topUpUsdCents(plan, amount)
+
     /** The currency a collection was last paid in on this account, the next one's default; null before the first. */
     fun lastPaidCollectionCurrency(): Flow<Mint?> = funder.lastPaid()
 

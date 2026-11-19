@@ -14,7 +14,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.time.Duration
 
@@ -44,7 +43,7 @@ class CollectionTopUpTest {
         var paying: CompletableDeferred<Unit>? = null
         var sweeps = 0
 
-        override suspend fun order(usdCents: Long): Result<TopUpOrder> {
+        override suspend fun order(usdCents: Long, checkGates: Boolean): Result<TopUpOrder> {
             gate?.let { return Result.failure(it) }
             ordered += usdCents
             return Result.success(TopUpOrder("order-${ordered.size}", "https://pay"))
@@ -182,11 +181,11 @@ class CollectionTopUpTest {
 
     @Test
     fun `a purchase gate orders and keeps nothing`() = runTest {
-        rail.gate = IllegalStateException("Google Pay unavailable")
+        rail.gate = CollectionTopUpBlocked(TopUpBlock.GooglePayNoPaymentMethod)
 
         val result = topUp().topUp(requestId, 500, owner)
 
-        assertIs<TopUpResult.Blocked>(result)
+        assertEquals(TopUpResult.Blocked(TopUpBlock.GooglePayNoPaymentMethod), result)
         assertEquals(emptyList(), rail.ordered)
         assertNull(store.pendingTopUp(requestId))
     }

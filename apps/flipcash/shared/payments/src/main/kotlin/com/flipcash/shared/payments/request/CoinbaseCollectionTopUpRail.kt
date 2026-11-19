@@ -2,8 +2,10 @@ package com.flipcash.shared.payments.request
 
 import com.flipcash.app.onramp.CoinbaseOnRampController
 import com.flipcash.app.onramp.CoinbaseOnRampOutcome
+import com.flipcash.app.onramp.OnRampAuthError
 import com.flipcash.app.onramp.OnrampOrder
 import com.flipcash.app.onramp.OrderDeliveryResult
+import com.flipcash.app.onramp.PurchaseGate
 import com.flipcash.app.tokens.UsdcDepositSweep
 import com.getcode.opencode.model.accounts.AccountCluster
 import dagger.Binds
@@ -28,10 +30,24 @@ internal class CoinbaseCollectionTopUpRail @Inject constructor(
     private val sweep: UsdcDepositSweep,
 ) : CollectionTopUpRail {
 
-    override suspend fun order(usdCents: Long): Result<TopUpOrder> {
-        controller.checkPurchaseGates().onFailure { return Result.failure(it) }
-        return controller.placeTopUpOrder(usdCents).map { TopUpOrder(it.orderId, it.paymentLink) }
+    override suspend fun order(usdCents: Long, checkGates: Boolean): Result<TopUpOrder> {
+        if (checkGates) controller.checkPurchaseGates().onFailure { return Result.failure(blocked(it)) }
+        return controller.placeTopUpOrder(usdCents)
+            .map { TopUpOrder(it.orderId, it.paymentLink) }
+            .recoverCatching { throw blocked(it) }
     }
+
+    /** The controller's gate and verification errors, as SwapViewModel reads them. */
+    private fun blocked(cause: Throwable) = CollectionTopUpBlocked(
+        when (cause) {
+            is PurchaseGate.GooglePayNotSupported -> TopUpBlock.GooglePayNotSupported
+            is PurchaseGate.GooglePayNoPaymentMethod -> TopUpBlock.GooglePayNoPaymentMethod
+            is PurchaseGate.WebViewWarning -> TopUpBlock.WebViewWarning(cause.channel.name)
+            is OnRampAuthError.CoinbasePhoneVerificationRequired -> TopUpBlock.Verification(phone = true, email = false)
+            is OnRampAuthError.VerificationRequired -> TopUpBlock.Verification(cause.phone, cause.email)
+            else -> TopUpBlock.OrderFailed(cause)
+        },
+    )
 
     override suspend fun pay(order: TopUpOrder): TopUpPayment = coroutineScope {
         // Subscribed before the webview opens: outcomes don't replay.

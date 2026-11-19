@@ -36,7 +36,7 @@ interface CollectionTopUpRail {
      * Checks the purchase can run (Google Pay, the WebView, a verified phone and email) and orders
      * exactly [usdCents] to land, with the fee on top. A failure ordered nothing.
      */
-    suspend fun order(usdCents: Long): Result<TopUpOrder>
+    suspend fun order(usdCents: Long, checkGates: Boolean): Result<TopUpOrder>
 
     /** Opens Google Pay on [order] and suspends until it ends. */
     suspend fun pay(order: TopUpOrder): TopUpPayment
@@ -47,6 +47,24 @@ interface CollectionTopUpRail {
     /** Turns delivered USDC into Dollars. It runs in the background; the Dollars balance shows the result. */
     fun sweep(owner: AccountCluster)
 }
+
+/** Why a top-up couldn't be ordered. Nothing was ordered or kept. */
+sealed interface TopUpBlock {
+    data object GooglePayNotSupported : TopUpBlock
+
+    data object GooglePayNoPaymentMethod : TopUpBlock
+
+    /** The system webview is a pre-release [channel]; the user may continue anyway. */
+    data class WebViewWarning(val channel: String) : TopUpBlock
+
+    /** Coinbase needs a verified [phone] or [email] first. */
+    data class Verification(val phone: Boolean, val email: Boolean) : TopUpBlock
+
+    data class OrderFailed(val cause: Throwable) : TopUpBlock
+}
+
+/** A [CollectionTopUpRail] failure that says why the order wasn't placed. */
+class CollectionTopUpBlocked(val block: TopUpBlock) : Exception(block.toString())
 
 /** Where a collection's top-up stands once [CollectionTopUp] returns. */
 sealed interface TopUpResult {
@@ -63,7 +81,7 @@ sealed interface TopUpResult {
     data object StillPending : TopUpResult
 
     /** The purchase couldn't start ([error] says why), and nothing was ordered. */
-    data class Blocked(val error: Throwable) : TopUpResult
+    data class Blocked(val block: TopUpBlock) : TopUpResult
 }
 
 /**
@@ -107,11 +125,21 @@ class CollectionTopUp @Inject constructor(
     /**
      * Orders [usdCents] for [requestId] and opens Google Pay on it, then waits for the Dollars. A
      * top-up already kept for [requestId] is waited on instead, and nothing new is ordered.
+     * [onCharged] runs once Google Pay has closed on a payment that may settle, before the wait.
+     * [checkGates] false skips the Google Pay checks, after the user chose to continue anyway.
      */
-    suspend fun topUp(requestId: ID, usdCents: Long, owner: AccountCluster): TopUpResult {
+    suspend fun topUp(
+        requestId: ID,
+        usdCents: Long,
+        owner: AccountCluster,
+        checkGates: Boolean = true,
+        onCharged: () -> Unit = {},
+    ): TopUpResult {
         store.pendingTopUp(requestId)?.let { return settle(requestId, it, owner) }
         val baseline = dollarsMicros()
-        val order = rail.order(usdCents).getOrElse { return TopUpResult.Blocked(it) }
+        val order = rail.order(usdCents, checkGates).getOrElse { cause ->
+            return TopUpResult.Blocked((cause as? CollectionTopUpBlocked)?.block ?: TopUpBlock.OrderFailed(cause))
+        }
         val record = PendingTopUpRecord(order.orderId, usdCents, baseline)
         store.putPendingTopUp(requestId, record)
         return when (rail.pay(order)) {
@@ -119,7 +147,10 @@ class CollectionTopUp @Inject constructor(
                 store.clearPendingTopUp(requestId)
                 TopUpResult.NotCharged
             }
-            TopUpPayment.Succeeded, TopUpPayment.Unknown -> settle(requestId, record, owner)
+            TopUpPayment.Succeeded, TopUpPayment.Unknown -> {
+                onCharged()
+                settle(requestId, record, owner)
+            }
         }
     }
 

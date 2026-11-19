@@ -77,7 +77,7 @@ class CollectionFunder @Inject constructor(
                 val rate = exchange.rateFor(amount.currencyCode)
                     ?: return@withLock Result.failure(ComputeVerifiedFiatError.StaleRate())
                 val balances = planner.balances(rate)
-                val plan = planner.plan(amount, paying.address, balances)
+                val plan = planner.plan(amount, paying.address, balances, rate)
                 // A short plan's legs describe the payment after a top-up, so none of them runs.
                 if (!plan.payableWithoutTopUp) return@withLock Result.failure(CollectionFundingError.Short(plan))
                 val legs = plan.legs.filter { it.conversion }
@@ -105,6 +105,12 @@ class CollectionFunder @Inject constructor(
 
     /** How [amount] would be paid in [paying] from the balances as they stand; null with no rate. */
     fun plan(amount: Fiat, paying: Mint): CollectionFundingPlan? = planner.plan(amount, paying)
+
+    /** What to order for [plan]'s top-up of [amount], in USD cents; null with no top-up or no rate. */
+    fun topUpUsdCents(plan: CollectionFundingPlan, amount: Fiat): Long? {
+        val rate = exchange.rateFor(amount.currencyCode) ?: return null
+        return planner.topUpUsdCents(plan, rate)
+    }
 
     /** The currency a collection was last paid in on this account, or null before the first. */
     fun lastPaid(): Flow<Mint?> = store.lastPaid()

@@ -163,7 +163,7 @@ class CollectionFunderTest {
             val rate = if (amount.currencyCode == CurrencyCode.EUR) eur else usd
             round++
             fx = rate.fx
-            planner.plan(amount, paying.address, planner.balances(rate)).legs
+            planner.plan(amount, paying.address, planner.balances(rate), rate).legs
                 .filter { it.conversion }
                 .forEach { legs[Mint(it.source)] = it }
             rate
