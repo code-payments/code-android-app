@@ -33,6 +33,7 @@ import com.getcode.utils.LiveSecrets
 import com.getcode.vendor.Base58
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -58,8 +59,10 @@ class PaymentRequestPaymentDelegateTest {
     private val paymentRequests = mockk<PaymentRequests>()
     private val held = MutableStateFlow<Map<ID, PaymentRequest>>(emptyMap())
 
+    private val funder = mockk<CollectionFunder>(relaxed = true)
+
     private val delegate = PaymentRequestPaymentDelegate(
-        resolverController, transactionController, tokenCoordinator, calculator, exchange, paymentRequests,
+        resolverController, transactionController, tokenCoordinator, calculator, exchange, paymentRequests, funder,
     )
 
     private val chatId = ChatId(ByteArray(32) { 9 })
@@ -111,6 +114,7 @@ class PaymentRequestPaymentDelegateTest {
         coEvery { resolverController.resolve(userId = creator) } returns Result.success(creatorKey)
         coEvery { calculator.compute(any(), any(), any(), any(), any()) } returns
             Result.success(VerifiedFiat(mockk<LocalFiat>(relaxed = true), state))
+        coEvery { funder.fund(any(), any(), any(), any()) } returns Result.success(Unit)
     }
 
     @Test
@@ -359,5 +363,72 @@ class PaymentRequestPaymentDelegateTest {
         assertTrue(heldWhileSending)
         assertTrue(LiveSecrets.isLive(intentBase58), "an unspent id stays masked after a failure")
         LiveSecrets.release(intentBase58)
+    }
+
+    private suspend fun readyCollection(): ShareToPay.Ready {
+        holdingCollection(Result.success(PaymentIntentId(intentBytes)))
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+        } returns Result.success(mockk())
+        return delegate.prepare(requestId, viewer).getOrThrow() as ShareToPay.Ready
+    }
+
+    @Test
+    fun `without funding a collection pays from the balance as it stands`() = runTest {
+        val ready = readyCollection()
+
+        assertTrue(delegate.pay(ready, token, source).isSuccess)
+
+        coVerify(exactly = 0) { funder.fund(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { funder.paid(any(), any()) }
+    }
+
+    @Test
+    fun `with funding a collection converts first, then pays once, then records the currency`() = runTest {
+        val ready = readyCollection()
+
+        assertTrue(delegate.pay(ready, token, source, fund = true).isSuccess)
+
+        coVerifyOrder {
+            funder.fund(requestId, Fiat("10.00", CurrencyCode.EUR), token, source)
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+            funder.paid(requestId, token)
+        }
+        coVerify(exactly = 1) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `funding that stops short stops the payment`() = runTest {
+        val ready = readyCollection()
+        val short = CollectionFundingError.Short(mockk())
+        coEvery { funder.fund(any(), any(), any(), any()) } returns Result.failure(short)
+
+        assertSame(short, delegate.pay(ready, token, source, fund = true).exceptionOrNull())
+
+        coVerify(exactly = 0) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { funder.paid(any(), any()) }
+    }
+
+    @Test
+    fun `a failed payment after funding keeps the currency unrecorded`() = runTest {
+        val ready = readyCollection()
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+        } returns Result.failure(IllegalStateException("boom"))
+
+        assertTrue(delegate.pay(ready, token, source, fund = true).isFailure)
+
+        coVerify(exactly = 0) { funder.paid(any(), any()) }
+    }
+
+    @Test
+    fun `a retry that finds the collection already paid stops and forgets the kept conversions`() = runTest {
+        holdingCollection(Result.failure(GetPaymentIntentIdError.AlreadyPaid()))
+
+        assertIs<ShareToPay.NothingToPay>(delegate.prepare(requestId, viewer).getOrThrow())
+
+        coVerify(exactly = 1) { funder.forget(requestId) }
+        coVerify(exactly = 0) { funder.fund(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any()) }
     }
 }

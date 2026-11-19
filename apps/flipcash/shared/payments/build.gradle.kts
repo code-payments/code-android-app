@@ -19,6 +19,7 @@ dependencies {
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
 
+    implementation(libs.androidx.datastore.preferences.core)
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:contacts"))

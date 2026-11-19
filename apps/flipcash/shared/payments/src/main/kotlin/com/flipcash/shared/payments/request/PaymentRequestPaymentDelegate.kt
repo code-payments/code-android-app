@@ -47,6 +47,7 @@ class PaymentRequestPaymentDelegate @Inject constructor(
     verifiedFiatCalculator: VerifiedFiatCalculator,
     private val exchange: Exchange,
     private val paymentRequests: PaymentRequests,
+    private val funder: CollectionFunder,
 ) {
 
     private val payment = SharedStatePayment(
@@ -89,7 +90,11 @@ class PaymentRequestPaymentDelegate @Inject constructor(
             return when (error) {
                 is GetPaymentIntentIdError.NotOpen -> Result.success(ShareToPay.Closed(refetched(request)))
                 is GetPaymentIntentIdError.AlreadyPaid,
-                is GetPaymentIntentIdError.NotAPayer -> Result.success(ShareToPay.NothingToPay(refetched(request)))
+                is GetPaymentIntentIdError.NotAPayer -> {
+                    // Conversions kept for a retry can't be needed once there is nothing to pay.
+                    funder.forget(request.id)
+                    Result.success(ShareToPay.NothingToPay(refetched(request)))
+                }
                 is GetPaymentIntentIdError.Denied,
                 is GetPaymentIntentIdError.NotFound -> Result.success(ShareToPay.Unavailable(request))
                 else -> Result.failure(error)
@@ -107,12 +112,22 @@ class PaymentRequestPaymentDelegate @Inject constructor(
     /**
      * Pays [ready]'s amount in the request's currency, priced into [token] from [source]. Refetches
      * the request after the payment lands so its row reads as paid.
+     *
+     * With [fund], a collection short in [token] is first topped up by converting other balances
+     * (see [CollectionFunder]); it fails with [CollectionFundingError.Short] when that can't cover
+     * it. Without it, [token] must already hold the amount.
      */
-    suspend fun pay(ready: ShareToPay.Ready, token: Token, source: AccountCluster): Result<Unit> {
+    suspend fun pay(
+        ready: ShareToPay.Ready,
+        token: Token,
+        source: AccountCluster,
+        fund: Boolean = false,
+    ): Result<Unit> {
         val request = ready.request
         val collection = request.collection != null
         val currency = requireNotNull(request.currency)
-        if (collection) fundBeforePaying(ready, token, source).onFailure { return Result.failure(it) }
+        val funding = collection && fund
+        if (funding) funder.fund(request.id, ready.amount, token, source).onFailure { return Result.failure(it) }
         val rate = exchange.rateFor(currency)
             ?: return Result.failure(ComputeVerifiedFiatError.StaleRate())
         val priced = payment.price(listOf(ready.amount), token, rate)
@@ -137,6 +152,7 @@ class PaymentRequestPaymentDelegate @Inject constructor(
             // a retry asks for the id again.
             return paid.onSuccess {
                 log("paid collection", TraceType.Log)
+                if (funding) funder.paid(request.id, token)
                 paymentRequests.fetch(request.id)
                 paymentRequests.loadPayers(request.id)
             }.onFailure {
@@ -153,19 +169,6 @@ class PaymentRequestPaymentDelegate @Inject constructor(
         }
     }
 
-    /**
-     * The funding seam: where a later step makes sure [source] holds [ready]'s amount in [token]
-     * before a collection is paid, by converting another balance or adding money. Today it does
-     * nothing, so a short balance meets the shipped insufficient-balance and No Balance Yet states
-     * before the sheet opens.
-     *
-     * It suspends for as long as funding takes (a swap finalises asynchronously) and fails to stop
-     * the payment. It runs again on every retry, so it must check the balance as it stands each
-     * time: money added on an attempt whose payment then failed is kept, never added twice.
-     */
-    @Suppress("UNUSED_PARAMETER", "RedundantSuspendModifier")
-    private suspend fun fundBeforePaying(ready: ShareToPay.Ready, token: Token, source: AccountCluster): Result<Unit> =
-        Result.success(Unit)
 }
 
 /** What [PaymentRequestPaymentDelegate.prepare] found. */
