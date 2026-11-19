@@ -30,6 +30,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -301,6 +302,33 @@ class CollectionTopUpFlowTest {
 
         assertEquals(1, paid)
         assertEquals(listOf(500L), rail.orders)
+    }
+
+    /** Recovery 3 and 5: the failed payment refetches before any retry, and ALREADY_PAID stops it. */
+    @Test
+    fun `a payment failing after the top-up refetches first, and ALREADY_PAID stops the retry`() {
+        useCase("s7-short-under-min")
+        var failed = false
+        coEvery { payments.pay(any(), any(), any(), any()) } answers {
+            failed = true
+            Result.failure(IllegalStateException("submit failed"))
+        }
+        // The submit landed after all, or someone else paid: the refetch reports ALREADY_PAID.
+        coEvery { payments.prepare(any(), any()) } answers {
+            Result.success(if (failed) ShareToPay.NothingToPay(request.request) else request)
+        }
+        val f = openSheet()
+
+        f.onAddAndPay()
+
+        coVerifyOrder {
+            payments.pay(any(), any(), any(), any())
+            payments.prepare(any(), any())
+        }
+        coVerify(exactly = 1) { payments.pay(any(), any(), any(), any()) }
+        assertEquals(listOf(500L), rail.orders)
+        assertEquals(11_000_000L, dollarsMicros, "the $5.00 stays in Dollars")
+        assertEquals(false, f.state.value.open)
     }
 
     /** Recovery 4: a short delivery replans from the balances and asks before any further top-up. */
