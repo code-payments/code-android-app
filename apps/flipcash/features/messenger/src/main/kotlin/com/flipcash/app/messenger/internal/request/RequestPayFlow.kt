@@ -22,6 +22,7 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
@@ -130,6 +131,21 @@ internal class RequestPayFlow(
         val amount = state.amount
         if (!state.funding || amount == null || token == null) null else payments.planCollection(amount, token)
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * The open collection sheet's "Select Payment Currency" rows (frame 6.3), valued in the
+     * request's currency for their order. Empty unless [State.funding].
+     */
+    val collectionCurrencies: StateFlow<List<TokenWithLocalizedBalance>> = combine(
+        _state,
+        token,
+        tokenCoordinator.tokenBalances,
+    ) { state, token, balances ->
+        val amount = state.amount
+        if (!state.funding || amount == null) return@combine emptyList()
+        val rate = exchange.rateFor(amount.currencyCode) ?: exchange.rateForUsd()
+        collectionCurrencies(balances, token, rate)
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private var ready: ShareToPay.Ready? = null
 

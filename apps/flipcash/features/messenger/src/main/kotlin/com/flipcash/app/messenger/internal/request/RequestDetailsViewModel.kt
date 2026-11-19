@@ -31,6 +31,8 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
+import com.getcode.solana.keys.Mint
 import com.flipcash.app.tokens.TokenCoordinator
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
@@ -231,6 +233,9 @@ internal class RequestDetailsViewModel @Inject constructor(
 
     val pay: StateFlow<RequestPayFlow.State> = payFlow.state
     val swipePayActions: SwipePayActions = payFlow.actions
+    val collectionCurrencies: StateFlow<List<TokenWithLocalizedBalance>> get() = payFlow.collectionCurrencies
+
+    fun pickCollectionCurrency(mint: Mint) = payFlow.pickCollectionCurrency(mint)
 
     /** "Send <share>". */
     fun payTapped() {

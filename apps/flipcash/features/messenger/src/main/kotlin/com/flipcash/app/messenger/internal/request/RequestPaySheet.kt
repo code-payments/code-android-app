@@ -26,6 +26,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,6 +62,8 @@ import com.flipcash.shared.common.ui.profile.chatterName
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
+import com.getcode.solana.keys.Mint
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.ui.components.AppBarWithTitle
@@ -68,6 +71,7 @@ import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import com.flipcash.app.messenger.internal.swipepay.LocalSwipePayCurrencyPicker
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.flipcash.app.messenger.internal.swipepay.SwipePaySheet
 import com.flipcash.app.messenger.internal.swipepay.SwipePayUiState
@@ -79,6 +83,10 @@ import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
  *
  * The amount comes from [pay], not the live request: the request reads paid during the success
  * hold, and the sheet keeps its amount until it has gone.
+ *
+ * A collection being funded ([RequestPayFlow.State.funding]) picks its currency from
+ * [collectionCurrencies] in its own sheet, through [onPickCollectionCurrency], instead of the
+ * wallet's currency list: the pick is this payment's alone.
  */
 @Composable
 internal fun RequestPaySheet(
@@ -86,15 +94,33 @@ internal fun RequestPaySheet(
     members: Map<ID, ChatMember>,
     token: Token?,
     actions: SwipePayActions,
+    collectionCurrencies: List<TokenWithLocalizedBalance> = emptyList(),
+    onPickCollectionCurrency: (Mint) -> Unit = {},
 ) {
     if (!pay.open) return
     val amount = pay.amount ?: return
-    PayShareSheet(
-        creator = pay.creator?.let(members::get),
-        amount = amount,
-        swipePay = requestPaySwipeState(pay, token),
-        actions = actions,
-    )
+    val sheet = @Composable {
+        PayShareSheet(
+            creator = pay.creator?.let(members::get),
+            amount = amount,
+            swipePay = requestPaySwipeState(pay, token),
+            actions = actions,
+        )
+    }
+    if (!pay.funding) {
+        sheet()
+        return
+    }
+    var picking by rememberSaveable { mutableStateOf(false) }
+    CompositionLocalProvider(LocalSwipePayCurrencyPicker provides { picking = true }) { sheet() }
+    if (picking) {
+        CollectionCurrencySheet(
+            currencies = collectionCurrencies,
+            selected = token?.address,
+            onPick = onPickCollectionCurrency,
+            onClosed = { picking = false },
+        )
+    }
 }
 
 /** The swipe for a share: the viewer pays the request, so it reads "Swipe to Pay". */

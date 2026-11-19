@@ -844,11 +844,14 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     )
 
     // In-window, over the conversation and the deck, so the bottom bar draws above it.
+    val requestPayCurrencies by requestPay.collectionCurrencies.collectAsStateWithLifecycle()
     RequestPaySheet(
         pay = requestPayState,
         members = requestPayMembers,
         token = requestPayToken,
         actions = requestPay.actions,
+        collectionCurrencies = requestPayCurrencies,
+        onPickCollectionCurrency = requestPay::pickCollectionCurrency,
     )
     ExpandedRequests(
         deck = drawnDeck,

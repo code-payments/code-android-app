@@ -15,6 +15,8 @@ import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
+import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -69,6 +71,9 @@ internal class RequestPayViewModel @Inject constructor(
     val state: StateFlow<RequestPayFlow.State> = flow.state
     val token: StateFlow<Token?> get() = flow.token
     val actions: SwipePayActions = flow.actions
+    val collectionCurrencies: StateFlow<List<TokenWithLocalizedBalance>> get() = flow.collectionCurrencies
+
+    fun pickCollectionCurrency(mint: Mint) = flow.pickCollectionCurrency(mint)
 
     /** The chat's members by id, for the creator's name and avatar on the sheet. */
     val members: StateFlow<Map<ID, ChatMember>> = combine(chatId, rosters.state) { id, all ->
