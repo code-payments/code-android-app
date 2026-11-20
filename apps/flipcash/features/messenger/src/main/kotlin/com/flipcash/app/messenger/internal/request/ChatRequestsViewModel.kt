@@ -171,8 +171,8 @@ internal class ChatRequestsViewModel(
         }
     }
 
-    fun fetchIfAbsent(id: ID) {
-        viewModelScope.launch { requests.fetchIfAbsent(id) }
+    fun fetchIfAbsent(id: ID, chat: ChatId) {
+        viewModelScope.launch { requests.fetchIfAbsent(id, chat) }
     }
 
     /** A failed refetch leaves the held copy as it was; the 45 s poll reconciles it. */

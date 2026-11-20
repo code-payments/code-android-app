@@ -31,8 +31,9 @@ internal fun mapConversations(
     chatCoordinator: ChatCoordinator,
     exchange: Exchange,
     paymentRequests: Map<ID, PaymentRequest>,
-    // Asked for each previewed request the store doesn't hold yet; the row redraws when it lands.
-    requestPaymentRequest: (ID) -> Unit,
+    // Asked for each previewed request the store doesn't hold yet, with its row's chat; the row
+    // redraws when it lands.
+    requestPaymentRequest: (ID, ChatId) -> Unit,
     // Hosted groups' lobbies; a row shows the ones waiting on a group the viewer hosts.
     lobbies: Map<ChatId, List<LobbyMember>> = emptyMap(),
     // Previews collections by what each member pays, as under the Group Money flag.
@@ -48,7 +49,7 @@ internal fun mapConversations(
         }
         summary.previewedPaymentRequestId()
             ?.takeIf { it !in paymentRequests }
-            ?.let(requestPaymentRequest)
+            ?.let { requestPaymentRequest(it, summary.metadata.chatId) }
         summary.toConversationReference(selfId, tokensByMint, resources, senderProfiles.orEmpty(), exchange, paymentRequests, collections)
             .copy(joinRequests = lobbies.waitingFor(summary.metadata, selfId).sortedByDescending { it.enteredAt })
     }

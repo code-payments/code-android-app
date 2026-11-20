@@ -223,7 +223,7 @@ open class ChatsViewModel @Inject constructor(
             lobbies: Map<ChatId, List<LobbyMember>>,
             collections: Boolean,
         ): Event.ChatsUpdated {
-            val fetchRequest: (ID) -> Unit = { id -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id) } }
+            val fetchRequest: (ID, ChatId) -> Unit = { id, chat -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id, chat) } }
             val mainRows = mapConversations(feeds.main, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest, lobbies, collections)
             val archivedRows = mapConversations(feeds.archived, tokens, senderProfiles, selfId(), resources, chatCoordinator, exchange, requests, fetchRequest, lobbies, collections)
 

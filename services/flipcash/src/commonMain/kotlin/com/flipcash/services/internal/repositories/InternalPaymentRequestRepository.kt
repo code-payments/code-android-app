@@ -42,8 +42,14 @@ internal class InternalPaymentRequestRepository(
         owner: KeyPair,
         paymentRequestId: ID,
     ): Result<PaymentRequestDetails> {
+        // A chat retries a refused request on every refetch (`PaymentRequests.loadChat`), and a
+        // refusal is often a membership the server hasn't caught up with, not a fault.
         return service.getPaymentRequest(owner, paymentRequestId)
-            .onFailure { if (it !is GetPaymentRequestError.NotFound) ErrorUtils.handleError(it) }
+            .onFailure {
+                if (it !is GetPaymentRequestError.NotFound && it !is GetPaymentRequestError.Denied) {
+                    ErrorUtils.handleError(it)
+                }
+            }
     }
 
     override suspend fun getChatPaymentRequests(

@@ -61,8 +61,16 @@ class PaymentRequests @Inject constructor(
 
     private val _missing = MutableStateFlow<Set<ID>>(emptySet())
 
-    /** Requests a fetch found DENIED or NOT_FOUND. Their cards draw as unsupported and aren't refetched. */
+    /**
+     * Requests a fetch found DENIED or NOT_FOUND. Their cards draw as unsupported. A refusal can
+     * be the server not yet counting a member who just joined, so a request leaves this set once
+     * it arrives by any path ([ingest]), and one marked for a chat is retried each time that chat
+     * refetches ([loadChat]).
+     */
     val missing: StateFlow<Set<ID>> = _missing.asStateFlow()
+
+    // The chat each request in [missing] was fetched for, when the fetch named one.
+    private val missingIn = MutableStateFlow<Map<ID, ChatId>>(emptyMap())
 
     private val _payers = MutableStateFlow<Map<ID, PaidPayers>>(emptyMap())
 
@@ -88,7 +96,11 @@ class PaymentRequests @Inject constructor(
         emitAll(requests.map { it[id] }.distinctUntilChanged())
     }
 
-    /** Refetches [chatId]'s open requests (first 100) and recently resolved ones (first 20). */
+    /**
+     * Refetches [chatId]'s open requests (first 100) and recently resolved ones (first 20), then
+     * retries each request marked [missing] for this chat. A retry that fails leaves its mark and
+     * doesn't fail the load.
+     */
     suspend fun loadChat(chatId: ChatId): Result<Unit> = runCatching {
         // Stored copies first, so none of them lands after, and over, a fresher fetched one.
         hydrate(chatId)
@@ -105,6 +117,17 @@ class PaymentRequests @Inject constructor(
             open.await() to resolved.await()
         }
         ingest(open.paymentRequests + resolved.paymentRequests)
+        // The mark stays while the retry runs, so the card doesn't flip to loading and back.
+        val marked = missingIn.value.filterValues { it == chatId }.keys
+        for (id in marked) {
+            try {
+                refetch(id, chatId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Left marked; the chat's next refetch tries again.
+            }
+        }
     }
 
     /**
@@ -121,23 +144,33 @@ class PaymentRequests @Inject constructor(
     /**
      * Refetches one request. The returned details carry `payment_intent_id` for a viewer with an
      * unpaid share; keep it for the one payment and do not store or log it.
+     *
+     * [chatId] is the chat the request is shown in, when the caller knows it: a DENIED or
+     * NOT_FOUND then marks it [missing] for that chat, whose [loadChat] retries it. Without one
+     * the mark stays until the request arrives by another path.
      */
-    suspend fun fetch(id: ID): Result<PaymentRequestDetails> =
+    suspend fun fetch(id: ID, chatId: ChatId? = null): Result<PaymentRequestDetails> =
         controller.getPaymentRequest(id)
             .onSuccess { ingest(listOf(it.paymentRequest)) }
-            .onFailure { if (it is GetPaymentRequestError.Denied || it is GetPaymentRequestError.NotFound) _missing.update { set -> set.plusElement(id) } }
+            .onFailure {
+                if (it is GetPaymentRequestError.Denied || it is GetPaymentRequestError.NotFound) {
+                    // The chat goes in first, so a mark is never seen without the chat that retries it.
+                    if (chatId != null) missingIn.update { held -> held + (id to chatId) }
+                    _missing.update { set -> set.plusElement(id) }
+                }
+            }
 
     /**
-     * Fetches [id] for a card that has nothing to show, once: not while a fetch for it is running,
-     * and not after one found it missing.
+     * Fetches [id] for a card in [chatId] that has nothing to show, once: not while a fetch for
+     * it is running, and not after one found it missing. A missing one is retried by [loadChat].
      */
-    suspend fun fetchIfAbsent(id: ID) {
+    suspend fun fetchIfAbsent(id: ID, chatId: ChatId) {
         if (id in requests.value || id in _missing.value) return
         var claimed = false
         inFlight.update { held -> claimed = id !in held; held.plusElement(id) }
         if (!claimed) return
         try {
-            fetch(id)
+            fetch(id, chatId)
         } finally {
             inFlight.update { it.minusElement(id) }
         }
@@ -193,10 +226,14 @@ class PaymentRequests @Inject constructor(
     suspend fun markPaid(id: ID, userId: ID): Result<PaymentRequest> =
         controller.markPaid(id, userId).map { ingestOne(it) }
 
-    /** Opens each request's text, then merges it into what is held. */
+    /** Opens each request's text, then merges it into what is held. A request held is no longer [missing]. */
     suspend fun ingest(incoming: List<PaymentRequest>) {
         val opened = incoming.map { open(it) }
         requests.update { held -> opened.fold(held, ::merge) }
+        // After the merge, so a card goes from unsupported straight to drawn, never through loading.
+        val arrived = opened.mapTo(HashSet()) { it.id }
+        _missing.update { it - arrived }
+        missingIn.update { it - arrived }
         persist(opened)
     }
 
@@ -241,12 +278,16 @@ class PaymentRequests @Inject constructor(
     }
 
     /** Refetches [id] to reconcile a missed or unappliable update; one fetch at a time per request. */
-    override suspend fun refetch(id: ID) {
+    override suspend fun refetch(id: ID) = refetch(id, chatId = null)
+
+    // [chatId] rides along so a refusal re-marks the request for the chat that retries it, even
+    // when the request arrived, and its mark went, while this fetch was out.
+    private suspend fun refetch(id: ID, chatId: ChatId?) {
         var claimed = false
         inFlight.update { held -> claimed = id !in held; held.plusElement(id) }
         if (!claimed) return
         try {
-            fetch(id)
+            fetch(id, chatId)
             // A payer list in use is reconciled with the request.
             if (id in _payers.value) loadPayers(id)
         } finally {
@@ -258,6 +299,7 @@ class PaymentRequests @Inject constructor(
     fun clear() {
         requests.value = emptyMap()
         _missing.value = emptySet()
+        missingIn.value = emptyMap()
         _payers.value = emptyMap()
         hydrated.value = emptySet()
     }
@@ -265,12 +307,15 @@ class PaymentRequests @Inject constructor(
     /**
      * Drops [chatId]'s requests from what the session holds, for a chat the viewer has left. The
      * stored rows go with the membership change (see `ChatMetadataDataSource.removeFromChat`); this
-     * is the in-memory half, and un-marks the chat as hydrated so a rejoin loads afresh.
+     * is the in-memory half, and un-marks the chat as hydrated so a rejoin loads afresh. Requests
+     * marked [missing] for the chat are un-marked too.
      */
     fun forget(chatId: ChatId) {
-        val gone = requests.value.filterValues { it.groupChatId == chatId }.keys
+        val gone = requests.value.filterValues { it.groupChatId == chatId }.keys +
+            missingIn.value.filterValues { it == chatId }.keys
         requests.update { held -> held - gone }
         _missing.update { it - gone }
+        missingIn.update { it - gone }
         _payers.update { it - gone }
         hydrated.update { it - chatId }
     }

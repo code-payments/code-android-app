@@ -120,7 +120,7 @@ internal open class ArchivedChatsViewModel @Inject constructor(
         ) { summaries, tokens, senderProfiles, _, (requests, lobbies, collections) ->
             mapConversations(
                 summaries, tokens, senderProfiles, userManager.accountId, resources, chatCoordinator, exchange, requests,
-                requestPaymentRequest = { id -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id) } },
+                requestPaymentRequest = { id, chat -> viewModelScope.launch { paymentRequests.fetchIfAbsent(id, chat) } },
                 lobbies = lobbies,
                 collections = collections,
             ).sortedByDescending { it.rowActivity }
