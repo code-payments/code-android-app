@@ -114,7 +114,7 @@ mixpanel = "8.12.0"
 
 timber = "5.0.1"
 
-sodium-bindings = "0.9.5"
+sodium-bindings = "0.9.6"
 desugaring = "2.1.5"
 kotlincrypto-hash = "0.8.0"
 kotlincrypto-macs = "0.8.0"
