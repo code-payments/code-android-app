@@ -1,11 +1,14 @@
 package com.flipcash.app.messenger.internal.request
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteractionCollection
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -252,6 +255,60 @@ class CollectionPaymentDetailsTest {
             details.use.map { listOf(it.row.name) + it.row.sublabels + it.row.amount },
         )
         assertEquals(expected.getJSONObject("total").getString("amount"), details.total.amount)
+    }
+
+    /** 7.2 draws no fee line, so its short line's ⓘ is the only way to 7.3. */
+    @Test
+    fun `7_2 to 7_3 - a tap on the short line opens Payment Details`() {
+        val display = case("s7-short-under-min").getJSONObject("display")
+        showSheet(ui(case("s7-short-under-min")))
+        composeTestRule.onNodeWithTag(COLLECTION_FEE_LINE_TAG).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(PAYMENT_DETAILS_SHEET_TAG).assertDoesNotExist()
+
+        // On the line's text, not the ⓘ: the whole line takes the tap.
+        composeTestRule.onNodeWithText(display.getString("short_by")).performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag(PAYMENT_DETAILS_SHEET_TAG).assertExists()
+        val use = display.getJSONObject("details").getJSONArray("use").objects().map { row ->
+            listOf(row.getString("name")) +
+                row.getJSONArray("sublabels").strings().map { it.replace(" from Apple Pay", " from Google Pay") } +
+                row.getString("amount")
+        }
+        assertEquals(use, composeTestRule.onAllNodesWithTag(PAYMENT_DETAILS_USE_ROW_TAG).texts())
+    }
+
+    @Test
+    fun `the short line reads to accessibility as the fee line does`() {
+        showSheet(ui(case("s8-short-over-min")))
+
+        for (tag in listOf(COLLECTION_FEE_LINE_TAG, COLLECTION_SHORT_LINE_TAG)) {
+            val line = composeTestRule.onNodeWithTag(tag).fetchSemanticsNode().config
+            assertEquals(tag, "Payment Details", line.getOrNull(SemanticsActions.OnClick)?.label)
+            assertEquals(tag, Role.Button, line.getOrNull(SemanticsProperties.Role))
+            assertEquals(tag, listOf("Payment Details"), line.getOrNull(SemanticsProperties.ContentDescription))
+        }
+    }
+
+    /** 8.2 has both lines: each keeps its ⓘ, and both open the same Payment Details. */
+    @Test
+    fun `8_2 - both lines keep their info and open the same Payment Details`() {
+        showSheet(ui(case("s8-short-over-min")))
+        assertEquals(2, composeTestRule.onAllNodesWithContentDescription("Payment Details").fetchSemanticsNodes().size)
+
+        val opened = listOf(COLLECTION_FEE_LINE_TAG, COLLECTION_SHORT_LINE_TAG).map { tag ->
+            composeTestRule.onNodeWithTag(tag).performClick()
+            composeTestRule.waitForIdle()
+            composeTestRule.onNodeWithTag(PAYMENT_DETAILS_SHEET_TAG).assertExists()
+            val rows = composeTestRule.onAllNodesWithTag(PAYMENT_DETAILS_USE_ROW_TAG).texts()
+
+            composeTestRule.onAllNodesWithTag("action_back").filterToOne(placed).performClick()
+            composeTestRule.waitForIdle()
+            composeTestRule.onNodeWithTag(PAYMENT_DETAILS_SHEET_TAG).assertDoesNotExist()
+            rows
+        }
+        assertTrue(opened.first().isNotEmpty())
+        assertEquals(opened.first(), opened.last())
     }
 
     /** Frames 1.1 and 2.1: the Request screen's button reads "Pay $10.00" only when the top-up is the amount. */

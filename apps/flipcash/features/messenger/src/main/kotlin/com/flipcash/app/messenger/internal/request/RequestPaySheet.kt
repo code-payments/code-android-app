@@ -90,7 +90,8 @@ import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
  * [collectionCurrencies] in its own sheet, through [onPickCollectionCurrency], instead of the
  * wallet's currency list: the pick is this payment's alone. Its [funding] fee line opens Payment
  * Details over the sheet. When the balances can't cover it, [CollectionFundingUi.short] takes the
- * swipe's place and [onAddAndPay] adds the rest; [RequestPayFlow.State.finishing] then draws
+ * swipe's place, its short line opening the same Payment Details, and [onAddAndPay] adds the
+ * rest; [RequestPayFlow.State.finishing] then draws
  * "Finishing Payment" until it's paid.
  */
 @Composable
@@ -106,7 +107,7 @@ internal fun RequestPaySheet(
 ) {
     if (!pay.open) return
     val amount = pay.amount ?: return
-    val sheet = @Composable { feeLine: (@Composable () -> Unit)? ->
+    val sheet = @Composable { feeLine: (@Composable () -> Unit)?, onDetails: () -> Unit ->
         val swipePay = requestPaySwipeState(pay, token)
         PayShareSheet(
             creator = pay.creator?.let(members::get),
@@ -117,7 +118,7 @@ internal fun RequestPaySheet(
             showsHandle = !pay.funding,
             action = funding?.short?.takeIf { pay.funding }?.let { short ->
                 @Composable { modifier: Modifier ->
-                    CollectionShortAction(short, swipePay, onAddAndPay, modifier)
+                    CollectionShortAction(short, swipePay, onAddAndPay, onDetails, modifier)
                 }
             },
             replacement = if (pay.finishing) {
@@ -128,15 +129,17 @@ internal fun RequestPaySheet(
         )
     }
     if (!pay.funding) {
-        sheet(null)
+        sheet(null) {}
         return
     }
     var picking by rememberSaveable { mutableStateOf(false) }
     var details by rememberSaveable { mutableStateOf(false) }
+    // The fee line and the short line open the same sheet.
+    val openDetails = { details = true }
     val feeLine = funding?.modalFee?.let { fee ->
-        @Composable { CollectionFeeLine(fee = fee, onDetails = { details = true }) }
+        @Composable { CollectionFeeLine(fee = fee, onDetails = openDetails) }
     }
-    CompositionLocalProvider(LocalSwipePayCurrencyPicker provides { picking = true }) { sheet(feeLine) }
+    CompositionLocalProvider(LocalSwipePayCurrencyPicker provides { picking = true }) { sheet(feeLine, openDetails) }
     if (details && funding != null) {
         PaymentDetailsSheet(details = funding.details, onClosed = { details = false })
     }
@@ -226,14 +229,15 @@ private fun PayShareSheet(
 }
 
 /**
- * Frames 4.2, 7.2, 8.2, in the swipe's place: "You’re $2.04 Short", "Add $5.00 and Pay $11.00",
- * and the minimum Google Pay takes.
+ * Frames 4.2, 7.2, 8.2, in the swipe's place: "You’re $2.04 Short" with its ⓘ, "Add $5.00 and Pay
+ * $11.00", and the minimum Google Pay takes. A tap on the short line calls [onDetails].
  */
 @Composable
 private fun CollectionShortAction(
     short: CollectionShortUi,
     swipePay: SwipePayUiState,
     onAddAndPay: () -> Unit,
+    onDetails: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -241,12 +245,7 @@ private fun CollectionShortAction(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
     ) {
-        Text(
-            text = short.shortBy,
-            style = CodeTheme.typography.textMedium,
-            color = CodeTheme.colors.textMain,
-            textAlign = TextAlign.Center,
-        )
+        CollectionShortLine(shortBy = short.shortBy, onDetails = onDetails)
         CodeButton(
             text = short.addButton,
             modifier = Modifier.fillMaxWidth().testTag("request_pay_add"),

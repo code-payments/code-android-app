@@ -23,8 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import com.flipcash.app.core.ui.TokenIcon
 import com.flipcash.app.tokens.CollectionFundingFormatter
 import com.flipcash.app.tokens.CollectionFundingStrings
@@ -124,24 +128,67 @@ internal fun collectionFundingUi(
  */
 @Composable
 internal fun CollectionFeeLine(fee: String, onDetails: () -> Unit) {
+    PaymentDetailsEntryLine(
+        text = fee,
+        style = CodeTheme.typography.caption,
+        color = CodeTheme.colors.textSecondary,
+        iconSize = CodeTheme.dimens.staticGrid.x3,
+        onDetails = onDetails,
+        modifier = Modifier.testTag(COLLECTION_FEE_LINE_TAG),
+    )
+}
+
+/**
+ * The short line in the swipe's place (frames 4.2, 7.2, 8.2): "You’re $2.04 Short", then ⓘ as on
+ * the fee line. Tapping it opens Payment Details, the only way to reach 7.3, since 7.2 draws no
+ * fee line. The frames don't draw this ⓘ; the group-collections spec adds it (Open with design
+ * item 9).
+ */
+@Composable
+internal fun CollectionShortLine(shortBy: String, onDetails: () -> Unit) {
+    PaymentDetailsEntryLine(
+        text = shortBy,
+        style = CodeTheme.typography.textMedium,
+        color = CodeTheme.colors.textMain,
+        // The fee line's ⓘ is 15dp beside 12sp; this keeps that ratio beside 16sp.
+        iconSize = CodeTheme.dimens.staticGrid.x4,
+        onDetails = onDetails,
+        modifier = Modifier.testTag(COLLECTION_SHORT_LINE_TAG),
+    )
+}
+
+/**
+ * [text], then ⓘ, the whole line one tap target that opens Payment Details. The fee line and the
+ * short line share it, so both carry the same click label and ⓘ description.
+ */
+@Composable
+private fun PaymentDetailsEntryLine(
+    text: String,
+    style: TextStyle,
+    color: Color,
+    iconSize: Dp,
+    onDetails: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val label = stringResource(R.string.title_paymentDetails)
     Row(
-        modifier = Modifier
-            .clickable(onClickLabel = label, role = Role.Button, onClick = onDetails)
-            .testTag(COLLECTION_FEE_LINE_TAG),
+        modifier = modifier.clickable(onClickLabel = label, role = Role.Button, onClick = onDetails),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
     ) {
         Text(
-            text = fee,
-            style = CodeTheme.typography.caption,
-            color = CodeTheme.colors.textSecondary,
+            text = text,
+            // Wraps before it pushes the ⓘ off the line.
+            modifier = Modifier.weight(1f, fill = false),
+            style = style,
+            color = color,
+            textAlign = TextAlign.Center,
         )
         Icon(
             imageVector = Icons.Outlined.Info,
             contentDescription = label,
-            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3),
-            tint = CodeTheme.colors.textSecondary,
+            modifier = Modifier.size(iconSize),
+            tint = color,
         )
     }
 }
@@ -257,6 +304,7 @@ private val RowGap @Composable get() = CodeTheme.dimens.grid.x3
 private val Emphasis @Composable get() = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.SemiBold)
 
 internal const val COLLECTION_FEE_LINE_TAG = "collection_fee_line"
+internal const val COLLECTION_SHORT_LINE_TAG = "collection_short_line"
 internal const val PAYMENT_DETAILS_SHEET_TAG = "payment_details_sheet"
 internal const val PAYMENT_DETAILS_PAY_ROW_TAG = "payment_details_pay"
 internal const val PAYMENT_DETAILS_USE_ROW_TAG = "payment_details_use"
