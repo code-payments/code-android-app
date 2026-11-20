@@ -460,9 +460,8 @@ class RequestPayFlowTest {
         assertEquals(null, lastPaid.value)
     }
 
-    @Test
-    fun `the fee line and Payment Details name each currency as the wallet does`() {
-        // Frames 5.2/5.3: $10.00 from $8.00 Dollars and $6.00 Jeffy at a 1% sell fee.
+    /** Frames 5.2/5.3: $10.00 from $8.00 Dollars and $6.00 Jeffy at a 1% sell fee, with [cached] in the cache. */
+    private fun dollarsAndJeffyFundingUi(cached: List<Token>): CollectionFundingUi {
         val dollarsId = Token.usdf.address.base58()
         val jeffyId = jeffy.address.base58()
         every { jeffy.name } returns "Jeffy"
@@ -473,8 +472,7 @@ class RequestPayFlowTest {
         every { resources.getString(R.string.label_collectionPlusConversionFees, *anyVararg()) } answers {
             "plus ${formatArg()} of conversion fees"
         }
-        // The reserve is never cached as a wallet token; the flow knows it anyway.
-        every { tokenCoordinator.cachedTokens() } returns listOf(jeffy)
+        every { tokenCoordinator.cachedTokens() } returns cached
         every { payments.planCollection(any(), any()) } returns planCollectionFunding(
             amountMicros = 10_000_000,
             minorDigits = 2,
@@ -487,8 +485,25 @@ class RequestPayFlowTest {
         val f = fundingFlow()
         scope.launch { f.fundingUi.collect {} }
         f.start(listOf<Byte>(2), fund = true)
+        return assertNotNull(f.fundingUi.value)
+    }
 
-        val ui = assertNotNull(f.fundingUi.value)
+    @Test
+    fun `Payment Details draws the cached Dollars, not the stub`() {
+        // The stub has no image; the synced reserve carries the server's.
+        val dollars = Token.usdf.copy(imageUrl = "https://example.com/dollars.png")
+
+        val ui = dollarsAndJeffyFundingUi(cached = listOf(dollars, jeffy))
+
+        assertEquals(dollars, ui.details.pay.token)
+        assertEquals(listOf(dollars, jeffy), ui.details.use.map { it.token })
+    }
+
+    @Test
+    fun `the fee line and Payment Details name each currency as the wallet does`() {
+        // Before the first token sync the cache holds no reserve; the flow knows it anyway.
+        val ui = dollarsAndJeffyFundingUi(cached = listOf(jeffy))
+
         assertEquals("plus ~$0.02 of conversion fees", ui.modalFee)
         assertEquals("Dollars", ui.details.pay.row.name)
         assertEquals(Token.usdf, ui.details.pay.token)

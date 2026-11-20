@@ -198,8 +198,9 @@ internal class RequestPayFlow(
     }
 
     private fun fundingUi(plan: CollectionFundingPlan, amount: Fiat): CollectionFundingUi {
-        val known = tokenCoordinator.cachedTokens().associateBy { it.address.base58() } +
-            (Token.usdf.address.base58() to Token.usdf)
+        // The stub only stands in for a reserve the cache lacks; it has no image.
+        val known = mapOf(Token.usdf.address.base58() to Token.usdf) +
+            tokenCoordinator.cachedTokens().associateBy { it.address.base58() }
         return collectionFundingUi(
             plan = plan,
             amount = amount,
