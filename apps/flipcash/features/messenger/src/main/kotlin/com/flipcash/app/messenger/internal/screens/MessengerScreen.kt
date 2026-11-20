@@ -57,8 +57,6 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.flipcash.analytics.GroupGateFunding
 import com.flipcash.analytics.GroupInviteSheetSource
 import com.flipcash.app.core.AppRoute
-import com.flipcash.app.core.navigation.LocalNavBarShell
-import com.flipcash.app.core.navigation.NavBarShell
 import com.flipcash.app.core.tokens.SwapPurpose
 import com.flipcash.app.core.tokens.SwapResult
 import com.flipcash.app.core.chat.ChatIdentifier
@@ -128,10 +126,10 @@ import com.flipcash.services.models.chat.MessageContent
 import com.flipcash.shared.common.ui.profile.PrefetchProfileCover
 import com.flipcash.app.messenger.internal.request.ChatRequestsViewModel
 import com.flipcash.app.messenger.internal.request.rememberPaymentRequestCards
+import com.flipcash.app.messenger.internal.request.rememberRequestDeck
 import com.flipcash.app.messenger.internal.request.DeckPlacement
 import com.flipcash.app.messenger.internal.request.ExpandedRequests
 import com.flipcash.app.messenger.internal.request.RequestDeckLayout
-import com.flipcash.app.messenger.internal.request.deckTitle
 import com.flipcash.shared.chat.ui.request.LocalPaymentRequestCards
 import com.flipcash.services.models.chat.ChatType
 import com.getcode.utils.base58
@@ -520,13 +518,12 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         PrefetchProfileCover(group.coverPicture, BlobAccessContext.ChatProfile(group.chatId))
     }
 
-    // Before the deck is read, so requests already held are there on the first frame.
-    val deckChat = state.chatId.takeIf { state.chatType == ChatType.GROUP }
-    remember(deckChat) { deckChat?.also(requestsViewModel::attach) }
-    val deck by requestsViewModel.deck.collectAsStateWithLifecycle()
-    val deckExpanded by requestsViewModel.expanded.collectAsStateWithLifecycle()
-    val deckNow by requestsViewModel.now.collectAsStateWithLifecycle()
-    val drawnDeck = remember(deck) { deck.filter { it.deckTitle != null } }
+    // Null with Group Money on: no deck under the title, collapsed or expanded.
+    val requestDeck = rememberRequestDeck(
+        viewModel = requestsViewModel,
+        chatId = state.chatId.takeIf { state.chatType == ChatType.GROUP },
+    )
+    val deckExpanded = requestDeck?.expanded == true
     val viewerId = requestsViewModel.viewerId
     // The front card moves between the stack and the expanded list on this, as one shared element.
     val deckTransition = updateTransition(
@@ -542,7 +539,6 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     }
 
     val requestPay = hiltViewModel<RequestPayViewModel>()
-    val groupMoney = LocalNavBarShell.current == NavBarShell.GroupMoney
     val requestPayState by requestPay.state.collectAsStateWithLifecycle()
     val requestPayMembers by requestPay.members.collectAsStateWithLifecycle()
     val requestPayToken by requestPay.token.collectAsStateWithLifecycle()
@@ -635,7 +631,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                             .padding(top = CodeTheme.dimens.grid.x2),
                     )
                 }
-                if (state.chatType == ChatType.GROUP) {
+                if (state.chatType == ChatType.GROUP && requestDeck != null) {
                     // Behind the backdrop whenever the rows are, since it sits over them: a raised
                     // message or its reaction strip reads against a sharp stack otherwise. A tap on
                     // it then dismisses the selection, as a tap on the rows does.
@@ -643,8 +639,8 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                     Box {
                         Box(modifier = Modifier.chatBackdrop(behind = stripBehindBackdrop)) {
                             RequestDeckStrip(
-                                deck = drawnDeck,
-                                now = deckNow,
+                                deck = requestDeck.cards,
+                                now = requestDeck.now,
                                 viewerId = viewerId,
                                 transition = deckTransition,
                                 onExpand = expandDeck,
@@ -652,7 +648,7 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
                                 // Straight to the swipe sheet over the chat; the card body opens details.
                                 onPay = { request ->
                                     state.chatId?.let { chatId ->
-                                        keyboard.hideIfVisible { requestPay.pay(chatId, request.id, collections = groupMoney) }
+                                        keyboard.hideIfVisible { requestPay.pay(chatId, request.id) }
                                     }
                                 },
                             )
@@ -856,17 +852,19 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
         funding = requestPayFunding,
         onAddAndPay = requestPay.onAddAndPay,
     )
-    ExpandedRequests(
-        deck = drawnDeck,
-        now = deckNow,
-        viewerId = viewerId,
-        expanded = deckExpanded,
-        transition = deckTransition,
-        top = barHeight,
-        closeAnchor = deckCloseAnchor,
-        onCollapse = { requestsViewModel.setExpanded(false) },
-        onOpen = openRequest,
-    )
+    if (requestDeck != null) {
+        ExpandedRequests(
+            deck = requestDeck.cards,
+            now = requestDeck.now,
+            viewerId = viewerId,
+            expanded = requestDeck.expanded,
+            transition = deckTransition,
+            top = barHeight,
+            closeAnchor = deckCloseAnchor,
+            onCollapse = { requestsViewModel.setExpanded(false) },
+            onOpen = openRequest,
+        )
+    }
 
     // The chat is the top screen only when nothing is drawn over it: another route above this
     // chat or this flow step, a dialog, the in-screen sheets and viewer, or a chat that is itself
