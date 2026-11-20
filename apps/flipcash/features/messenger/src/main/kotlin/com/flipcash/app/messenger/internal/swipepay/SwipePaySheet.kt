@@ -1,6 +1,12 @@
 package com.flipcash.app.messenger.internal.swipepay
 
+import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -75,6 +81,17 @@ internal class SwipePaySheetState internal constructor(
 )
 
 /**
+ * A page pushed inside a [SwipePaySheet], in place of its content: a collection's Payment Details.
+ * While [shown], [content] has slid in from the end over the sheet's content and the sheet has
+ * resized to it; [onBack], from back or the page's own back arrow, slides the content back.
+ */
+internal class SwipePayPage(
+    val shown: Boolean,
+    val onBack: () -> Unit,
+    val content: @Composable () -> Unit,
+)
+
+/**
  * Opens the currency picker for a swipe-to-pay sheet. Unset, the sheet pushes
  * [ChatStep.SendCurrency] on the current navigator, which is right wherever that is the chat
  * flow's; a nested flow host that shadows the navigator provides the chat flow's own.
@@ -92,6 +109,8 @@ internal fun rememberSwipePaySheetState(locked: Boolean): SwipePaySheetState {
 /**
  * The swipe-to-pay sheet: [header] (who), [amount], the currency pill, and the swipe, or [action]
  * in the swipe's place. [replacement], when set, is drawn instead of all of it, in the same sheet.
+ * [page], when set, can be pushed over all of it, in the same sheet; a sheet without one composes
+ * its content directly.
  *
  * Drawn in the host's own window, so a bottom bar the route raises lands above it. A token pick
  * opens the currency list as a half sheet over this one, which stays up beneath it with its
@@ -108,6 +127,7 @@ internal fun SwipePaySheet(
     amount: @Composable () -> Unit,
     action: (@Composable (Modifier) -> Unit)? = null,
     replacement: (@Composable () -> Unit)? = null,
+    page: SwipePayPage? = null,
 ) {
     val pickCurrency = LocalSwipePayCurrencyPicker.current
     val navigator = LocalCodeNavigator.current
@@ -115,7 +135,7 @@ internal fun SwipePaySheet(
     InWindowBottomSheet(
         state = sheetState.sheet,
         onDismissRequest = actions.onDismiss,
-        modifier = modifier,
+        modifier = modifier.testTag(SWIPE_PAY_SHEET_TAG),
         dismissOnScrimTap = !state.backOnly,
         gesturesEnabled = !state.backOnly,
     ) {
@@ -131,60 +151,88 @@ internal fun SwipePaySheet(
                 label = stringResource(state.swipeLabel),
             )
         }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = CodeTheme.dimens.inset)
-                .padding(top = CodeTheme.dimens.grid.x6, bottom = CodeTheme.dimens.grid.x4),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            // Section gap 40 (node 11622:2232) when the currency is fixed.
-            verticalArrangement = Arrangement.spacedBy(
-                if (state.tokenPickable) CodeTheme.dimens.grid.x3 else CodeTheme.dimens.grid.x8
-            ),
-        ) {
-            if (replacement != null) {
-                replacement()
-            } else if (state.tokenPickable) {
-                header()
-                amount()
-                TokenSelectionPill(
-                    token = state.token,
-                    background = White10,
-                    textStyle = CodeTheme.typography.textMedium,
-                    imageSize = CodeTheme.dimens.staticGrid.x3,
-                    contentPadding = PaddingValues(
-                        horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
-                        vertical = CodeTheme.dimens.grid.x1 - 1.dp,
-                    ),
-                    showsDropdownMark = state.pillDropdownMark,
-                    onClick = { if (!state.locked) openPicker() },
-                )
-                swipe(Modifier.padding(top = CodeTheme.dimens.grid.x3))
-            } else {
-                header()
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-                ) {
+        val body = @Composable {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .padding(top = CodeTheme.dimens.grid.x6, bottom = CodeTheme.dimens.grid.x4),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                // Section gap 40 (node 11622:2232) when the currency is fixed.
+                verticalArrangement = Arrangement.spacedBy(
+                    if (state.tokenPickable) CodeTheme.dimens.grid.x3 else CodeTheme.dimens.grid.x8
+                ),
+            ) {
+                if (replacement != null) {
+                    replacement()
+                } else if (state.tokenPickable) {
+                    header()
                     amount()
-                    // Node 11881:2468: 36 tall, 20 coin, SemiBold 17, 5% fill. No chevron.
                     TokenSelectionPill(
-                        modifier = Modifier.height(CodeTheme.dimens.grid.x7),
                         token = state.token,
-                        background = White05,
-                        textStyle = CodeTheme.typography.textMedium.copy(fontSize = 17.sp),
-                        imageSize = CodeTheme.dimens.staticGrid.x4,
+                        background = White10,
+                        textStyle = CodeTheme.typography.textMedium,
+                        imageSize = CodeTheme.dimens.staticGrid.x3,
                         contentPadding = PaddingValues(
-                            horizontal = CodeTheme.dimens.grid.x2,
-                            vertical = CodeTheme.dimens.grid.x1,
+                            horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
+                            vertical = CodeTheme.dimens.grid.x1 - 1.dp,
                         ),
-                        showsPicker = false,
-                        onClick = {},
+                        showsDropdownMark = state.pillDropdownMark,
+                        onClick = { if (!state.locked) openPicker() },
                     )
+                    swipe(Modifier.padding(top = CodeTheme.dimens.grid.x3))
+                } else {
+                    header()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+                    ) {
+                        amount()
+                        // Node 11881:2468: 36 tall, 20 coin, SemiBold 17, 5% fill. No chevron.
+                        TokenSelectionPill(
+                            modifier = Modifier.height(CodeTheme.dimens.grid.x7),
+                            token = state.token,
+                            background = White05,
+                            textStyle = CodeTheme.typography.textMedium.copy(fontSize = 17.sp),
+                            imageSize = CodeTheme.dimens.staticGrid.x4,
+                            contentPadding = PaddingValues(
+                                horizontal = CodeTheme.dimens.grid.x2,
+                                vertical = CodeTheme.dimens.grid.x1,
+                            ),
+                            showsPicker = false,
+                            onClick = {},
+                        )
+                    }
+                    swipe(Modifier)
                 }
-                swipe(Modifier)
             }
         }
+        if (page == null) body() else PushedPage(page, body)
     }
 }
+
+/**
+ * [body], or [page] pushed over it, sliding as the navigation flows push and pop (FlowHost). The
+ * size animates with the slide, and the sheet's wrap-content detent follows it, so the sheet
+ * resizes to the page and back.
+ */
+@Composable
+private fun PushedPage(page: SwipePayPage, body: @Composable () -> Unit) {
+    // Composed inside the sheet, after it registered its own handler, so back pops the page
+    // before it can close the sheet.
+    BackHandler(enabled = page.shown, onBack = page.onBack)
+    AnimatedContent(
+        targetState = page.shown,
+        modifier = Modifier.fillMaxWidth().testTag(SWIPE_PAY_PAGES_TAG),
+        transitionSpec = {
+            val pushing = if (targetState) 1 else -1
+            slideInHorizontally { it * pushing } togetherWith
+                slideOutHorizontally { -it * pushing } using SizeTransform()
+        },
+        label = "swipe pay page",
+    ) { shown -> if (shown) page.content() else body() }
+}
+
+internal const val SWIPE_PAY_SHEET_TAG = "swipe_pay_sheet"
+internal const val SWIPE_PAY_PAGES_TAG = "swipe_pay_pages"

@@ -1,34 +1,52 @@
 package com.flipcash.app.messenger.internal.request
 
+import androidx.activity.ComponentActivity
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.SemanticsNodeInteractionCollection
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.filterToOne
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.flipcash.app.messenger.internal.swipepay.SWIPE_PAY_PAGES_TAG
+import com.flipcash.app.messenger.internal.swipepay.SWIPE_PAY_SHEET_TAG
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.flipcash.app.tokens.FundingBalance
 import com.flipcash.app.tokens.ResourceCollectionFundingStrings
 import com.flipcash.app.tokens.planCollectionFunding
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
 import com.getcode.solana.keys.Mint
 import com.getcode.theme.DesignSystem
 import com.getcode.util.resources.AndroidResources
+import com.getcode.view.LoadingSuccessState
 import io.mockk.every
 import io.mockk.mockk
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -49,7 +67,7 @@ import java.io.File
 class CollectionPaymentDetailsTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     private val strings = ResourceCollectionFundingStrings(AndroidResources(RuntimeEnvironment.getApplication()))
 
@@ -95,25 +113,31 @@ class CollectionPaymentDetailsTest {
         funding: CollectionFundingUi?,
         isFunding: Boolean = true,
         finishing: Boolean = false,
+        progress: LoadingSuccessState = LoadingSuccessState(),
         onAddAndPay: () -> Unit = {},
+        onDismiss: () -> Unit = {},
+        host: @Composable (@Composable () -> Unit) -> Unit = { it() },
     ) {
         composeTestRule.setContent {
             DesignSystem {
-                RequestPaySheet(
-                    pay = RequestPayFlow.State(
-                        requestId = List(16) { 9 },
-                        open = true,
-                        amount = Fiat(10.0, CurrencyCode.USD),
-                        creator = List(16) { 1 },
-                        funding = isFunding,
-                        finishing = finishing,
-                    ),
-                    members = emptyMap(),
-                    token = null,
-                    actions = SwipePayActions(onConfirm = {}, onDismiss = {}),
-                    funding = funding,
-                    onAddAndPay = onAddAndPay,
-                )
+                host {
+                    RequestPaySheet(
+                        pay = RequestPayFlow.State(
+                            requestId = List(16) { 9 },
+                            open = true,
+                            amount = Fiat(10.0, CurrencyCode.USD),
+                            creator = List(16) { 1 },
+                            funding = isFunding,
+                            finishing = finishing,
+                            progress = progress,
+                        ),
+                        members = emptyMap(),
+                        token = null,
+                        actions = SwipePayActions(onConfirm = {}, onDismiss = onDismiss),
+                        funding = funding,
+                        onAddAndPay = onAddAndPay,
+                    )
+                }
             }
         }
     }
@@ -343,6 +367,170 @@ class CollectionPaymentDetailsTest {
 
         composeTestRule.onNodeWithTag(COLLECTION_FEE_LINE_TAG).assertDoesNotExist()
     }
+
+    // Payment Details is pushed inside the pay sheet (spec "Payment Details"): one sheet, the pay
+    // content slid out and gone, and back slides it back.
+
+    private val inPaySheet = hasAnyAncestor(hasTestTag(SWIPE_PAY_SHEET_TAG))
+
+    private fun assertDetailsInsideThePaySheet() {
+        composeTestRule.onAllNodesWithTag(SWIPE_PAY_SHEET_TAG).assertCountEquals(1)
+        composeTestRule.onNode(hasTestTag(PAYMENT_DETAILS_SHEET_TAG) and inPaySheet).assertExists()
+        // Nothing of the pay content is left to peek behind it.
+        listOf("request_pay_swipe", "request_pay_add", COLLECTION_FEE_LINE_TAG, COLLECTION_SHORT_LINE_TAG)
+            .forEach { composeTestRule.onNodeWithTag(it).assertDoesNotExist() }
+    }
+
+    @Test
+    fun `5_3 - the fee line's info pushes Payment Details inside the pay sheet`() {
+        showSheet(ui(case("s5-s6-convert-shortfall")))
+        composeTestRule.onNodeWithTag("request_pay_swipe").assertExists()
+
+        composeTestRule.onNodeWithTag(COLLECTION_FEE_LINE_TAG).performClick()
+        composeTestRule.waitForIdle()
+
+        assertDetailsInsideThePaySheet()
+    }
+
+    @Test
+    fun `7_3 - the short line's info pushes Payment Details inside the pay sheet`() {
+        showSheet(ui(case("s7-short-under-min")))
+        composeTestRule.onNodeWithTag("request_pay_add").assertExists()
+
+        composeTestRule.onNodeWithTag(COLLECTION_SHORT_LINE_TAG).performClick()
+        composeTestRule.waitForIdle()
+
+        assertDetailsInsideThePaySheet()
+    }
+
+    /** The page's height differs from the pay content's; the sheet passes through between them. */
+    @Test
+    fun `the sheet resizes to Payment Details as it slides in`() {
+        showSheet(ui(case("s9-many-small-balances")))
+        val pages = composeTestRule.onNodeWithTag(SWIPE_PAY_PAGES_TAG)
+        val before = pages.height()
+
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.onNodeWithTag(COLLECTION_FEE_LINE_TAG).performClick()
+        val frames = List(40) {
+            composeTestRule.mainClock.advanceTimeByFrame()
+            pages.height()
+        }
+        composeTestRule.mainClock.autoAdvance = true
+        composeTestRule.waitForIdle()
+        val after = pages.height()
+
+        assertNotEquals(before, after)
+        assertTrue(
+            "no frame between $before and $after: $frames",
+            frames.any { it > minOf(before, after) && it < maxOf(before, after) },
+        )
+    }
+
+    @Test
+    fun `back slides the pay content back with the picked currency and amounts kept`() {
+        val case = case("s5-s6-convert-shortfall")
+        val funding = ui(case)
+        val jeffy = token("Jeffy", 7)
+        val bogey = token("Bogey", 8)
+        var token by mutableStateOf<Token?>(jeffy)
+        composeTestRule.setContent {
+            DesignSystem {
+                RequestPaySheet(
+                    pay = RequestPayFlow.State(
+                        requestId = List(16) { 9 },
+                        open = true,
+                        amount = Fiat(10.0, CurrencyCode.USD),
+                        creator = List(16) { 1 },
+                        funding = true,
+                    ),
+                    members = emptyMap(),
+                    token = token,
+                    actions = SwipePayActions(onConfirm = {}, onDismiss = {}),
+                    collectionCurrencies = listOf(balance(jeffy, 0.0), balance(bogey, 4.0)),
+                    onPickCollectionCurrency = { mint -> token = listOf(jeffy, bogey).first { it.address == mint } },
+                    funding = funding,
+                )
+            }
+        }
+        composeTestRule.onNodeWithText("Jeffy").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(collectionCurrencyRowTag(bogey.address)).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("Select Payment Currency").assertDoesNotExist()
+
+        composeTestRule.onNodeWithTag(COLLECTION_FEE_LINE_TAG).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("Bogey").assertDoesNotExist()
+        composeTestRule.onAllNodesWithTag("action_back").filterToOne(placed).performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag(PAYMENT_DETAILS_SHEET_TAG).assertDoesNotExist()
+        composeTestRule.onNode(hasText("Bogey") and inPaySheet).assertExists()
+        composeTestRule.onNodeWithText("$10.00").assertExists()
+        composeTestRule.onNodeWithText(case.getJSONObject("display").getString("modal_fee")).assertExists()
+        composeTestRule.onNodeWithTag("request_pay_swipe").assertExists()
+    }
+
+    @Test
+    fun `system back pops Payment Details first, then closes the sheet`() {
+        var dismissals = 0
+        showSheet(ui(case("s5-s6-convert-shortfall")), onDismiss = { dismissals++ })
+        composeTestRule.onNodeWithTag(COLLECTION_FEE_LINE_TAG).performClick()
+        composeTestRule.waitForIdle()
+
+        systemBack()
+        composeTestRule.onNodeWithTag(PAYMENT_DETAILS_SHEET_TAG).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(COLLECTION_FEE_LINE_TAG).assertExists()
+        assertEquals(0, dismissals)
+
+        systemBack()
+        assertEquals(1, dismissals)
+    }
+
+    /** The app hosts every scene in a lookahead scope, where a resizing sheet once looped (#1929). */
+    @OptIn(ExperimentalSharedTransitionApi::class)
+    @Test
+    fun `Payment Details settles in and out inside a lookahead scope`() {
+        showSheet(ui(case("s7-short-under-min")), host = { SharedTransitionLayout { it() } })
+
+        composeTestRule.onNodeWithTag(COLLECTION_SHORT_LINE_TAG).performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(PAYMENT_DETAILS_SHEET_TAG).assertExists()
+
+        systemBack()
+        composeTestRule.onNodeWithTag(COLLECTION_SHORT_LINE_TAG).assertExists()
+    }
+
+    @Test
+    fun `Payment Details stays shut while the payment is in flight`() {
+        showSheet(ui(case("s5-s6-convert-shortfall")), progress = LoadingSuccessState(loading = true))
+
+        composeTestRule.onNodeWithTag(COLLECTION_FEE_LINE_TAG).performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag(PAYMENT_DETAILS_SHEET_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a sheet that is not funding a collection composes no page`() {
+        showSheet(ui(case("s5-s6-convert-shortfall")), isFunding = false)
+
+        composeTestRule.onNodeWithTag(SWIPE_PAY_PAGES_TAG).assertDoesNotExist()
+        composeTestRule.onNodeWithTag("request_pay_swipe").assertExists()
+    }
+
+    private fun systemBack() {
+        composeTestRule.runOnUiThread { composeTestRule.activity.onBackPressedDispatcher.onBackPressed() }
+        composeTestRule.waitForIdle()
+    }
+
+    private fun SemanticsNodeInteraction.height(): Int = fetchSemanticsNode().size.height
+
+    private fun balance(token: Token, usd: Double) = TokenWithLocalizedBalance(
+        token = token,
+        balance = LocalFiat(usdf = Fiat(usd, CurrencyCode.USD), nativeAmount = Fiat(usd, CurrencyCode.USD)),
+    )
 
     private val placed = SemanticsMatcher("is placed") { it.layoutInfo.isPlaced }
 

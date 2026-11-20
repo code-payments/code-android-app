@@ -17,7 +17,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -37,14 +36,11 @@ import com.flipcash.app.tokens.PaymentDetailsRow
 import com.flipcash.app.tokens.paymentDetailsOrder
 import com.getcode.opencode.internal.extensions.fractionDigits
 import com.flipcash.features.messenger.R
-import com.getcode.navigation.scenes.InWindowBottomSheet
-import com.getcode.navigation.scenes.rememberInWindowSheetState
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
-import kotlinx.coroutines.launch
 
 /** What a funded collection's pay sheet draws about its conversions. */
 internal data class CollectionFundingUi(
@@ -196,55 +192,44 @@ private fun PaymentDetailsEntryLine(
 /**
  * Payment Details (frames 5.3, 6.5, 9.3, nodes 13952:149, 14002:320, 14012:378): back, "You’ll
  * Pay" and its row, "You’ll Use" and one row per currency drawn from, a divider, then "Total".
- * Drawn over the pay sheet, which stays up beneath it; back slides it away and calls [onClosed].
+ * Pushed inside the pay sheet, in place of its content; the back arrow calls [onBack].
  */
 @Composable
-internal fun PaymentDetailsSheet(details: PaymentDetailsUi, onClosed: () -> Unit) {
-    val sheetState = rememberInWindowSheetState()
-    val scope = rememberCoroutineScope()
-    InWindowBottomSheet(state = sheetState, onDismissRequest = onClosed) {
+internal fun PaymentDetailsPage(details: PaymentDetailsUi, onBack: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .testTag(PAYMENT_DETAILS_SHEET_TAG),
+    ) {
+        AppBarWithTitle(
+            title = stringResource(R.string.title_paymentDetails),
+            titleTextStyle = CodeTheme.typography.textLarge,
+            // A leading back, as the frames draw it. onBackIconClicked would trade it for a
+            // trailing Close under a sheet navigator's root.
+            leadingContent = { AppBarDefaults.UpNavigation(onClick = onBack) },
+        )
+        // 9.3 lists 29 currencies, more than a sheet holds.
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .testTag(PAYMENT_DETAILS_SHEET_TAG),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = CodeTheme.dimens.inset)
+                .padding(bottom = CodeTheme.dimens.grid.x4),
         ) {
-            AppBarWithTitle(
-                title = stringResource(R.string.title_paymentDetails),
-                titleTextStyle = CodeTheme.typography.textLarge,
-                // A leading back, as the frames draw it. onBackIconClicked would trade it for a
-                // trailing Close under a sheet navigator's root.
-                leadingContent = {
-                    AppBarDefaults.UpNavigation {
-                        scope.launch {
-                            sheetState.hide()
-                            onClosed()
-                        }
-                    }
-                },
+            DetailsHeading(stringResource(R.string.subtitle_youllPay))
+            DetailsRow(details.pay, Modifier.testTag(PAYMENT_DETAILS_PAY_ROW_TAG))
+            DetailsHeading(stringResource(R.string.subtitle_youllUse))
+            details.use.forEach { DetailsRow(it, Modifier.testTag(PAYMENT_DETAILS_USE_ROW_TAG)) }
+            HorizontalDivider(
+                modifier = Modifier.padding(start = IconSize + RowGap),
+                color = CodeTheme.colors.divider,
             )
-            // 9.3 lists 29 currencies, more than a sheet holds.
-            Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .padding(bottom = CodeTheme.dimens.grid.x4),
-            ) {
-                DetailsHeading(stringResource(R.string.subtitle_youllPay))
-                DetailsRow(details.pay, Modifier.testTag(PAYMENT_DETAILS_PAY_ROW_TAG))
-                DetailsHeading(stringResource(R.string.subtitle_youllUse))
-                details.use.forEach { DetailsRow(it, Modifier.testTag(PAYMENT_DETAILS_USE_ROW_TAG)) }
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = IconSize + RowGap),
-                    color = CodeTheme.colors.divider,
-                )
-                DetailsLine(
-                    modifier = Modifier.testTag(PAYMENT_DETAILS_TOTAL_TAG),
-                    leading = { Spacer(Modifier.size(IconSize)) },
-                    name = { Text(details.total.name, style = Emphasis, color = CodeTheme.colors.textMain) },
-                    amount = details.total.amount,
-                )
-            }
+            DetailsLine(
+                modifier = Modifier.testTag(PAYMENT_DETAILS_TOTAL_TAG),
+                leading = { Spacer(Modifier.size(IconSize)) },
+                name = { Text(details.total.name, style = Emphasis, color = CodeTheme.colors.textMain) },
+                amount = details.total.amount,
+            )
         }
     }
 }

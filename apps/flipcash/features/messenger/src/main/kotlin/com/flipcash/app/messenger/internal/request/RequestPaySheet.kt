@@ -76,6 +76,7 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import com.flipcash.app.messenger.internal.swipepay.LocalSwipePayCurrencyPicker
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
+import com.flipcash.app.messenger.internal.swipepay.SwipePayPage
 import com.flipcash.app.messenger.internal.swipepay.SwipePaySheet
 import com.flipcash.app.messenger.internal.swipepay.SwipePayUiState
 import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
@@ -89,10 +90,11 @@ import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
  *
  * A collection being funded ([RequestPayFlow.State.funding]) picks its currency from
  * [collectionCurrencies] in its own sheet, through [onPickCollectionCurrency], instead of the
- * wallet's currency list: the pick is this payment's alone. Its [funding] fee line opens Payment
- * Details over the sheet. When the balances can't cover it, [CollectionFundingUi.short] takes the
- * swipe's place, its short line opening the same Payment Details, and [onAddAndPay] adds the
- * rest; [RequestPayFlow.State.finishing] then draws
+ * wallet's currency list: the pick is this payment's alone. Its [funding] fee line pushes Payment
+ * Details inside the sheet, in place of its content, and back slides the content back. When the
+ * balances can't cover it, [CollectionFundingUi.short] takes the swipe's place, its short line
+ * opening the same Payment Details, and [onAddAndPay] adds the rest;
+ * [RequestPayFlow.State.finishing] then draws
  * "Finishing Payment" until it's paid.
  */
 @Composable
@@ -108,8 +110,8 @@ internal fun RequestPaySheet(
 ) {
     if (!pay.open) return
     val amount = pay.amount ?: return
-    val sheet = @Composable { feeLine: (@Composable () -> Unit)?, onDetails: () -> Unit ->
-        val swipePay = requestPaySwipeState(pay, token)
+    val swipePay = requestPaySwipeState(pay, token)
+    val sheet = @Composable { feeLine: (@Composable () -> Unit)?, onDetails: () -> Unit, page: SwipePayPage? ->
         PayShareSheet(
             creator = pay.creator?.let(members::get),
             amount = amount,
@@ -128,22 +130,30 @@ internal fun RequestPaySheet(
             } else {
                 null
             },
+            page = page,
         )
     }
     if (!pay.funding) {
-        sheet(null) {}
+        sheet(null, {}, null)
         return
     }
     var picking by rememberSaveable { mutableStateOf(false) }
     var details by rememberSaveable { mutableStateOf(false) }
-    // The fee line and the short line open the same sheet.
-    val openDetails = { details = true }
+    // The fee line and the short line open the same page. Not mid-payment: the page would hide
+    // the swipe in flight.
+    val openDetails = { if (!swipePay.locked) details = true }
+    val closeDetails = { details = false }
     val feeLine = funding?.modalFee?.let { fee ->
         @Composable { CollectionFeeLine(fee = fee, onDetails = openDetails) }
     }
-    CompositionLocalProvider(LocalSwipePayCurrencyPicker provides { picking = true }) { sheet(feeLine, openDetails) }
-    if (details && funding != null) {
-        PaymentDetailsSheet(details = funding.details, onClosed = { details = false })
+    val page = SwipePayPage(
+        shown = details && funding != null,
+        onBack = closeDetails,
+        // Still composed while it slides out, after the plan it drew may have gone.
+        content = { funding?.details?.let { PaymentDetailsPage(details = it, onBack = closeDetails) } },
+    )
+    CompositionLocalProvider(LocalSwipePayCurrencyPicker provides { picking = true }) {
+        sheet(feeLine, openDetails, page)
     }
     if (picking) {
         CollectionCurrencySheet(
@@ -179,6 +189,7 @@ private fun PayShareSheet(
     feeLine: (@Composable () -> Unit)? = null,
     action: (@Composable (Modifier) -> Unit)? = null,
     replacement: (@Composable () -> Unit)? = null,
+    page: SwipePayPage? = null,
     showsHandle: Boolean = true,
     showsCents: Boolean = false,
 ) {
@@ -188,6 +199,7 @@ private fun PayShareSheet(
         sheetState = rememberSwipePaySheetState(locked = swipePay.locked),
         action = action,
         replacement = replacement,
+        page = page,
         header = {
             MemberAvatar(creator, Modifier.requiredSize(CodeTheme.dimens.staticGrid.x10))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
