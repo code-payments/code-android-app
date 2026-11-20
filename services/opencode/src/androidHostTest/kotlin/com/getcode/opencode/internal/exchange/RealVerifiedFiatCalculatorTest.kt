@@ -464,6 +464,45 @@ class RealVerifiedFiatCalculatorTest {
         assertTrue(result.getOrThrow().localFiat.underlyingTokenAmount.quarks > 0)
     }
 
+    @Test
+    fun `computeForQuarks moves exactly the quarks given, valued as compute values them`() = runTest {
+        val supply = 1_000_000_000_000L
+        val token = bondingCurveToken(supply = supply)
+        stubVerifiedState(CurrencyCode.USD, testMint, supply)
+        val priced = calculator.compute(
+            amount = Fiat(fiat = 1.0, currencyCode = CurrencyCode.USD),
+            token = token,
+            rate = Rate.oneToOne,
+            trace = false,
+        ).getOrThrow()
+        val quarks = priced.localFiat.underlyingTokenAmount.quarks
+
+        val result = calculator.computeForQuarks(quarks = quarks, token = token, rate = Rate.oneToOne).getOrThrow()
+
+        assertEquals(quarks, result.localFiat.underlyingTokenAmount.quarks)
+        assertEquals(priced.localFiat.nativeAmount, result.localFiat.nativeAmount)
+        assertEquals(testMint, result.localFiat.mint)
+        assertTrue(result.verifiedState != null)
+    }
+
+    @Test
+    fun `computeForQuarks returns StaleRate when verified state is null`() = runTest {
+        val token = bondingCurveToken(supply = 1_000_000_000_000L)
+        every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
+
+        val result = calculator.computeForQuarks(quarks = 5_000_000_000L, token = token, rate = Rate.oneToOne)
+
+        assertIs<ComputeVerifiedFiatError.StaleRate>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `computeForQuarks on USDF moves exactly the quarks given`() = runTest {
+        val result = calculator.computeForQuarks(quarks = 1_500_000L, token = usdfToken(), rate = Rate.oneToOne).getOrThrow()
+
+        assertEquals(1_500_000L, result.localFiat.underlyingTokenAmount.quarks)
+        assertEquals(Mint.usdf, result.localFiat.mint)
+    }
+
     // endregion
 
     // region helpers

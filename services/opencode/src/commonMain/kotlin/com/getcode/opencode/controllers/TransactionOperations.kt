@@ -39,9 +39,10 @@ interface TransactionOperations {
     ): Result<SwapId>
 
     /**
-     * Sells [amount] of [of] into Dollars. Pass [swapId] and a [SwapFundingSource.SubmitIntent] with
-     * a kept id to make a retry ask for the same swap rather than start another; left out, each call
-     * mints its own.
+     * Sells [amount] of [of] into Dollars. Pass [swapId] and a [SwapFundingSource.SubmitIntent] to
+     * start the swap under ids the caller kept; left out, each call mints its own. The server makes
+     * no promise to dedupe a second start, so a swap it already has in CREATED is funded with
+     * [fundSwap] instead of started again.
      */
     suspend fun sell(
         owner: AccountCluster,
@@ -67,6 +68,18 @@ interface TransactionOperations {
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (StatefulSwapRequest) -> Result<Unit>)? = null,
     ): Result<SwapId>
+
+    /**
+     * Funds a swap the server already has in CREATED (started, funding never landed) under the
+     * funding intent id the server recorded for it, [fundingId]. [amount] prices the swap's
+     * recorded amount plus fee, in [from].
+     */
+    suspend fun fundSwap(
+        owner: AccountCluster,
+        from: Token,
+        amount: VerifiedFiat,
+        fundingId: List<Byte>,
+    ): Result<Unit>
 
     suspend fun pollSwapForState(
         swapId: SwapId,

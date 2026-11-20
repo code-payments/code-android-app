@@ -132,6 +132,22 @@ internal class InternalTransactionRepository @Inject constructor(
         fund = fund,
     ).onFailure { ErrorUtils.handleError(it) }
 
+    override suspend fun fundSwap(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        from: Token,
+        amount: LocalFiat,
+        fundingId: List<Byte>,
+        verifiedState: VerifiedState,
+    ): Result<Unit> = service.fundSwap(
+        scope = scope,
+        owner = owner,
+        from = from,
+        amount = amount,
+        fundingId = fundingId,
+        verifiedState = verifiedState,
+    ).onFailure { ErrorUtils.handleError(it) }
+
     override suspend fun withdrawUsdf(
         scope: CoroutineScope,
         amount: LocalFiat,

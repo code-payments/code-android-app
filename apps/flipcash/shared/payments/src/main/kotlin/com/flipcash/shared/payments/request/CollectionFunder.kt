@@ -12,6 +12,7 @@ import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
+import com.getcode.opencode.model.core.errors.GetPendingSwapsError
 import com.getcode.opencode.model.core.errors.GetSwapError
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -43,11 +44,12 @@ import kotlin.time.Duration.Companion.seconds
  *
  * A leg's swap id and funding intent id are kept by payment request id before it is submitted, so
  * a retry after an unknown outcome asks the server about that swap first instead of converting
- * twice: it waits on a swap in flight, resubmits under the same ids one the server never saw or
- * that is still CREATED (the server dedupes on the swap id), and mints fresh ids only once the
- * server says the swap FAILED or was CANCELLED. A swap that still hasn't settled after that stops
- * funding with [CollectionFundingError.ConversionPending]. After legs land it plans again from the
- * balances as fetched, and converts more only if the balances cover the gap.
+ * twice: it waits on a swap in flight, starts one the server never saw again under both kept ids,
+ * funds one still CREATED under the funding id the server recorded for it rather than starting it
+ * again, and mints fresh ids only once the server says the swap FAILED or was CANCELLED. A swap
+ * funded on retry that still hasn't settled stops funding with
+ * [CollectionFundingError.ConversionPending]. After legs land it plans again from the balances as
+ * fetched, and converts more only if the balances cover the gap.
  */
 @Singleton
 class CollectionFunder @Inject constructor(
@@ -71,7 +73,7 @@ class CollectionFunder @Inject constructor(
      */
     suspend fun fund(requestId: ID, amount: Fiat, paying: Token, owner: AccountCluster): Result<Unit> =
         mutex.withLock {
-            settleStarted(requestId, owner).onFailure { return@withLock Result.failure(it) }
+            val created = settleStarted(requestId, owner).getOrElse { return@withLock Result.failure(it) }
             repeat(MAX_ROUNDS) {
                 tokenCoordinator.update()
                 val rate = exchange.rateFor(amount.currencyCode)
@@ -86,7 +88,7 @@ class CollectionFunder @Inject constructor(
                 if (legs.isEmpty()) return@withLock Result.success(Unit)
                 val before = tokenCoordinator.currentBalance(paying.address)
                 for (leg in legs) {
-                    runLeg(requestId, leg, paying, balances, rate, owner)
+                    runLeg(requestId, leg, paying, balances, rate, owner, created)
                         .onFailure { return@withLock Result.failure(it) }
                 }
                 awaitBalanceAbove(paying.address, before).onFailure { return@withLock Result.failure(it) }
@@ -119,15 +121,17 @@ class CollectionFunder @Inject constructor(
      * Settles every leg a previous attempt kept, by the server's state of its swap:
      * - FINALIZED, FAILED or CANCELLED: the outcome is known, so the record goes. A failed pair
      *   gets fresh ids if the plan still needs it.
-     * - Never seen, or CREATED (its funding never landed): kept, so the next leg for the same pair
-     *   resubmits under its ids.
-     * - CANCELLING: waited on until the server cancels it. In flight: waited on until it
-     *   finalises.
+     * - Never seen: kept, so the next leg for the same pair starts it again under both ids.
+     * - CREATED (started, funding never landed): kept and returned, so the next leg for the same
+     *   pair funds it instead of starting it again.
+     * - CANCELLING: waited on until the server cancels it. In flight (FUNDING, FUNDED, SUBMITTING):
+     *   waited on until it finalises.
      * A wait that ends without an outcome stops funding with
      * [CollectionFundingError.ConversionPending] and keeps the record: no new id is minted while
      * the old swap may still settle.
      */
-    private suspend fun settleStarted(requestId: ID, owner: AccountCluster): Result<Unit> {
+    private suspend fun settleStarted(requestId: ID, owner: AccountCluster): Result<Set<SwapId>> {
+        val created = mutableSetOf<SwapId>()
         for (record in store.legs(requestId)) {
             val found = swaps.getSwap(record.swapId, owner.authority.keyPair)
             val swap = found.getOrNull()
@@ -138,7 +142,10 @@ class CollectionFunder @Inject constructor(
             }
             when (swap.state) {
                 SwapState.FINALIZED, SwapState.FAILED, SwapState.CANCELLED -> Unit
-                SwapState.CREATED -> continue
+                SwapState.CREATED -> {
+                    created += record.swapId
+                    continue
+                }
                 SwapState.CANCELLING -> awaitOutcome(record, owner, SwapState.CANCELLED)
                     .onFailure { return Result.failure(it) }
                 else -> awaitOutcome(record, owner, SwapState.FINALIZED)
@@ -146,7 +153,7 @@ class CollectionFunder @Inject constructor(
             }
             store.remove(requestId, record.swapId)
         }
-        return Result.success(Unit)
+        return Result.success(created)
     }
 
     /**
@@ -166,10 +173,12 @@ class CollectionFunder @Inject constructor(
         balances: List<FundingBalance>,
         rate: Rate,
         owner: AccountCluster,
+        created: Set<SwapId>,
     ): Result<Unit> {
         val from = tokenCoordinator.cachedToken(Mint(leg.source))
             ?: return Result.failure(CollectionFundingError.UnknownCurrency())
         val kept = store.legs(requestId).firstOrNull { it.from == from.address && it.to == paying.address }
+        if (kept != null && kept.swapId in created) return fundCreated(requestId, kept, from, rate, owner)
         val record = kept
             ?: FundingLegRecord(
                 from = from.address,
@@ -195,14 +204,50 @@ class CollectionFunder @Inject constructor(
         }
         // An unknown outcome keeps the record, so the retry asks the server about this swap first.
         submitted.onFailure { return Result.failure(it) }
+        return awaitLeg(requestId, record, owner, retried = kept != null)
+    }
+
+    /**
+     * Funds [record]'s swap, which the server has in CREATED, under the funding id the server
+     * recorded for it, never starting it again: a second start isn't deduped, and funding under
+     * another intent id could pay the swap twice. The server's funding id wins over the kept one,
+     * and the amount is what the server recorded. A swap missing from the pending list, or listed
+     * in another state, has moved on since it was reported CREATED, so it is waited on.
+     */
+    private suspend fun fundCreated(
+        requestId: ID,
+        record: FundingLegRecord,
+        from: Token,
+        rate: Rate,
+        owner: AccountCluster,
+    ): Result<Unit> {
+        val pending = swaps.getPendingSwaps(owner.authority.keyPair).getOrElse { error ->
+            if (error is GetPendingSwapsError.NotFound) emptyList() else return Result.failure(error)
+        }
+        val recorded = pending
+            .firstOrNull { it.swapId == record.swapId && it.state == SwapState.CREATED }
+            ?.verifiedMetadata
+        val fundingId = (recorded?.fundingSource as? SwapFundingSource.SubmitIntent)?.id
+        if (recorded == null || fundingId == null) return awaitLeg(requestId, record, owner, retried = true)
+        val quarks = recorded.swapAmount.quarks + (recorded.feeAmount?.quarks ?: 0L)
+        val amount = verifiedFiatCalculator.computeForQuarks(quarks, from, rate).getOrElse { return Result.failure(it) }
+        // An unknown outcome keeps the record: the retry finds the swap CREATED or in flight again.
+        transactions.fundSwap(owner, from, amount, fundingId).onFailure { return Result.failure(it) }
+        return awaitLeg(requestId, record, owner, retried = true)
+    }
+
+    /**
+     * Waits on [record]'s swap to finalise. A swap the server failed or cancelled drops its record,
+     * so a retry may mint anew. One that hasn't settled keeps it; when [retried], a later retry
+     * must wait on it, so funding stops on [CollectionFundingError.ConversionPending].
+     */
+    private suspend fun awaitLeg(requestId: ID, record: FundingLegRecord, owner: AccountCluster, retried: Boolean): Result<Unit> {
         transactions.pollSwapForState(record.swapId, owner, SwapState.FINALIZED).onFailure { error ->
             if (error.endedSwap) {
-                // The server failed or cancelled it: its outcome is known, so a retry may mint anew.
                 store.remove(requestId, record.swapId)
                 return Result.failure(error)
             }
-            // A resubmitted swap that still hasn't settled may yet: the retry must wait on it.
-            return Result.failure(if (kept != null) CollectionFundingError.ConversionPending() else error)
+            return Result.failure(if (retried) CollectionFundingError.ConversionPending() else error)
         }
         store.remove(requestId, record.swapId)
         return Result.success(Unit)
@@ -257,7 +302,7 @@ sealed class CollectionFundingError(message: String) : Exception(message) {
 
     /**
      * A conversion kept from an earlier attempt still hasn't settled, after waiting on it or
-     * resubmitting it. Nothing new is converted while it may still land; try again shortly.
+     * funding it on retry. Nothing new is converted while it may still land; try again shortly.
      */
     class ConversionPending : CollectionFundingError("a conversion is still pending")
 

@@ -10,6 +10,7 @@ import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.core.errors.GetPendingSwapsError
 import com.getcode.opencode.model.core.errors.GetSwapError
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.CurrencyCode
@@ -20,9 +21,13 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.Swap
 import com.getcode.opencode.model.transactions.SwapFundingSource
+import com.getcode.opencode.model.transactions.SwapMetadata
 import com.getcode.opencode.model.transactions.SwapState
+import com.getcode.opencode.model.transactions.VerifiedSwapMetadata
 import com.getcode.opencode.repositories.SwapRepository
+import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.PublicKey
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -241,7 +246,7 @@ class CollectionFunderTest {
     }
 
     @Test
-    fun `a retry after an unknown outcome resubmits under the kept ids`() = runTest {
+    fun `a kept swap the server never saw starts again under both kept ids`() = runTest {
         hold(Token.usdf to "2.00", al to "20.00")
         val offline = IllegalStateException("offline")
         coEvery { transactions.sell(owner, any(), al, any(), any()) } answers {
@@ -263,6 +268,9 @@ class CollectionFunderTest {
         assertEquals(submitted[0].swapId, submitted[1].swapId)
         assertEquals(submitted[0].fundingId, submitted[1].fundingId)
         assertEquals(kept.swapId, submitted[1].swapId)
+        assertEquals(kept.fundingIntentId, submitted[1].fundingId)
+        coVerify(exactly = 0) { swaps.getPendingSwaps(any()) }
+        coVerify(exactly = 0) { transactions.fundSwap(any(), any(), any(), any()) }
         assertTrue(store.legs(requestId).isEmpty())
     }
 
@@ -308,32 +316,116 @@ class CollectionFunderTest {
         }
     }
 
+    /** Every funding intent submitted for a swap the server already had: from, funding id, priced amount. */
+    private data class Funded(val from: Token, val fundingId: List<Byte>, val amount: VerifiedFiat)
+
+    private val funded = mutableListOf<Funded>()
+    private val pricedQuarks = mutableListOf<Long>()
+
+    /**
+     * The server lists [record]'s swap as pending in [state], recorded under [fundingId] with the
+     * given amounts in quarks of the leg's source; pricing those quarks and funding succeed.
+     */
+    private fun serverHasPending(
+        record: FundingLegRecord,
+        fundingId: List<Byte>,
+        state: SwapState = SwapState.CREATED,
+        swapQuarks: Long = 8_000_000L,
+        feeQuarks: Long = 40_000L,
+    ) {
+        val swap = SwapMetadata(
+            verifiedMetadata = VerifiedSwapMetadata.Reserve(
+                id = record.swapId,
+                fromMint = record.from,
+                toMint = record.to,
+                swapAmount = Fiat(swapQuarks, CurrencyCode.USD),
+                feeAmount = Fiat(feeQuarks, CurrencyCode.USD),
+                fundingSource = SwapFundingSource.SubmitIntent(fundingId),
+            ),
+            state = state,
+            signature = emptyList(),
+        )
+        coEvery { swaps.getPendingSwaps(any()) } returns Result.success(listOf(swap))
+        coEvery { calculator.computeForQuarks(any(), any(), any()) } answers {
+            val quarks = firstArg<Long>()
+            pricedQuarks += quarks
+            val usd = Fiat(quarks, CurrencyCode.USD)
+            Result.success(VerifiedFiat(LocalFiat(usd, usd, arg(2), secondArg<Token>().address), this@CollectionFunderTest.state))
+        }
+        coEvery { transactions.fundSwap(owner, any(), any(), any()) } answers {
+            funded += Funded(arg(1), arg(3), arg(2))
+            Result.success(Unit)
+        }
+    }
+
     @Test
-    fun `a retry resubmits a kept swap the server reports CREATED under its kept ids`() = runTest {
+    fun `a kept swap the server reports CREATED is funded once under its recorded id, not started again`() = runTest {
         val kept = keepUnsettledLeg()
         serverSays(kept, SwapState.CREATED)
+        // The server's funding id differs from the kept one: the server's wins.
+        val recordedId = PublicKey.generate().bytes
+        assertNotEquals(kept.fundingIntentId, recordedId)
+        serverHasPending(kept, recordedId, swapQuarks = 8_000_000L, feeQuarks = 40_000L)
         legsSettle()
 
         assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
 
-        assertEquals(2, submitted.size)
-        assertEquals(kept.swapId, submitted[1].swapId)
-        assertEquals(kept.fundingIntentId, submitted[1].fundingId)
-        // It was resubmitted, not waited on before the resubmit.
-        coVerify(exactly = 0) { transactions.pollSwapForState(kept.swapId, owner, SwapState.CANCELLED, any(), any()) }
+        val funding = funded.single()
+        assertEquals(recordedId, funding.fundingId)
+        assertEquals(al, funding.from)
+        // It moves what the server recorded: the swap's amount plus its fee.
+        assertEquals(listOf(8_040_000L), pricedQuarks)
+        assertEquals(8_040_000L, funding.amount.localFiat.underlyingTokenAmount.quarks)
+        // Only the first attempt started the swap; the retry never starts it again.
+        assertEquals(1, submitted.size)
+        coVerify(exactly = 1) { transactions.sell(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { transactions.buy(any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { transactions.swap(any(), any(), any(), any(), any(), any(), any(), any()) }
         assertTrue(store.legs(requestId).isEmpty())
     }
 
     @Test
-    fun `a resubmitted swap that still hasn't settled stops on the pending state and keeps its ids`() = runTest {
+    fun `a CREATED swap funded on retry that still hasn't settled stops on the pending state and keeps its ids`() = runTest {
         val kept = keepUnsettledLeg()
         serverSays(kept, SwapState.CREATED)
+        serverHasPending(kept, kept.fundingIntentId)
 
         val result = fund(Fiat("10.00", CurrencyCode.USD), Token.usdf)
 
         assertIs<CollectionFundingError.ConversionPending>(result.exceptionOrNull())
-        assertEquals(listOf(kept.swapId, kept.swapId), submitted.map { it.swapId })
+        assertEquals(1, funded.size)
+        assertEquals(1, submitted.size)
         assertEquals(kept, store.legs(requestId).single())
+    }
+
+    @Test
+    fun `a CREATED swap missing from the pending swaps is waited on, not funded or started again`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CREATED)
+        // The server reports an empty pending list as not found.
+        coEvery { swaps.getPendingSwaps(any()) } returns Result.failure(GetPendingSwapsError.NotFound())
+        legsSettle()
+
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
+
+        assertEquals(1, submitted.size)
+        coVerify(exactly = 0) { transactions.fundSwap(any(), any(), any(), any()) }
+        coVerify(exactly = 2) { transactions.pollSwapForState(kept.swapId, owner, SwapState.FINALIZED, any(), any()) }
+        assertTrue(store.legs(requestId).isEmpty())
+    }
+
+    @Test
+    fun `a CREATED swap the pending list shows as FUNDED is waited on, not funded again`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CREATED)
+        serverHasPending(kept, kept.fundingIntentId, state = SwapState.FUNDED)
+        legsSettle()
+
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
+
+        assertTrue(funded.isEmpty())
+        assertEquals(1, submitted.size)
+        assertTrue(store.legs(requestId).isEmpty())
     }
 
     @Test
@@ -362,6 +454,7 @@ class CollectionFunderTest {
 
         assertEquals(2, submitted.size)
         assertNotEquals(kept.swapId, submitted[1].swapId)
+        assertNotEquals(kept.fundingIntentId, submitted[1].fundingId)
         assertTrue(store.legs(requestId).isEmpty())
     }
 

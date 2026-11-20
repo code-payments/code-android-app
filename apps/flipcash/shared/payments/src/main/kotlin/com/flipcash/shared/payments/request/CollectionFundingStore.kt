@@ -25,8 +25,8 @@ import javax.inject.Singleton
 
 /**
  * A conversion this device has started, or is about to start, to fund a collection payment: the
- * swap id and funding intent id it was submitted under, kept so a retry asks for the same swap
- * instead of starting a second one.
+ * swap id and funding intent id it was submitted under, kept so a retry asks the server about that
+ * swap first instead of starting a second one.
  */
 data class FundingLegRecord(
     val from: Mint,

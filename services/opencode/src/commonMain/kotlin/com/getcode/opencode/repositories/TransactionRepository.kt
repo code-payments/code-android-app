@@ -82,6 +82,16 @@ interface TransactionRepository {
         fund: (suspend (StatefulSwapRequest) -> Result<Unit>)? = null,
     ): Result<SwapId>
 
+    /** Funds a swap the server has in CREATED under the funding intent id it recorded, [fundingId]. */
+    suspend fun fundSwap(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        from: Token,
+        amount: LocalFiat,
+        fundingId: List<Byte>,
+        verifiedState: VerifiedState,
+    ): Result<Unit>
+
     suspend fun withdrawUsdf(
         scope: CoroutineScope,
         amount: LocalFiat,

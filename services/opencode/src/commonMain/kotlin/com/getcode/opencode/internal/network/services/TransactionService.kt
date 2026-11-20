@@ -293,6 +293,28 @@ internal class TransactionService @Inject constructor(
         return statefulSwap(scope, request, tokenCluster, fundedWith)
     }
 
+    /**
+     * Funds a swap the server already has in CREATED, under the funding intent id it recorded:
+     * moves [amount] (the swap's amount plus fee) of [from] out of [owner]'s [from] vault, the
+     * same intent [statefulSwap] submits once the swap starts.
+     */
+    suspend fun fundSwap(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        from: Token,
+        amount: LocalFiat,
+        fundingId: List<Byte>,
+        verifiedState: VerifiedState,
+    ): Result<Unit> = swapFunding.fund(
+        scope = scope,
+        owner = owner,
+        intentId = PublicKey(fundingId),
+        sourceCluster = owner.withTimelockForToken(from),
+        amount = amount,
+        from = from,
+        verifiedState = verifiedState,
+    ).map { Unit }
+
     suspend fun withdrawUsdf(
         scope: CoroutineScope,
         amount: LocalFiat,

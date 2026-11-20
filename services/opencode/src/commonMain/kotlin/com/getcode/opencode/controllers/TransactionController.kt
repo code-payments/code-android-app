@@ -471,6 +471,34 @@ class TransactionController @Inject constructor(
         fund = fund,
     )
 
+    override suspend fun fundSwap(
+        owner: AccountCluster,
+        from: Token,
+        amount: VerifiedFiat,
+        fundingId: List<Byte>,
+    ): Result<Unit> {
+        val verifiedState = amount.verifiedState
+            ?: return Result.failure(SwapError.Other(IllegalStateException("No verified state found")))
+
+        return repository.fundSwap(
+            scope = scope,
+            owner = owner,
+            from = from,
+            amount = amount.localFiat,
+            fundingId = fundingId,
+            verifiedState = verifiedState,
+        )
+            .onSuccess { refreshAccountState() }
+            .onFailure { error ->
+                trace(
+                    tag = "TransactionController",
+                    message = error.message.orEmpty(),
+                    type = TraceType.Error,
+                    error = error
+                )
+            }
+    }
+
     /**
      * Funds a brand-new currency launch of the freshly-launched stub [newToken] using [fundingSource]. USDF
      * triggers a plain [buy] of [newToken] under the hood; any other currency triggers the treasury-funded
