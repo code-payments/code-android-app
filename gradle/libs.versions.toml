@@ -122,7 +122,7 @@ event-bus = "0.1.0"
 bignum = "0.3.10"
 
 bugsnag = "6.28.1"
-bugsnag-gradle-plugin = "1.2.0"
+bugsnag-gradle-plugin = "1.2.1"
 rinku = "1.9.0"
 compose-unstyled = "2.10.2"
 haze = "2.1.0"
