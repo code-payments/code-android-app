@@ -242,4 +242,11 @@ class PaymentRequestsMissingTest {
 
         assertFalse(id in requests.missing.value)
     }
+
+    @Test
+    fun `a collection is stored under its chat`(): Unit = runBlocking {
+        requests().ingest(listOf(collection))
+
+        assertEquals(listOf(id), store.inChat(chatId).map { it.id })
+    }
 }
