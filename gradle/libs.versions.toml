@@ -83,7 +83,7 @@ ocp-client-protocol-wire = "0.11.0"
 # and :services:flipcash-client. Android stays on the protobuf-java artifact above.
 flipcash2-client-protocol-wire = "0.27.0"
 # The Wire runtime the -wire artifacts above are built against, for :libs:wire-canonical.
-wire = "7.1.2"
+wire = "7.2.1"
 
 # The Android port is the ONLY libphonenumber this app depends on, deliberately. Google's
 # `com.googlecode` artifact used to sit alongside it; the two ship separate copies of the metadata,
