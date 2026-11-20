@@ -218,6 +218,23 @@ class RequestPaySheetTest {
         composeTestRule.onNodeWithText("@ted").assertDoesNotExist()
     }
 
+    /** Frame 5.2 draws "$10.00". */
+    @Test
+    fun `a collection's sheet draws its amount with cents`() {
+        setSheet(collection, onPicker = {})
+
+        composeTestRule.onNodeWithText("$14.00").assertExists()
+        composeTestRule.onNodeWithText("$14").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a sheet with the collections flag off draws a whole amount without cents`() {
+        setSheet(collection.copy(funding = false), onPicker = {})
+
+        composeTestRule.onNodeWithText("$14").assertExists()
+        composeTestRule.onNodeWithText("$14.00").assertDoesNotExist()
+    }
+
     @Test
     fun `the list fills the paying currency's radio and no other`() {
         setFundingSheet(onPick = {})

@@ -56,6 +56,7 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.paymentrequest.statusLine
 import com.flipcash.shared.chat.ui.request.RequestProgressBar
 import com.flipcash.shared.chat.ui.request.progressText
+import com.flipcash.app.core.ui.inDisplayCurrency
 import com.flipcash.shared.chat.ui.request.requestText
 import com.flipcash.shared.chat.ui.request.text
 import com.flipcash.shared.common.ui.ContactAvatar
@@ -116,6 +117,7 @@ internal fun RequestPaySheet(
             actions = actions,
             feeLine = feeLine,
             showsHandle = !pay.funding,
+            showsCents = pay.funding,
             action = funding?.short?.takeIf { pay.funding }?.let { short ->
                 @Composable { modifier: Modifier ->
                     CollectionShortAction(short, swipePay, onAddAndPay, onDetails, modifier)
@@ -178,6 +180,7 @@ private fun PayShareSheet(
     action: (@Composable (Modifier) -> Unit)? = null,
     replacement: (@Composable () -> Unit)? = null,
     showsHandle: Boolean = true,
+    showsCents: Boolean = false,
 ) {
     SwipePaySheet(
         state = swipePay,
@@ -207,7 +210,13 @@ private fun PayShareSheet(
         amount = {
             val amountText = @Composable {
                 Text(
-                    text = amount.requestText(),
+                    // A collection's sheet (5.2) draws "$10.00", in the currency's minor digits; a
+                    // share's drops a whole amount's ".00".
+                    text = if (showsCents) {
+                        amount.inDisplayCurrency().formatted(Fiat.FormattingRule.None)
+                    } else {
+                        amount.requestText()
+                    },
                     style = CodeTheme.typography.displayMedium,
                     color = CodeTheme.colors.textMain,
                 )
