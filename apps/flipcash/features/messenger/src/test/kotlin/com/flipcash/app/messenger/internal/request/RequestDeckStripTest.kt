@@ -16,7 +16,9 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.paymentrequest.CollectionAmount
 import com.flipcash.services.models.paymentrequest.PaidShare
+import com.flipcash.services.models.paymentrequest.PaymentCollection
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
@@ -27,6 +29,7 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.theme.DesignSystem
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -70,6 +73,25 @@ class RequestDeckStripTest {
                     Share(debtor, twenty, if (debtorPaid) PaidShare(Instant.fromEpochSeconds(20), PaidShare.How.Payment) else null),
                     Share(payer, twenty, PaidShare(Instant.fromEpochSeconds(10), PaidShare.How.Payment)),
                 ),
+            ),
+        ),
+    )
+
+    private fun collection() = PaymentRequest(
+        id = List(16) { 7 },
+        creator = creator,
+        createdAt = Instant.fromEpochSeconds(0),
+        status = PaymentRequestStatus.Open,
+        closedAt = null,
+        version = 1,
+        kind = PaymentRequest.Kind.GroupCollection(
+            chatId = ChatId(ByteArray(32) { 3 }),
+            collection = PaymentCollection(
+                // A title the deck would draw if it read one, so only the kind keeps it out.
+                text = PaymentRequestText.Plain("Dinner", ""),
+                currency = CurrencyCode.USD,
+                endsAt = null,
+                amount = CollectionAmount.Fixed(twenty),
             ),
         ),
     )
@@ -166,5 +188,17 @@ class RequestDeckStripTest {
         composeTestRule.waitForIdle()
 
         assertEquals(1, cycles)
+    }
+
+    /**
+     * A collection is paid from the Request screen only, whose Pay tops up without the sheet when
+     * no balance funds it (group-collections spec, frames 1.1 and 2.1). The chat draws the deck
+     * from the requests with a deck title (MessengerScreen's drawnDeck), and the deck's Pay always
+     * opens the sheet. A collection has no deck title, so it never fronts that Pay.
+     */
+    @Test
+    fun `a collection has no deck title, so the deck's Pay never opens the sheet for one`() {
+        assertNull(collection().deckTitle)
+        assertEquals("Dinner", request().deckTitle)
     }
 }
