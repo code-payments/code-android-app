@@ -6,7 +6,9 @@ import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.tokens.FundingBalance
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.app.tokens.planCollectionFunding
+import com.flipcash.features.messenger.R
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.payments.request.CollectionFundingError
 import com.flipcash.shared.payments.request.CollectionFundingPlanner
 import com.flipcash.shared.payments.request.CollectionTopUp
 import com.flipcash.shared.payments.request.CollectionTopUpBlocked
@@ -96,6 +98,9 @@ class CollectionTopUpFlowTest {
     private var nothingToPay = 0
     private var payFailures = 0
 
+    /** How many top-ups had been ordered at each settle of the kept conversions. */
+    private val settles = mutableListOf<Int>()
+
     @Before
     fun setUp() {
         BottomBarManager.clear()
@@ -116,6 +121,9 @@ class CollectionTopUpFlowTest {
         coEvery { payments.prepare(any(), any()) } answers {
             Result.success(if (paid > 0) ShareToPay.NothingToPay(request.request) else request)
         }
+        // Nothing kept from an earlier attempt unless a test keeps a conversion.
+        settles.clear()
+        coEvery { payments.settleKeptConversions(any(), any()) } returns Result.success(false)
         coEvery { payments.pay(any(), any(), any(), any()) } answers {
             if (payFailures > 0) {
                 payFailures--
@@ -423,6 +431,122 @@ class CollectionTopUpFlowTest {
 
         assertEquals(listOf(500L, 500L), rail.orders)
         assertEquals(1, paid)
+    }
+
+    /**
+     * An earlier attempt kept a conversion into Dollars that lands [micros] once settled; later
+     * settles find nothing kept.
+     */
+    private fun keepConversionLanding(micros: Long) {
+        coEvery { payments.settleKeptConversions(any(), any()) } answers {
+            settles += rail.orders.size
+            if (settles.size == 1) dollarsMicros += micros
+            Result.success(settles.size == 1)
+        }
+    }
+
+    /** Recovery 3: the kept conversion settles before anything is ordered. */
+    @Test
+    fun `a retry settles a kept conversion before ordering a top-up the conversion leaves unchanged`() {
+        useCase("s7-short-under-min")
+        // $1.00 more in Dollars still leaves the payment short by less than the $5.00 minimum.
+        keepConversionLanding(1_000_000L)
+        val f = openSheet()
+
+        f.onAddAndPay()
+
+        assertEquals(listOf(0), settles, "settled once, before any order")
+        assertEquals(listOf(500L), rail.orders)
+        assertEquals(1, paid)
+    }
+
+    /** Recovery 3, outcome 3: the settled conversion covers the payment, so Google Pay never opens. */
+    @Test
+    fun `a kept conversion that covers the payment once settled pays with no top-up`() {
+        useCase("s4-add-then-pay")
+        keepConversionLanding(4_000_000L)
+        val f = openSheet()
+
+        f.onAddAndPay()
+
+        assertTrue(rail.orders.isEmpty(), "nothing ordered")
+        assertEquals(1, paid)
+        coVerify(exactly = 1) { payments.pay(any(), Token.usdf, owner, true) }
+    }
+
+    /**
+     * Recovery 3, outcome 4: the settled conversion changes the top-up from the $12.04 the user saw,
+     * so the short state asks again, and the next tap orders the new amount.
+     */
+    @Test
+    fun `a kept conversion that changes the top-up shows the short state, and the next tap orders the new amount`() {
+        val case = useCase("s8-short-over-min")
+        assertEquals(1204L, expectedCents(case))
+        keepConversionLanding(2_000_000L)
+        val f = openSheet()
+
+        f.onAddAndPay()
+
+        assertTrue(rail.orders.isEmpty(), "nothing ordered at the amount seen before the conversion settled")
+        assertEquals(0, paid)
+        assertTrue(f.state.value.open)
+        assertTrue(f.state.value.progress.isIdle)
+        assertEquals(false, f.state.value.finishing)
+        val replanned = planNow().topUpMicros / MICROS_PER_CENT
+        assertEquals(1004L, replanned)
+
+        f.onAddAndPay()
+
+        assertEquals(listOf(replanned), rail.orders, "sized from the balances after the conversion")
+        assertEquals(1, paid)
+    }
+
+    /** Outcome 4 from the Request screen, which has no short state: the sheet opens on it. */
+    @Test
+    fun `a kept conversion that changes the Request screen's top-up opens the sheet's short state`() {
+        useCase("s1-no-balance")
+        keepConversionLanding(3_000_000L)
+        val f = flow()
+
+        tapRequestScreenPay(f)
+
+        assertTrue(rail.orders.isEmpty())
+        assertEquals(0, paid)
+        assertTrue(f.state.value.open)
+        assertEquals(false, f.state.value.direct)
+        assertTrue(f.state.value.progress.isIdle)
+    }
+
+    /**
+     * Outcome 5: a kept conversion still unsettled orders nothing and says so; any other failure to
+     * settle orders nothing either.
+     */
+    @Test
+    fun `a kept conversion that won't settle orders nothing and says why`() {
+        val outcomes = listOf(
+            CollectionFundingError.ConversionPending() to
+                (R.string.error_title_collectionConversionPending to R.string.error_description_collectionConversionPending),
+            IllegalStateException("offline") to
+                (R.string.error_title_cashFailedToSend to R.string.error_description_cashFailedToSend),
+        )
+        for ((cause, strings) in outcomes) {
+            setUp()
+            every { resources.getString(any<Int>()) } answers { "string ${firstArg<Int>()}" }
+            useCase("s7-short-under-min")
+            coEvery { payments.settleKeptConversions(any(), any()) } returns Result.failure(cause)
+            val f = openSheet()
+
+            f.onAddAndPay()
+
+            assertTrue(rail.orders.isEmpty(), "$cause")
+            assertEquals(0, paid, "$cause")
+            coVerify(exactly = 0) { payments.pay(any(), any(), any(), any()) }
+            assertTrue(f.state.value.open, "$cause")
+            assertTrue(f.state.value.progress.isIdle, "$cause")
+            val shown = BottomBarManager.messages.value.single()
+            assertEquals("string ${strings.first}", shown.title, "$cause")
+            assertEquals("string ${strings.second}", shown.subtitle, "$cause")
+        }
     }
 
     /** The Request screen's Pay, which tops up without the sheet when nothing funds the collection. */

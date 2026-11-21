@@ -553,6 +553,153 @@ class CollectionFunderTest {
         assertEquals(2, submitted.size)
     }
 
+    // settle: a retry that would top up settles what was kept first (spec, "Adding money and
+    // recovery" item 3), so the top-up is sized from balances the kept swaps have already reached.
+
+    private suspend fun settle(): Result<Boolean> = funder.settle(requestId, CurrencyCode.USD, owner)
+
+    @Test
+    fun `settling with nothing kept asks the server nothing and fetches no balance`() = runTest {
+        assertEquals(false, settle().getOrThrow())
+
+        coVerify(exactly = 0) { swaps.getSwap(any(), any()) }
+        coVerify(exactly = 0) { swaps.getPendingSwaps(any()) }
+        coVerify(exactly = 0) { tokenCoordinator.update() }
+    }
+
+    @Test
+    fun `settling funds a kept CREATED swap under its recorded id and returns once its Dollars show`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CREATED)
+        val recordedId = PublicKey.generate().bytes
+        serverHasPending(kept, recordedId)
+        legsSettle()
+
+        assertEquals(true, settle().getOrThrow())
+
+        assertEquals(recordedId, funded.single().fundingId)
+        assertEquals(1, submitted.size, "never started again")
+        assertEquals(Fiat("10.00", CurrencyCode.USD).quarks, balances[Mint.usdf], "the $8.00 reached the balance")
+        assertTrue(store.legs(requestId).isEmpty())
+    }
+
+    @Test
+    fun `settling waits on a kept swap in flight until its balance rises`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.FUNDING)
+        coEvery { transactions.pollSwapForState(kept.swapId, owner, SwapState.FINALIZED, any(), any()) } returns
+            Result.success(mockk())
+        // The swap finalises before its Dollars reach the balance: they show on the third fetch.
+        var fetches = 0
+        coEvery { tokenCoordinator.update() } answers {
+            if (++fetches == 3) balances[Mint.usdf] = Fiat("10.00", CurrencyCode.USD).quarks
+        }
+
+        assertEquals(true, settle().getOrThrow())
+
+        assertEquals(3, fetches)
+        assertTrue(store.legs(requestId).isEmpty())
+    }
+
+    @Test
+    fun `a finalised kept swap whose Dollars never show stops on the pending state and stays kept`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.FUNDING)
+        coEvery { transactions.pollSwapForState(kept.swapId, owner, SwapState.FINALIZED, any(), any()) } returns
+            Result.success(mockk())
+
+        assertIs<CollectionFundingError.ConversionPending>(settle().exceptionOrNull())
+
+        assertEquals(kept, store.legs(requestId).single())
+    }
+
+    @Test
+    fun `a kept swap still in flight after waiting stops settling on the pending state and stays kept`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.FUNDING)
+
+        assertIs<CollectionFundingError.ConversionPending>(settle().exceptionOrNull())
+
+        assertEquals(1, submitted.size)
+        assertEquals(kept, store.legs(requestId).single())
+    }
+
+    @Test
+    fun `a funded CREATED swap that still hasn't settled stops on the pending state and stays kept`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CREATED)
+        serverHasPending(kept, kept.fundingIntentId)
+
+        assertIs<CollectionFundingError.ConversionPending>(settle().exceptionOrNull())
+
+        assertEquals(1, funded.size)
+        assertEquals(kept, store.legs(requestId).single())
+    }
+
+    @Test
+    fun `a kept swap the server failed or cancelled is dropped, with no balance to wait on`() = runTest {
+        for (ended in listOf(SwapState.FAILED, SwapState.CANCELLED)) {
+            store.clear(requestId)
+            val record = FundingLegRecord(al.address, Mint.usdf, SwapId.generate(), List(32) { 3 })
+            store.put(requestId, record)
+            serverSays(record, ended)
+
+            assertEquals(true, settle().getOrThrow(), "$ended")
+
+            assertTrue(store.legs(requestId).isEmpty(), "$ended")
+        }
+        coVerify(exactly = 0) { transactions.pollSwapForState(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a funded CREATED swap the server then fails is dropped, with no balance to wait on`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CREATED)
+        serverHasPending(kept, kept.fundingIntentId)
+        coEvery { transactions.pollSwapForState(kept.swapId, owner, SwapState.FINALIZED, any(), any()) } returns
+            Result.failure(SwapError.Terminal(SwapState.FAILED))
+
+        assertEquals(true, settle().getOrThrow())
+
+        assertTrue(store.legs(requestId).isEmpty())
+    }
+
+    @Test
+    fun `a kept swap that already finalised is dropped, with no balance to wait on`() = runTest {
+        val record = FundingLegRecord(al.address, Mint.usdf, SwapId.generate(), List(32) { 3 })
+        store.put(requestId, record)
+        serverSays(record, SwapState.FINALIZED)
+
+        assertEquals(true, settle().getOrThrow())
+
+        assertTrue(store.legs(requestId).isEmpty())
+        coVerify(exactly = 0) { transactions.pollSwapForState(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a kept swap the server never saw stays kept, with nothing on its way`() = runTest {
+        val record = FundingLegRecord(al.address, Mint.usdf, SwapId.generate(), List(32) { 3 })
+        store.put(requestId, record)
+        coEvery { swaps.getSwap(record.swapId, any()) } returns Result.failure(GetSwapError.NotFound())
+
+        assertEquals(false, settle().getOrThrow())
+
+        assertEquals(record, store.legs(requestId).single())
+        coVerify(exactly = 0) { transactions.pollSwapForState(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a failed swap lookup stops settling and keeps what was kept`() = runTest {
+        val record = FundingLegRecord(al.address, Mint.usdf, SwapId.generate(), List(32) { 3 })
+        store.put(requestId, record)
+        val offline = IllegalStateException("offline")
+        coEvery { swaps.getSwap(record.swapId, any()) } returns Result.failure(offline)
+
+        assertEquals(offline, settle().exceptionOrNull())
+
+        assertEquals(record, store.legs(requestId).single())
+    }
+
     @Test
     fun `paying records the currency for next time and drops what was kept`() = runTest {
         store.put(requestId, FundingLegRecord(al.address, Mint.usdf, SwapId.generate(), List(32) { 3 }))

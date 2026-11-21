@@ -73,6 +73,15 @@ class PaymentRequestPaymentDelegate @Inject constructor(
     /** What to order, in USD cents, to add [plan]'s top-up for [amount]; null with none or no rate. */
     fun collectionTopUpCents(plan: CollectionFundingPlan, amount: Fiat): Long? = funder.topUpUsdCents(plan, amount)
 
+    /**
+     * Settles the conversions an earlier attempt at [ready]'s collection kept, so a retry sizes its
+     * top-up from the balances they reach (see [CollectionFunder.settle]). True when one settled and
+     * the plan should be read again; fails with [CollectionFundingError.ConversionPending] while one
+     * is still in flight.
+     */
+    suspend fun settleKeptConversions(ready: ShareToPay.Ready, source: AccountCluster): Result<Boolean> =
+        funder.settle(ready.request.id, ready.amount.currencyCode, source)
+
     /** The smallest top-up Google Pay takes, $5, for the short state's footnote. */
     val collectionTopUpMinimum: Fiat
         get() = Fiat(CollectionFundingPlanner.MIN_TOP_UP_USD_MICROS, CurrencyCode.USD)

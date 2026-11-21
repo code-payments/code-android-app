@@ -384,6 +384,16 @@ class PaymentRequestPaymentDelegateTest {
     }
 
     @Test
+    fun `settling a collection's kept conversions prices them in the request's currency`() = runTest {
+        val ready = readyCollection()
+        coEvery { funder.settle(any(), any(), any()) } returns Result.success(true)
+
+        assertEquals(true, delegate.settleKeptConversions(ready, source).getOrThrow())
+
+        coVerify(exactly = 1) { funder.settle(requestId, CurrencyCode.EUR, source) }
+    }
+
+    @Test
     fun `with funding a collection converts first, then pays once, then records the currency`() = runTest {
         val ready = readyCollection()
 

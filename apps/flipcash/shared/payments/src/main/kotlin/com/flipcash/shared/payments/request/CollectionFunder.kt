@@ -96,6 +96,67 @@ class CollectionFunder @Inject constructor(
             Result.failure(CollectionFundingError.Unsettled())
         }
 
+    /**
+     * Settles every swap an earlier attempt kept for [requestId], before a retry sizes a top-up:
+     * a top-up sized while a kept swap's Dollars are still on their way charges for them twice.
+     * Nothing kept returns false at once, touching neither the server nor the balances.
+     *
+     * Each kept swap goes by the server's state of it, as [settleStarted] has it, except that a
+     * CREATED one is funded now under the funding id the server recorded (prices in [currency]),
+     * whatever the plan. A swap that finalises here is settled once its `to` balance rises above
+     * what it was before the wait. One already FINALIZED, FAILED or CANCELLED, or that ends while
+     * waited on, is settled with nothing to wait on. One the server never saw stays kept: nothing
+     * is on its way for it.
+     *
+     * True when any kept swap settled, so the plan must be read again. A swap still in flight, or a
+     * balance that never rises, fails with [CollectionFundingError.ConversionPending] and keeps its
+     * record: nothing should be ordered while it may still land.
+     */
+    suspend fun settle(requestId: ID, currency: CurrencyCode, owner: AccountCluster): Result<Boolean> =
+        mutex.withLock {
+            val kept = store.legs(requestId)
+            if (kept.isEmpty()) return@withLock Result.success(false)
+            tokenCoordinator.update()
+            val before = kept.map { it.to }.distinct().associateWith { tokenCoordinator.currentBalance(it) }
+            val landed = mutableListOf<FundingLegRecord>()
+            var settled = false
+            for (record in kept) {
+                val found = swaps.getSwap(record.swapId, owner.authority.keyPair)
+                val swap = found.getOrNull()
+                if (swap == null) {
+                    val error = found.exceptionOrNull()
+                    if (error is GetSwapError.NotFound) continue
+                    return@withLock Result.failure(error ?: IllegalStateException("getSwap returned nothing"))
+                }
+                val outcome = when (swap.state) {
+                    SwapState.FINALIZED, SwapState.FAILED, SwapState.CANCELLED -> Result.success(SettleOutcome.Ended)
+                    SwapState.CANCELLING -> awaitSettled(record, owner, SwapState.CANCELLED)
+                    SwapState.CREATED -> {
+                        val from = tokenCoordinator.cachedToken(record.from)
+                            ?: return@withLock Result.failure(CollectionFundingError.UnknownCurrency())
+                        val rate = exchange.rateFor(currency)
+                            ?: return@withLock Result.failure(ComputeVerifiedFiatError.StaleRate())
+                        fundRecorded(record, from, rate, owner).onFailure { return@withLock Result.failure(it) }
+                        awaitSettled(record, owner, SwapState.FINALIZED)
+                    }
+                    else -> awaitSettled(record, owner, SwapState.FINALIZED)
+                }.getOrElse { return@withLock Result.failure(it) }
+                settled = true
+                // A finalised swap's record stays until its Dollars show, so a retry still asks about it.
+                if (outcome == SettleOutcome.Landed) landed += record else store.remove(requestId, record.swapId)
+            }
+            if (landed.isEmpty()) {
+                if (settled) tokenCoordinator.update()
+                return@withLock Result.success(settled)
+            }
+            for (mint in landed.map { it.to }.distinct()) {
+                awaitBalanceAbove(mint, before.getValue(mint))
+                    .onFailure { return@withLock Result.failure(CollectionFundingError.ConversionPending()) }
+            }
+            landed.forEach { store.remove(requestId, it.swapId) }
+            Result.success(true)
+        }
+
     /** The collection was paid in [paying]: its kept legs go, and [paying] is the next default. */
     suspend fun paid(requestId: ID, paying: Token) {
         store.clear(requestId)
@@ -158,13 +219,32 @@ class CollectionFunder @Inject constructor(
 
     /**
      * Polls [record]'s swap for [target]. Reaching it, or the server failing or cancelling the
-     * swap, is an outcome; anything else is [CollectionFundingError.ConversionPending].
+     * swap, is an outcome; anything else is [CollectionFundingError.ConversionPending]. True when
+     * the swap reached [target], false when the server failed or cancelled it first.
      */
-    private suspend fun awaitOutcome(record: FundingLegRecord, owner: AccountCluster, target: SwapState): Result<Unit> {
+    private suspend fun awaitOutcome(record: FundingLegRecord, owner: AccountCluster, target: SwapState): Result<Boolean> {
         val polled = transactions.pollSwapForState(record.swapId, owner, target)
-        val error = polled.exceptionOrNull() ?: return Result.success(Unit)
-        return if (error.endedSwap) Result.success(Unit) else Result.failure(CollectionFundingError.ConversionPending())
+        val error = polled.exceptionOrNull() ?: return Result.success(true)
+        return if (error.endedSwap) Result.success(false) else Result.failure(CollectionFundingError.ConversionPending())
     }
+
+    /** How a kept swap [settle] waited on came out. */
+    private enum class SettleOutcome {
+        /** It finalised, so its Dollars are on their way to its `to` balance. */
+        Landed,
+
+        /** It failed or was cancelled, or had finalised before: nothing more will arrive. */
+        Ended,
+    }
+
+    /**
+     * Polls [record]'s swap for [target], as [awaitOutcome] does, telling a finalised swap apart
+     * from one that ended without delivering.
+     */
+    private suspend fun awaitSettled(record: FundingLegRecord, owner: AccountCluster, target: SwapState): Result<SettleOutcome> =
+        awaitOutcome(record, owner, target).map { reached ->
+            if (reached && target == SwapState.FINALIZED) SettleOutcome.Landed else SettleOutcome.Ended
+        }
 
     private suspend fun runLeg(
         requestId: ID,
@@ -221,6 +301,17 @@ class CollectionFunder @Inject constructor(
         rate: Rate,
         owner: AccountCluster,
     ): Result<Unit> {
+        fundRecorded(record, from, rate, owner).onFailure { return Result.failure(it) }
+        return awaitLeg(requestId, record, owner, retried = true)
+    }
+
+    /**
+     * Funds [record]'s CREATED swap under the funding id and amount the server recorded for it.
+     * Does nothing when the server no longer lists it CREATED: it has moved on, so the caller
+     * waits on it either way. An unknown outcome keeps the record: the retry finds the swap
+     * CREATED or in flight again.
+     */
+    private suspend fun fundRecorded(record: FundingLegRecord, from: Token, rate: Rate, owner: AccountCluster): Result<Unit> {
         val pending = swaps.getPendingSwaps(owner.authority.keyPair).getOrElse { error ->
             if (error is GetPendingSwapsError.NotFound) emptyList() else return Result.failure(error)
         }
@@ -228,12 +319,10 @@ class CollectionFunder @Inject constructor(
             .firstOrNull { it.swapId == record.swapId && it.state == SwapState.CREATED }
             ?.verifiedMetadata
         val fundingId = (recorded?.fundingSource as? SwapFundingSource.SubmitIntent)?.id
-        if (recorded == null || fundingId == null) return awaitLeg(requestId, record, owner, retried = true)
+        if (recorded == null || fundingId == null) return Result.success(Unit)
         val quarks = recorded.swapAmount.quarks + (recorded.feeAmount?.quarks ?: 0L)
         val amount = verifiedFiatCalculator.computeForQuarks(quarks, from, rate).getOrElse { return Result.failure(it) }
-        // An unknown outcome keeps the record: the retry finds the swap CREATED or in flight again.
-        transactions.fundSwap(owner, from, amount, fundingId).onFailure { return Result.failure(it) }
-        return awaitLeg(requestId, record, owner, retried = true)
+        return transactions.fundSwap(owner, from, amount, fundingId)
     }
 
     /**
@@ -302,7 +391,8 @@ sealed class CollectionFundingError(message: String) : Exception(message) {
 
     /**
      * A conversion kept from an earlier attempt still hasn't settled, after waiting on it or
-     * funding it on retry. Nothing new is converted while it may still land; try again shortly.
+     * funding it on retry, or its Dollars haven't reached the balance. Nothing new is converted or
+     * ordered while it may still land; try again shortly.
      */
     class ConversionPending : CollectionFundingError("a conversion is still pending")
 

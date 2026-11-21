@@ -386,7 +386,8 @@ internal class RequestPayFlow(
      * second confirmation (group-collections spec, "Adding money and recovery"). Inside the
      * request's lock, a top-up already kept is waited on and nothing new is ordered; otherwise the
      * share is refetched (stopping if it's paid or closed) and replanned, so a second tap after the
-     * Dollars landed pays instead of ordering. The send limit is checked before any order, so no
+     * Dollars landed pays instead of ordering. Conversions an earlier attempt kept settle before the
+     * top-up is sized ([settledTopUpCents]). The send limit is checked before any order, so no
      * Dollars are bought that couldn't then be sent. [checkGates] false is "Continue Anyway".
      * [token] is the currency to pay in, when the caller has it; otherwise the sheet's.
      */
@@ -413,11 +414,12 @@ internal class RequestPayFlow(
                     pay(found, token, owner)
                     return@exclusive
                 }
-                val cents = payments.collectionTopUpCents(plan, found.amount) ?: run {
+                val seen = payments.collectionTopUpCents(plan, found.amount) ?: run {
                     stopTopUp()
                     presentTopUpFailed()
                     return@exclusive
                 }
+                val cents = settledTopUpCents(found, token, owner, seen) ?: return@exclusive
                 val result = topUp.topUp(
                     requestId = found.request.id,
                     usdCents = cents,
@@ -428,6 +430,40 @@ internal class RequestPayFlow(
                 afterTopUp(found, token, owner, result)
             }
         }
+    }
+
+    /**
+     * The top-up to order once the conversions an earlier attempt kept have settled, or null when
+     * there is nothing to order now (spec, "Adding money and recovery" item 3). A top-up sized
+     * while a kept conversion's Dollars were on their way would charge for them again, so:
+     * - nothing settled: [seen], the amount sized from the balances as they stood;
+     * - settled, and the balances now cover the payment: it is paid, and Google Pay never opens;
+     * - settled, and the top-up is no longer [seen]: the short state shows the new amount, so
+     *   nothing is ordered the user hasn't seen;
+     * - still pending, or failing to settle: nothing is ordered, and the sheet says why.
+     */
+    private suspend fun settledTopUpCents(found: ShareToPay.Ready, token: Token, owner: AccountCluster, seen: Long): Long? {
+        val settled = payments.settleKeptConversions(found, owner.withTimelockForToken(token)).getOrElse { cause ->
+            stopTopUp()
+            presentPaymentError(cause)
+            return null
+        }
+        if (!settled) return seen
+        val plan = payments.planCollection(found.amount, token)
+        if (plan == null || plan.payableWithoutTopUp) {
+            pay(found, token, owner)
+            return null
+        }
+        val cents = payments.collectionTopUpCents(plan, found.amount) ?: run {
+            stopTopUp()
+            presentTopUpFailed()
+            return null
+        }
+        if (cents != seen) {
+            showShortState()
+            return null
+        }
+        return cents
     }
 
     /** Pay opened on a request with a top-up kept: "Finishing Payment" until it lands and pays. */
