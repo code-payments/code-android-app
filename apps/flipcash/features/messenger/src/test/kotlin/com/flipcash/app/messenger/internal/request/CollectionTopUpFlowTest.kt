@@ -13,6 +13,7 @@ import com.flipcash.shared.payments.request.CollectionFundingPlanner
 import com.flipcash.shared.payments.request.CollectionTopUp
 import com.flipcash.shared.payments.request.CollectionTopUpBlocked
 import com.flipcash.shared.payments.request.CollectionTopUpLocks
+import com.flipcash.shared.payments.request.PaymentNotConfirmed
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
 import com.flipcash.shared.payments.request.TopUpBlock
@@ -38,6 +39,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -341,6 +343,121 @@ class CollectionTopUpFlowTest {
         assertEquals(listOf(500L), rail.orders)
         assertEquals(11_000_000L, dollarsMicros, "the $5.00 stays in Dollars")
         assertEquals(false, f.state.value.open)
+    }
+
+    /**
+     * Pay step 4: Finishing Payment ends when the payment after the Dollars land isn't confirmed,
+     * even while the server stays silent, and the next tap asks first and stops if it landed.
+     */
+    @Test
+    fun `a payment not confirmed after the Dollars land ends Finishing Payment, and the next tap stops if it landed`() {
+        every { resources.getString(any<Int>()) } answers { "string ${firstArg<Int>()}" }
+        useCase("s8-short-over-min")
+        rail.delivery = CompletableDeferred()
+        var silent = false
+        var landed = false
+        coEvery { payments.pay(any(), any(), any(), any()) } answers {
+            silent = true
+            Result.failure(PaymentNotConfirmed())
+        }
+        coEvery { payments.prepare(any(), any()) } coAnswers {
+            if (silent) awaitCancellation()
+            Result.success(if (landed) ShareToPay.NothingToPay(request.request) else request)
+        }
+        val f = openSheet()
+        f.onAddAndPay()
+        assertTrue(f.state.value.finishing)
+
+        rail.delivery!!.complete(Unit)
+
+        assertEquals(false, f.state.value.finishing)
+        assertTrue(f.state.value.progress.isIdle, "the sheet can be left")
+        val shown = BottomBarManager.messages.value.single()
+        assertEquals("string ${R.string.error_title_paymentNotConfirmed}", shown.title)
+        assertEquals("string ${R.string.error_description_paymentNotConfirmed}", shown.subtitle)
+        coVerify(exactly = 1) { payments.pay(any(), any(), any(), any()) }
+
+        // The payment landed after all, and the server answers again.
+        silent = false
+        landed = true
+        f.confirm()
+
+        coVerify(exactly = 1) { payments.pay(any(), any(), any(), any()) }
+        assertEquals(listOf(1204L), rail.orders)
+        assertEquals(1, nothingToPay)
+        assertEquals(false, f.state.value.open)
+    }
+
+    /**
+     * A refetch for a top-up isn't the swipe's ask: after a failed payment, a top-up closed in
+     * Google Pay leaves the next swipe asking for the intent id before it pays.
+     */
+    @Test
+    fun `after a failed payment, a top-up closed in Google Pay still leaves the next swipe asking first`() {
+        useCase("s7-short-under-min")
+        payFailures = 1
+        var asks = 0
+        coEvery { payments.prepare(any(), any()) } answers {
+            asks++
+            Result.success(request)
+        }
+        val f = openSheet()
+        f.onAddAndPay()
+        assertEquals(0, paid)
+
+        // The Dollars went elsewhere, so the next tap tops up again, and Google Pay is closed.
+        dollarsMicros -= 5_000_000
+        rail.payment = TopUpPayment.NotCharged
+        f.onAddAndPay()
+        assertEquals(listOf(500L, 500L), rail.orders)
+        assertTrue(f.state.value.progress.isIdle)
+
+        // Dollars back: the swipe pays, and asks first.
+        dollarsMicros += 5_000_000
+        val before = asks
+        f.confirm()
+
+        assertEquals(before + 1, asks)
+        assertEquals(1, paid)
+        coVerify(exactly = 2) { payments.pay(any(), any(), any(), any()) }
+    }
+
+    /**
+     * A swipe the balances no longer cover shows the short state; its balance refresh runs outside
+     * the request's lock, so a server that doesn't answer it can't hold the next tap.
+     */
+    @Test
+    fun `a short swipe whose balance refresh never answers leaves Add and Pay free to run`() {
+        useCase("s7-short-under-min")
+        dollarsMicros += 5_000_000
+        var refreshHangs = false
+        coEvery { tokenCoordinator.update() } coAnswers {
+            if (refreshHangs) {
+                refreshHangs = false
+                awaitCancellation()
+            }
+        }
+        var shortOnce = true
+        coEvery { payments.pay(any(), any(), any(), any()) } answers {
+            if (shortOnce) {
+                shortOnce = false
+                // The Dollars went elsewhere after the sheet planned.
+                dollarsMicros -= 5_000_000
+                refreshHangs = true
+                Result.failure(CollectionFundingError.Short(planNow()))
+            } else {
+                Result.success(Unit)
+            }
+        }
+        val f = openSheet()
+        f.confirm()
+        assertTrue(f.state.value.progress.isIdle)
+        assertEquals(0, paid)
+
+        f.onAddAndPay()
+
+        assertEquals(listOf(500L), rail.orders)
+        assertEquals(1, paid)
     }
 
     /** Recovery 4: a short delivery replans from the balances and asks before any further top-up. */

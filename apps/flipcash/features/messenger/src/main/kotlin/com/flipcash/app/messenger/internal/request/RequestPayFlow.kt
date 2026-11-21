@@ -221,8 +221,10 @@ internal class RequestPayFlow(
 
     /**
      * A payment from this sheet failed, so whether it landed is unknown: the next swipe asks for
-     * the intent id again before paying, and stops if it landed (spec, pay step 4). Closing the
-     * sheet clears it, since opening one always asks.
+     * the intent id again before paying, and stops if it landed (spec, pay step 4). The next
+     * payment clears it, since every payment but the plain swipe already asks just before it, and
+     * so does closing the sheet, since opening one always asks. A refetch alone doesn't: a top-up
+     * closed in Google Pay leaves the swipe after it still asking.
      */
     private var retryAsksFirst = false
 
@@ -369,6 +371,7 @@ internal class RequestPayFlow(
     }
 
     private suspend fun pay(pending: ShareToPay.Ready, token: Token, owner: AccountCluster) {
+        retryAsksFirst = false
         _state.update { it.copy(progress = LoadingSuccessState(loading = true)) }
         payments.pay(pending, token, owner.withTimelockForToken(token), fund = _state.value.funding)
             .onSuccess {
@@ -389,9 +392,10 @@ internal class RequestPayFlow(
             .onFailure { cause ->
                 if (cause is CollectionFundingError.Short) {
                     // Conversions can't cover it, so nothing was paid. Fresh balances replan the
-                    // sheet into the short state, which asks before adding anything.
+                    // sheet into the short state, which asks before adding anything. Nothing waits
+                    // on the refresh, so a server that doesn't answer can't hold the request's lock.
                     showShortState()
-                    tokenCoordinator.update()
+                    scope.launch { tokenCoordinator.update() }
                 } else {
                     afterFailedPayment(pending, cause)
                 }
@@ -560,7 +564,8 @@ internal class RequestPayFlow(
     /**
      * GetPaymentIntentId again before a top-up, before paying after one, and before paying again
      * after a failed payment: null, with the outcome shown, when there is no longer a share to pay
-     * or the refetch failed. A share still to pay answers [retryAsksFirst].
+     * or the refetch failed. A share still to pay answers [retryAsksFirst] for the payment that
+     * follows it, which clears it.
      */
     private suspend fun refetch(pending: ShareToPay.Ready): ShareToPay.Ready? {
         val viewer = viewerId ?: return null
@@ -572,7 +577,6 @@ internal class RequestPayFlow(
         when (found) {
             is ShareToPay.Ready -> {
                 ready = found
-                retryAsksFirst = false
                 _state.update { it.copy(amount = found.amount, creator = found.request.creator) }
                 return found
             }
