@@ -804,12 +804,13 @@ class CollectionTopUpFlowTest {
     )
 
     /**
-     * Picks Moony in the sheet and taps Add and Pay, then the process dies with Google Pay open on
-     * the $5.00 order. The relaunch reads tokens before Moony's is loaded again.
+     * Picks Moony in the sheet and taps Add and Pay, then the process dies after Google Pay charged
+     * the $5.00 order, on "Finishing Payment" before the Dollars land. The relaunch reads tokens
+     * before Moony's is loaded again.
      */
     private fun topUpInMoonyThenDie() {
         useMoonyCase()
-        rail.googlePay = CompletableDeferred()
+        rail.delivery = CompletableDeferred()
         val f = openSheet()
         f.pickCollectionCurrency(MOONY.address)
         assertEquals(MOONY, f.token.value)
@@ -817,9 +818,10 @@ class CollectionTopUpFlowTest {
         f.onAddAndPay()
 
         assertEquals(listOf(500L), rail.orders)
-        assertTrue(store.topUps.isNotEmpty(), "kept before Google Pay opened")
+        assertTrue(f.state.value.finishing, "Google Pay closed on a charge")
+        assertTrue(store.topUps.isNotEmpty(), "kept until the Dollars land")
         scopes.forEach { it.cancel() }
-        rail.googlePay = null
+        rail.delivery = null
         wallet.value = listOf(Token.usdf)
         assertEquals(0, paid)
     }
