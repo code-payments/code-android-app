@@ -15,6 +15,7 @@ import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.IdempotencyKey
+import com.flipcash.services.models.paymentrequest.NewCollectionRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.amountentry.AmountEntryDelegate
@@ -81,10 +82,27 @@ internal class RequestMoneyViewModel @Inject constructor(
         val stage: Stage = Stage.History,
         val sheet: Sheet = Sheet.None,
         val draft: NewRequestDraft? = null,
+        /**
+         * Group Money's flow: Request Money opens Amount Per Person, Next opens the confirm sheet,
+         * and Send Request creates a collection. There is no History, Summary, People or Name.
+         */
+        val collections: Boolean = false,
+        val collection: CollectionDraft? = null,
         val sendProgress: LoadingSuccessState = LoadingSuccessState(),
         val previousToken: PagingToken? = null,
         val previousEnd: Boolean = false,
         val loadingPrevious: Boolean = false,
+    )
+
+    /**
+     * A collection on its way to the confirm sheet. [idempotencyKey] is kept while the amount is, so
+     * a retry after a failed Create reuses it; [createdRequestId] is set once Create succeeds, so a
+     * retry only resends the message.
+     */
+    data class CollectionDraft(
+        val amount: Fiat,
+        val idempotencyKey: IdempotencyKey,
+        val createdRequestId: ID? = null,
     )
 
     sealed interface Effect {
@@ -127,8 +145,17 @@ internal class RequestMoneyViewModel @Inject constructor(
 
     val viewerId: ID? get() = userManager.accountId
 
-    fun open(chatId: ChatId) {
+    /**
+     * [collections] is Group Money's flag: the flow starts at Amount Per Person and creates a
+     * collection, with no request list to load.
+     */
+    fun open(chatId: ChatId, collections: Boolean = false) {
         if (_state.value.chatId == chatId) return
+        if (collections) {
+            amountDelegate.reset()
+            _state.update { it.copy(chatId = chatId, collections = true, stage = Stage.Amount) }
+            return
+        }
         _state.update { it.copy(chatId = chatId) }
         viewModelScope.launch { requests.loadChat(chatId) }
         viewModelScope.launch { rosters.load(chatId) }
@@ -166,6 +193,7 @@ internal class RequestMoneyViewModel @Inject constructor(
         val entered = amountDelegate.state.value.enteredAmount
         if (entered <= 0.0) return
         val amount = Fiat(entered, currency)
+        if (_state.value.collections) return confirmCollection(amount)
         val viewerId = userManager.accountId ?: return
         val chatId = _state.value.chatId ?: return
         val roster = rosters.state.value[chatId].orEmpty()
@@ -225,13 +253,22 @@ internal class RequestMoneyViewModel @Inject constructor(
         }
     }
 
-    /** Back within the flow. Returns false at History, where back leaves the step. */
+    /** A collection's Next: the confirm sheet, keeping the idempotency key while the amount is unchanged. */
+    private fun confirmCollection(amount: Fiat) {
+        _state.update { s ->
+            val held = s.collection?.takeIf { it.amount == amount }
+            s.copy(sheet = Sheet.Confirm, collection = held ?: CollectionDraft(amount, IdempotencyKey.random()))
+        }
+    }
+
+    /** Back within the flow. Returns false at History, or at Amount for a collection, where back leaves the step. */
     fun back(): Boolean {
         val s = _state.value
         if (s.sheet != Sheet.None) {
             dismissSheet()
             return true
         }
+        if (s.collections) return false
         val previous = when (s.stage) {
             Stage.History -> return false
             Stage.Amount -> Stage.History
@@ -245,6 +282,7 @@ internal class RequestMoneyViewModel @Inject constructor(
 
     /** Confirm's Send Request: Create once per confirm, then the widget message. */
     fun send() {
+        if (_state.value.collections) return sendCollection()
         val s = _state.value
         val chatId = s.chatId ?: return
         val draft = s.draft ?: return
@@ -268,11 +306,35 @@ internal class RequestMoneyViewModel @Inject constructor(
             _state.update { it.copy(draft = it.draft?.copy(createdRequestId = requestId)) }
             // The request is live, so the deck shows it whatever happens here. Only the message is
             // retried, under the same request id; Create is never called again for this confirm.
-            chatCoordinator.sendPaymentRequest(chatId, requestId)
-                .onFailure { cause -> (cause as? PaymentRequestNotSent)?.let { messageNotSent(chatId, requestId, it) } }
-            _state.update { it.copy(sheet = Sheet.None, sendProgress = LoadingSuccessState(success = true)) }
-            effects.send(Effect.Sent)
+            sendMessage(chatId, requestId)
         }
+    }
+
+    /** A collection's Send Request: Create with the amount entered and nothing else, then the widget message. */
+    private fun sendCollection() {
+        val s = _state.value
+        val chatId = s.chatId ?: return
+        val collection = s.collection ?: return
+        if (s.sendProgress.loading) return
+        _state.update { it.copy(sendProgress = LoadingSuccessState(loading = true)) }
+        viewModelScope.launch {
+            val requestId = collection.createdRequestId ?: run {
+                val created = requests.create(NewCollectionRequest(chatId, collection.amount), collection.idempotencyKey)
+                    .getOrElse { return@launch failed(it, chatId, COLLECTION_PAYER_COUNT, null) }
+                // Nobody is asked in advance and there is no total, so the event carries neither.
+                analytics.track(PaymentRequestEvents.created(COLLECTION_PAYER_COUNT, AnalyticsState.SUCCESS, null, null))
+                created.id
+            }
+            _state.update { it.copy(collection = it.collection?.copy(createdRequestId = requestId)) }
+            sendMessage(chatId, requestId)
+        }
+    }
+
+    private suspend fun sendMessage(chatId: ChatId, requestId: ID) {
+        chatCoordinator.sendPaymentRequest(chatId, requestId)
+            .onFailure { cause -> (cause as? PaymentRequestNotSent)?.let { messageNotSent(chatId, requestId, it) } }
+        _state.update { it.copy(sheet = Sheet.None, sendProgress = LoadingSuccessState(success = true)) }
+        effects.send(Effect.Sent)
     }
 
     /** The chat's own "Message Not Sent" error, retrying the same pending row. */
@@ -292,15 +354,11 @@ internal class RequestMoneyViewModel @Inject constructor(
         )
     }
 
-    private suspend fun failed(error: Throwable, chatId: ChatId, draft: NewRequestDraft) {
-        analytics.track(
-            PaymentRequestEvents.created(
-                draft.requestedCount,
-                AnalyticsState.FAILURE,
-                draft.totalAmount?.analytics,
-                error.analytics,
-            ),
-        )
+    private suspend fun failed(error: Throwable, chatId: ChatId, draft: NewRequestDraft) =
+        failed(error, chatId, draft.requestedCount, draft.totalAmount)
+
+    private suspend fun failed(error: Throwable, chatId: ChatId, payerCount: Int, total: Fiat?) {
+        analytics.track(PaymentRequestEvents.created(payerCount, AnalyticsState.FAILURE, total?.analytics, error.analytics))
         _state.update { it.copy(sheet = Sheet.None, sendProgress = LoadingSuccessState()) }
         val message = when (error) {
             is CreatePaymentRequestError.Denied -> R.string.error_description_requestDenied
@@ -330,5 +388,8 @@ internal class RequestMoneyViewModel @Inject constructor(
 
     companion object {
         const val MAX_TITLE = 100
+
+        // A collection asks nobody in advance, so its created event counts no payers.
+        private const val COLLECTION_PAYER_COUNT = 0
     }
 }

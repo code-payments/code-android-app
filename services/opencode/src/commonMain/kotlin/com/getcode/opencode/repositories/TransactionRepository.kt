@@ -63,6 +63,8 @@ interface TransactionRepository {
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
+        swapId: SwapId? = null,
+        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         verifiedState: VerifiedState,
     ): Result<SwapId>
 
@@ -79,6 +81,16 @@ interface TransactionRepository {
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (StatefulSwapRequest) -> Result<Unit>)? = null,
     ): Result<SwapId>
+
+    /** Funds a swap the server has in CREATED under the funding intent id it recorded, [fundingId]. */
+    suspend fun fundSwap(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        from: Token,
+        amount: LocalFiat,
+        fundingId: List<Byte>,
+        verifiedState: VerifiedState,
+    ): Result<Unit>
 
     suspend fun withdrawUsdf(
         scope: CoroutineScope,

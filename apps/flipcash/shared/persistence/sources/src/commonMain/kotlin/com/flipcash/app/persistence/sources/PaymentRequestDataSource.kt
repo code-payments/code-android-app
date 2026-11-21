@@ -51,7 +51,8 @@ class PaymentRequestDataSource @Inject constructor() {
 
     private fun PaymentRequest.toEntity() = PaymentRequestEntity(
         idHex = id.hexEncodedString(),
-        chatIdHex = chatId?.bytes?.toList()?.hexEncodedString().orEmpty(),
+        // A split's or a collection's chat, so both are hydrated with it and go when it's left.
+        chatIdHex = groupChatId?.bytes?.toList()?.hexEncodedString().orEmpty(),
         version = version,
         status = status.toColumn(),
         endsAtEpochMs = split?.endsAt?.toEpochMilliseconds(),

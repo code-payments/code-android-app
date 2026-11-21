@@ -46,4 +46,14 @@ interface VerifiedFiatCalculator {
         rate: Rate,
         trace: Boolean = true,
     ): Result<VerifiedFiat>
+
+    /**
+     * Prices exactly [quarks] of [token] at [rate], with a fresh verified state: what a funding
+     * intent must move when the amount is already fixed, such as a swap the server recorded.
+     */
+    suspend fun computeForQuarks(
+        quarks: Long,
+        token: Token,
+        rate: Rate,
+    ): Result<VerifiedFiat>
 }

@@ -471,6 +471,10 @@
 
     <string name="title_selectCurrency">Select Currency</string>
     <string name="title_selectPaymentCurrency">Select Payment Currency</string>
+    <string name="title_paymentDetails">Payment Details</string>
+    <string name="subtitle_youllPay">You’ll Pay</string>
+    <string name="subtitle_youllUse">You’ll Use</string>
+    <string name="label_topUpSourceGooglePay">Google Pay</string>
     <string name="title_selectRegion">Select Region</string>
     <string name="title_recentRegions">Recent Regions</string>
     <string name="title_otherRegions">Other Regions</string>
@@ -1147,6 +1151,11 @@
     <string name="header_openRequests">Open Requests</string>
     <string name="header_previousRequests">Previous Requests</string>
     <string name="label_requestProgress">%1$s paid, %2$s requested</string>
+    <!-- A group collection: what each member pays, and what it has taken in. -->
+    <string name="label_requestEachAmount">%1$s each</string>
+    <string name="label_collectionPaid">%1$s paid</string>
+    <string name="label_collectionHeader">%1$s paid · %2$s each</string>
+    <string name="label_requestNoPayments">No payments yet</string>
     <string name="label_requestCompleted">✓ %1$s paid</string>
     <string name="title_amountPerPerson">Amount Per Person</string>
     <string name="title_newRequest">New Request</string>
@@ -1256,6 +1265,7 @@
     <string name="cd_timeToPayDial">Pick a time on the dial</string>
     <string name="action_timeToPayOk">OK</string>
     <string name="title_sendRequestConfirm">Send Request?</string>
+    <string name="title_requestEachConfirm">Request %1$s each?</string>
     <string name="description_sendRequestConfirm">You will receive and hold the money collected</string>
     <string name="action_sendRequest">Send Request</string>
     <string name="error_title_cantSendRequest">Can\'t Send Request</string>
@@ -2293,4 +2303,38 @@
     <string name="subtitle_notificationCheckLastConfirmed">Last confirmed %1$s</string>
     <string name="subtitle_notificationCheckLastConfirmedJustNow">Last confirmed just now</string>
     <string name="subtitle_notificationCheckFailedProblem">Registration failed</string>
+    <!-- Funding a collection payment (group-collections spec, "Funding a payment"). -->
+    <!-- A conversion kept from an earlier attempt hasn't settled; no frame draws this state yet. -->
+    <string name="error_title_collectionConversionPending">Conversion Pending</string>
+    <string name="error_description_collectionConversionPending">Your conversion is still pending. Try again shortly.</string>
+    <string name="error_title_paymentNotConfirmed">Payment Not Confirmed</string>
+    <string name="error_description_paymentNotConfirmed">We couldn’t confirm your payment yet. Check back shortly. You won’t be charged twice.</string>
+    <!-- The fee line under a collection's amount when something converts at no fee. -->
+    <string name="label_collectionNoConversionFees">no conversion fees</string>
+    <!-- %1$s is the summed conversion fee, e.g. "~$0.02", "<$0.01" or "$0.04". -->
+    <string name="label_collectionPlusConversionFees">plus %1$s of conversion fees</string>
+    <!-- Payment Details, under a sold currency. %1$s is its fee, e.g. "~$0.02". -->
+    <string name="label_collectionConversionFee">%1$s conversion fee</string>
+    <!-- A fee above 0 and under half the minor unit. %1$s is one minor unit, e.g. "$0.01". -->
+    <string name="label_collectionFeeUnderMinor">&lt;%1$s</string>
+    <!-- A fee that isn't a whole number of minor units. %1$s is the fee rounded half-up, e.g. "$0.02". -->
+    <string name="label_collectionFeeApprox">~%1$s</string>
+    <!-- %1$s is the shortfall rounded up to the minor unit, e.g. "$2.04". -->
+    <string name="title_collectionShortBy">You’re %1$s Short</string>
+    <!-- %1$s is the top-up, %2$s the collection's amount, e.g. "Add $5.00 and Pay $11.00". -->
+    <string name="action_collectionAddAndPay">Add %1$s and Pay %2$s</string>
+    <!-- Payment Details' last row, the sum of the amounts sold. -->
+    <string name="label_paymentDetailsTotal">Total</string>
+    <!-- Payment Details, under Dollars. %1$s is the part of the balance used, e.g. "$6.00". -->
+    <string name="label_collectionFromBalance">%1$s from balance</string>
+    <!-- Payment Details, under Dollars. %1$s is the part of the top-up used, %2$s how it is paid ("Google Pay"). -->
+    <string name="label_collectionFromTopUp">%1$s from %2$s</string>
+    <!-- Under the short state's button (frames 4.2, 7.2, 8.2). %1$s is how it is paid ("Google Pay"), %2$s the minimum ("$5"). -->
+    <string name="label_collectionTopUpMinimum">The minimum you can add with %1$s is %2$s.</string>
+    <!-- While a collection's top-up lands and the payment runs (frames 1.3, 4.4, 7.5, 8.4). -->
+    <string name="title_collectionFinishingPayment">Finishing Payment</string>
+    <string name="subtitle_collectionFinishingPayment">This usually takes about 10 seconds</string>
+    <!-- A top-up's Dollars haven't shown yet. It is kept, so trying again waits on it and orders nothing. No frame draws this state. -->
+    <string name="error_title_collectionTopUpPending">Money Still on Its Way</string>
+    <string name="error_description_collectionTopUpPending">The money you added hasn\'t arrived yet. Try again shortly and you won\'t be charged again.</string>
 </resources>

@@ -94,6 +94,12 @@ class CoinbaseOnRampController @Inject constructor(
     private val _milestones = MutableSharedFlow<CoinbaseOnRampMilestone>(extraBufferCapacity = 4)
     val milestones: SharedFlow<CoinbaseOnRampMilestone> = _milestones.asSharedFlow()
 
+    private val _outcomes = MutableSharedFlow<CoinbaseOnRampOutcome>(extraBufferCapacity = 8)
+    val outcomes: SharedFlow<CoinbaseOnRampOutcome> = _outcomes.asSharedFlow()
+
+    private val payingOrderId: String?
+        get() = (_state.value as? CoinbaseOnRampState.Paying)?.order?.orderId
+
     fun emitCompletion(completion: CoinbaseOnRampCompletion) {
         _pendingCompletion.tryEmit(completion)
     }
@@ -103,8 +109,10 @@ class CoinbaseOnRampController @Inject constructor(
     }
 
     fun onPaymentAuthorized() {
-        if (_state.value is CoinbaseOnRampState.Paying) {
+        val current = _state.value
+        if (current is CoinbaseOnRampState.Paying) {
             _milestones.tryEmit(CoinbaseOnRampMilestone.PaymentAuthorized)
+            _outcomes.tryEmit(CoinbaseOnRampOutcome.Authorized(current.order.orderId))
         }
     }
 
@@ -112,6 +120,7 @@ class CoinbaseOnRampController @Inject constructor(
         val current = _state.value
         if (current is CoinbaseOnRampState.Paying) {
             _milestones.tryEmit(CoinbaseOnRampMilestone.PaymentCompleted)
+            _outcomes.tryEmit(CoinbaseOnRampOutcome.Succeeded(current.order.orderId))
             _state.update {
                 CoinbaseOnRampState.Completed(
                     current.swapId,
@@ -154,11 +163,21 @@ class CoinbaseOnRampController @Inject constructor(
     }
 
     fun onPaymentFailure(error: CoinbaseOnRampWebError) {
+        payingOrderId?.let { _outcomes.tryEmit(CoinbaseOnRampOutcome.Failed(it)) }
         _state.update { CoinbaseOnRampState.Failed(error) }
     }
 
     fun onPaymentCancel() {
+        payingOrderId?.let { _outcomes.tryEmit(CoinbaseOnRampOutcome.Cancelled(it)) }
         _state.update { CoinbaseOnRampState.Idle }
+    }
+
+    /**
+     * Opens Google Pay on a collection's top-up [order]. Its end arrives on [outcomes] only:
+     * nothing is emitted on [pendingCompletion], which the add-money flow navigates on.
+     */
+    fun startTopUpPayment(order: OnrampOrder) {
+        _state.value = CoinbaseOnRampState.Paying(order, Token.usdc, amount = null, swapId = null)
     }
 
     fun reset() {
@@ -310,6 +329,36 @@ class CoinbaseOnRampController @Inject constructor(
         )
 
         return requestJwtAndPlaceOrder(order, onRampApiEndpoint)
+    }
+
+    /**
+     * Orders exactly [usdCents] of USDC into the owner's account, with Coinbase's fee on top, for a
+     * collection's top-up (group-collections spec, "Adding money and recovery"). The two orders
+     * above send whole dollars; a top-up has to land to the cent or the payment it funds stays
+     * short. USDC lands in the owner's ATA, where [UsdcDepositSweep] turns it into Dollars.
+     */
+    suspend fun placeTopUpOrder(usdCents: Long): Result<OnrampOrder> {
+        if (usdCents <= 0) return Result.failure(IllegalArgumentException("A top-up must be above zero"))
+        val owner = userManager.accountCluster
+            ?: return Result.failure(Throwable("Owner not found"))
+        val phone = userManager.profile?.verifiedPhoneNumber
+        val email = resolveEmail()
+        if (email == null || phone == null) {
+            return Result.failure(OnRampAuthError.VerificationRequired(phone = phone == null, email = email == null))
+        }
+        val userRef = owner.authorityPublicKey.base58()
+        val partnerRef = if (featureFlags.get(FeatureFlag.CoinbaseOnRampSandbox)) "sandbox-$userRef" else userRef
+        val order = OnRampPurchaseRequest.ExclusiveOfFees(
+            purchaseAmount = usdCentsAmount(usdCents),
+            partnerUserRef = partnerRef,
+            paymentMethod = OnRampPaymentMethod.GUEST_CHECKOUT_GOOGLE_PAY,
+            email = email,
+            phoneNumber = phone,
+            destinationAddress = destinationForToken(owner, Token.usdc),
+            purchaseCurrency = Token.usdc.symbol.uppercase(),
+        )
+        return requestJwtAndPlaceOrder(order, onRampApiEndpoint)
+            .map { (orderId, paymentLink) -> OnrampOrder(orderId, paymentLink.url) }
     }
 
     suspend fun lookupOrder(orderId: String): Result<OnRampPurchaseResponse.Order> {
@@ -559,3 +608,6 @@ private data class CoinbaseErrorDto(
     val code: String? = null,
     val message: String? = null,
 )
+
+/** [cents] as Coinbase reads a USD amount, to the cent: 1204 is "12.04". */
+internal fun usdCentsAmount(cents: Long): String = "${cents / 100}.${(cents % 100).toString().padStart(2, '0')}"

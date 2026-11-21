@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal.request
 
+import com.flipcash.app.core.navigation.LocalNavBarShell
+import com.flipcash.app.core.navigation.NavBarShell
 import com.getcode.theme.White05
 import androidx.compose.material3.Icon
 import androidx.compose.ui.draw.clip
@@ -97,7 +99,9 @@ internal fun RequestMoneyScreen(
     // Read here, not inside an entry: an entry's hiltViewModel would be scoped to that step.
     val viewModel = hiltViewModel<RequestMoneyViewModel>()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    LaunchedEffect(chatId) { viewModel.open(chatId) }
+    // Group Money's flag: Request Money creates a collection, starting at Amount Per Person.
+    val collections = LocalNavBarShell.current == NavBarShell.GroupMoney
+    LaunchedEffect(chatId) { viewModel.open(chatId, collections) }
     LaunchedEffect(viewModel) {
         viewModel.effectFlow.collect { effect ->
             when (effect) {
@@ -108,7 +112,9 @@ internal fun RequestMoneyScreen(
     // The chat flow's navigator, read before this screen's own FlowHost shadows it.
     val chatNavigator = LocalCodeNavigator.current
     val back = { if (!viewModel.back()) onClose() }
-    val target = stackFor(state.stage)
+    // The flag as the view model opened this chat with it, so a later flip can't split the
+    // stack from the flow it drives; the live flag only until then.
+    val target = stackFor(state.stage, if (state.chatId == chatId) state.collections else collections)
     // Seeded once. FlowHost re-seeds, without a transition, when initialStack changes before
     // the stack has moved, so passing the live target swapped History for Amount unanimated.
     // FollowStage makes every move after the first frame.
@@ -147,6 +153,8 @@ internal fun RequestMoneyScreen(
                         )
                     },
                 )
+                // A collection confirms from here: it has no Summary.
+                if (state.collections) RequestSheets(state, viewModel)
             }
             annotatedEntry<RequestStep.Summary> {
                 FollowStage(RequestStep.Summary, target, onBack = back)
@@ -240,6 +248,8 @@ private fun RequestSheets(state: RequestMoneyViewModel.State, viewModel: Request
             )
         }
         RequestMoneyViewModel.Sheet.Confirm -> ConfirmSendSheet(
+            title = state.collection?.let { stringResource(R.string.title_requestEachConfirm, it.amount.text()) }
+                ?: stringResource(R.string.title_sendRequestConfirm),
             sending = state.sendProgress.loading,
             onSend = viewModel::send,
             onDismiss = viewModel::dismissSheet,
@@ -538,7 +548,7 @@ private fun RequestNameContent(initial: String, placeholder: String, onBack: () 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ConfirmSendSheet(sending: Boolean, onSend: () -> Unit, onDismiss: () -> Unit) {
+private fun ConfirmSendSheet(title: String, sending: Boolean, onSend: () -> Unit, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
         confirmValueChange = { !sending },
@@ -556,7 +566,7 @@ private fun ConfirmSendSheet(sending: Boolean, onSend: () -> Unit, onDismiss: ()
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         ) {
             Text(
-                text = stringResource(R.string.title_sendRequestConfirm),
+                text = title,
                 style = CodeTheme.typography.screenTitle,
                 color = CodeTheme.colors.textMain,
             )

@@ -15,6 +15,8 @@ import com.getcode.opencode.controllers.TransactionController
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
+import com.getcode.solana.keys.Mint
 import com.getcode.util.resources.ResourceHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -27,6 +29,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.flipcash.app.analytics.FlipcashAnalytics
+import com.flipcash.shared.payments.request.CollectionTopUp
 import javax.inject.Inject
 
 /**
@@ -37,6 +40,7 @@ import javax.inject.Inject
 internal class RequestPayViewModel @Inject constructor(
     private val rosters: GroupRosters,
     payments: PaymentRequestPaymentDelegate,
+    topUp: CollectionTopUp,
     payer: StartChattingPayer,
     tokenCoordinator: TokenCoordinator,
     transactionController: TransactionController,
@@ -54,6 +58,7 @@ internal class RequestPayViewModel @Inject constructor(
     private val flow = RequestPayFlow(
         scope = viewModelScope,
         payments = payments,
+        topUp = topUp,
         payer = payer,
         tokenCoordinator = tokenCoordinator,
         transactionController = transactionController,
@@ -69,15 +74,23 @@ internal class RequestPayViewModel @Inject constructor(
     val state: StateFlow<RequestPayFlow.State> = flow.state
     val token: StateFlow<Token?> get() = flow.token
     val actions: SwipePayActions = flow.actions
+    val collectionCurrencies: StateFlow<List<TokenWithLocalizedBalance>> get() = flow.collectionCurrencies
+
+    val fundingUi: StateFlow<CollectionFundingUi?> get() = flow.fundingUi
+
+    fun pickCollectionCurrency(mint: Mint) = flow.pickCollectionCurrency(mint)
+
+    val onAddAndPay: () -> Unit get() = flow.onAddAndPay
 
     /** The chat's members by id, for the creator's name and avatar on the sheet. */
     val members: StateFlow<Map<ID, ChatMember>> = combine(chatId, rosters.state) { id, all ->
         all[id].orEmpty().associateBy { it.userId }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
-    fun pay(chatId: ChatId, requestId: ID) {
+    /** [collections] is the Group Money flag: with it, a collection is funded by conversion when short. */
+    fun pay(chatId: ChatId, requestId: ID, collections: Boolean = false) {
         this.chatId.value = chatId
         if (rosters.state.value[chatId] == null) viewModelScope.launch { rosters.load(chatId) }
-        flow.start(requestId)
+        flow.start(requestId, fund = collections)
     }
 }

@@ -9,6 +9,8 @@ import com.flipcash.services.chat.GroupContentCrypto
 import com.flipcash.services.controllers.PaymentRequestController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.paymentrequest.PaidShare
+import com.flipcash.services.models.paymentrequest.PayerPage
+import com.flipcash.services.models.paymentrequest.PayerSection
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestPage
 import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
@@ -19,6 +21,7 @@ import com.flipcash.services.models.paymentrequest.Split
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -143,6 +146,35 @@ class PaymentRequestsStorageTest {
         requests(page(request(version = 4))).loadChat(chatId).getOrThrow()
 
         assertEquals(5, store.find(id)!!.version)
+    }
+
+    private fun payersAt(vararg versions: Long): Pair<PaymentRequests, PaymentRequestController> {
+        val controller = mockk<PaymentRequestController>()
+        coEvery { controller.getChatPaymentRequests(any(), any(), any()) } returns page(request(version = 6))
+        coEvery { controller.getPayers(id, PayerSection.PAID, any()) } returnsMany
+            versions.map { Result.success(PayerPage(emptyList(), null, false, it)) }
+        return PaymentRequests(controller, crypto, store) to controller
+    }
+
+    @Test
+    fun `payers read behind the request load once more, since updates in between were not merged`() = runBlocking {
+        val (live, controller) = payersAt(5, 6)
+        live.loadChat(chatId).getOrThrow()
+
+        assertEquals(6, live.loadPayers(id).getOrThrow().version)
+
+        assertEquals(6, live.payers.first()[id]?.version)
+        coVerify(exactly = 2) { controller.getPayers(id, PayerSection.PAID, any()) }
+    }
+
+    @Test
+    fun `payers read at the request's version load once`() = runBlocking {
+        val (live, controller) = payersAt(6)
+        live.loadChat(chatId).getOrThrow()
+
+        live.loadPayers(id).getOrThrow()
+
+        coVerify(exactly = 1) { controller.getPayers(id, PayerSection.PAID, any()) }
     }
 
     @Test

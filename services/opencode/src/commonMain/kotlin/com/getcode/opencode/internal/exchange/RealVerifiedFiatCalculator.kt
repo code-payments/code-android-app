@@ -97,9 +97,7 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
             return Result.failure(ComputeVerifiedFiatError.StaleRate())
         }
 
-        val verifiedSupply = verifiedState.reserveProto?.reserveState?.supplyFromBonding
-
-        val supply = verifiedSupply ?: token.launchpadMetadata?.currentCirculatingSupplyQuarks ?: 0
+        val supply = supplyOf(verifiedState, token)
 
         // determine quarks to exchange for the desired amount
         val valuation = Estimator.valueExchangeAsQuarks(
@@ -109,15 +107,7 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
         ).getOrElse { return Result.failure(ComputeVerifiedFiatError.ComputationFailed(it)) }
 
         val (quarks, _) = valuation
-        val units = quarks.units()
-        val underlyingTokenAmount = Fiat(quarks = quarks.toLong(), currencyCode = CurrencyCode.USD)
-
-        val sellEstimate = Fiat.tokenBalance(quarks.toLong(), token, supply).convertingTo(rate)
-        if (!sellEstimate.hasDisplayableValue) {
-            return Result.failure(ComputeVerifiedFiatError.AmountBelowMinimum())
-        }
-
-        val fx = sellEstimate.decimalValue.toBigDecimal().divideWithHighPrecision(units).toDouble()
+        val priced = priceQuarks(quarks, token, supply, rate).getOrElse { return Result.failure(it) }
 
         if (trace) {
             logExchange(
@@ -129,14 +119,62 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
                 token = token,
                 supply = supply,
                 quarks = quarks,
-                units = units,
-                fx = fx,
-                sellEstimate = sellEstimate
+                units = priced.units,
+                fx = priced.localFiat.rate.fx,
+                sellEstimate = priced.localFiat.nativeAmount,
             )
         }
 
+        return Result.success(VerifiedFiat(localFiat = priced.localFiat, verifiedState = verifiedState))
+    }
+
+    override suspend fun computeForQuarks(
+        quarks: Long,
+        token: Token,
+        rate: Rate,
+    ): Result<VerifiedFiat> {
+        val verifiedState = resolveVerifiedState(rate.currency, token.address)
+
+        if (token.address == Mint.usdf) {
+            val usdf = Fiat(quarks = quarks, currencyCode = CurrencyCode.USD)
+            val localFiat = if (rate.currency != CurrencyCode.USD) {
+                LocalFiat.fromUsd(usdf = usdf, rate = rate, mint = token.address)
+            } else {
+                LocalFiat.fromUsd(usdf = usdf)
+            }
+            return Result.success(VerifiedFiat(localFiat, verifiedState))
+        }
+
+        if (verifiedState == null) {
+            return Result.failure(ComputeVerifiedFiatError.StaleRate())
+        }
+
+        val priced = priceQuarks(quarks.toBigDecimal(), token, supplyOf(verifiedState, token), rate)
+            .getOrElse { return Result.failure(it) }
+        return Result.success(VerifiedFiat(localFiat = priced.localFiat, verifiedState = verifiedState))
+    }
+
+    private fun supplyOf(verifiedState: VerifiedState, token: Token): Long =
+        verifiedState.reserveProto?.reserveState?.supplyFromBonding
+            ?: token.launchpadMetadata?.currentCirculatingSupplyQuarks
+            ?: 0
+
+    private class Priced(val localFiat: LocalFiat, val units: BigDecimal)
+
+    /** [quarks] of [token] valued as a sell at [supply], in [rate]'s currency. */
+    private fun priceQuarks(quarks: BigDecimal, token: Token, supply: Long, rate: Rate): Result<Priced> {
+        val units = quarks.units()
+        val underlyingTokenAmount = Fiat(quarks = quarks.toLong(), currencyCode = CurrencyCode.USD)
+
+        val sellEstimate = Fiat.tokenBalance(quarks.toLong(), token, supply).convertingTo(rate)
+        if (!sellEstimate.hasDisplayableValue) {
+            return Result.failure(ComputeVerifiedFiatError.AmountBelowMinimum())
+        }
+
+        val fx = sellEstimate.decimalValue.toBigDecimal().divideWithHighPrecision(units).toDouble()
+
         return Result.success(
-            VerifiedFiat(
+            Priced(
                 localFiat = LocalFiat(
                     underlyingTokenAmount = underlyingTokenAmount,
                     // our native amount for the transfer is the valuation of the quarks from a sell
@@ -144,7 +182,7 @@ internal class RealVerifiedFiatCalculator @Inject constructor(
                     mint = token.address,
                     rate = Rate(fx = fx, currency = rate.currency),
                 ),
-                verifiedState = verifiedState,
+                units = units,
             )
         )
     }

@@ -579,7 +579,7 @@ class NotificationService : FirebaseMessagingService(),
                     ?.content?.singleOrNull() as? MessageContent.Widget)?.widget
             val requestId = (widget as? WidgetContent.PaymentRequest)?.id ?: return null
             val request: PaymentRequest? = withTimeoutOrNull(REQUEST_FETCH_TIMEOUT_MS.milliseconds) {
-                paymentRequests.fetch(requestId).getOrNull()?.paymentRequest
+                paymentRequests.fetch(requestId, chatId).getOrNull()?.paymentRequest
             }
             planPaymentRequestBody(
                 request = request,

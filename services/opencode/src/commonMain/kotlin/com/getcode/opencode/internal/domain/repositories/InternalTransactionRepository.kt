@@ -93,12 +93,16 @@ internal class InternalTransactionRepository @Inject constructor(
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
+        swapId: SwapId?,
+        source: SwapFundingSource,
         verifiedState: VerifiedState,
     ): Result<SwapId> = service.sell(
         scope = scope,
         amount = amount,
         of = of,
         owner = owner,
+        swapId = swapId,
+        source = source,
         verifiedState = verifiedState
     ).onFailure { ErrorUtils.handleError(it) }
 
@@ -126,6 +130,22 @@ internal class InternalTransactionRepository @Inject constructor(
         swapId = swapId,
         source = source,
         fund = fund,
+    ).onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun fundSwap(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        from: Token,
+        amount: LocalFiat,
+        fundingId: List<Byte>,
+        verifiedState: VerifiedState,
+    ): Result<Unit> = service.fundSwap(
+        scope = scope,
+        owner = owner,
+        from = from,
+        amount = amount,
+        fundingId = fundingId,
+        verifiedState = verifiedState,
     ).onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun withdrawUsdf(
