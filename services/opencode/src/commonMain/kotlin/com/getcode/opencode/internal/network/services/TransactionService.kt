@@ -41,6 +41,7 @@ import com.getcode.solana.keys.base58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
+import kotlin.time.Duration
 import kotlin.time.Instant
 
 
@@ -53,9 +54,10 @@ internal class TransactionService @Inject constructor(
         scope: CoroutineScope,
         intent: IntentType,
         owner: KeyPair,
+        streamTimeout: Duration? = null,
     ): Result<IntentType> {
         val executor = IntentExecutor(api)
-        return executor.execute(scope, intent, owner)
+        return executor.execute(scope, intent, owner, streamTimeout)
     }
 
     suspend fun getIntentMetadata(

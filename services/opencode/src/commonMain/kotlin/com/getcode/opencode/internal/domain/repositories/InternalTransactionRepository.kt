@@ -22,6 +22,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.network.retryableOrThrow
 import kotlinx.coroutines.CoroutineScope
+import kotlin.time.Duration
 import kotlin.time.Instant
 import kotlin.time.Duration.Companion.seconds
 import javax.inject.Inject
@@ -32,14 +33,15 @@ internal class InternalTransactionRepository @Inject constructor(
     override suspend fun submitIntent(
         scope: CoroutineScope,
         intent: IntentType,
-        owner: Ed25519.KeyPair
+        owner: Ed25519.KeyPair,
+        streamTimeout: Duration?,
     ): Result<IntentType> = runCatching {
         retryableOrThrow(
             maxRetries = 3,
             delayDuration = 1.seconds,
             retryIf = { it is SubmitIntentError.StaleState && it.isRaceCondition },
         ) {
-            service.submitIntent(scope, intent, owner).getOrThrow()
+            service.submitIntent(scope, intent, owner, streamTimeout).getOrThrow()
         }
     }.onFailure {
         ErrorUtils.handleError(it)

@@ -16,14 +16,17 @@ import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.CoroutineScope
+import kotlin.time.Duration
 import kotlin.time.Instant
 
 interface TransactionRepository {
 
+    /** [streamTimeout] replaces the submission stream's default timeout when it is set. */
     suspend fun submitIntent(
         scope: CoroutineScope,
         intent: IntentType,
         owner: KeyPair,
+        streamTimeout: Duration? = null,
     ): Result<IntentType>
 
     suspend fun getIntentMetadata(

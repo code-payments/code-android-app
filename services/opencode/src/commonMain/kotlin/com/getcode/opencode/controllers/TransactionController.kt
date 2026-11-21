@@ -142,6 +142,7 @@ class TransactionController @Inject constructor(
         appMetadata: ByteArray? = null,
         scope: CoroutineScope = this.scope,
         intentId: PublicKey? = null,
+        streamTimeout: Duration? = null,
     ): Result<IntentType> {
         val verifiedState = amount.verifiedState
             ?: return Result.failure(IllegalStateException("No verified state"))
@@ -160,7 +161,7 @@ class TransactionController @Inject constructor(
             intentId = intentId,
         )
 
-        return submitIntent(scope, intent, source.authority.keyPair)
+        return submitIntent(scope, intent, source.authority.keyPair, streamTimeout)
     }
 
     /**
@@ -628,7 +629,8 @@ class TransactionController @Inject constructor(
         scope: CoroutineScope,
         intent: IntentType,
         authority: KeyPair,
-    ): Result<IntentType> = repository.submitIntent(scope, intent, authority)
+        streamTimeout: Duration? = null,
+    ): Result<IntentType> = repository.submitIntent(scope, intent, authority, streamTimeout)
         .onSuccess { refreshAccountState() }
 
     suspend fun getIntentMetadata(

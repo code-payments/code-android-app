@@ -32,6 +32,8 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.LiveSecrets
 import com.getcode.vendor.Base58
+import io.grpc.Status
+import io.grpc.StatusException
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -53,8 +55,10 @@ import kotlin.test.assertIs
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class PaymentRequestPaymentDelegateTest {
 
@@ -167,7 +171,7 @@ class PaymentRequestPaymentDelegateTest {
         val metadata = slot<ByteArray>()
         val intentId = slot<PublicKey>()
         coEvery {
-            transactionController.directTransfer(any(), token, source, creatorKey, capture(metadata), any(), capture(intentId))
+            transactionController.directTransfer(any(), token, source, creatorKey, capture(metadata), any(), capture(intentId), any())
         } returns Result.success(mockk())
 
         assertTrue(delegate.pay(ready, token, source).isSuccess)
@@ -185,7 +189,7 @@ class PaymentRequestPaymentDelegateTest {
         coEvery { calculator.compute(any(), any(), any(), any(), any()) } returns
             Result.success(VerifiedFiat(mockk<LocalFiat>(relaxed = true), state))
         coEvery {
-            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
         } returns outcome.map { mockk() }
         val lines = mutableListOf<String>()
         delegate.log = { message, _ -> lines += message }
@@ -321,7 +325,7 @@ class PaymentRequestPaymentDelegateTest {
         val metadata = slot<ByteArray>()
         val intentId = slot<PublicKey>()
         coEvery {
-            transactionController.directTransfer(any(), token, source, creatorKey, capture(metadata), any(), capture(intentId))
+            transactionController.directTransfer(any(), token, source, creatorKey, capture(metadata), any(), capture(intentId), any())
         } returns Result.success(mockk())
 
         assertTrue(delegate.pay(ready, token, source).isSuccess)
@@ -339,7 +343,7 @@ class PaymentRequestPaymentDelegateTest {
         val ready = delegate.prepare(requestId, viewer).getOrThrow() as ShareToPay.Ready
         var heldWhileSending = false
         coEvery {
-            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
         } answers {
             heldWhileSending = LiveSecrets.isLive(intentBase58)
             outcome.map { mockk() }
@@ -375,7 +379,7 @@ class PaymentRequestPaymentDelegateTest {
     private suspend fun readyCollection(): ShareToPay.Ready {
         holdingCollection(Result.success(PaymentIntentId(intentBytes)))
         coEvery {
-            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
         } returns Result.success(mockk())
         return delegate.prepare(requestId, viewer).getOrThrow() as ShareToPay.Ready
     }
@@ -408,10 +412,10 @@ class PaymentRequestPaymentDelegateTest {
 
         coVerifyOrder {
             funder.fund(requestId, Fiat("10.00", CurrencyCode.EUR), token, source)
-            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
             funder.paid(requestId, token)
         }
-        coVerify(exactly = 1) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -422,7 +426,7 @@ class PaymentRequestPaymentDelegateTest {
 
         assertSame(short, delegate.pay(ready, token, source, fund = true).exceptionOrNull())
 
-        coVerify(exactly = 0) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any(), any()) }
         coVerify(exactly = 0) { funder.paid(any(), any()) }
     }
 
@@ -430,7 +434,7 @@ class PaymentRequestPaymentDelegateTest {
     fun `a failed payment after funding keeps the currency unrecorded`() = runTest {
         val ready = readyCollection()
         coEvery {
-            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
         } returns Result.failure(IllegalStateException("boom"))
 
         assertTrue(delegate.pay(ready, token, source, fund = true).isFailure)
@@ -446,7 +450,7 @@ class PaymentRequestPaymentDelegateTest {
 
         coVerify(exactly = 1) { funder.forget(requestId) }
         coVerify(exactly = 0) { funder.fund(any(), any(), any(), any()) }
-        coVerify(exactly = 0) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any(), any()) }
     }
 
     // --- Every wait on the pay path has a deadline (group-collections spec, pay step 4) ---
@@ -455,7 +459,7 @@ class PaymentRequestPaymentDelegateTest {
     fun `a submission that never answers ends at 60 seconds as not confirmed, sent once`() = runTest {
         val ready = readyCollection()
         coEvery {
-            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
         } coAnswers { awaitCancellation() }
 
         val paying = async { delegate.pay(ready, token, source) }
@@ -470,7 +474,7 @@ class PaymentRequestPaymentDelegateTest {
 
         advanceTimeBy(5.minutes)
         runCurrent()
-        coVerify(exactly = 1) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any(), any()) }
         // Not known to be paid, so the request isn't refreshed as if it were.
         coVerify(exactly = 0) { paymentRequests.fetch(requestId) }
         LiveSecrets.release(intentBase58)
@@ -480,7 +484,7 @@ class PaymentRequestPaymentDelegateTest {
     fun `a submission whose stream times out first is not confirmed either`() = runTest {
         val ready = readyCollection()
         coEvery {
-            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
         } returns Result.failure(SubmitIntentError.Other(TimeoutException("Intent stream timed out")))
 
         assertIs<PaymentNotConfirmed>(delegate.pay(ready, token, source).exceptionOrNull())
@@ -492,11 +496,63 @@ class PaymentRequestPaymentDelegateTest {
         val ready = readyCollection()
         val boom = IllegalStateException("boom")
         coEvery {
-            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
         } returns Result.failure(boom)
 
         assertSame(boom, delegate.pay(ready, token, source).exceptionOrNull())
+
+        // A refusal the server sent on the stream is an answer, so it stays what it was.
+        val refused = SubmitIntentError.Denied(listOf("denied"))
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
+        } returns Result.failure(refused)
+        assertSame(refused, delegate.pay(ready, token, source).exceptionOrNull())
         LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `a submission whose connection drops is not confirmed`() = runTest {
+        val ready = readyCollection()
+        val dropped = StatusException(Status.UNAVAILABLE)
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
+        } returns Result.failure(dropped)
+
+        val error = delegate.pay(ready, token, source).exceptionOrNull()
+
+        assertIs<PaymentNotConfirmed>(error)
+        assertSame(dropped, error.cause)
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `a collection's submission stream waits as long as the deadline`() = runTest {
+        val ready = readyCollection()
+        val streamTimeouts = mutableListOf<Duration?>()
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), captureNullable(streamTimeouts))
+        } returns Result.success(mockk())
+
+        assertTrue(delegate.pay(ready, token, source).isSuccess)
+
+        assertEquals(listOf<Duration?>(60.seconds), streamTimeouts)
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `a share's submission keeps the stream's own timeout`() = runTest {
+        serverReturns(request(), PaymentIntentId(intentBytes))
+        val ready = delegate.prepare(requestId, viewer).getOrThrow() as ShareToPay.Ready
+        coEvery { calculator.compute(any(), any(), any(), any(), any()) } returns
+            Result.success(VerifiedFiat(mockk<LocalFiat>(relaxed = true), state))
+        val streamTimeouts = mutableListOf<Duration?>()
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), captureNullable(streamTimeouts))
+        } returns Result.success(mockk())
+
+        assertTrue(delegate.pay(ready, token, source).isSuccess)
+
+        assertEquals(listOf<Duration?>(null), streamTimeouts)
     }
 
     @Test

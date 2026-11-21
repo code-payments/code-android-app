@@ -18,6 +18,7 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
+    testImplementation(libs.grpc.api)
 
     implementation(libs.androidx.datastore.preferences.core)
     implementation(project(":apps:flipcash:core"))

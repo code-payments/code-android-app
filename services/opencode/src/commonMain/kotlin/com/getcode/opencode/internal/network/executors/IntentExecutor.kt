@@ -28,6 +28,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeoutException
+import kotlin.time.Duration
 import kotlin.collections.forEach
 import kotlin.coroutines.resume
 
@@ -38,16 +39,26 @@ class IntentExecutor(
 ) {
     private val streamReferenceMutex = Mutex()
 
+    /**
+     * Submits [intent] on a stream that fails with a [TimeoutException] cause when the server sends
+     * nothing for [streamTimeout], or for the stream's default when it is null.
+     */
     suspend fun execute(
         scope: CoroutineScope,
         intent: IntentType,
         owner: KeyPair,
+        streamTimeout: Duration? = null,
     ): Result<IntentType> = suspendCancellableCoroutine { cont ->
         trace(
             tag = "SubmitIntent",
             message = "Opening stream."
         )
-        val streamReference = OcpIntentStreamReference(scope, "submitIntent")
+        val streamReference = OcpIntentStreamReference(
+            scope = scope,
+            instanceLabel = "submitIntent",
+            timeoutMillis = streamTimeout?.inWholeMilliseconds
+                ?: BidirectionalStreamReference.DEFAULT_TIMEOUT_MILLIS,
+        )
 
         streamReference.timeoutHandler = {
             trace(

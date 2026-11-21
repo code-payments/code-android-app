@@ -17,6 +17,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlin.time.Duration
 
 /**
  * Pays several people in one intent, each their own fiat amount. Shared by reaction boosts and
@@ -57,7 +58,8 @@ internal class SharedStatePayment(
      * Pays each of [payees] its [priced] amount from [source]: one payee is a single transfer, more
      * are one multi-transfer in the order given. Debits the local balance by every part.
      *
-     * [intentId] applies to a single transfer only: the id the server issued for the payment.
+     * [intentId] applies to a single transfer only: the id the server issued for the payment. So
+     * does [streamTimeout], which replaces the submission stream's default timeout when it is set.
      */
     suspend fun pay(
         payees: List<ID>,
@@ -66,6 +68,7 @@ internal class SharedStatePayment(
         source: AccountCluster,
         appMetadata: ByteArray?,
         intentId: PublicKey? = null,
+        streamTimeout: Duration? = null,
     ): Result<Unit> = runCatching {
         require(payees.size == priced.size) { "${payees.size} payees for ${priced.size} amounts" }
         val destinations = resolveAll(payees)
@@ -78,6 +81,7 @@ internal class SharedStatePayment(
                 destinationOwner = destinations.single(),
                 appMetadata = appMetadata,
                 intentId = intentId,
+                streamTimeout = streamTimeout,
             ).getOrThrow()
         } else {
             require(intentId == null) { "An issued intent id pays one payee" }

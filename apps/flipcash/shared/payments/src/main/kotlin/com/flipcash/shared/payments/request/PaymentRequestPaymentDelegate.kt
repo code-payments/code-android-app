@@ -185,6 +185,10 @@ class PaymentRequestPaymentDelegate @Inject constructor(
                 source = source,
                 appMetadata = buildRequestedPaymentMetadata(request.groupChatId, request.id.toByteArray()),
                 intentId = intentId,
+                // A collection's submission stream runs to the same deadline instead of its own
+                // shorter default, so a silent server ends it at PAY_PATH_DEADLINE. Other requests
+                // keep the default.
+                streamTimeout = if (collection) PAY_PATH_DEADLINE else null,
             )
         }
         if (collection) {

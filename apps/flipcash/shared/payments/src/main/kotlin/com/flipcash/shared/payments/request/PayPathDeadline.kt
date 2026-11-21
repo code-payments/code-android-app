@@ -1,6 +1,6 @@
 package com.flipcash.shared.payments.request
 
-import com.getcode.opencode.model.core.errors.SubmitIntentError
+import com.getcode.opencode.model.core.errors.isUnansweredSubmission
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.TimeoutException
@@ -14,9 +14,10 @@ import kotlin.time.Duration.Companion.seconds
 internal val PAY_PATH_DEADLINE: Duration = 60.seconds
 
 /**
- * The submission got no answer within [PAY_PATH_DEADLINE], or its stream timed out first: the
- * payment may or may not have landed. The sheet unlocks with "Payment Not Confirmed", and the next
- * tap asks for the intent id again before paying, so it can't pay twice.
+ * The submission got no answer within [PAY_PATH_DEADLINE], or its stream ended without one (it
+ * timed out, or the connection dropped): the payment may or may not have landed. The sheet
+ * unlocks with "Payment Not Confirmed", and the next tap asks for the intent id again before
+ * paying, so it can't pay twice.
  */
 class PaymentNotConfirmed(cause: Throwable? = null) : Exception("payment not confirmed", cause)
 
@@ -43,8 +44,8 @@ internal suspend fun boundedOrSkip(deadline: Duration = PAY_PATH_DEADLINE, call:
 
 /**
  * Runs a payment [submission] for at most [PAY_PATH_DEADLINE]. No answer by then, or a stream that
- * timed out first, fails with [PaymentNotConfirmed], since the payment may have landed. Any other
- * outcome is returned as it is.
+ * ended without the server's answer, fails with [PaymentNotConfirmed], since the payment may have
+ * landed. A refusal the server sent, and any other outcome, is returned as it is.
  */
 internal suspend fun submitWithinDeadline(submission: suspend () -> Result<Unit>): Result<Unit> {
     val result = withTimeoutOrNull(PAY_PATH_DEADLINE) { submission() }
@@ -52,7 +53,7 @@ internal suspend fun submitWithinDeadline(submission: suspend () -> Result<Unit>
     val error = result.exceptionOrNull()
     return when {
         error is TimeoutCancellationException -> Result.failure(PaymentNotConfirmed())
-        error is SubmitIntentError.Other && error.cause is TimeoutException -> Result.failure(PaymentNotConfirmed(error))
+        error != null && error.isUnansweredSubmission() -> Result.failure(PaymentNotConfirmed(error))
         else -> result
     }
 }
