@@ -119,18 +119,21 @@ class CollectionTopUp @Inject constructor(
     /** Runs [block] with [requestId]'s top-up to itself: ordering, waiting and the payment after. */
     suspend fun <T> exclusive(requestId: ID, block: suspend () -> T): T = locks.withLock(requestId, block)
 
-    /** Whether a top-up for [requestId] is kept, its outcome not yet known. */
-    suspend fun pending(requestId: ID): Boolean = store.pendingTopUp(requestId) != null
+    /** The top-up kept for [requestId], its outcome not yet known, or null when none is kept. */
+    suspend fun kept(requestId: ID): PendingTopUpRecord? = store.pendingTopUp(requestId)
 
     /**
-     * Orders [usdCents] for [requestId] and opens Google Pay on it, then waits for the Dollars. A
-     * top-up already kept for [requestId] is waited on instead, and nothing new is ordered.
-     * [onCharged] runs once Google Pay has closed on a payment that may settle, before the wait.
-     * [checkGates] false skips the Google Pay checks, after the user chose to continue anyway.
+     * Orders [usdCents] for [requestId] and opens Google Pay on it, then waits for the Dollars. The
+     * order is kept with [payingCurrency], the currency the payment is to be made in once they land
+     * (spec, "Adding money and recovery" item 1). A top-up already kept for [requestId] is waited on
+     * instead, and nothing new is ordered. [onCharged] runs once Google Pay has closed on a payment
+     * that may settle, before the wait. [checkGates] false skips the Google Pay checks, after the
+     * user chose to continue anyway.
      */
     suspend fun topUp(
         requestId: ID,
         usdCents: Long,
+        payingCurrency: Mint,
         owner: AccountCluster,
         checkGates: Boolean = true,
         onCharged: () -> Unit = {},
@@ -140,7 +143,7 @@ class CollectionTopUp @Inject constructor(
         val order = rail.order(usdCents, checkGates).getOrElse { cause ->
             return TopUpResult.Blocked((cause as? CollectionTopUpBlocked)?.block ?: TopUpBlock.OrderFailed(cause))
         }
-        val record = PendingTopUpRecord(order.orderId, usdCents, baseline)
+        val record = PendingTopUpRecord(order.orderId, usdCents, baseline, payingCurrency)
         store.putPendingTopUp(requestId, record)
         return when (rail.pay(order)) {
             TopUpPayment.NotCharged -> {

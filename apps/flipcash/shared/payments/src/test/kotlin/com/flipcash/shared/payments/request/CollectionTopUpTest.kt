@@ -20,6 +20,7 @@ import kotlin.time.Duration
 class CollectionTopUpTest {
 
     private val requestId: ID = List(32) { 4 }
+    private val moony = Mint(List(32) { 7 })
     private val owner = mockk<AccountCluster>(relaxed = true)
     private val store = InMemoryCollectionFundingStore()
     private var dollars = 2_010_000L
@@ -68,11 +69,11 @@ class CollectionTopUpTest {
     fun `a top-up orders exact cents, is kept before Google Pay opens, and lands`() = runTest {
         rail.land = 6_370_000
 
-        val result = topUp().topUp(requestId, usdCents = 637, owner)
+        val result = topUp().topUp(requestId, usdCents = 637, payingCurrency = moony, owner = owner)
 
         assertEquals(TopUpResult.Landed, result)
         assertEquals(listOf(637L), rail.ordered)
-        assertEquals(PendingTopUpRecord("order-1", 637, 2_010_000), rail.keptWhenPaying)
+        assertEquals(PendingTopUpRecord("order-1", 637, 2_010_000, payingCurrency = moony), rail.keptWhenPaying)
         assertNull(store.pendingTopUp(requestId))
     }
 
@@ -82,9 +83,9 @@ class CollectionTopUpTest {
         rail.paying = CompletableDeferred()
         val subject = topUp()
 
-        val first = async { subject.exclusive(requestId) { subject.topUp(requestId, 500, owner) } }
+        val first = async { subject.exclusive(requestId) { subject.topUp(requestId, 500, moony, owner) } }
         testScheduler.runCurrent()
-        val second = async { subject.exclusive(requestId) { subject.topUp(requestId, 500, owner) } }
+        val second = async { subject.exclusive(requestId) { subject.topUp(requestId, 500, moony, owner) } }
         testScheduler.runCurrent()
 
         // Google Pay is still open on the first order, and the second tap is held at the lock.
@@ -98,11 +99,12 @@ class CollectionTopUpTest {
 
     @Test
     fun `a kept top-up is waited on after a relaunch, with no second order`() = runTest {
-        store.putPendingTopUp(requestId, PendingTopUpRecord("order-9", 637, 2_010_000))
+        val kept = PendingTopUpRecord("order-9", 637, 2_010_000, payingCurrency = moony)
+        store.putPendingTopUp(requestId, kept)
         rail.land = 6_370_000
 
         val relaunched = topUp()
-        assertEquals(true, relaunched.pending(requestId))
+        assertEquals(kept, relaunched.kept(requestId))
         val result = relaunched.resume(requestId, owner)
 
         assertEquals(TopUpResult.Landed, result)
@@ -112,10 +114,10 @@ class CollectionTopUpTest {
 
     @Test
     fun `a retry with a kept top-up waits on it instead of ordering`() = runTest {
-        store.putPendingTopUp(requestId, PendingTopUpRecord("order-9", 637, 2_010_000))
+        store.putPendingTopUp(requestId, PendingTopUpRecord("order-9", 637, 2_010_000, moony))
         rail.land = 6_370_000
 
-        val result = topUp().topUp(requestId, usdCents = 637, owner)
+        val result = topUp().topUp(requestId, usdCents = 637, payingCurrency = moony, owner = owner)
 
         assertEquals(TopUpResult.Landed, result)
         assertEquals(emptyList(), rail.ordered)
@@ -123,7 +125,7 @@ class CollectionTopUpTest {
 
     @Test
     fun `Dollars already seen clear the record without waiting on delivery`() = runTest {
-        store.putPendingTopUp(requestId, PendingTopUpRecord("order-9", 500, 2_010_000))
+        store.putPendingTopUp(requestId, PendingTopUpRecord("order-9", 500, 2_010_000, moony))
         dollars = 2_010_000 + 4_900_000 // 98% of $5.00
         rail.delivery = TopUpDelivery.TimedOut
 
@@ -135,7 +137,7 @@ class CollectionTopUpTest {
     fun `a short delivery still clears, so the replan can ask`() = runTest {
         rail.land = 4_000_000 // $5.00 ordered, $4.00 arrived
 
-        assertEquals(TopUpResult.Landed, topUp().topUp(requestId, 500, owner))
+        assertEquals(TopUpResult.Landed, topUp().topUp(requestId, 500, moony, owner))
         assertNull(store.pendingTopUp(requestId))
     }
 
@@ -143,7 +145,7 @@ class CollectionTopUpTest {
     fun `Google Pay closed before charging clears the record`() = runTest {
         rail.payment = TopUpPayment.NotCharged
 
-        assertEquals(TopUpResult.NotCharged, topUp().topUp(requestId, 500, owner))
+        assertEquals(TopUpResult.NotCharged, topUp().topUp(requestId, 500, moony, owner))
         assertNull(store.pendingTopUp(requestId))
     }
 
@@ -152,14 +154,14 @@ class CollectionTopUpTest {
         rail.payment = TopUpPayment.Unknown
         rail.land = 5_000_000
 
-        assertEquals(TopUpResult.Landed, topUp().topUp(requestId, 500, owner))
+        assertEquals(TopUpResult.Landed, topUp().topUp(requestId, 500, moony, owner))
     }
 
     @Test
     fun `an order known to have failed clears the record`() = runTest {
         rail.delivery = TopUpDelivery.Failed
 
-        assertEquals(TopUpResult.Failed, topUp().topUp(requestId, 500, owner))
+        assertEquals(TopUpResult.Failed, topUp().topUp(requestId, 500, moony, owner))
         assertNull(store.pendingTopUp(requestId))
     }
 
@@ -167,7 +169,7 @@ class CollectionTopUpTest {
     fun `an order not yet delivered stays kept`() = runTest {
         rail.delivery = TopUpDelivery.TimedOut
 
-        assertEquals(TopUpResult.StillPending, topUp().topUp(requestId, 500, owner))
+        assertEquals(TopUpResult.StillPending, topUp().topUp(requestId, 500, moony, owner))
         assertEquals("order-1", store.pendingTopUp(requestId)?.orderId)
     }
 
@@ -175,7 +177,7 @@ class CollectionTopUpTest {
     fun `delivered but not yet swept stays kept`() = runTest {
         rail.land = 0
 
-        assertEquals(TopUpResult.StillPending, topUp().topUp(requestId, 500, owner))
+        assertEquals(TopUpResult.StillPending, topUp().topUp(requestId, 500, moony, owner))
         assertEquals("order-1", store.pendingTopUp(requestId)?.orderId)
     }
 
@@ -183,7 +185,7 @@ class CollectionTopUpTest {
     fun `a purchase gate orders and keeps nothing`() = runTest {
         rail.gate = CollectionTopUpBlocked(TopUpBlock.GooglePayNoPaymentMethod)
 
-        val result = topUp().topUp(requestId, 500, owner)
+        val result = topUp().topUp(requestId, 500, moony, owner)
 
         assertEquals(TopUpResult.Blocked(TopUpBlock.GooglePayNoPaymentMethod), result)
         assertEquals(emptyList(), rail.ordered)

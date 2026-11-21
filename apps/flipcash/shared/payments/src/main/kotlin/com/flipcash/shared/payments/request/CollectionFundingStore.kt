@@ -44,11 +44,15 @@ data class FundingLegRecord(
  * @property orderId the Coinbase order.
  * @property usdCents what the order lands, in US cents.
  * @property baselineDollarsMicros the Dollars balance, in USD micros, just before the order.
+ * @property payingCurrency the currency picked for the payment, which it replans in once the
+ *   Dollars land, even after a relaunch; null for a top-up an older build kept, which pays in the
+ *   default currency.
  */
 data class PendingTopUpRecord(
     val orderId: String,
     val usdCents: Long,
     val baselineDollarsMicros: Long,
+    val payingCurrency: Mint?,
 )
 
 /**
@@ -153,12 +157,27 @@ internal class DataStoreCollectionFundingStore(
     private fun topUpKey(owner: String, requestId: ID) =
         stringPreferencesKey("top-up-$owner-${requestId.hexEncodedString()}")
 
-    private fun encodeTopUp(record: PendingTopUpRecord): String =
-        listOf(record.orderId, record.usdCents, record.baselineDollarsMicros).joinToString(SEPARATOR)
+    /** The paying currency is a fourth field, after the three an older build writes. */
+    private fun encodeTopUp(record: PendingTopUpRecord): String = listOfNotNull(
+        record.orderId,
+        record.usdCents,
+        record.baselineDollarsMicros,
+        record.payingCurrency?.base58(),
+    ).joinToString(SEPARATOR)
 
+    /**
+     * A currency that won't read back is dropped on its own, so the order stays kept and a retry
+     * still waits on it instead of ordering again.
+     */
     private fun decodeTopUp(value: String): PendingTopUpRecord? = runCatching {
-        val (orderId, cents, baseline) = value.split(SEPARATOR)
-        PendingTopUpRecord(orderId, cents.toLong(), baseline.toLong())
+        val fields = value.split(SEPARATOR)
+        val (orderId, cents, baseline) = fields
+        PendingTopUpRecord(
+            orderId = orderId,
+            usdCents = cents.toLong(),
+            baselineDollarsMicros = baseline.toLong(),
+            payingCurrency = fields.getOrNull(3)?.let { runCatching { Mint(it) }.getOrNull() },
+        )
     }.getOrNull()
 
     private fun encode(leg: FundingLegRecord): String = listOf(

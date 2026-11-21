@@ -300,12 +300,13 @@ internal class RequestPayFlow(
         // one until it sees [State.funding].
         val token = collectionToken(pick = flowOf(null)).first()
         // A top-up kept from before a relaunch or a failed attempt is waited on and then paid;
-        // nothing new is ordered.
-        val kept = topUp.pending(found.request.id)
+        // nothing new is ordered. The sheet shows the currency it was picked for, so a tap after
+        // a wait that timed out pays in it too.
+        val kept = topUp.kept(found.request.id)
         val withoutSheet = direct &&
-            (kept || payments.planCollection(found.amount, token)?.fundedByTopUpAlone == true)
+            (kept != null || payments.planCollection(found.amount, token)?.fundedByTopUpAlone == true)
         ready = found
-        collectionPick.value = null
+        collectionPick.value = kept?.payingCurrency
         _state.update {
             it.copy(
                 preparing = false,
@@ -318,7 +319,7 @@ internal class RequestPayFlow(
             )
         }
         when {
-            kept -> resumeTopUp(found, token)
+            kept != null -> resumeTopUp(found, token)
             withoutSheet -> addAndPay(checkGates = true, token = token)
         }
     }
@@ -423,6 +424,7 @@ internal class RequestPayFlow(
                 val result = topUp.topUp(
                     requestId = found.request.id,
                     usdCents = cents,
+                    payingCurrency = token.address,
                     owner = owner,
                     checkGates = checkGates,
                     onCharged = { _state.update { it.copy(finishing = true) } },
@@ -466,14 +468,23 @@ internal class RequestPayFlow(
         return cents
     }
 
-    /** Pay opened on a request with a top-up kept: "Finishing Payment" until it lands and pays. */
-    private fun resumeTopUp(pending: ShareToPay.Ready, token: Token) {
+    /**
+     * Pay opened on a request with a top-up kept: "Finishing Payment" until it lands and pays, in
+     * the currency the top-up was picked for, even after a relaunch (spec, "Adding money and
+     * recovery" item 1). A top-up an older build kept has no currency and pays in [default].
+     */
+    private fun resumeTopUp(pending: ShareToPay.Ready, default: Token) {
         val owner = userManager.accountCluster ?: return
         _state.update { it.copy(progress = LoadingSuccessState(loading = true), finishing = true) }
         scope.launch {
             topUp.exclusive(pending.request.id) {
+                // Read before the wait, which drops the record once the Dollars land.
+                val payingCurrency = topUp.kept(pending.request.id)?.payingCurrency
                 val kept = topUp.resume(pending.request.id, owner)
                 if (kept != null) {
+                    // Looked up after the wait, which loads the balances: early in a relaunch the
+                    // wallet can list Dollars alone.
+                    val token = if (payingCurrency == null) default else heldToken(payingCurrency)
                     afterTopUp(pending, token, owner, kept)
                 } else {
                     // Another screen's top-up settled while this one waited; it may have paid.
@@ -483,15 +494,26 @@ internal class RequestPayFlow(
         }
     }
 
+    /** [mint]'s token while the wallet holds it, else null. Dollars always has one. */
+    private suspend fun heldToken(mint: Mint): Token? =
+        tokenCoordinator.tokens.first().firstOrNull { it.address == mint }
+            ?: Token.usdf.takeIf { mint == Mint.usdf }
+
     /**
      * Once the Dollars land, refetch (another member may have paid meanwhile, or the request
      * closed) and replan from the balances as observed: pay if they cover it, else draw the short
-     * state again so the user confirms any further top-up. The Dollars stay either way.
+     * state again so the user confirms any further top-up. The Dollars stay either way. A null
+     * [token] is a currency the top-up was picked for that can no longer be paid in: the sheet
+     * opens on the balances as they stand rather than pay in another currency unasked.
      */
-    private suspend fun afterTopUp(pending: ShareToPay.Ready, token: Token, owner: AccountCluster, result: TopUpResult) {
+    private suspend fun afterTopUp(pending: ShareToPay.Ready, token: Token?, owner: AccountCluster, result: TopUpResult) {
         when (result) {
             TopUpResult.Landed -> {
                 val found = refetch(pending) ?: return
+                if (token == null) {
+                    showShortState()
+                    return
+                }
                 val plan = payments.planCollection(found.amount, token)
                 if (plan == null || plan.payableWithoutTopUp) {
                     _state.update { it.copy(finishing = true) }

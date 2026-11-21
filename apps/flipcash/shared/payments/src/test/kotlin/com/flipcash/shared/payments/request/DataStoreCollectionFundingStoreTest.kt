@@ -1,6 +1,8 @@
 package com.flipcash.shared.payments.request
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.core.ID
 import com.getcode.solana.keys.Mint
@@ -19,8 +21,9 @@ class DataStoreCollectionFundingStoreTest {
 
     private val dir: File = createTempDirectory("collection-funding").toFile()
     private val owner = MutableStateFlow<String?>("aa01")
+    private val dataStore = PreferenceDataStoreFactory.create(produceFile = { File(dir, "funding.preferences_pb") })
     private val store = DataStoreCollectionFundingStore(
-        dataStore = PreferenceDataStoreFactory.create(produceFile = { File(dir, "funding.preferences_pb") }),
+        dataStore = dataStore,
         owners = owner,
         currentOwner = { owner.value },
     )
@@ -59,7 +62,12 @@ class DataStoreCollectionFundingStoreTest {
 
     @Test
     fun `a pending top-up reads back per request and outlives clearing the legs`() = runTest {
-        val topUp = PendingTopUpRecord(orderId = "order-1", usdCents = 637, baselineDollarsMicros = 2_010_000)
+        val topUp = PendingTopUpRecord(
+            orderId = "order-1",
+            usdCents = 637,
+            baselineDollarsMicros = 2_010_000,
+            payingCurrency = first.from,
+        )
         store.put(requestId, first)
         store.putPendingTopUp(requestId, topUp)
 
@@ -73,11 +81,38 @@ class DataStoreCollectionFundingStoreTest {
 
     @Test
     fun `a pending top-up belongs to the account that ordered it`() = runTest {
-        store.putPendingTopUp(requestId, PendingTopUpRecord("order-1", 500, 0))
+        store.putPendingTopUp(requestId, PendingTopUpRecord("order-1", 500, 0, first.from))
 
         owner.value = "bb02"
 
         assertEquals(null, store.pendingTopUp(requestId))
+    }
+
+    /** The key and value an older build wrote: order, cents and baseline, with no currency. */
+    private suspend fun writeTopUp(value: String) {
+        dataStore.edit { it[stringPreferencesKey("top-up-aa01-${"04".repeat(32)}")] = value }
+    }
+
+    @Test
+    fun `a top-up an older build kept reads back with no paying currency`() = runTest {
+        writeTopUp("order-1|637|2010000")
+
+        assertEquals(PendingTopUpRecord("order-1", 637, 2_010_000, payingCurrency = null), store.pendingTopUp(requestId))
+    }
+
+    @Test
+    fun `a top-up with no paying currency writes the fields an older build reads`() = runTest {
+        store.putPendingTopUp(requestId, PendingTopUpRecord("order-1", 637, 2_010_000, payingCurrency = null))
+
+        val written = dataStore.data.first()[stringPreferencesKey("top-up-aa01-${"04".repeat(32)}")]
+        assertEquals("order-1|637|2010000", written)
+    }
+
+    @Test
+    fun `a paying currency that won't read back leaves the order kept`() = runTest {
+        writeTopUp("order-1|637|2010000|not-a-mint")
+
+        assertEquals(PendingTopUpRecord("order-1", 637, 2_010_000, payingCurrency = null), store.pendingTopUp(requestId))
     }
 
     @Test

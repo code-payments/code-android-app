@@ -16,6 +16,7 @@ import com.flipcash.shared.payments.request.CollectionTopUpLocks
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
 import com.flipcash.shared.payments.request.TopUpBlock
+import com.flipcash.shared.payments.request.TopUpDelivery
 import com.flipcash.shared.payments.request.TopUpPayment
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
@@ -764,6 +765,178 @@ class CollectionTopUpFlowTest {
         assertEquals(null, runBlocking { f.directPay(flowOf(null)).first() }, "no amount with the flag off")
     }
 
+    /** The wallet's tokens. A relaunch starts with Dollars alone, and the first update loads the rest. */
+    private val wallet = MutableStateFlow(listOf(Token.usdf, MOONY))
+
+    /** Whether the wallet still holds Moony: false once it can no longer be paid in. */
+    private var holdsMoony = true
+
+    /**
+     * The spec's S5 case for a top-up's currency: $6.00 paid in Moony from $1.50 Moony and $2.50
+     * Dollars is $2.00 short, so it tops up the $5.00 minimum. Planned in whichever token the flow
+     * asks for, so the plan follows the currency it pays in.
+     */
+    private fun useMoonyCase() {
+        dollarsMicros = 2_500_000L
+        request = ShareToPay.Ready(
+            request = mockk(relaxed = true) {
+                every { id } returns REQUEST_ID
+                every { collection } returns mockk(relaxed = true)
+            },
+            amount = Fiat(quarks = 6_000_000L, currencyCode = CurrencyCode.USD),
+            intentId = mockk(relaxed = true),
+        )
+        every { tokenCoordinator.tokens } returns wallet
+        coEvery { tokenCoordinator.update() } answers {
+            wallet.value = if (holdsMoony) listOf(Token.usdf, MOONY) else listOf(Token.usdf)
+        }
+        every { payments.planCollection(any(), any()) } answers { planIn(secondArg()) }
+    }
+
+    private fun planIn(token: Token) = planCollectionFunding(
+        amountMicros = 6_000_000L,
+        minorDigits = 2,
+        minTopUpMicros = 5_000_000L,
+        dollarsId = DOLLARS,
+        selected = if (token.address == Mint.usdf) DOLLARS else MOONY_ID,
+        lastPaid = null,
+        balances = listOf(FundingBalance(MOONY_ID, 1_500_000L, 0), FundingBalance(DOLLARS, dollarsMicros, 0)),
+    )
+
+    /**
+     * Picks Moony in the sheet and taps Add and Pay, then the process dies with Google Pay open on
+     * the $5.00 order. The relaunch reads tokens before Moony's is loaded again.
+     */
+    private fun topUpInMoonyThenDie() {
+        useMoonyCase()
+        rail.googlePay = CompletableDeferred()
+        val f = openSheet()
+        f.pickCollectionCurrency(MOONY.address)
+        assertEquals(MOONY, f.token.value)
+
+        f.onAddAndPay()
+
+        assertEquals(listOf(500L), rail.orders)
+        assertTrue(store.topUps.isNotEmpty(), "kept before Google Pay opened")
+        scopes.forEach { it.cancel() }
+        rail.googlePay = null
+        wallet.value = listOf(Token.usdf)
+        assertEquals(0, paid)
+    }
+
+    private fun assertPaidOnceIn(token: Token) {
+        assertEquals(1, paid)
+        coVerify(exactly = 1) { payments.pay(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { payments.pay(any(), token, owner, true) }
+    }
+
+    /** Recovery 1 (spec PR #134): the relaunch replans in the currency picked before Google Pay. */
+    @Test
+    fun `process death between Google Pay and the landing pays in the currency picked before Google Pay`() {
+        topUpInMoonyThenDie()
+
+        val relaunched = openSheet()
+
+        assertEquals(listOf(500L), rail.orders)
+        assertTrue(store.topUps.isEmpty())
+        assertEquals(7_500_000L, dollarsMicros)
+        coVerify { payments.planCollection(any(), MOONY) }
+        assertPaidOnceIn(MOONY)
+        assertEquals(MOONY, relaunched.token.value)
+    }
+
+    @Test
+    fun `the Request screen's Pay after a relaunch pays in the currency picked before Google Pay`() {
+        topUpInMoonyThenDie()
+
+        tapRequestScreenPay(flow())
+
+        assertEquals(listOf(500L), rail.orders)
+        assertPaidOnceIn(MOONY)
+    }
+
+    @Test
+    fun `a top-up that timed out pays in its currency when the sheet is closed and opened again`() {
+        useMoonyCase()
+        rail.deliveryResult = TopUpDelivery.TimedOut
+        val f = openSheet()
+        f.pickCollectionCurrency(MOONY.address)
+        f.onAddAndPay()
+        assertEquals(0, paid)
+        assertTrue(store.topUps.isNotEmpty())
+
+        f.dismiss()
+        rail.deliveryResult = TopUpDelivery.Delivered
+        openSheet(f)
+
+        assertEquals(listOf(500L), rail.orders)
+        assertPaidOnceIn(MOONY)
+    }
+
+    @Test
+    fun `after a relaunch the open sheet keeps the top-up's currency, so a tap once it lands pays in it`() {
+        topUpInMoonyThenDie()
+        rail.deliveryResult = TopUpDelivery.TimedOut
+        val relaunched = openSheet()
+        assertEquals(0, paid)
+        assertTrue(relaunched.state.value.progress.isIdle)
+        assertEquals(MOONY, relaunched.token.value)
+
+        rail.deliveryResult = TopUpDelivery.Delivered
+        relaunched.onAddAndPay()
+
+        assertEquals(listOf(500L), rail.orders)
+        assertPaidOnceIn(MOONY)
+    }
+
+    /** Spec PR #134: a currency that can no longer be paid in shows the sheet, never a silent switch. */
+    @Test
+    fun `a top-up whose currency can no longer be paid in pays nothing and opens the sheet`() {
+        topUpInMoonyThenDie()
+        holdsMoony = false
+
+        val relaunched = flow()
+        tapRequestScreenPay(relaunched)
+
+        assertEquals(listOf(500L), rail.orders)
+        assertEquals(0, paid)
+        coVerify(exactly = 0) { payments.pay(any(), any(), any(), any()) }
+        assertTrue(store.topUps.isEmpty(), "the Dollars landed and stay")
+        assertEquals(7_500_000L, dollarsMicros)
+        assertTrue(relaunched.state.value.open)
+        assertEquals(false, relaunched.state.value.direct)
+        assertTrue(relaunched.state.value.progress.isIdle)
+        assertEquals(false, relaunched.state.value.finishing)
+        assertEquals(Token.usdf, relaunched.token.value, "the sheet shows the currency it would now pay in")
+    }
+
+    @Test
+    fun `a top-up an older build kept, with no currency, pays in the default currency`() {
+        topUpInMoonyThenDie()
+        store.topUps.replaceAll { _, record -> record.copy(payingCurrency = null) }
+
+        val relaunched = openSheet()
+
+        assertEquals(listOf(500L), rail.orders)
+        assertPaidOnceIn(Token.usdf)
+        assertEquals(Token.usdf, relaunched.token.value)
+    }
+
+    @Test
+    fun `a short landing after a relaunch shows the short state in the top-up's currency`() {
+        topUpInMoonyThenDie()
+        rail.deliverMicros = 1_000_000L
+
+        val relaunched = openSheet()
+
+        assertEquals(0, paid)
+        assertEquals(listOf(500L), rail.orders)
+        assertTrue(relaunched.state.value.open)
+        assertTrue(relaunched.state.value.progress.isIdle)
+        assertEquals(false, planIn(MOONY).payableWithoutTopUp)
+        assertEquals(MOONY, relaunched.token.value)
+    }
+
     private fun JSONArray.objects(): List<JSONObject> = (0 until length()).map(::getJSONObject)
 
     private companion object {
@@ -771,6 +944,8 @@ class CollectionTopUpFlowTest {
         const val DOLLARS = "dollars"
         val REQUEST_ID = listOf<Byte>(2)
         const val MICROS_PER_CENT = 10_000L
+        const val MOONY_ID = "moony"
+        val MOONY = Token.usdf.copy(address = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"))
         val SECTIONS = listOf("s1-no-balance", "s2-min-top-up", "s4-add-then-pay", "s7-short-under-min", "s8-short-over-min")
     }
 }
