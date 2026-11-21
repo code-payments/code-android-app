@@ -71,6 +71,10 @@ internal class PhoneVerificationViewModel @Inject constructor(
         val resetTimeRemaining: Int = 0,
         val attempts: Int = 0,
     ) {
+        /** The number the code went to, with its country code; [formattedPhone] leaves the code out. */
+        internal val codeDestination: String
+            get() = "+${selectedLocale.phoneCode} $formattedPhone"
+
         internal val otpLength = 6
         internal val canConfirmCode: Boolean
             get() = codeTextFieldState.text.length == otpLength
@@ -409,7 +413,9 @@ internal class PhoneVerificationViewModel @Inject constructor(
                 Event.OnPhoneVerificationComplete -> { state -> state }
                 is Event.OnPhoneNumberFormatted -> { state -> state.copy(formattedPhone = event.formatted) }
                 Event.OnSendCodeClicked -> { state -> state.copy(attempts = state.attempts + 1) }
-                Event.OnMaxAttemptsReached -> { state -> state }
+                // The limit starts over once it is reached. Outside onboarding the flow closes
+                // here and takes this view model with it; onboarding returns to phone entry.
+                Event.OnMaxAttemptsReached -> { state -> state.copy(attempts = 0) }
                 is Event.OnSendingCodeChanged -> { state ->
                     state.copy(
                         sendingCode = state.sendingCode.copy(

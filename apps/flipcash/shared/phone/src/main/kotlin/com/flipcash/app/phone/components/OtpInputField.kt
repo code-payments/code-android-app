@@ -42,12 +42,17 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
+/**
+ * @param fillWidth spreads the boxes across the full width, edge to edge, instead of a centred
+ *   row of fixed-width boxes. The boxes then line up with the text above and below them.
+ */
 @Composable
 fun OtpInputField(
     state: TextFieldState,
     lengthNeeded: Int,
     modifier: Modifier = Modifier,
     focusRequester: FocusRequester = remember { FocusRequester() },
+    fillWidth: Boolean = false,
     onLengthReached: (() -> Unit)? = null,
 ) {
     val keyboardController = rememberKeyboardController()
@@ -79,8 +84,8 @@ fun OtpInputField(
         )
 
         OtpRow(
-            modifier = Modifier
-                .padding(top = CodeTheme.dimens.grid.x1),
+            modifier = if (fillWidth) Modifier else Modifier.padding(top = CodeTheme.dimens.grid.x1),
+            fillWidth = fillWidth,
             length = lengthNeeded,
             values = state.text.toString().toCharArray(),
             onClick = {
@@ -94,6 +99,7 @@ fun OtpInputField(
 @Composable
 private fun OtpRow(
     modifier: Modifier = Modifier,
+    fillWidth: Boolean = false,
     length: Int = 4,
     values: CharArray = charArrayOf(),
     onClick: () -> Unit = {}
@@ -101,12 +107,23 @@ private fun OtpRow(
     Row(
         modifier = modifier
             .fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center
+        horizontalArrangement = if (fillWidth) {
+            Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
+        } else {
+            Arrangement.Center
+        }
     ) {
         for (i in 0 until length) {
             val text = if (i < values.size) values[i] else ' '
             val isHighlighted = values.size == i
             OtpBox(
+                modifier = if (fillWidth) {
+                    Modifier.weight(1f)
+                } else {
+                    Modifier
+                        .padding(CodeTheme.dimens.grid.x1)
+                        .width(CodeTheme.dimens.grid.x7)
+                },
                 character = text.toString(),
                 onClick = onClick,
                 isHighlighted = isHighlighted
@@ -130,9 +147,7 @@ private fun OtpBox(
 
     Box(
         modifier = modifier
-            .padding(CodeTheme.dimens.grid.x1)
             .height(height)
-            .width(CodeTheme.dimens.grid.x7)
             .clip(CodeTheme.shapes.small)
             .clickable(onClick = onClick)
             .border(
@@ -169,6 +184,12 @@ private fun Preview_OptInput() {
             OtpInputField(
                 state = rememberTextFieldState(initialText = "123"),
                 lengthNeeded = 6,
+            )
+
+            OtpInputField(
+                state = rememberTextFieldState(initialText = "123"),
+                lengthNeeded = 6,
+                fillWidth = true,
             )
         }
     }

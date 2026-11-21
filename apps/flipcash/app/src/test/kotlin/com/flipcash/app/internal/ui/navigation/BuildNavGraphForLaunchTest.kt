@@ -2,6 +2,7 @@ package com.flipcash.app.internal.ui.navigation
 
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.DisplayNameSource
+import com.flipcash.app.core.onboarding.OnboardingStep
 import com.flipcash.app.core.userprofile.UpdateProfileStep
 import com.flipcash.app.core.chat.ChatIdentifier
 import com.flipcash.services.models.chat.ChatId
@@ -188,6 +189,20 @@ class BuildNavGraphForLaunchTest {
         )
         val target = assertIs<AppRoute.OnboardingFlow>(route.target)
         assertEquals(AppRoute.OnboardingFlow.Phase.Permissions, target.phase)
+        assertEquals(listOf(OnboardingStep.NotificationPermission), target.initialStack)
+    }
+
+    @Test
+    fun `a Group Money sign-up resumes at its name step, which goes home with no permission step`() {
+        val result = build(AuthState.Onboarding(AuthState.ResumePoint.DisplayName, groupMoney = true))!!
+        val route = assertIs<AppRoute.UpdateUserProfile>(result.baseRoutes.single())
+        assertEquals(
+            listOf(UpdateProfileStep.Name(DisplayNameSource.Onboarding, forGroups = true)),
+            route.steps,
+        )
+        val target = assertIs<AppRoute.OnboardingFlow>(route.target)
+        assertEquals(AppRoute.OnboardingFlow.Phase.Permissions, target.phase)
+        assertEquals(emptyList(), target.initialStack, "an empty permissions phase releases to home")
     }
 
     // -- Authenticating --

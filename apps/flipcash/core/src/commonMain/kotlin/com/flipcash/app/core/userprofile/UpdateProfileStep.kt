@@ -13,10 +13,17 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 sealed interface UpdateProfileStep : FlowStep, Parcelable {
-    /** @param source where the entry was launched from; reported as the `Source` analytics property. */
+    /**
+     * @param source where the entry was launched from; reported as the `Source` analytics property.
+     * @param forGroups shows the Group Money onboarding copy ("how you'll appear in your groups").
+     *   Copy only: it is not reported, so analytics see the same `source` either way.
+     */
     @Parcelize
     @Serializable
-    data class Name(val source: DisplayNameSource) : UpdateProfileStep
+    data class Name(
+        val source: DisplayNameSource,
+        val forGroups: Boolean = false,
+    ) : UpdateProfileStep
 
     /**
      * Claiming the public `@handle`. Never part of onboarding — the server gates it behind a

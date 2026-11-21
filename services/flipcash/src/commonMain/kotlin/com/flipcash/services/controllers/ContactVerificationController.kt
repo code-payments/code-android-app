@@ -68,6 +68,25 @@ class ContactVerificationController @Inject constructor(
         userManager.set(updated)
     }
 
+    /**
+     * Links [method] to the account on the server without a verification code. The
+     * server replaces any earlier address with it, and keeps the verified state when
+     * the address is unchanged; the local profile follows the same rule.
+     */
+    suspend fun linkUnverifiedEmail(method: ContactMethod.Email): Result<Unit> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.linkUnverified(method, owner).onSuccess {
+            val profile = userManager.profile ?: return@onSuccess
+            val current = profile.email
+            val verified = current?.value == method.emailAddress && current.verified
+            userManager.set(
+                profile.copy(email = VerifiableContactMethod(method.emailAddress, verified = verified))
+            )
+        }
+    }
+
     suspend fun linkForPayment(method: ContactMethod.Phone): Result<Unit> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))

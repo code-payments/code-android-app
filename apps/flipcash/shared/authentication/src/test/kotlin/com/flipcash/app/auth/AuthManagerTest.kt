@@ -10,6 +10,7 @@ import com.flipcash.app.auth.internal.credentials.LookupResult
 import com.flipcash.app.auth.internal.credentials.PassphraseCredentialManager
 import com.flipcash.app.contacts.ContactCoordinator
 import com.flipcash.app.core.links.TrustedWebsites
+import com.flipcash.app.featureflags.FeatureFlag
 import com.flipcash.app.featureflags.FeatureFlagController
 import com.flipcash.app.persistence.PersistenceProvider
 import com.flipcash.app.auth.push.PushRegistrar
@@ -48,6 +49,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -80,6 +82,10 @@ class AuthManagerTest {
     private val wrongKeyChats: WrongKeyChats = mockk(relaxed = true)
     private val userManagerState = MutableStateFlow(UserManager.State())
 
+    // The Group Money onboarding gate's two inputs, closed unless a test opens them.
+    private val groupMoneyUiFlag = MutableStateFlow(false)
+    private val betaOverride = MutableStateFlow(false)
+
     private val networkConnectivityListener = mockk<NetworkConnectivityListener>(relaxed = true)
 
     private val analytics = RecordingAnalytics()
@@ -109,6 +115,8 @@ class AuthManagerTest {
         coEvery { pushController.deleteTokens() } returns Result.success(Unit)
         coEvery { credentialManager.hasSeenAccessKey() } returns true
         coEvery { credentialManager.hasCompletedOnboarding() } returns true
+        every { featureFlagController.observe(FeatureFlag.GroupMoneyUi) } returns groupMoneyUiFlag
+        every { featureFlagController.observeOverride() } returns betaOverride
 
         authManager = AuthManager(
             credentialManager = credentialManager,
@@ -447,6 +455,65 @@ class AuthManagerTest {
         assertTrue(result.isSuccess)
         verify { userManager.set(flags) }
         verify { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.DisplayName)) }
+    }
+
+    // A relaunch mid-sign-up resumes in the onboarding the account was created in. That was decided
+    // at Create and stored with the account, so the gate reading differently now changes nothing.
+    private suspend fun relaunchAtDisplayName(createdInGroupMoney: Boolean, isSoftLogin: Boolean = true) {
+        val entropy = "dGVzdGVudHJvcHkxMjM0NQ=="
+        val accountMetadata: AccountMetadata = mockk(relaxed = true)
+        every { accountMetadata.id } returns listOf<Byte>(1, 2, 3)
+        coEvery { credentialManager.login(entropy, any()) } returns Result.success(accountMetadata)
+        coEvery { credentialManager.hasCompletedOnboarding() } returns false
+        coEvery { credentialManager.startedInGroupMoneyOnboarding() } returns createdInGroupMoney
+        every { userManager.profile } returns mockk<UserProfile>(relaxed = true) {
+            every { displayName } returns ""
+        }
+        every { userManager.userFlags } returns UserFlags.Default.copy(isRegistered = true)
+        coEvery { accountController.getUserFlags() } returns
+            Result.success(UserFlags.Default.copy(isRegistered = true))
+
+        authManager.login(entropyB64 = entropy, isSoftLogin = isSoftLogin).getOrThrow()
+    }
+
+    @Test
+    fun `a Group Money sign-up resumes in Group Money with the gate now closed`() = runTest {
+        assertFalse(authManager.isGroupMoneyOnboardingOpen())
+
+        relaunchAtDisplayName(createdInGroupMoney = true)
+
+        verify { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.DisplayName, groupMoney = true)) }
+        verify(exactly = 0) { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.DisplayName)) }
+    }
+
+    @Test
+    fun `a classic sign-up resumes classic with the gate now open`() = runTest {
+        groupMoneyUiFlag.value = true
+        betaOverride.value = true
+        assertTrue(authManager.isGroupMoneyOnboardingOpen())
+
+        relaunchAtDisplayName(createdInGroupMoney = false)
+
+        verify { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.DisplayName)) }
+        verify(exactly = 0) { userManager.set(match<AuthState> { it is AuthState.Onboarding && it.groupMoney }) }
+    }
+
+    @Test
+    fun `an interactive login does not read the Group Money marker`() = runTest {
+        relaunchAtDisplayName(createdInGroupMoney = true, isSoftLogin = false)
+
+        verify { userManager.set(AuthState.Onboarding(AuthState.ResumePoint.DisplayName)) }
+        verify(exactly = 0) { userManager.set(match<AuthState> { it is AuthState.Onboarding && it.groupMoney }) }
+        coVerify(exactly = 0) { credentialManager.startedInGroupMoneyOnboarding() }
+    }
+
+    @Test
+    fun `createAccount stores the gate it was given with the account`() = runTest {
+        coEvery { credentialManager.createAccount(any()) } returns Result.success("bmV3YWNjb3VudGVudHJvcHk=")
+
+        authManager.createAccount(groupMoney = true).getOrThrow()
+
+        coVerify { credentialManager.createAccount(true) }
     }
 
     @Test

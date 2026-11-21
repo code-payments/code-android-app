@@ -9,7 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.flipcash.analytics.OnrampStep
-import com.flipcash.analytics.events.OnrampEvents
+import com.flipcash.app.contact.verification.onrampStepEvent
 import com.flipcash.app.analytics.rememberAnalytics
 import com.flipcash.app.contact.verification.internal.email.EmailEntryScreen
 import com.flipcash.app.contact.verification.internal.email.EmailVerificationViewModel
@@ -29,6 +29,9 @@ import kotlinx.coroutines.flow.onEach
 @Composable
 fun EmailVerificationContent(
     origin: EmailDeeplinkOrigin? = null,
+    // New-account onboarding: the address is linked without a code, and there is no back to the
+    // code screen once the phone is verified.
+    onboarding: Boolean = false,
 ) {
     val codeNavigator = LocalCodeNavigator.current
     val flowNavigator = rememberFlowNavigator<VerificationStep, VerificationResult>()
@@ -38,29 +41,36 @@ fun EmailVerificationContent(
     LaunchedEffect(origin) {
         viewModel.dispatchEvent(EmailVerificationViewModel.Event.OnOriginSet(origin))
     }
+    LaunchedEffect(onboarding) {
+        viewModel.dispatchEvent(EmailVerificationViewModel.Event.OnOnboardingModeSet(onboarding))
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AppBarWithTitle(
-            title = stringResource(R.string.title_connectEmailAddress),
+            // Onboarding puts its title in the step's headline instead.
+            title = if (onboarding) "" else stringResource(R.string.title_connectEmailAddress),
             titleAlignment = Alignment.CenterHorizontally,
-            onBackIconClicked = {
-                keyboard.hideIfVisible {
-                    codeNavigator.pop()
+            onBackIconClicked = if (onboarding) null else {
+                {
+                    keyboard.hideIfVisible {
+                        codeNavigator.pop()
+                    }
                 }
             },
         )
-        EmailEntryScreen(viewModel)
+        EmailEntryScreen(viewModel, onboarding)
     }
 
     val analytics = rememberAnalytics()
     LaunchedEffect(Unit) {
-        analytics.track(OnrampEvents.step(OnrampStep.ENTER_EMAIL))
+        onrampStepEvent(OnrampStep.ENTER_EMAIL, onboarding)?.let(analytics::track)
     }
 
     BackHandler {
+        if (onboarding) return@BackHandler
         keyboard.hideIfVisible {
             codeNavigator.pop()
         }
@@ -80,8 +90,13 @@ fun EmailVerificationContent(
         viewModel.eventFlow
             .filterIsInstance<EmailVerificationViewModel.Event.OnEntrySaved>()
             .onEach {
-                keyboard.hideIfVisible {
+                if (onboarding) {
+                    // The keyboard stays up and the name step takes focus as it arrives.
                     flowNavigator.exitWithResult(VerificationResult.Success)
+                } else {
+                    keyboard.hideIfVisible {
+                        flowNavigator.exitWithResult(VerificationResult.Success)
+                    }
                 }
             }.launchIn(this)
     }

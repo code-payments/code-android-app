@@ -23,6 +23,10 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.flipcash.app.core.ui.OnboardingFieldLabel
+import com.flipcash.app.core.ui.OnboardingFootnote
+import com.flipcash.app.core.ui.OnboardingStepLayout
+import com.flipcash.app.core.ui.transitions.RequestFocusWhenSettled
 import com.flipcash.app.phone.components.PhoneInputField
 import com.flipcash.features.contact.verification.R
 import com.getcode.theme.CodeTheme
@@ -32,14 +36,18 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
 
 @Composable
-internal fun PhoneEntryScreen(viewModel: PhoneVerificationViewModel) {
+internal fun PhoneEntryScreen(
+    viewModel: PhoneVerificationViewModel,
+    onboarding: Boolean = false,
+) {
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
-    PhoneEntryScreenContent(state, viewModel::dispatchEvent)
+    PhoneEntryScreenContent(state, onboarding, viewModel::dispatchEvent)
 }
 
 @Composable
 private fun PhoneEntryScreenContent(
     state: PhoneVerificationViewModel.State,
+    onboarding: Boolean,
     dispatchEvent: (PhoneVerificationViewModel.Event) -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -63,6 +71,38 @@ private fun PhoneEntryScreenContent(
             ) { dispatchEvent(PhoneVerificationViewModel.Event.OnSendCodeClicked) }
         }
     ) { innerPadding ->
+        if (onboarding) {
+            OnboardingStepLayout(
+                modifier = Modifier.padding(innerPadding),
+                title = stringResource(R.string.title_onboardingPhoneNumber),
+                subtitle = stringResource(R.string.subtitle_onboardingPhoneNumber),
+            ) {
+                OnboardingFieldLabel(stringResource(R.string.label_onboardingPhoneNumber))
+                PhoneInputField(
+                    modifier = Modifier.height(CodeTheme.dimens.grid.x12),
+                    focusManager = focusManager,
+                    focusRequester = focusRequester,
+                    locale = state.selectedLocale,
+                    // Locked rather than disabled while the code is sent: a disabled field ends
+                    // its input session and takes the keyboard down, and the code step wants it up.
+                    locked = !state.sendingCode.isIdle,
+                    state = state.numberTextFieldState,
+                    placeholder = stringResource(R.string.label_onboardingPhoneNumber),
+                    openCountrySelector = {
+                        dispatchEvent(PhoneVerificationViewModel.Event.OpenCountrySelector)
+                    },
+                    onSubmit = {
+                        // The field stays focused while the code is sent, so Done can come again.
+                        if (state.canSendCode && state.sendingCode.isIdle) {
+                            dispatchEvent(PhoneVerificationViewModel.Event.OnSendCodeClicked)
+                        }
+                    }
+                )
+                OnboardingFootnote(stringResource(R.string.footnote_onboardingPhoneNumber))
+            }
+            RequestFocusWhenSettled(focusRequester, onlyOnce = true, immediatelyIfImeVisible = true)
+            return@CodeScaffold
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()

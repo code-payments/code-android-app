@@ -57,8 +57,17 @@ sealed interface AuthState {
         PostAccessKey,
     }
 
-    // account created, user is mid-onboarding (access key / purchase / permissions)
-    data class Onboarding(val resumePoint: ResumePoint = ResumePoint.PostAccessKey) : AuthState
+    /**
+     * Account created, user is mid-onboarding (access key / purchase / permissions).
+     *
+     * @param groupMoney the account was created through the Group Money onboarding, so a resume
+     * returns to its steps instead of the classic ones. Set only when a relaunch resolves where to
+     * resume; the live flow carries its own route and leaves this false.
+     */
+    data class Onboarding(
+        val resumePoint: ResumePoint = ResumePoint.PostAccessKey,
+        val groupMoney: Boolean = false,
+    ) : AuthState
 
     sealed interface LoggedIn
 

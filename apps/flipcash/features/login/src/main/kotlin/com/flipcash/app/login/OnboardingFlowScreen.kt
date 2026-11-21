@@ -86,6 +86,12 @@ import kotlin.time.Duration.Companion.milliseconds
  *    Start → AccessKey ──┬────────────→ Name² → Contacts¹ → Notifications → Home³
  *                         └→ Purchase ─┘
  *
+ *    With the Group Money gate open at Create ([groupMoneyContactRoute]), the access key screen
+ *    and the permissions are not shown:
+ *
+ *    Start ─┬────────────→ Phone → Code → Email → Name → Home³
+ *           └→ Purchase ─┘
+ *
  * 2. Seed restore (ResumePoint.Login → LoggedIn via SeedInput or AccountSelection)
  *
  *    Start ─┬─ AccountSelection ─┬──┬────────────→ Name² → Contacts¹ → Notifications → Home³
@@ -101,7 +107,9 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * 4. Mid-flow resume (ResumePoint.AccessKey / AccessKeyThenPurchase / DisplayName)
  *
- *    Same as (1) but initialStack resumes at the AccessKey, Purchase, or Name step.
+ *    Same as (1) but initialStack resumes at the AccessKey, Purchase, or Name step. An account
+ *    created with the Group Money gate open resumes at that onboarding's name step
+ *    ([groupMoneyNameRoute]) whatever the gate reads now.
  * ```
  *
  * ¹ Already-granted permissions are auto-skipped via [PermissionsPhaseFlowHost].
@@ -161,10 +169,7 @@ private fun PermissionsPhaseFlowHost(
 
     val home = launchRoute
 
-    val permissionsSteps = buildList {
-        if (!route.skipContacts) add(OnboardingStep.ContactPermission)
-        add(OnboardingStep.NotificationPermission)
-    }
+    val permissionsSteps = route.initialStack.filterIsInstance<OnboardingStep>()
 
     // Compute resumeAt once per steps-list identity, NOT when permissions are granted mid-flow,
     // preventing a stale recomposition from triggering a spurious BackedOutOfRoot exit.
@@ -172,12 +177,11 @@ private fun PermissionsPhaseFlowHost(
         val contactsGranted = checker.isGranted(contactConfig.permission)
         val notificationsGranted = !notificationConfig.requiresRuntimeRequest ||
             checker.isGranted(notificationConfig.permission)
+        val notificationsAt = permissionsSteps.indexOf(OnboardingStep.NotificationPermission)
         when {
             !route.skipContacts && !contactsGranted -> 0
-            !notificationsGranted -> permissionsSteps.indexOfFirst {
-                it is OnboardingStep.NotificationPermission
-            }.coerceAtLeast(0)
-            else -> permissionsSteps.size // all granted
+            notificationsAt >= 0 && !notificationsGranted -> notificationsAt
+            else -> permissionsSteps.size // all granted, or no steps to show
         }
     }
 
@@ -199,7 +203,9 @@ private fun PermissionsPhaseFlowHost(
                 }
 
                 FlowExitReason.BackedOutOfRoot -> {
-                    // All permissions already granted
+                    // All permissions already granted, or a Group Money new account, whose
+                    // permissions phase has no steps. Only the new account completes onboarding here.
+                    if (route.skipNotifications) analytics.track(AccountEvents.completeOnboarding())
                     trace(tag = "Onboarding", message = "Onboarding complete (permissions already granted) — releasing to $home", type = TraceType.Process)
                     userManager?.set(AuthState.Ready)
                     outerNavigator.navigate(
@@ -310,6 +316,9 @@ private fun onboardingEntryProvider(
     annotatedEntry<OnboardingStep.Purchase> {
         PurchaseStepContent(purchaseStep)
     }
+    annotatedEntry<OnboardingStep.PurchaseThenVerification> {
+        PurchaseStepContent(purchaseStep, thenVerification = true)
+    }
     annotatedEntry<OnboardingStep.ContactPermission> {
         ContactPermissionStepContent()
     }
@@ -400,6 +409,21 @@ private fun LoginStepContent(seed: String?) {
             .onEach {
                 trace(tag = "Onboarding", message = "Account created — navigating to access key", type = TraceType.Process)
                 flowNavigator.navigateTo(OnboardingStep.AccessKey)
+            }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(vm) {
+        vm.eventFlow
+            .filterIsInstance<LoginViewModel.Event.GroupMoneyAccountReady>()
+            .onEach {
+                if (it.requiresPurchase) {
+                    trace(tag = "Onboarding", message = "Account created — purchase before phone", type = TraceType.Process)
+                    flowNavigator.navigateTo(OnboardingStep.PurchaseThenVerification)
+                } else {
+                    trace(tag = "Onboarding", message = "Account created — collecting phone", type = TraceType.Process)
+                    flowNavigator.navigate(groupMoneyContactRoute())
+                }
             }
             .launchIn(this)
     }
@@ -534,13 +558,22 @@ private fun AccessKeyStepContent() {
 }
 
 @Composable
-private fun PurchaseStepContent(purchaseStep: OnboardingPurchaseStep) {
+private fun PurchaseStepContent(
+    purchaseStep: OnboardingPurchaseStep,
+    thenVerification: Boolean = false,
+) {
     val flowNavigator = rememberFlowNavigator<OnboardingStep, OnboardingResult>()
     val userManager = LocalUserManager.current
 
     Column {
         AppBarWithTitle()
-        purchaseStep { flowNavigator.proceedToNameOrPermissions(userManager) }
+        purchaseStep {
+            if (thenVerification) {
+                flowNavigator.navigate(groupMoneyContactRoute())
+            } else {
+                flowNavigator.proceedToNameOrPermissions(userManager)
+            }
+        }
     }
 
     BackHandler { /* swallow back during onboarding permissions */ }
@@ -627,3 +660,31 @@ private fun NotificationRationaleStepContent(permanentlyDenied: Boolean) {
         onComplete = { flowNavigator.proceed() },
     )
 }
+
+/**
+ * The Group Money onboarding's steps after Create (and purchase): phone, code and email in the
+ * verification flow's onboarding mode, then the name step. The permissions phase after it has no
+ * steps, so it releases straight to home: this onboarding asks for no notification permission.
+ */
+internal fun groupMoneyContactRoute(): AppRoute.Verification = AppRoute.Verification(
+    origin = AppRoute.OnboardingFlow(),
+    includePhone = true,
+    includeEmail = true,
+    onboarding = true,
+    target = groupMoneyNameRoute(),
+)
+
+/**
+ * The Group Money onboarding's name step, the last of [groupMoneyContactRoute]'s steps. A relaunch
+ * of an account created in that onboarding resumes here when it has no name yet.
+ */
+fun groupMoneyNameRoute(): AppRoute.UpdateUserProfile = AppRoute.UpdateUserProfile(
+    origin = AppRoute.OnboardingFlow(),
+    steps = listOf(UpdateProfileStep.Name(DisplayNameSource.Onboarding, forGroups = true)),
+    target = AppRoute.OnboardingFlow(
+        phase = AppRoute.OnboardingFlow.Phase.Permissions,
+        skipContacts = true,
+        skipNotifications = true,
+    ),
+    allowBack = false,
+)
