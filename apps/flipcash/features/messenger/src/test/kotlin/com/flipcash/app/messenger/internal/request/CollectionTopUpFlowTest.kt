@@ -56,6 +56,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
@@ -484,6 +485,8 @@ class CollectionTopUpFlowTest {
         assertEquals(1204L, expectedCents(case))
         keepConversionLanding(2_000_000L)
         val f = openSheet()
+        CoroutineScope(Dispatchers.Unconfined).also(scopes::add).launch { f.plan.collect {} }
+        assertEquals(1204L, assertNotNull(f.plan.value).topUpMicros / MICROS_PER_CENT, "the short state before")
 
         f.onAddAndPay()
 
@@ -494,6 +497,7 @@ class CollectionTopUpFlowTest {
         assertEquals(false, f.state.value.finishing)
         val replanned = planNow().topUpMicros / MICROS_PER_CENT
         assertEquals(1004L, replanned)
+        assertEquals(replanned, assertNotNull(f.plan.value).topUpMicros / MICROS_PER_CENT, "the short state draws the new top-up")
 
         f.onAddAndPay()
 
