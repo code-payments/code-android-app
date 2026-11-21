@@ -85,6 +85,8 @@ internal val signedMessageAdapters: Map<String, ProtoAdapter<*>> = mapOf(
     "flipcash.paymentrequest.v1.ClosePaymentRequestRequest" to com.codeinc.flipcash.wire.paymentrequest.v1.ClosePaymentRequestRequest.ADAPTER,
     "flipcash.paymentrequest.v1.CreatePaymentRequestRequest" to com.codeinc.flipcash.wire.paymentrequest.v1.CreatePaymentRequestRequest.ADAPTER,
     "flipcash.paymentrequest.v1.GetChatPaymentRequestsRequest" to com.codeinc.flipcash.wire.paymentrequest.v1.GetChatPaymentRequestsRequest.ADAPTER,
+    "flipcash.paymentrequest.v1.GetPayersRequest" to com.codeinc.flipcash.wire.paymentrequest.v1.GetPayersRequest.ADAPTER,
+    "flipcash.paymentrequest.v1.GetPaymentIntentIdRequest" to com.codeinc.flipcash.wire.paymentrequest.v1.GetPaymentIntentIdRequest.ADAPTER,
     "flipcash.paymentrequest.v1.GetPaymentRequestRequest" to com.codeinc.flipcash.wire.paymentrequest.v1.GetPaymentRequestRequest.ADAPTER,
     "flipcash.paymentrequest.v1.MarkPaidRequest" to com.codeinc.flipcash.wire.paymentrequest.v1.MarkPaidRequest.ADAPTER,
     "flipcash.phone.v1.CheckVerificationCodeRequest" to com.codeinc.flipcash.wire.phone.v1.CheckVerificationCodeRequest.ADAPTER,

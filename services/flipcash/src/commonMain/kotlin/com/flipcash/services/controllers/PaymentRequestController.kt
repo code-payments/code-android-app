@@ -4,6 +4,9 @@ import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.paymentrequest.NewSplitRequest
+import com.flipcash.services.models.paymentrequest.PayerPage
+import com.flipcash.services.models.paymentrequest.PayerSection
+import com.flipcash.services.models.paymentrequest.PaymentIntentId
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
 import com.flipcash.services.models.paymentrequest.PaymentRequestPage
@@ -33,6 +36,18 @@ class PaymentRequestController @Inject constructor(
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
         return repository.getChatPaymentRequests(owner, chatId, section, queryOptions)
+    }
+
+    suspend fun getPaymentIntentId(paymentRequestId: ID): Result<PaymentIntentId> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+        return repository.getPaymentIntentId(owner, paymentRequestId)
+    }
+
+    suspend fun getPayers(paymentRequestId: ID, section: PayerSection, queryOptions: QueryOptions = QueryOptions()): Result<PayerPage> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+        return repository.getPayers(owner, paymentRequestId, section, queryOptions)
     }
 
     suspend fun closePaymentRequest(paymentRequestId: ID): Result<PaymentRequest> {

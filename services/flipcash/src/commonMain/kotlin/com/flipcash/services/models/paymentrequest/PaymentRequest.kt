@@ -7,13 +7,15 @@ import com.getcode.opencode.model.financial.Fiat
 import kotlin.time.Instant
 
 /**
- * A payment request: `paymentrequest.v1.PaymentRequestMetadata`, of the one kind the app knows, a
- * split in a group chat.
+ * A payment request: `paymentrequest.v1.PaymentRequestMetadata`, of the kinds the app knows, a
+ * split or a collection in a group chat.
  *
  * [status] is as the server last sent it. Read [resolvedStatus] and [resolvedClosedAt] instead: an
  * OPEN request past its [endsAt] has expired by the clock, which the server never announces.
  *
  * @param version advances by one on every change; the store keeps the greater (see [newerOf]).
+ * @param payerSummary totals over the request's payers, as the server last sent them; null when it
+ *   sent none.
  */
 data class PaymentRequest(
     val id: ID,
@@ -23,18 +25,39 @@ data class PaymentRequest(
     val closedAt: Instant?,
     val version: Long,
     val kind: Kind,
+    val payerSummary: PayerSummary? = null,
 ) {
     /** Where the request was made and what it asks. An arm the app does not know is [Unsupported]. */
     sealed interface Kind {
         data class GroupSplit(val chatId: ChatId, val split: Split) : Kind
+        data class GroupCollection(val chatId: ChatId, val collection: PaymentCollection) : Kind
         data object Unsupported : Kind
     }
 
     val split: Split? get() = (kind as? Kind.GroupSplit)?.split
+    val collection: PaymentCollection? get() = (kind as? Kind.GroupCollection)?.collection
+
+    /** A split's chat. Null for any other kind, so lists built for splits leave collections out. */
     val chatId: ChatId? get() = (kind as? Kind.GroupSplit)?.chatId
 
+    /** When the request stops taking payments. Null when it has no deadline, and never expires. */
+    val endsAt: Instant?
+        get() = when (val kind = kind) {
+            is Kind.GroupSplit -> kind.split.endsAt
+            is Kind.GroupCollection -> kind.collection.endsAt
+            Kind.Unsupported -> null
+        }
+
+    /** The currency of every amount in the request, [payerSummary] and its payers' included. */
+    val currency: CurrencyCode?
+        get() = when (val kind = kind) {
+            is Kind.GroupSplit -> kind.split.currency
+            is Kind.GroupCollection -> kind.collection.currency
+            Kind.Unsupported -> null
+        }
+
     fun resolvedStatus(now: Instant): PaymentRequestStatus {
-        val endsAt = split?.endsAt
+        val endsAt = this.endsAt
         return if (status == PaymentRequestStatus.Open && endsAt != null && endsAt <= now) {
             PaymentRequestStatus.Expired
         } else {
@@ -43,7 +66,7 @@ data class PaymentRequest(
     }
 
     fun resolvedClosedAt(now: Instant): Instant? =
-        if (status == PaymentRequestStatus.Open && resolvedStatus(now) == PaymentRequestStatus.Expired) split?.endsAt
+        if (status == PaymentRequestStatus.Open && resolvedStatus(now) == PaymentRequestStatus.Expired) endsAt
         else closedAt
 
     fun isOpen(now: Instant): Boolean = resolvedStatus(now) == PaymentRequestStatus.Open
@@ -92,14 +115,88 @@ data class Share(
     val isPaid: Boolean get() = paid != null
 }
 
-/** How a share was paid. Once paid it stays paid. */
+/**
+ * How a share was paid, or a collection contribution made (`paymentrequest.v1.Paid`). Once paid it
+ * stays paid.
+ */
 data class PaidShare(val paidAt: Instant, val how: How) {
     enum class How { Payment, Manual, Creator, Unknown }
 }
 
 /**
+ * Any member but the creator may pay the creator [amount], once, in [currency], for example to chip
+ * in for a gift. Who pays is not decided in advance and nothing is owed, so a collection never
+ * completes: it stays open until the creator closes it or it reaches [endsAt]. Who has paid is in
+ * [PaymentRequest.payerSummary] and `GetPayers`.
+ *
+ * Named for `paymentrequest.v1.Collection`, prefixed so it does not shadow `kotlin.collections`.
+ *
+ * @param endsAt when it stops taking contributions; null means it has no deadline and never expires.
+ */
+data class PaymentCollection(
+    val text: PaymentRequestText,
+    val currency: CurrencyCode,
+    val endsAt: Instant?,
+    val amount: CollectionAmount,
+    // As on [Split.sealedText].
+    val sealedText: PaymentRequestText.Encrypted? = null,
+)
+
+/**
+ * What each payment into a [PaymentCollection] must be. A kind the app does not know makes the
+ * request [PaymentRequest.Kind.Unsupported].
+ */
+sealed interface CollectionAmount {
+    /** Every payer pays exactly [amount]. */
+    data class Fixed(val amount: Fiat) : CollectionAmount
+}
+
+/**
+ * One user's part in a request, as `GetPayers` lists it: a split has one per share, the creator's
+ * own included; a collection one per member who has contributed, each paid with nothing due.
+ *
+ * The wire sends a payer without its currency, so amounts are quarks in the request's
+ * [PaymentRequest.currency]; [amountDue] and [amountPaid] attach it.
+ */
+data class Payer(
+    val userId: ID,
+    val amountDueQuarks: Long,
+    val amountPaidQuarks: Long,
+    val status: Status,
+) {
+    sealed interface Status {
+        /** Something is due and nothing is paid. */
+        data object Unpaid : Status
+        data class Paid(val paid: PaidShare) : Status
+        /** A state this build does not know: show the payer without a status. */
+        data object Unknown : Status
+    }
+
+    val isPaid: Boolean get() = status is Status.Paid
+
+    fun amountDue(currency: CurrencyCode): Fiat = Fiat(quarks = amountDueQuarks, currencyCode = currency)
+    fun amountPaid(currency: CurrencyCode): Fiat = Fiat(quarks = amountPaidQuarks, currencyCode = currency)
+}
+
+/**
+ * Totals over every [Payer] in a request, for progress ("3 of 5 paid, $60 of $100") without walking
+ * `GetPayers`. For a collection, [payerCount] and [paidCount] are both the members who have
+ * contributed and nothing is due. Amounts are quarks in the request's currency, as on [Payer].
+ */
+data class PayerSummary(
+    val payerCount: Int,
+    val paidCount: Int,
+    val amountDueQuarks: Long,
+    val amountPaidQuarks: Long,
+) {
+    fun amountDue(currency: CurrencyCode): Fiat = Fiat(quarks = amountDueQuarks, currencyCode = currency)
+    fun amountPaid(currency: CurrencyCode): Fiat = Fiat(quarks = amountPaidQuarks, currencyCode = currency)
+}
+
+/**
  * The request's title and description. A private group's arrives [Encrypted] and is opened once,
- * on its way into the store, into [Plain] or [Undecryptable].
+ * on its way into the store, into [Plain] or [Undecryptable]. Both are optional: a request with
+ * neither is [Plain] with both empty.
  */
 sealed interface PaymentRequestText {
     data class Plain(val title: String, val description: String) : PaymentRequestText
@@ -117,7 +214,10 @@ sealed interface PaymentRequestText {
 
 /** Builds a split's share amount from the wire's `native_amount`, rounded to the nearest quark. */
 fun shareAmount(nativeAmount: Double, currency: CurrencyCode): Fiat =
-    Fiat(quarks = Math.round(nativeAmount * Fiat.MULTIPLIER), currencyCode = currency)
+    Fiat(quarks = nativeQuarks(nativeAmount), currencyCode = currency)
+
+/** A wire `native_amount`, in whatever currency it is in, rounded to the nearest quark. */
+fun nativeQuarks(nativeAmount: Double): Long = Math.round(nativeAmount * Fiat.MULTIPLIER)
 
 /**
  * The copy to keep when [incoming] arrives for a request [held] already: the greater version, and
@@ -165,6 +265,9 @@ class PaymentIntentId(val bytes: ByteArray) {
  * The days and hours bands give 5 minutes of grace before rounding up, so a fresh 7-day request
  * does not read 8 days. The grace covers the transcript's one-minute clock, which can lag the real
  * time, and skew between the creator's device clock and this one. The minutes band has no grace.
+ *
+ * An open request with no deadline (a collection without `ends_at`) has no time left to show, so
+ * [statusLine] gives null for it.
  */
 sealed interface StatusLine {
     data class DaysLeft(val days: Int) : StatusLine
@@ -175,12 +278,12 @@ sealed interface StatusLine {
     data object Expired : StatusLine
 }
 
-fun PaymentRequest.statusLine(now: Instant): StatusLine = when (resolvedStatus(now)) {
+fun PaymentRequest.statusLine(now: Instant): StatusLine? = when (resolvedStatus(now)) {
     PaymentRequestStatus.Completed -> StatusLine.PaidInFull
     PaymentRequestStatus.Closed -> StatusLine.Closed
     PaymentRequestStatus.Expired -> StatusLine.Expired
     PaymentRequestStatus.Open, PaymentRequestStatus.Unknown -> {
-        val left = (split?.endsAt ?: now) - now
+        val left = (this.endsAt ?: return null) - now
         val minute = 60_000L
         val hour = 60 * minute
         val ms = left.inWholeMilliseconds

@@ -293,7 +293,8 @@ class PaymentRequests @Inject constructor(
          * - V > L + 1: an update was missed, so refetch;
          * - V == L + 1: every change is applied in order and the version set to V, unless one
          *   cannot be (unknown kind, or a share the copy lacks), in which case none is applied and
-         *   the request is refetched rather than taking V for a copy missing a change.
+         *   the request is refetched rather than taking V for a copy missing a change. A payer
+         *   change applies as a no-op, since the copy holds no payers.
          *
          * A [PaymentRequestUpdate.Kind.Unknown] cannot be applied, so it refetches a request that is
          * held. A `created` is not handled here: it merges like a fetched copy ([merge]).
@@ -332,6 +333,10 @@ class PaymentRequests @Inject constructor(
                     request.copy(status = change.status, closedAt = change.closedAt ?: request.closedAt)
                 else -> null
             }
+            // The request holds no payers, so a payer's change leaves it as is. It still counts
+            // toward the version, so it must not refetch: every payment's batch carries one.
+            is PaymentRequestUpdate.Change.PayerChanged -> request
+            is PaymentRequestUpdate.Change.PayerSummaryChanged -> request.copy(payerSummary = change.summary)
             PaymentRequestUpdate.Change.Unknown -> null
         }
     }

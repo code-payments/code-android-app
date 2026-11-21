@@ -86,12 +86,17 @@ import com.codeinc.flipcash.gen.chat.v1.Model as ChatModel
 import com.codeinc.flipcash.gen.events.v1.Model as EventModel
 import com.codeinc.flipcash.gen.messaging.v1.Model as MessagingModel
 import com.codeinc.flipcash.gen.paymentrequest.v1.Model as PaymentRequestModel
+import com.flipcash.services.models.paymentrequest.CollectionAmount
 import com.flipcash.services.models.paymentrequest.PaidShare
+import com.flipcash.services.models.paymentrequest.Payer
+import com.flipcash.services.models.paymentrequest.PayerSummary
+import com.flipcash.services.models.paymentrequest.PaymentCollection
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.flipcash.services.models.paymentrequest.Share
 import com.flipcash.services.models.paymentrequest.Split
+import com.flipcash.services.models.paymentrequest.nativeQuarks
 import com.flipcash.services.models.paymentrequest.shareAmount
 
 internal fun ActivityModels.NotificationId.toId(): ID = value.toByteArray().toList()
@@ -918,6 +923,7 @@ internal fun PaymentRequestModel.PaymentRequestMetadata.toPaymentRequest(): Paym
     closedAt = if (hasClosedAt()) Instant.fromEpochSeconds(closedAt.seconds, closedAt.nanos) else null,
     version = version,
     kind = groupChat.takeIf { hasGroupChat() }?.toKind() ?: PaymentRequest.Kind.Unsupported,
+    payerSummary = if (hasPayerSummary()) payerSummary.toPayerSummary() else null,
 )
 
 private fun PaymentRequestModel.PaymentRequestStatus.toDomain(): PaymentRequestStatus = when (this) {
@@ -943,8 +949,8 @@ internal fun PaymentRequestModel.PaymentRequestUpdate.toPaymentRequestUpdate(): 
         },
     )
 
-// An unknown update kind, or a share update with no share, maps to Unknown so the store refetches
-// rather than applying a partial change.
+// An unknown update kind, or a share or payer update with no payload, maps to Unknown so the store
+// refetches rather than applying a partial change.
 private fun PaymentRequestModel.PaymentRequestUpdate.Update.toChange(): PaymentRequestUpdate.Change =
     when (kindCase) {
         PaymentRequestModel.PaymentRequestUpdate.Update.KindCase.SHARE_PAYMENT_UPDATE ->
@@ -954,6 +960,13 @@ private fun PaymentRequestModel.PaymentRequestUpdate.Update.toChange(): PaymentR
                     paid = if (share.hasPaid()) share.paid.toPaidShare() else null,
                 )
             } ?: PaymentRequestUpdate.Change.Unknown
+        PaymentRequestModel.PaymentRequestUpdate.Update.KindCase.PAYER_UPDATE ->
+            payerUpdate.takeIf { it.hasPayer() }?.payer?.let { PaymentRequestUpdate.Change.PayerChanged(it.toPayer()) }
+                ?: PaymentRequestUpdate.Change.Unknown
+        PaymentRequestModel.PaymentRequestUpdate.Update.KindCase.PAYER_SUMMARY_UPDATE ->
+            payerSummaryUpdate.takeIf { it.hasPayerSummary() }?.payerSummary
+                ?.let { PaymentRequestUpdate.Change.PayerSummaryChanged(it.toPayerSummary()) }
+                ?: PaymentRequestUpdate.Change.Unknown
         PaymentRequestModel.PaymentRequestUpdate.Update.KindCase.STATUS_UPDATE ->
             PaymentRequestUpdate.Change.StatusChanged(
                 status = statusUpdate.status.toDomain(),
@@ -964,43 +977,89 @@ private fun PaymentRequestModel.PaymentRequestUpdate.Update.toChange(): PaymentR
         else -> PaymentRequestUpdate.Change.Unknown
     }
 
-private fun PaymentRequestModel.GroupChatPaymentRequest.toKind(): PaymentRequest.Kind {
-    if (!hasSplit()) return PaymentRequest.Kind.Unsupported
-    // An unknown currency can't be priced or shown; the request renders as unsupported.
-    val currency = CurrencyCode.tryValueOf(split.currency) ?: return PaymentRequest.Kind.Unsupported
-    val text = when (split.textCase) {
-        PaymentRequestModel.Split.TextCase.PLAINTEXT ->
-            PaymentRequestText.Plain(split.plaintext.title, split.plaintext.description)
-        PaymentRequestModel.Split.TextCase.ENCRYPTED -> PaymentRequestText.Encrypted(
-            scheme = split.encrypted.schemeValue,
-            nonce = split.encrypted.nonce.toByteArray(),
-            ciphertext = split.encrypted.ciphertext.toByteArray(),
-        )
-        else -> PaymentRequestText.Undecryptable
-    }
-    return PaymentRequest.Kind.GroupSplit(
-        chatId = chatId.toChatId(),
-        split = Split(
-            text = text,
-            currency = currency,
-            endsAt = Instant.fromEpochSeconds(split.endsAt.seconds, split.endsAt.nanos),
-            shares = split.sharesList.map { share ->
-                Share(
-                    userId = share.userId.toId(),
-                    amount = shareAmount(share.nativeAmount, currency),
-                    paid = if (share.hasPaid()) share.paid.toPaidShare() else null,
-                )
-            },
+// A type arm, currency or payment amount the app doesn't know renders the request as unsupported.
+private fun PaymentRequestModel.GroupChatPaymentRequest.toKind(): PaymentRequest.Kind = when {
+    hasSplit() -> split.toSplit()?.let { PaymentRequest.Kind.GroupSplit(chatId.toChatId(), it) }
+    hasCollection() -> collection.toCollection()?.let { PaymentRequest.Kind.GroupCollection(chatId.toChatId(), it) }
+    else -> null
+} ?: PaymentRequest.Kind.Unsupported
+
+private fun PaymentRequestModel.Split.toSplit(): Split? {
+    val currency = CurrencyCode.tryValueOf(currency) ?: return null
+    return Split(
+        text = paymentRequestText(
+            plaintext = plaintext.takeIf { hasPlaintext() },
+            encrypted = encrypted.takeIf { hasEncrypted() },
         ),
+        currency = currency,
+        endsAt = Instant.fromEpochSeconds(endsAt.seconds, endsAt.nanos),
+        shares = sharesList.map { share ->
+            Share(
+                userId = share.userId.toId(),
+                amount = shareAmount(share.nativeAmount, currency),
+                paid = if (share.hasPaid()) share.paid.toPaidShare() else null,
+            )
+        },
     )
 }
 
-private fun PaymentRequestModel.PaidShare.toPaidShare(): PaidShare = PaidShare(
+private fun PaymentRequestModel.Collection.toCollection(): PaymentCollection? {
+    val currency = CurrencyCode.tryValueOf(currency) ?: return null
+    val amount = when (paymentAmountCase) {
+        PaymentRequestModel.Collection.PaymentAmountCase.FIXED ->
+            CollectionAmount.Fixed(shareAmount(fixed.nativeAmount, currency))
+        else -> return null
+    }
+    return PaymentCollection(
+        text = paymentRequestText(
+            plaintext = plaintext.takeIf { hasPlaintext() },
+            encrypted = encrypted.takeIf { hasEncrypted() },
+        ),
+        currency = currency,
+        // No ends_at: the collection has no deadline and never expires.
+        endsAt = if (hasEndsAt()) Instant.fromEpochSeconds(endsAt.seconds, endsAt.nanos) else null,
+        amount = amount,
+    )
+}
+
+// Text is optional on both types: unset means the request has neither title nor description.
+private fun paymentRequestText(
+    plaintext: PaymentRequestModel.PaymentRequestText?,
+    encrypted: PaymentRequestModel.EncryptedPaymentRequestText?,
+): PaymentRequestText = when {
+    plaintext != null -> PaymentRequestText.Plain(plaintext.title, plaintext.description)
+    encrypted != null -> PaymentRequestText.Encrypted(
+        scheme = encrypted.schemeValue,
+        nonce = encrypted.nonce.toByteArray(),
+        ciphertext = encrypted.ciphertext.toByteArray(),
+    )
+    else -> PaymentRequestText.Plain(title = "", description = "")
+}
+
+internal fun PaymentRequestModel.Payer.toPayer(): Payer = Payer(
+    userId = userId.toId(),
+    amountDueQuarks = nativeQuarks(nativeAmountDue),
+    amountPaidQuarks = nativeQuarks(nativeAmountPaid),
+    status = when (statusCase) {
+        PaymentRequestModel.Payer.StatusCase.UNPAID -> Payer.Status.Unpaid
+        PaymentRequestModel.Payer.StatusCase.PAID -> Payer.Status.Paid(paid.toPaidShare())
+        else -> Payer.Status.Unknown
+    },
+)
+
+private fun PaymentRequestModel.PayerSummary.toPayerSummary(): PayerSummary = PayerSummary(
+    payerCount = payerCount,
+    paidCount = paidCount,
+    amountDueQuarks = nativeQuarks(nativeAmountDue),
+    amountPaidQuarks = nativeQuarks(nativeAmountPaid),
+)
+
+private fun PaymentRequestModel.Paid.toPaidShare(): PaidShare = PaidShare(
     paidAt = Instant.fromEpochSeconds(paidAt.seconds, paidAt.nanos),
     how = when (howCase) {
-        PaymentRequestModel.PaidShare.HowCase.INTENT -> PaidShare.How.Payment
-        PaymentRequestModel.PaidShare.HowCase.MANUAL -> PaidShare.How.Manual
-        PaymentRequestModel.PaidShare.HowCase.CREATOR -> PaidShare.How.Creator
+        PaymentRequestModel.Paid.HowCase.INTENT -> PaidShare.How.Payment
+        PaymentRequestModel.Paid.HowCase.MANUAL -> PaidShare.How.Manual
+        PaymentRequestModel.Paid.HowCase.CREATOR -> PaidShare.How.Creator
         else -> PaidShare.How.Unknown
     },
 )
