@@ -19,6 +19,7 @@ import com.flipcash.shared.chat.PaymentRequests
 import com.flipcash.shared.payments.request.CollectionFundingError
 import com.flipcash.shared.payments.request.CollectionTopUp
 import com.flipcash.shared.payments.request.CollectionTopUpLocks
+import com.flipcash.shared.payments.request.PaymentNotConfirmed
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
 import com.getcode.manager.BottomBarManager
@@ -42,6 +43,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -401,6 +403,84 @@ class RequestPayFlowTest {
         val shown = BottomBarManager.messages.value.single()
         assertEquals("string ${R.string.error_title_collectionConversionPending}", shown.title)
         assertEquals("string ${R.string.error_description_collectionConversionPending}", shown.subtitle)
+    }
+
+    // --- A payment not confirmed in time (group-collections spec, pay step 4) ---
+
+    @Test
+    fun `a payment not confirmed in time unlocks the sheet and says so before the refetch answers`() {
+        every { resources.getString(any<Int>()) } answers { "string ${firstArg<Int>()}" }
+        every { payments.planCollection(any(), any()) } returns plan(payable = true)
+        coEvery { payments.pay(any(), any(), any(), any()) } returns Result.failure(PaymentNotConfirmed())
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+        // The server that never answered the payment doesn't answer the refetch either.
+        coEvery { payments.prepare(any(), any()) } coAnswers { awaitCancellation() }
+
+        f.confirm()
+
+        assertEquals(true, f.state.value.progress.isIdle)
+        val shown = BottomBarManager.messages.value.single()
+        assertEquals("string ${R.string.error_title_paymentNotConfirmed}", shown.title)
+        assertEquals("string ${R.string.error_description_paymentNotConfirmed}", shown.subtitle)
+        coVerify(exactly = 2) { payments.prepare(any(), any()) }
+        coVerify(exactly = 1) { payments.pay(any(), any(), any(), any()) }
+
+        // The user can leave.
+        f.dismiss()
+        assertEquals(false, f.state.value.open)
+    }
+
+    @Test
+    fun `the next tap after a payment not confirmed asks first and stops once the first one landed`() {
+        every { payments.planCollection(any(), any()) } returns plan(payable = true)
+        coEvery { payments.pay(any(), any(), any(), any()) } returns Result.failure(PaymentNotConfirmed())
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+        f.confirm()
+        // The refetch after the timeout still found it unpaid; the payment landed after that.
+        coEvery { payments.prepare(any(), any()) } returns Result.success(ShareToPay.NothingToPay(collection.request))
+
+        f.confirm()
+
+        coVerify(exactly = 1) { payments.pay(any(), any(), any(), any()) }
+        assertEquals(1, nothingToPay)
+        assertEquals(false, f.state.value.open)
+    }
+
+    @Test
+    fun `the next tap after any failed payment pays under the intent id the server gives again`() {
+        every { payments.planCollection(any(), any()) } returns plan(payable = true)
+        coEvery { payments.pay(any(), any(), any(), any()) } returns Result.failure(IllegalStateException("boom"))
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+        f.confirm()
+        val asked = ShareToPay.Ready(collection.request, collection.amount, mockk(relaxed = true))
+        coEvery { payments.prepare(any(), any()) } returns Result.success(asked)
+        coEvery { payments.pay(any(), any(), any(), any()) } returns Result.success(Unit)
+
+        f.confirm()
+
+        coVerify(exactly = 1) { payments.pay(asked, any(), any(), any()) }
+        assertEquals(1, paid)
+    }
+
+    @Test
+    fun `a sheet closed after an unknown outcome and opened again asks once, as any open does`() {
+        every { payments.planCollection(any(), any()) } returns plan(payable = true)
+        coEvery { payments.pay(any(), any(), any(), any()) } returns Result.failure(PaymentNotConfirmed())
+        val f = fundingFlow()
+        f.start(listOf<Byte>(2), fund = true)
+        f.confirm()
+        f.dismiss()
+        coEvery { payments.pay(any(), any(), any(), any()) } returns Result.success(Unit)
+        f.start(listOf<Byte>(2), fund = true)
+
+        f.confirm()
+
+        // start, the refetch after the failure, the reopen: no extra ask on the tap.
+        coVerify(exactly = 3) { payments.prepare(any(), any()) }
+        assertEquals(1, paid)
     }
 
     @Test

@@ -23,6 +23,7 @@ import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -37,8 +38,13 @@ import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import java.util.concurrent.TimeoutException
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -48,6 +54,7 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 
 class PaymentRequestPaymentDelegateTest {
 
@@ -440,5 +447,85 @@ class PaymentRequestPaymentDelegateTest {
         coVerify(exactly = 1) { funder.forget(requestId) }
         coVerify(exactly = 0) { funder.fund(any(), any(), any(), any()) }
         coVerify(exactly = 0) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any()) }
+    }
+
+    // --- Every wait on the pay path has a deadline (group-collections spec, pay step 4) ---
+
+    @Test
+    fun `a submission that never answers ends at 60 seconds as not confirmed, sent once`() = runTest {
+        val ready = readyCollection()
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+        } coAnswers { awaitCancellation() }
+
+        val paying = async { delegate.pay(ready, token, source) }
+        advanceTimeBy(59_999)
+        runCurrent()
+        assertFalse(paying.isCompleted, "still waiting at 59.999 s")
+
+        advanceTimeBy(1)
+        runCurrent()
+        assertTrue(paying.isCompleted, "ended at 60 s")
+        assertIs<PaymentNotConfirmed>(paying.await().exceptionOrNull())
+
+        advanceTimeBy(5.minutes)
+        runCurrent()
+        coVerify(exactly = 1) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any()) }
+        // Not known to be paid, so the request isn't refreshed as if it were.
+        coVerify(exactly = 0) { paymentRequests.fetch(requestId) }
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `a submission whose stream times out first is not confirmed either`() = runTest {
+        val ready = readyCollection()
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+        } returns Result.failure(SubmitIntentError.Other(TimeoutException("Intent stream timed out")))
+
+        assertIs<PaymentNotConfirmed>(delegate.pay(ready, token, source).exceptionOrNull())
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `any other failed submission keeps its own error`() = runTest {
+        val ready = readyCollection()
+        val boom = IllegalStateException("boom")
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+        } returns Result.failure(boom)
+
+        assertSame(boom, delegate.pay(ready, token, source).exceptionOrNull())
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `a refresh after the payment landed that never answers still reports it paid`() = runTest {
+        val ready = readyCollection()
+        coEvery { paymentRequests.fetch(requestId) } coAnswers { awaitCancellation() }
+        coEvery { paymentRequests.loadPayers(requestId) } coAnswers { awaitCancellation() }
+
+        val paying = async { delegate.pay(ready, token, source) }
+        advanceTimeBy(2.minutes)
+        runCurrent()
+
+        assertTrue(paying.isCompleted)
+        assertTrue(paying.await().isSuccess)
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `asking for the intent id that never answers fails at 60 seconds`() = runTest {
+        holdingCollection(Result.success(PaymentIntentId(intentBytes)))
+        coEvery { paymentRequests.paymentIntentId(requestId) } coAnswers { awaitCancellation() }
+
+        val preparing = async { delegate.prepare(requestId, viewer) }
+        advanceTimeBy(59_999)
+        runCurrent()
+        assertFalse(preparing.isCompleted)
+
+        advanceTimeBy(1)
+        runCurrent()
+        assertIs<TimeoutException>(preparing.await().exceptionOrNull())
     }
 }

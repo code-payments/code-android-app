@@ -89,8 +89,14 @@ class PaymentRequestPaymentDelegate @Inject constructor(
     /** The currency a collection was last paid in on this account, the next one's default; null before the first. */
     fun lastPaidCollectionCurrency(): Flow<Mint?> = funder.lastPaid()
 
-    /** Says whether [viewer] has something to pay into [requestId] now. */
-    suspend fun prepare(requestId: ID, viewer: ID): Result<ShareToPay> {
+    /**
+     * Says whether [viewer] has something to pay into [requestId] now. Fails with a
+     * `TimeoutException` when the server doesn't answer within [PAY_PATH_DEADLINE].
+     */
+    suspend fun prepare(requestId: ID, viewer: ID): Result<ShareToPay> =
+        bounded("preparing the payment") { prepareNow(requestId, viewer) }
+
+    private suspend fun prepareNow(requestId: ID, viewer: ID): Result<ShareToPay> {
         // A collection is known from the copy its screen shows, so paying starts with
         // GetPaymentIntentId rather than a refetch.
         paymentRequests.state.value[requestId]?.takeIf { it.collection != null }?.let { return prepareCollection(it) }
@@ -140,7 +146,12 @@ class PaymentRequestPaymentDelegate @Inject constructor(
 
     /**
      * Pays [ready]'s amount in the request's currency, priced into [token] from [source]. Refetches
-     * the request after the payment lands so its row reads as paid.
+     * the request after the payment lands so its row reads as paid; that refresh is bounded and
+     * never fails a payment that landed.
+     *
+     * The submission has [PAY_PATH_DEADLINE] to answer. Without an answer by then the outcome is
+     * unknown and this fails with [PaymentNotConfirmed]; the next attempt must ask for the intent
+     * id again (see [prepare]) before paying.
      *
      * With [fund], a collection short in [token] is first topped up by converting other balances
      * (see [CollectionFunder]); it fails with [CollectionFundingError.Short] when that can't cover
@@ -159,21 +170,23 @@ class PaymentRequestPaymentDelegate @Inject constructor(
         if (funding) funder.fund(request.id, ready.amount, token, source).onFailure { return Result.failure(it) }
         val rate = exchange.rateFor(currency)
             ?: return Result.failure(ComputeVerifiedFiatError.StaleRate())
-        val priced = payment.price(listOf(ready.amount), token, rate)
+        val priced = bounded("pricing the payment") { payment.price(listOf(ready.amount), token, rate) }
             .getOrElse { return Result.failure(it) }
         val intentId = PublicKey(ready.intentId.bytes.toList())
         // Until the payment lands, anyone who reads the id can use it up, so lower layers' logs
         // see only its last characters.
         val idBase58 = intentId.base58()
         LiveSecrets.hold(idBase58)
-        val paid = payment.pay(
-            payees = listOf(request.creator),
-            priced = priced,
-            token = token,
-            source = source,
-            appMetadata = buildRequestedPaymentMetadata(request.groupChatId, request.id.toByteArray()),
-            intentId = intentId,
-        )
+        val paid = submitWithinDeadline {
+            payment.pay(
+                payees = listOf(request.creator),
+                priced = priced,
+                token = token,
+                source = source,
+                appMetadata = buildRequestedPaymentMetadata(request.groupChatId, request.id.toByteArray()),
+                intentId = intentId,
+            )
+        }
         if (collection) {
             // A collection's id never reaches a log, whatever the outcome, so it stays held: the
             // call's bodies are logged when it closes, which can come after this resumes, and later
@@ -182,8 +195,10 @@ class PaymentRequestPaymentDelegate @Inject constructor(
             return paid.onSuccess {
                 log("paid collection", TraceType.Log)
                 if (funding) funder.paid(request.id, token)
-                paymentRequests.fetch(request.id)
-                paymentRequests.loadPayers(request.id)
+                boundedOrSkip {
+                    paymentRequests.fetch(request.id)
+                    paymentRequests.loadPayers(request.id)
+                }
             }.onFailure {
                 log("collection payment failed", TraceType.Error)
             }
@@ -192,7 +207,7 @@ class PaymentRequestPaymentDelegate @Inject constructor(
         return paid.onSuccess {
             LiveSecrets.release(idBase58)
             log("paid share under intent $idBase58", TraceType.Log)
-            paymentRequests.fetch(request.id)
+            boundedOrSkip { paymentRequests.fetch(request.id) }
         }.onFailure {
             log("share payment failed under intent ${idBase58.maskedSuffix()}", TraceType.Error)
         }

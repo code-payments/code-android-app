@@ -12,9 +12,14 @@ import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
+import java.util.concurrent.TimeoutException
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.awaitCancellation
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration
 
 class CollectionTopUpTest {
@@ -24,9 +29,11 @@ class CollectionTopUpTest {
     private val owner = mockk<AccountCluster>(relaxed = true)
     private val store = InMemoryCollectionFundingStore()
     private var dollars = 2_010_000L
+    /** Set to make every balance refresh after it a call that never answers. */
+    private var refreshHangs = false
     private val tokenCoordinator = mockk<TokenCoordinator>(relaxed = true).also {
         every { it.currentBalance(Mint.usdf) } answers { Fiat(dollars, CurrencyCode.USD) }
-        coEvery { it.update() } answers { Unit }
+        coEvery { it.update() } coAnswers { if (refreshHangs) awaitCancellation() }
     }
     private val rail = FakeRail()
     private val locks = CollectionTopUpLocks()
@@ -43,9 +50,13 @@ class CollectionTopUpTest {
         var keptWhenPaying: PendingTopUpRecord? = null
         var paying: CompletableDeferred<Unit>? = null
         var sweeps = 0
+        var orderHangs = false
+        var deliveryHangs = false
+        var onPaid: () -> Unit = {}
 
         override suspend fun order(usdCents: Long, checkGates: Boolean): Result<TopUpOrder> {
             gate?.let { return Result.failure(it) }
+            if (orderHangs) awaitCancellation()
             ordered += usdCents
             return Result.success(TopUpOrder("order-${ordered.size}", "https://pay"))
         }
@@ -53,10 +64,14 @@ class CollectionTopUpTest {
         override suspend fun pay(order: TopUpOrder): TopUpPayment {
             keptWhenPaying = store.topUps[requestId]
             paying?.await()
+            onPaid()
             return payment
         }
 
-        override suspend fun awaitDelivered(orderId: String): TopUpDelivery = delivery
+        override suspend fun awaitDelivered(orderId: String): TopUpDelivery {
+            if (deliveryHangs) awaitCancellation()
+            return delivery
+        }
 
         override fun sweep(owner: AccountCluster) {
             sweeps++
@@ -190,5 +205,48 @@ class CollectionTopUpTest {
         assertEquals(TopUpResult.Blocked(TopUpBlock.GooglePayNoPaymentMethod), result)
         assertEquals(emptyList(), rail.ordered)
         assertNull(store.pendingTopUp(requestId))
+    }
+
+    @Test
+    fun `an order with no answer ends at the deadline and keeps nothing`() = runTest {
+        rail.orderHangs = true
+
+        val result = async { topUp().topUp(requestId, 500, moony, owner) }
+        advanceTimeBy(59_999)
+        assertTrue(result.isActive)
+        advanceTimeBy(1)
+        runCurrent()
+
+        val blocked = result.await() as TopUpResult.Blocked
+        assertTrue((blocked.block as TopUpBlock.OrderFailed).cause is TimeoutException)
+        assertNull(store.pendingTopUp(requestId))
+    }
+
+    @Test
+    fun `a delivery wait with no answer ends after its budget and stays kept`() = runTest {
+        rail.deliveryHangs = true
+
+        val result = async { topUp().topUp(requestId, 500, moony, owner) }
+        // Coinbase's 150 lookups 2 seconds apart, plus one call's deadline.
+        advanceTimeBy(359_999)
+        assertTrue(result.isActive)
+        advanceTimeBy(1)
+        runCurrent()
+
+        assertEquals(TopUpResult.StillPending, result.await())
+        assertEquals("order-1", store.pendingTopUp(requestId)?.orderId)
+    }
+
+    @Test
+    fun `a balance refresh with no answer after delivery stays kept`() = runTest {
+        rail.land = 5_000_000
+        rail.onPaid = { refreshHangs = true }
+
+        val result = async { topUp().topUp(requestId, 500, moony, owner) }
+        advanceTimeBy(60_000)
+        runCurrent()
+
+        assertEquals(TopUpResult.StillPending, result.await())
+        assertEquals("order-1", store.pendingTopUp(requestId)?.orderId)
     }
 }

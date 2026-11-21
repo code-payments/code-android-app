@@ -19,6 +19,7 @@ import com.flipcash.features.messenger.R
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.payments.request.CollectionFundingError
 import com.flipcash.shared.payments.request.CollectionTopUp
+import com.flipcash.shared.payments.request.PaymentNotConfirmed
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
 import com.flipcash.shared.payments.request.TopUpBlock
@@ -218,6 +219,13 @@ internal class RequestPayFlow(
 
     private var ready: ShareToPay.Ready? = null
 
+    /**
+     * A payment from this sheet failed, so whether it landed is unknown: the next swipe asks for
+     * the intent id again before paying, and stops if it landed (spec, pay step 4). Closing the
+     * sheet clears it, since opening one always asks.
+     */
+    private var retryAsksFirst = false
+
     private val viewerId: ID? get() = userManager.accountId
 
     /** Everything the sheet asks of this flow, in one place. */
@@ -324,7 +332,11 @@ internal class RequestPayFlow(
         }
     }
 
-    /** The swipe. A second swipe after a failure pays under the same intent id. */
+    /**
+     * The swipe. A swipe after a failed payment asks for the intent id again first
+     * ([retryAsksFirst]): it stops if the failed one landed, and otherwise pays under the id the
+     * server gives, which is the same one, so only one payment can land.
+     */
     fun confirm() {
         val pending = ready ?: return
         val token = token.value ?: run {
@@ -343,11 +355,15 @@ internal class RequestPayFlow(
 
         _state.update { it.copy(progress = LoadingSuccessState(loading = true)) }
         scope.launch {
+            val swipe: suspend () -> Unit = {
+                val payable = if (retryAsksFirst) refetch(pending) else pending
+                if (payable != null) pay(payable, token, owner)
+            }
             if (funding) {
                 // One payment per request at a time, so it can't run beside a top-up's.
-                topUp.exclusive(pending.request.id) { pay(pending, token, owner) }
+                topUp.exclusive(pending.request.id) { swipe() }
             } else {
-                pay(pending, token, owner)
+                swipe()
             }
         }
     }
@@ -542,8 +558,9 @@ internal class RequestPayFlow(
     }
 
     /**
-     * GetPaymentIntentId again before a top-up and before paying after one: null, with the outcome
-     * shown, when there is no longer a share to pay or the refetch failed.
+     * GetPaymentIntentId again before a top-up, before paying after one, and before paying again
+     * after a failed payment: null, with the outcome shown, when there is no longer a share to pay
+     * or the refetch failed. A share still to pay answers [retryAsksFirst].
      */
     private suspend fun refetch(pending: ShareToPay.Ready): ShareToPay.Ready? {
         val viewer = viewerId ?: return null
@@ -555,6 +572,7 @@ internal class RequestPayFlow(
         when (found) {
             is ShareToPay.Ready -> {
                 ready = found
+                retryAsksFirst = false
                 _state.update { it.copy(amount = found.amount, creator = found.request.creator) }
                 return found
             }
@@ -607,14 +625,37 @@ internal class RequestPayFlow(
     }
 
     /**
-     * The outcome is unknown, so refetch before anything else: a share that landed after all is
-     * paid, and a request closed meanwhile is "Request Closed".
+     * The outcome is unknown, so refetch: a share that landed after all is paid, and a request
+     * closed meanwhile is "Request Closed". The next swipe asks again ([retryAsksFirst]), since the
+     * payment can still land after this refetch.
+     *
+     * A payment the server didn't confirm in time ([PaymentNotConfirmed]) unlocks the sheet and
+     * says so before refetching (spec, pay step 4): that server may not answer the refetch either,
+     * so it runs outside the request's lock and the user can leave meanwhile.
      */
     private suspend fun afterFailedPayment(pending: ShareToPay.Ready, cause: Throwable) {
         analytics.track(sentCash(AnalyticsState.FAILURE, pending, cause.analytics))
+        retryAsksFirst = true
         _state.update { it.copy(progress = LoadingSuccessState(), finishing = false) }
         val viewer = viewerId ?: return
-        when (val found = payments.prepare(pending.request.id, viewer).getOrNull()) {
+        if (cause is PaymentNotConfirmed) {
+            presentPaymentError(cause)
+            scope.launch {
+                val found = payments.prepare(pending.request.id, viewer).getOrNull()
+                // Only onto the sheet it was asked for, and not over a swipe already under way.
+                if (ready?.request?.id == pending.request.id && _state.value.progress.isIdle) showRefetched(found)
+            }
+            return
+        }
+        if (showRefetched(payments.prepare(pending.request.id, viewer).getOrNull())) presentPaymentError(cause)
+    }
+
+    /**
+     * What a refetch after a failed payment found: true while there may still be a share to pay
+     * (the refetch failed, or found one), false once the sheet closed with the outcome shown.
+     */
+    private fun showRefetched(found: ShareToPay?): Boolean {
+        when (found) {
             is ShareToPay.Closed -> {
                 dismiss()
                 presentClosed()
@@ -627,10 +668,11 @@ internal class RequestPayFlow(
             is ShareToPay.Ready -> {
                 ready = found
                 _state.update { it.copy(amount = found.amount, creator = found.request.creator) }
-                presentPaymentError(cause)
+                return true
             }
-            null -> presentPaymentError(cause)
+            null -> return true
         }
+        return false
     }
 
     private fun sentCash(state: AnalyticsState, pending: ShareToPay.Ready, error: String?) =
@@ -639,6 +681,7 @@ internal class RequestPayFlow(
     fun dismiss() {
         if (!_state.value.progress.isIdle && !_state.value.progress.success) return
         ready = null
+        retryAsksFirst = false
         collectionPick.value = null
         _state.update {
             it.copy(
@@ -769,6 +812,8 @@ internal class RequestPayFlow(
         val (title, message) = when (cause) {
             is CollectionFundingError.ConversionPending ->
                 R.string.error_title_collectionConversionPending to R.string.error_description_collectionConversionPending
+            is PaymentNotConfirmed ->
+                R.string.error_title_paymentNotConfirmed to R.string.error_description_paymentNotConfirmed
             is ComputeVerifiedFiatError.AmountBelowMinimum ->
                 R.string.error_title_amountTooSmall to R.string.error_description_amountTooSmall
             is ComputeVerifiedFiatError ->

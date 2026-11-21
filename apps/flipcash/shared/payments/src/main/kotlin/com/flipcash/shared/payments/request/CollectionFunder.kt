@@ -20,6 +20,7 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.transactions.SwapFundingSource
+import com.getcode.opencode.model.transactions.SwapMetadata
 import com.getcode.opencode.model.transactions.SwapState
 import com.getcode.opencode.repositories.SwapRepository
 import com.getcode.opencode.utils.generate
@@ -75,7 +76,7 @@ class CollectionFunder @Inject constructor(
         mutex.withLock {
             val created = settleStarted(requestId, owner).getOrElse { return@withLock Result.failure(it) }
             repeat(MAX_ROUNDS) {
-                tokenCoordinator.update()
+                refreshBalances()
                 val rate = exchange.rateFor(amount.currencyCode)
                     ?: return@withLock Result.failure(ComputeVerifiedFiatError.StaleRate())
                 val balances = planner.balances(rate)
@@ -116,12 +117,12 @@ class CollectionFunder @Inject constructor(
         mutex.withLock {
             val kept = store.legs(requestId)
             if (kept.isEmpty()) return@withLock Result.success(false)
-            tokenCoordinator.update()
+            refreshBalances()
             val before = kept.map { it.to }.distinct().associateWith { tokenCoordinator.currentBalance(it) }
             val landed = mutableListOf<FundingLegRecord>()
             var settled = false
             for (record in kept) {
-                val found = swaps.getSwap(record.swapId, owner.authority.keyPair)
+                val found = bounded("getSwap") { swaps.getSwap(record.swapId, owner.authority.keyPair) }
                 val swap = found.getOrNull()
                 if (swap == null) {
                     val error = found.exceptionOrNull()
@@ -146,7 +147,7 @@ class CollectionFunder @Inject constructor(
                 if (outcome == SettleOutcome.Landed) landed += record else store.remove(requestId, record.swapId)
             }
             if (landed.isEmpty()) {
-                if (settled) tokenCoordinator.update()
+                if (settled) refreshBalances()
                 return@withLock Result.success(settled)
             }
             for (mint in landed.map { it.to }.distinct()) {
@@ -194,7 +195,7 @@ class CollectionFunder @Inject constructor(
     private suspend fun settleStarted(requestId: ID, owner: AccountCluster): Result<Set<SwapId>> {
         val created = mutableSetOf<SwapId>()
         for (record in store.legs(requestId)) {
-            val found = swaps.getSwap(record.swapId, owner.authority.keyPair)
+            val found = bounded("getSwap") { swaps.getSwap(record.swapId, owner.authority.keyPair) }
             val swap = found.getOrNull()
             if (swap == null) {
                 val error = found.exceptionOrNull()
@@ -223,7 +224,7 @@ class CollectionFunder @Inject constructor(
      * the swap reached [target], false when the server failed or cancelled it first.
      */
     private suspend fun awaitOutcome(record: FundingLegRecord, owner: AccountCluster, target: SwapState): Result<Boolean> {
-        val polled = transactions.pollSwapForState(record.swapId, owner, target)
+        val polled = pollSwap(record, owner, target)
         val error = polled.exceptionOrNull() ?: return Result.success(true)
         return if (error.endedSwap) Result.success(false) else Result.failure(CollectionFundingError.ConversionPending())
     }
@@ -270,19 +271,22 @@ class CollectionFunder @Inject constructor(
         val amount = price(leg, from, drains = leg.soldMicros >= held.fiatMicros, rate)
             .getOrElse { return Result.failure(it) }
         val source = SwapFundingSource.SubmitIntent(record.fundingIntentId)
-        val submitted = when {
-            paying.address == Mint.usdf -> transactions.sell(
-                owner = owner, amount = amount, of = from, swapId = record.swapId, source = source,
-            )
-            from.address == Mint.usdf -> transactions.buy(
-                owner = owner, amount = amount, feeAmount = null, swapId = record.swapId, of = paying, source = source,
-            )
-            else -> transactions.swap(
-                owner = owner, amount = amount, feeAmount = null, from = from, to = paying,
-                swapId = record.swapId, source = source,
-            )
+        val submitted = bounded("submitting a conversion") {
+            when {
+                paying.address == Mint.usdf -> transactions.sell(
+                    owner = owner, amount = amount, of = from, swapId = record.swapId, source = source,
+                )
+                from.address == Mint.usdf -> transactions.buy(
+                    owner = owner, amount = amount, feeAmount = null, swapId = record.swapId, of = paying, source = source,
+                )
+                else -> transactions.swap(
+                    owner = owner, amount = amount, feeAmount = null, from = from, to = paying,
+                    swapId = record.swapId, source = source,
+                )
+            }
         }
-        // An unknown outcome keeps the record, so the retry asks the server about this swap first.
+        // An unknown outcome, a submission with no answer in time included, keeps the record, so
+        // the retry asks the server about this swap first.
         submitted.onFailure { return Result.failure(it) }
         return awaitLeg(requestId, record, owner, retried = kept != null)
     }
@@ -312,7 +316,7 @@ class CollectionFunder @Inject constructor(
      * CREATED or in flight again.
      */
     private suspend fun fundRecorded(record: FundingLegRecord, from: Token, rate: Rate, owner: AccountCluster): Result<Unit> {
-        val pending = swaps.getPendingSwaps(owner.authority.keyPair).getOrElse { error ->
+        val pending = bounded("getPendingSwaps") { swaps.getPendingSwaps(owner.authority.keyPair) }.getOrElse { error ->
             if (error is GetPendingSwapsError.NotFound) emptyList() else return Result.failure(error)
         }
         val recorded = pending
@@ -321,8 +325,9 @@ class CollectionFunder @Inject constructor(
         val fundingId = (recorded?.fundingSource as? SwapFundingSource.SubmitIntent)?.id
         if (recorded == null || fundingId == null) return Result.success(Unit)
         val quarks = recorded.swapAmount.quarks + (recorded.feeAmount?.quarks ?: 0L)
-        val amount = verifiedFiatCalculator.computeForQuarks(quarks, from, rate).getOrElse { return Result.failure(it) }
-        return transactions.fundSwap(owner, from, amount, fundingId)
+        val amount = bounded("pricing a conversion") { verifiedFiatCalculator.computeForQuarks(quarks, from, rate) }
+            .getOrElse { return Result.failure(it) }
+        return bounded("funding a conversion") { transactions.fundSwap(owner, from, amount, fundingId) }
     }
 
     /**
@@ -331,7 +336,7 @@ class CollectionFunder @Inject constructor(
      * must wait on it, so funding stops on [CollectionFundingError.ConversionPending].
      */
     private suspend fun awaitLeg(requestId: ID, record: FundingLegRecord, owner: AccountCluster, retried: Boolean): Result<Unit> {
-        transactions.pollSwapForState(record.swapId, owner, SwapState.FINALIZED).onFailure { error ->
+        pollSwap(record, owner, SwapState.FINALIZED).onFailure { error ->
             if (error.endedSwap) {
                 store.remove(requestId, record.swapId)
                 return Result.failure(error)
@@ -351,12 +356,14 @@ class CollectionFunder @Inject constructor(
      * quarks its fiat value prices to, which can land a few quarks short and leave dust.
      */
     private suspend fun price(leg: FundingLeg, from: Token, drains: Boolean, rate: Rate): Result<VerifiedFiat> {
-        val priced = verifiedFiatCalculator.compute(
-            amount = Fiat(leg.soldMicros, rate.currency),
-            token = from,
-            balance = tokenCoordinator.balanceForToken(from),
-            rate = rate,
-        ).getOrElse { return Result.failure(it) }
+        val priced = bounded("pricing a conversion") {
+            verifiedFiatCalculator.compute(
+                amount = Fiat(leg.soldMicros, rate.currency),
+                token = from,
+                balance = tokenCoordinator.balanceForToken(from),
+                rate = rate,
+            )
+        }.getOrElse { return Result.failure(it) }
         if (!drains || from.address == Mint.usdf) return Result.success(priced)
         val quarks = tokenCoordinator.heldQuarksForToken(from.address).first()
             ?: return Result.failure(CollectionFundingError.Unsettled())
@@ -365,19 +372,42 @@ class CollectionFunder @Inject constructor(
         )
     }
 
+    /**
+     * Waits for [mint]'s balance to rise above [before]. A refresh with no answer in time ends the
+     * wait as unsettled: the balance can't be read, so waiting longer shows nothing.
+     */
     private suspend fun awaitBalanceAbove(mint: Mint, before: Fiat): Result<Unit> {
         repeat(SETTLE_CHECKS) { check ->
             if (check > 0) delay(settleInterval)
-            tokenCoordinator.update()
+            if (!refreshBalances()) return Result.failure(CollectionFundingError.Unsettled())
             if (tokenCoordinator.currentBalance(mint).quarks > before.quarks) return Result.success(Unit)
         }
         return Result.failure(CollectionFundingError.Unsettled())
     }
 
+    /**
+     * Reloads the wallet's balances, for at most [PAY_PATH_DEADLINE]: every wait here runs with
+     * the pay sheet locked (spec, pay step 4). False when it ran out, leaving them as they were.
+     */
+    private suspend fun refreshBalances(): Boolean = boundedOrSkip { tokenCoordinator.update() }
+
+    /**
+     * Polls [record]'s swap for [target]. The poll's own budget counts attempts, not time, and
+     * one GetSwap that never answers would hold it, so the whole poll is bounded by that budget
+     * plus one call's deadline. Running out fails like an exhausted poll: the outcome is unknown.
+     */
+    private suspend fun pollSwap(record: FundingLegRecord, owner: AccountCluster, target: SwapState): Result<SwapMetadata> =
+        bounded("polling a conversion", POLL_BUDGET + PAY_PATH_DEADLINE) {
+            transactions.pollSwapForState(record.swapId, owner, target)
+        }
+
     private companion object {
         /** Plan, convert, fetch: a short delivery gets this many more rounds before giving up. */
         const val MAX_ROUNDS = 3
         const val SETTLE_CHECKS = 5
+
+        /** [TransactionOperations.pollSwapForState]'s default attempts times its interval. */
+        val POLL_BUDGET = 90.seconds
     }
 }
 

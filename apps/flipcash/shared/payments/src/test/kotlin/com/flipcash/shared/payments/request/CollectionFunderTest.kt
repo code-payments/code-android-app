@@ -36,6 +36,11 @@ import io.mockk.registerInstanceFactory
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import java.util.concurrent.TimeoutException
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.async
 import kotlin.math.roundToLong
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -708,5 +713,56 @@ class CollectionFunderTest {
 
         assertTrue(store.legs(requestId).isEmpty())
         assertEquals(jeffy.address, store.lastPaid().first())
+    }
+
+    @Test
+    fun `a conversion submission with no answer fails at the deadline and keeps its record`() = runTest {
+        hold(Token.usdf to "2.00", al to "20.00")
+        coEvery { transactions.sell(owner, any(), al, any(), any()) } coAnswers {
+            submit(al.address, Mint.usdf, arg(3), arg(4), arg(1))
+            awaitCancellation()
+        }
+
+        val result = async { fund(Fiat("10.00", CurrencyCode.USD), Token.usdf) }
+        advanceTimeBy(59_999)
+        assertTrue(result.isActive)
+        advanceTimeBy(1)
+        runCurrent()
+
+        assertTrue(result.await().exceptionOrNull() is TimeoutException)
+        // The swap may have reached the server, so the retry asks about it before converting again.
+        assertEquals(submitted.single().swapId, store.legs(requestId).single().swapId)
+    }
+
+    @Test
+    fun `a conversion poll with no answer ends after its budget and keeps the record`() = runTest {
+        hold(Token.usdf to "2.00", al to "20.00")
+        coEvery { transactions.pollSwapForState(any(), owner, SwapState.FINALIZED, any(), any()) } coAnswers {
+            awaitCancellation()
+        }
+
+        val result = async { fund(Fiat("10.00", CurrencyCode.USD), Token.usdf) }
+        // The poll's own 90 attempts a second apart, plus one call's deadline.
+        advanceTimeBy(149_999)
+        assertTrue(result.isActive)
+        advanceTimeBy(1)
+        runCurrent()
+
+        assertTrue(result.await().exceptionOrNull() is TimeoutException)
+        assertEquals(1, store.legs(requestId).size)
+    }
+
+    @Test
+    fun `a balance refresh with no answer doesn't hold funding`() = runTest {
+        hold(Token.usdf to "20.00")
+        coEvery { tokenCoordinator.update() } coAnswers { awaitCancellation() }
+
+        val result = async { fund(Fiat("10.00", CurrencyCode.USD), Token.usdf) }
+        advanceTimeBy(60_000)
+        runCurrent()
+
+        // The balances as last read already cover it, so nothing converts and funding goes on.
+        assertTrue(result.await().isSuccess)
+        assertTrue(submitted.isEmpty())
     }
 }

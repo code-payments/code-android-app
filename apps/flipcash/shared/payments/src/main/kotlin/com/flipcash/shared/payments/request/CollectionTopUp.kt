@@ -7,6 +7,7 @@ import com.getcode.solana.keys.Mint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration
@@ -140,7 +141,8 @@ class CollectionTopUp @Inject constructor(
     ): TopUpResult {
         store.pendingTopUp(requestId)?.let { return settle(requestId, it, owner) }
         val baseline = dollarsMicros()
-        val order = rail.order(usdCents, checkGates).getOrElse { cause ->
+        // Nothing is charged until Google Pay, so an order with no answer in time is just not made.
+        val order = bounded("ordering a top-up") { rail.order(usdCents, checkGates) }.getOrElse { cause ->
             return TopUpResult.Blocked((cause as? CollectionTopUpBlocked)?.block ?: TopUpBlock.OrderFailed(cause))
         }
         val record = PendingTopUpRecord(order.orderId, usdCents, baseline, payingCurrency)
@@ -172,7 +174,9 @@ class CollectionTopUp @Inject constructor(
             store.clearPendingTopUp(requestId)
             return TopUpResult.Landed
         }
-        return when (rail.awaitDelivered(record.orderId)) {
+        // The delivery poll counts attempts, and one lookup that never answers would hold it.
+        val delivery = withTimeoutOrNull(DELIVERY_WAIT) { rail.awaitDelivered(record.orderId) } ?: TopUpDelivery.TimedOut
+        return when (delivery) {
             TopUpDelivery.Failed -> {
                 store.clearPendingTopUp(requestId)
                 TopUpResult.Failed
@@ -190,18 +194,26 @@ class CollectionTopUp @Inject constructor(
         }
     }
 
+    /** False once a refresh gets no answer in time: the balance can't be read, so it's still pending. */
     private suspend fun awaitDollarsAbove(baselineMicros: Long): Boolean {
         repeat(SWEEP_CHECKS) { check ->
             if (check > 0) delay(settleInterval)
-            if (dollarsMicros() > baselineMicros) return true
+            if (!refreshBalances()) return false
+            if (heldDollarsMicros() > baselineMicros) return true
         }
         return false
     }
 
+    /** The Dollars balance after a refresh, or as last read when the refresh gets no answer in time. */
     private suspend fun dollarsMicros(): Long {
-        tokenCoordinator.update()
-        return tokenCoordinator.currentBalance(Mint.usdf).quarks
+        refreshBalances()
+        return heldDollarsMicros()
     }
+
+    private fun heldDollarsMicros(): Long = tokenCoordinator.currentBalance(Mint.usdf).quarks
+
+    /** Every wait here runs while Finishing Payment shows (spec, pay step 4), so a refresh is bounded. */
+    private suspend fun refreshBalances(): Boolean = boundedOrSkip { tokenCoordinator.update() }
 
     private companion object {
         const val MICROS_PER_CENT = 10_000L
@@ -209,5 +221,11 @@ class CollectionTopUp @Inject constructor(
 
         /** A sweep usually lands in seconds; this waits about a minute before calling it pending. */
         const val SWEEP_CHECKS = 30
+
+        /**
+         * The Coinbase rail polls delivery 150 times, 2 seconds apart; this is that budget plus one
+         * lookup's deadline, after which the top-up is still pending and stays kept.
+         */
+        val DELIVERY_WAIT = 300.seconds + PAY_PATH_DEADLINE
     }
 }
