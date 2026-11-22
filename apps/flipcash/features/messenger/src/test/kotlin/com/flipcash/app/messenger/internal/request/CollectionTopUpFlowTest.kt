@@ -51,6 +51,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.After
@@ -61,6 +62,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -168,9 +170,9 @@ class CollectionTopUpFlowTest {
         return case
     }
 
-    /** The case's plan over the balances as they now stand. */
-    private fun planNow() = planCollectionFunding(
-        amountMicros = input.getLong("amount_micros"),
+    /** The case's plan for [amountMicros], by default its own amount, over the balances as they now stand. */
+    private fun planNow(amountMicros: Long = input.getLong("amount_micros")) = planCollectionFunding(
+        amountMicros = amountMicros,
         minorDigits = input.getInt("minor_digits"),
         minTopUpMicros = input.getLong("min_top_up_micros"),
         dollarsId = DOLLARS,
@@ -902,6 +904,55 @@ class CollectionTopUpFlowTest {
         assertTrue(f.state.value.open, "in the sheet")
     }
 
+    /**
+     * The plan held for the checkmark ends with the sheet: the next collection's sheet draws its own
+     * plan over the balances the payment left, not the one the last payment paid with.
+     */
+    @Test
+    fun `the next collection's sheet draws its own plan, not the one the last payment held`() {
+        useCase("s1-no-balance")
+        every { payments.planCollection(any(), any()) } answers { planNow(firstArg<Fiat>().quarks) }
+        coEvery { payments.pay(any(), any(), any(), any()) } answers {
+            dollarsMicros -= firstArg<ShareToPay.Ready>().amount.quarks
+            Result.success(Unit)
+        }
+        val next = ShareToPay.Ready(
+            request = mockk(relaxed = true) {
+                every { id } returns OTHER_REQUEST_ID
+                every { collection } returns mockk(relaxed = true)
+            },
+            amount = Fiat(quarks = 4_000_000L, currencyCode = CurrencyCode.USD),
+            intentId = mockk(relaxed = true),
+        )
+        coEvery { payments.prepare(OTHER_REQUEST_ID, any()) } returns Result.success(next)
+        val f = flow()
+        CoroutineScope(Dispatchers.Unconfined).also(scopes::add).launch { f.fundingUi.collect {} }
+
+        tapRequestScreenPay(f)
+
+        assertTrue(f.state.value.progress.success, "the checkmark, was ${f.state.value}")
+        val held = assertNotNull(f.plan.value, "the plan under the checkmark")
+        assertTrue(held.payableWithoutTopUp, "the checkmark draws the plan it paid with, was $held")
+        f.start(OTHER_REQUEST_ID, fund = true)
+        assertEquals(REQUEST_ID, f.state.value.requestId, "no second sheet during the hold")
+        runBlocking { withTimeout(5_000) { f.state.first { !it.open } } }
+
+        f.start(OTHER_REQUEST_ID, fund = true)
+
+        assertTrue(f.state.value.open, "the next collection's sheet, was ${f.state.value}")
+        assertEquals(OTHER_REQUEST_ID, f.state.value.requestId)
+        assertEquals(0, nothingToPay)
+        val live = planNow(next.amount.quarks)
+        assertEquals(false, live.payableWithoutTopUp, "the Dollars were spent, so the next one is short")
+        // The hold's delay releases on another thread, so read the plan once it settles. A held
+        // plan that outlived the sheet never settles to [live] and is what the assert reports.
+        val drawn = runBlocking { withTimeoutOrNull(5_000) { f.plan.first { it == live } } } ?: f.plan.value
+        assertEquals(live, drawn, "the next collection's plan over the balances left")
+        assertNotEquals(held, drawn)
+        val ui = runBlocking { withTimeoutOrNull(5_000) { f.fundingUi.first { it?.short != null } } } ?: f.fundingUi.value
+        assertNotNull(assertNotNull(ui).short, "its short line")
+    }
+
     /** Pay step 4: the 60 s deadline unlocks the sheet on "Payment Not Confirmed"; it doesn't close. */
     @Test
     fun `a payment not confirmed after the Request screen's top-up leaves the sheet up and unlocked`() {
@@ -1228,6 +1279,7 @@ class CollectionTopUpFlowTest {
         const val FIXTURE = "../../shared/tokens/src/androidHostTest/resources/collection_funding.json"
         const val DOLLARS = "dollars"
         val REQUEST_ID = listOf<Byte>(2)
+        val OTHER_REQUEST_ID = listOf<Byte>(3)
         const val MICROS_PER_CENT = 10_000L
         const val MOONY_ID = "moony"
         val MOONY = Token.usdf.copy(address = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"))

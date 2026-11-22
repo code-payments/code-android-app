@@ -183,19 +183,29 @@ private fun RequestPayFrameSheet(
         sheetState.sheet.hide()
         currentOnHidden()
     }
+    // A sheet sliding down still draws its swipe and Add and Pay, but the flow behind it has
+    // closed: neither reaches it. Checked when called, so a swipe that ends after the close is
+    // dropped too. Dismiss passes through, since hide() never calls it.
+    val gatedActions = remember(actions) {
+        SwipePayActions(
+            onConfirm = { if (!closingNow) actions.onConfirm() },
+            onDismiss = actions.onDismiss,
+        )
+    }
+    val gatedAddAndPay = remember(onAddAndPay) { { if (!closingNow) onAddAndPay() } }
     val sheet = @Composable { feeLine: (@Composable () -> Unit)?, onDetails: () -> Unit, page: SwipePayPage? ->
         PayShareSheet(
             creator = pay.creator?.let(frame.members::get),
             amount = amount,
             swipePay = swipePay,
             sheetState = sheetState,
-            actions = actions,
+            actions = gatedActions,
             feeLine = feeLine,
             showsHandle = !pay.funding,
             showsCents = pay.funding,
             action = funding?.short?.takeIf { pay.funding }?.let { short ->
                 @Composable { modifier: Modifier ->
-                    CollectionShortAction(short, swipePay, onAddAndPay, onDetails, modifier)
+                    CollectionShortAction(short, swipePay, gatedAddAndPay, onDetails, modifier)
                 }
             },
             // Every collection's sheet keeps its swap, so Finishing Payment fades in and out of
