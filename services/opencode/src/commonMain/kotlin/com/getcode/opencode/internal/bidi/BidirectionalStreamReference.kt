@@ -10,9 +10,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+/**
+ * [timeoutMillis] is how long the stream may go without a send or a ping before [timeoutHandler]
+ * runs. A ping can change it later.
+ */
 class BidirectionalStreamReference<Request, Response>(
     scope: CoroutineScope,
-    val instanceLabel: String = ""
+    val instanceLabel: String = "",
+    timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS,
 ) : AutoCloseable {
 
     // supervisorJob must be THE Job of coroutineScope so destroy()/cancel() can
@@ -51,7 +56,7 @@ class BidirectionalStreamReference<Request, Response>(
 
     private var lastPing: Long? = null
 
-    private var pingTimeout = 15_000L
+    private var pingTimeout = timeoutMillis
 
     private var closure: (() -> BidirectionalStreamReference<Request, Response>)? = null
 
@@ -188,5 +193,10 @@ class BidirectionalStreamReference<Request, Response>(
      */
     fun deactivateStream() {
         isStreamActive = false
+    }
+
+    companion object {
+        /** The timeout every stream starts with unless its opener passes another. */
+        const val DEFAULT_TIMEOUT_MILLIS: Long = 15_000L
     }
 }

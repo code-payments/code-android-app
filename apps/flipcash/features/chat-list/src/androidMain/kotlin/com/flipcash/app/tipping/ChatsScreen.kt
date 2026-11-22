@@ -1,6 +1,7 @@
 // kmp-audit: hiltViewModel and BackHandler are Android-only; the screen content is ChatsScreenContent in commonMain.
 package com.flipcash.app.tipping
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.activity.compose.BackHandler
 import com.flipcash.app.tipping.internal.components.ChatListMoreButton
 import com.flipcash.app.tipping.internal.components.ChatSelectionTopBar
@@ -47,6 +48,8 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ChatsScreen() {
     val viewModel = hiltViewModel<HiltChatsViewModel>()
+    val collections = LocalNavBarShell.current == NavBarShell.GroupMoney
+    LaunchedEffect(collections) { viewModel.showCollections(collections) }
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
     // The root toast host, so the undo rises out of the tab bar on its glass.

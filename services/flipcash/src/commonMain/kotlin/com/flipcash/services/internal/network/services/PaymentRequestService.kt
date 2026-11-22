@@ -19,7 +19,7 @@ import com.flipcash.services.models.GetPaymentRequestError
 import com.flipcash.services.models.MarkPaymentRequestPaidError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.paymentrequest.NewSplitRequest
+import com.flipcash.services.models.paymentrequest.NewPaymentRequest
 import com.flipcash.services.models.paymentrequest.PayerPage
 import com.flipcash.services.models.paymentrequest.PayerSection
 import com.flipcash.services.models.paymentrequest.PaymentIntentId
@@ -38,7 +38,7 @@ internal class PaymentRequestService @Inject constructor(
 ) {
     suspend fun createPaymentRequest(
         owner: Ed25519.KeyPair,
-        request: NewSplitRequest,
+        request: NewPaymentRequest,
         idempotencyKey: IdempotencyKey,
     ): Result<PaymentRequest> {
         return runCatching {

@@ -10,6 +10,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.shared.chat.PaymentRequests
+import com.flipcash.shared.payments.request.CollectionTopUp
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.getcode.manager.BottomBarManager
 import com.getcode.opencode.controllers.TransactionController
@@ -58,6 +59,7 @@ class RequestDetailsAnalyticsTest {
         requests = requests,
         rosters = rosters,
         payments = mockk<PaymentRequestPaymentDelegate>(relaxed = true),
+        topUp = mockk<CollectionTopUp>(relaxed = true),
         payer = payer,
         tokenCoordinator = mockk<TokenCoordinator>(relaxed = true),
         transactionController = transactionController,

@@ -1,5 +1,7 @@
 package com.flipcash.app.messenger.internal.screens.components
 
+import kotlin.time.Instant
+import com.getcode.opencode.model.core.ID
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,13 +70,14 @@ internal fun SharePaymentRow(run: List<ChatListItem.SharePayment>, modifier: Mod
     // The receiver stands where a card's sender does: the request must be this chat's, and the
     // person paid must be the one who made it.
     val state = cards?.let {
-        requestCardState(held, head.requestId in it.missing, it.chatId, head.receiverId)
+        requestCardState(held, head.requestId in it.missing, it.chatId, head.receiverId, it.collections)
     }
     if (cards != null) {
         val absent = held == null && head.requestId !in cards.missing
         LaunchedEffect(head.requestId, absent) { if (absent) cards.onNeeded(head.requestId) }
     }
     val ready = state as? RequestCardState.Ready
+    val detail = shareRowDetail(ready, head.payerId, head.timestamp)
 
     val amount = run.sumInDisplayCurrency().formatted(Fiat.FormattingRule.Truncated)
     val template = shareTemplate(run)
@@ -84,12 +87,24 @@ internal fun SharePaymentRow(run: List<ChatListItem.SharePayment>, modifier: Mod
     SharePaymentRowLayout(
         names = template.names,
         caption = { names -> styledTemplate(template.text, names.map { it to NameStyle } + (amount to amountStyle)) },
-        title = ready?.title?.takeIf { it.isNotBlank() },
-        progress = ready?.request?.split?.paidFractionAfterPayment(head.payerId, head.timestamp),
+        title = detail.title,
+        progress = detail.progress,
         onClick = ready?.let { { cards?.onOpen?.invoke(head.requestId) } },
         modifier = modifier,
     )
 }
+
+/** What a share payment row adds to its caption: the request's title and its ring, either absent. */
+internal data class ShareRowDetail(val title: String?, val progress: Float?)
+
+/**
+ * A split's row reads " · title" and its ring as of the payment. A collection's reads neither: it
+ * has no title, and with no total asked there is no fraction for a ring.
+ */
+internal fun shareRowDetail(ready: RequestCardState.Ready?, payer: ID?, sentAt: Instant): ShareRowDetail = ShareRowDetail(
+    title = ready?.title?.takeIf { it.isNotBlank() },
+    progress = ready?.request?.split?.paidFractionAfterPayment(payer, sentAt),
+)
 
 /** The run's amounts as the viewer reads them, added up. */
 @Composable

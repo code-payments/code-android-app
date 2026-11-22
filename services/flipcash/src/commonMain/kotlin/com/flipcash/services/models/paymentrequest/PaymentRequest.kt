@@ -40,6 +40,14 @@ data class PaymentRequest(
     /** A split's chat. Null for any other kind, so lists built for splits leave collections out. */
     val chatId: ChatId? get() = (kind as? Kind.GroupSplit)?.chatId
 
+    /** The group chat a split or a collection was made in. Null for an [Kind.Unsupported] request. */
+    val groupChatId: ChatId?
+        get() = when (val kind = kind) {
+            is Kind.GroupSplit -> kind.chatId
+            is Kind.GroupCollection -> kind.chatId
+            Kind.Unsupported -> null
+        }
+
     /** When the request stops taking payments. Null when it has no deadline, and never expires. */
     val endsAt: Instant?
         get() = when (val kind = kind) {
@@ -151,6 +159,19 @@ sealed interface CollectionAmount {
     data class Fixed(val amount: Fiat) : CollectionAmount
 }
 
+/** What each payer pays into a fixed-amount collection; null for an amount kind the app does not know. */
+val PaymentCollection.amountEach: Fiat? get() = (amount as? CollectionAmount.Fixed)?.amount
+
+/**
+ * What a collection has taken in: [PaymentRequest.payerSummary]'s paid total, which the server
+ * keeps current, or zero before it sends one. Null for a request that is no collection.
+ */
+val PaymentRequest.collectionPaid: Fiat?
+    get() {
+        val collection = collection ?: return null
+        return payerSummary?.amountPaid(collection.currency) ?: Fiat(quarks = 0L, currencyCode = collection.currency)
+    }
+
 /**
  * One user's part in a request, as `GetPayers` lists it: a split has one per share, the creator's
  * own included; a collection one per member who has contributed, each paid with nothing due.
@@ -232,18 +253,33 @@ fun newerOf(held: PaymentRequest?, incoming: PaymentRequest): PaymentRequest = w
     else -> incoming
 }
 
+/** What a creator sends to open a request in a private group. */
+sealed interface NewPaymentRequest {
+    val chatId: ChatId
+}
+
 /**
  * What a creator sends to open a split in a private group. [text] is already sealed under the
  * group's chat key; [shares] lists who is asked and for how much, in roster order, the creator
  * first when included.
  */
 data class NewSplitRequest(
-    val chatId: ChatId,
+    override val chatId: ChatId,
     val text: PaymentRequestText.Encrypted,
     val currency: CurrencyCode,
     val endsAt: Instant,
     val shares: List<NewShare>,
-)
+) : NewPaymentRequest
+
+/**
+ * What a creator sends to open a collection in a private group: any member but the creator pays
+ * [amount] once, in its currency. It carries no text and no deadline, so it stays open until the
+ * creator closes it. [amount] is a whole number, at least one, of the currency's smallest unit.
+ */
+data class NewCollectionRequest(
+    override val chatId: ChatId,
+    val amount: Fiat,
+) : NewPaymentRequest
 
 /** One member's part of a [NewSplitRequest]: a whole number, at least one, of the currency's smallest unit. */
 data class NewShare(val userId: ID, val amount: Fiat)

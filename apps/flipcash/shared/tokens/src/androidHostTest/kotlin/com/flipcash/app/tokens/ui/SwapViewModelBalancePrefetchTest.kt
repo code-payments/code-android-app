@@ -45,6 +45,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doSuspendableAnswer
 import org.mockito.kotlin.mock
@@ -90,7 +91,7 @@ class SwapViewModelBalancePrefetchTest {
             MutableStateFlow(listOf(mockk<TokenWithBalance>(relaxed = true)))
         every { tokenCoordinator.balanceForToken(any<Token>()) } answers { cachedBalance }
         transactionController.stub {
-            onBlocking { sell(any(), any(), any()) } doReturn
+            onBlocking { sell(any(), any(), any(), anyOrNull(), any()) } doReturn
                 Result.failure(RuntimeException("sell failed"))
         }
     }
@@ -156,7 +157,7 @@ class SwapViewModelBalancePrefetchTest {
             advanceUntilIdle()
 
             coVerify(exactly = 1) { tokenCoordinator.updateTokenAccount(any<Mint>()) }
-            verify(transactionController, times(1)).sell(any(), any(), any())
+            verify(transactionController, times(1)).sell(any(), any(), any(), anyOrNull(), any())
             assertFalse(insufficientFundsShown())
         }
 
@@ -176,7 +177,7 @@ class SwapViewModelBalancePrefetchTest {
             advanceUntilIdle()
 
             // Still waiting on the refresh: nothing submitted, no alert yet, no second refresh.
-            verify(transactionController, never()).sell(any(), any(), any())
+            verify(transactionController, never()).sell(any(), any(), any(), anyOrNull(), any())
             assertFalse(insufficientFundsShown())
             coVerify(exactly = 1) { tokenCoordinator.updateTokenAccount(any<Mint>()) }
 
@@ -184,7 +185,7 @@ class SwapViewModelBalancePrefetchTest {
             advanceUntilIdle()
 
             assertTrue(insufficientFundsShown())
-            verify(transactionController, never()).sell(any(), any(), any())
+            verify(transactionController, never()).sell(any(), any(), any(), anyOrNull(), any())
             coVerify(exactly = 1) { tokenCoordinator.updateTokenAccount(any<Mint>()) }
         }
 
@@ -201,7 +202,7 @@ class SwapViewModelBalancePrefetchTest {
 
         coVerify(exactly = 1) { tokenCoordinator.updateTokenAccount(Mint.usdf) }
         assertTrue(insufficientFundsShown())
-        verify(transactionController, never()).sell(any(), any(), any())
+        verify(transactionController, never()).sell(any(), any(), any(), anyOrNull(), any())
     }
 
     @Test
@@ -217,7 +218,7 @@ class SwapViewModelBalancePrefetchTest {
 
         coVerify(exactly = 1) { tokenCoordinator.updateTokenAccount(any<Mint>()) }
         assertFalse(insufficientFundsShown())
-        verify(transactionController, times(1)).sell(any(), any(), any())
+        verify(transactionController, times(1)).sell(any(), any(), any(), anyOrNull(), any())
     }
 
     @Test
@@ -228,7 +229,7 @@ class SwapViewModelBalancePrefetchTest {
             // Hold the submit open: the sell is in flight when the receipt re-appears.
             val gate = CompletableDeferred<Unit>()
             transactionController.stub {
-                onBlocking { sell(any(), any(), any()) } doSuspendableAnswer {
+                onBlocking { sell(any(), any(), any(), anyOrNull(), any()) } doSuspendableAnswer {
                     gate.await()
                     Result.failure(RuntimeException("sell failed"))
                 }

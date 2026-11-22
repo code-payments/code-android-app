@@ -8,6 +8,7 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.shared.chat.PaymentRequests
+import com.flipcash.shared.payments.request.CollectionTopUp
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
 import com.getcode.manager.BottomBarManager
@@ -61,7 +62,7 @@ class RequestDetailsInsufficientFundsTest {
     private var balance = Fiat(100.0)
     private val ready = ShareToPay.Ready(
         request = mockk(relaxed = true),
-        share = mockk(relaxed = true) { every { amount } returns Fiat(50.0) },
+        amount = Fiat(50.0),
         intentId = mockk(relaxed = true),
     )
 
@@ -99,6 +100,7 @@ class RequestDetailsInsufficientFundsTest {
         requests = mockk<PaymentRequests>(relaxed = true),
         rosters = rosters,
         payments = payments,
+        topUp = mockk<CollectionTopUp>(relaxed = true),
         payer = payer,
         tokenCoordinator = tokenCoordinator,
         transactionController = transactionController,

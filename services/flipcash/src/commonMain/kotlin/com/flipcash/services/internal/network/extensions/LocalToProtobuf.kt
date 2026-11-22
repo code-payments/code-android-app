@@ -27,6 +27,8 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.solana.keys.Checksum
 import com.getcode.solana.keys.PublicKey
 import com.flipcash.services.internal.network.extensions.toByteString
+import com.flipcash.services.models.paymentrequest.NewCollectionRequest
+import com.flipcash.services.models.paymentrequest.NewPaymentRequest
 import com.flipcash.services.models.paymentrequest.NewSplitRequest
 import com.google.protobuf.Timestamp
 import kotlin.time.Instant
@@ -442,7 +444,28 @@ internal fun IdempotencyKey.asPaymentRequestIdempotencyKey(): PaymentRequestMode
     return PaymentRequestModel.IdempotencyKey.newBuilder().setValue(bytes.toByteString()).build()
 }
 
-internal fun NewSplitRequest.asGroupChatPaymentRequest(): PaymentRequestModel.GroupChatPaymentRequest {
+internal fun NewPaymentRequest.asGroupChatPaymentRequest(): PaymentRequestModel.GroupChatPaymentRequest =
+    when (this) {
+        is NewSplitRequest -> asGroupChatSplit()
+        is NewCollectionRequest -> asGroupChatCollection()
+    }
+
+// A collection carries no text and no deadline: the contract leaves both unset, and the request
+// stays open until its creator closes it.
+private fun NewCollectionRequest.asGroupChatCollection(): PaymentRequestModel.GroupChatPaymentRequest {
+    val collection = PaymentRequestModel.Collection.newBuilder()
+        .setCurrency(amount.currencyCode.name.lowercase())
+        .setFixed(
+            PaymentRequestModel.Collection.FixedAmount.newBuilder()
+                .setNativeAmount(amount.decimalValue)
+        )
+    return PaymentRequestModel.GroupChatPaymentRequest.newBuilder()
+        .setChatId(chatId.asChatId())
+        .setCollection(collection)
+        .build()
+}
+
+private fun NewSplitRequest.asGroupChatSplit(): PaymentRequestModel.GroupChatPaymentRequest {
     val split = PaymentRequestModel.Split.newBuilder()
         .setEncrypted(
             PaymentRequestModel.EncryptedPaymentRequestText.newBuilder()

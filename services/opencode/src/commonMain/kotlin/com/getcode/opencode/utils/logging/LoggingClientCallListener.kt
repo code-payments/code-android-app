@@ -82,6 +82,13 @@ private val SENSITIVE_FIELD_NAMES = setOf(
 )
 
 /**
+ * A payment request's paid record names the intent that paid it. For a collection that is the id
+ * its payer was issued, which the app never logs, so it is masked like [SENSITIVE_FIELD_NAMES].
+ */
+private fun isPaidIntent(owner: String, value: Any): Boolean =
+    owner == "Paid" && value is MessageLite && value::class.java.simpleName == "IntentId"
+
+/**
  * Formats a gRPC message (expected to be a protobuf [MessageLite]) into a
  * human-readable single-line string.  Known byte-wrapper types are rendered
  * as base58, masked while [LiveSecrets] holds them; UUIDs are rendered in
@@ -128,7 +135,7 @@ internal fun formatProto(obj: Any?): String {
             field.isAccessible = true
             val value = field.get(obj) ?: continue
 
-            val formatted = if (fieldName in SENSITIVE_FIELD_NAMES) {
+            val formatted = if (fieldName in SENSITIVE_FIELD_NAMES || isPaidIntent(name, value)) {
                 formatSensitive(value)
             } else {
                 formatFieldValue(fieldName, value)

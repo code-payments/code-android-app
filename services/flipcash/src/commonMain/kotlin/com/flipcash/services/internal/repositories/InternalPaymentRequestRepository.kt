@@ -9,7 +9,7 @@ import com.flipcash.services.models.GetPaymentIntentIdError
 import com.flipcash.services.models.GetPaymentRequestError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.paymentrequest.NewSplitRequest
+import com.flipcash.services.models.paymentrequest.NewPaymentRequest
 import com.flipcash.services.models.paymentrequest.PayerPage
 import com.flipcash.services.models.paymentrequest.PayerSection
 import com.flipcash.services.models.paymentrequest.PaymentIntentId
@@ -27,7 +27,7 @@ internal class InternalPaymentRequestRepository(
 ) : PaymentRequestRepository {
     override suspend fun createPaymentRequest(
         owner: KeyPair,
-        request: NewSplitRequest,
+        request: NewPaymentRequest,
         idempotencyKey: IdempotencyKey,
     ): Result<PaymentRequest> {
         return service.createPaymentRequest(owner, request, idempotencyKey)
@@ -42,8 +42,14 @@ internal class InternalPaymentRequestRepository(
         owner: KeyPair,
         paymentRequestId: ID,
     ): Result<PaymentRequestDetails> {
+        // A chat retries a refused request on every refetch (`PaymentRequests.loadChat`), and a
+        // refusal is often a membership the server hasn't caught up with, not a fault.
         return service.getPaymentRequest(owner, paymentRequestId)
-            .onFailure { if (it !is GetPaymentRequestError.NotFound) ErrorUtils.handleError(it) }
+            .onFailure {
+                if (it !is GetPaymentRequestError.NotFound && it !is GetPaymentRequestError.Denied) {
+                    ErrorUtils.handleError(it)
+                }
+            }
     }
 
     override suspend fun getChatPaymentRequests(
