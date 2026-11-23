@@ -4,11 +4,14 @@ import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -92,6 +95,17 @@ internal class SwipePayPage(
 )
 
 /**
+ * What a [SwipePaySheet] draws in place of its content, in the same sheet: a collection's
+ * "Finishing Payment". While [shown], [content] has faded in over the sheet's content and the
+ * sheet has resized to it; once not, the content fades back. [content] stays composable while it
+ * fades out.
+ */
+internal class SwipePayReplacement(
+    val shown: Boolean,
+    val content: @Composable () -> Unit,
+)
+
+/**
  * Opens the currency picker for a swipe-to-pay sheet. Unset, the sheet pushes
  * [ChatStep.SendCurrency] on the current navigator, which is right wherever that is the chat
  * flow's; a nested flow host that shadows the navigator provides the chat flow's own.
@@ -108,9 +122,9 @@ internal fun rememberSwipePaySheetState(locked: Boolean): SwipePaySheetState {
 
 /**
  * The swipe-to-pay sheet: [header] (who), [amount], the currency pill, and the swipe, or [action]
- * in the swipe's place. [replacement], when set, is drawn instead of all of it, in the same sheet.
- * [page], when set, can be pushed over all of it, in the same sheet; a sheet without one composes
- * its content directly.
+ * in the swipe's place. [replacement], when set, can be swapped in for all of it, in the same
+ * sheet. [page], when set, can be pushed over all of it, in the same sheet. A sheet without either
+ * composes its content directly.
  *
  * Drawn in the host's own window, so a bottom bar the route raises lands above it. A token pick
  * opens the currency list as a half sheet over this one, which stays up beneath it with its
@@ -126,7 +140,7 @@ internal fun SwipePaySheet(
     header: @Composable () -> Unit,
     amount: @Composable () -> Unit,
     action: (@Composable (Modifier) -> Unit)? = null,
-    replacement: (@Composable () -> Unit)? = null,
+    replacement: SwipePayReplacement? = null,
     page: SwipePayPage? = null,
 ) {
     val pickCurrency = LocalSwipePayCurrencyPicker.current
@@ -151,7 +165,7 @@ internal fun SwipePaySheet(
                 label = stringResource(state.swipeLabel),
             )
         }
-        val body = @Composable {
+        val padded = @Composable { content: @Composable ColumnScope.() -> Unit ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -163,48 +177,57 @@ internal fun SwipePaySheet(
                 verticalArrangement = Arrangement.spacedBy(
                     if (state.tokenPickable) CodeTheme.dimens.grid.x3 else CodeTheme.dimens.grid.x8
                 ),
-            ) {
-                if (replacement != null) {
-                    replacement()
-                } else if (state.tokenPickable) {
-                    header()
+                content = content,
+            )
+        }
+        val sheetContent: @Composable ColumnScope.() -> Unit = {
+            if (state.tokenPickable) {
+                header()
+                amount()
+                TokenSelectionPill(
+                    token = state.token,
+                    background = White10,
+                    textStyle = CodeTheme.typography.textMedium,
+                    imageSize = CodeTheme.dimens.staticGrid.x3,
+                    contentPadding = PaddingValues(
+                        horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
+                        vertical = CodeTheme.dimens.grid.x1 - 1.dp,
+                    ),
+                    showsDropdownMark = state.pillDropdownMark,
+                    onClick = { if (!state.locked) openPicker() },
+                )
+                swipe(Modifier.padding(top = CodeTheme.dimens.grid.x3))
+            } else {
+                header()
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+                ) {
                     amount()
+                    // Node 11881:2468: 36 tall, 20 coin, SemiBold 17, 5% fill. No chevron.
                     TokenSelectionPill(
+                        modifier = Modifier.height(CodeTheme.dimens.grid.x7),
                         token = state.token,
-                        background = White10,
-                        textStyle = CodeTheme.typography.textMedium,
-                        imageSize = CodeTheme.dimens.staticGrid.x3,
+                        background = White05,
+                        textStyle = CodeTheme.typography.textMedium.copy(fontSize = 17.sp),
+                        imageSize = CodeTheme.dimens.staticGrid.x4,
                         contentPadding = PaddingValues(
-                            horizontal = CodeTheme.dimens.grid.x1 + 1.dp,
-                            vertical = CodeTheme.dimens.grid.x1 - 1.dp,
+                            horizontal = CodeTheme.dimens.grid.x2,
+                            vertical = CodeTheme.dimens.grid.x1,
                         ),
-                        showsDropdownMark = state.pillDropdownMark,
-                        onClick = { if (!state.locked) openPicker() },
+                        showsPicker = false,
+                        onClick = {},
                     )
-                    swipe(Modifier.padding(top = CodeTheme.dimens.grid.x3))
-                } else {
-                    header()
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-                    ) {
-                        amount()
-                        // Node 11881:2468: 36 tall, 20 coin, SemiBold 17, 5% fill. No chevron.
-                        TokenSelectionPill(
-                            modifier = Modifier.height(CodeTheme.dimens.grid.x7),
-                            token = state.token,
-                            background = White05,
-                            textStyle = CodeTheme.typography.textMedium.copy(fontSize = 17.sp),
-                            imageSize = CodeTheme.dimens.staticGrid.x4,
-                            contentPadding = PaddingValues(
-                                horizontal = CodeTheme.dimens.grid.x2,
-                                vertical = CodeTheme.dimens.grid.x1,
-                            ),
-                            showsPicker = false,
-                            onClick = {},
-                        )
-                    }
-                    swipe(Modifier)
+                }
+                swipe(Modifier)
+            }
+        }
+        val body = @Composable {
+            if (replacement == null) {
+                padded(sheetContent)
+            } else {
+                SwappedContent(replacement) { replaced ->
+                    padded { if (replaced) replacement.content() else sheetContent() }
                 }
             }
         }
@@ -232,6 +255,21 @@ private fun PushedPage(page: SwipePayPage, body: @Composable () -> Unit) {
         },
         label = "swipe pay page",
     ) { shown -> if (shown) page.content() else body() }
+}
+
+/**
+ * [content] for [replacement]'s state, faded across as it changes, with the size animated as
+ * [PushedPage] animates it, so the sheet's wrap-content detent follows and the sheet resizes in
+ * place: Google Pay's spinner to "Finishing Payment", then on to the checkmark or the swipe.
+ */
+@Composable
+private fun SwappedContent(replacement: SwipePayReplacement, content: @Composable (replaced: Boolean) -> Unit) {
+    AnimatedContent(
+        targetState = replacement.shown,
+        modifier = Modifier.fillMaxWidth(),
+        transitionSpec = { fadeIn() togetherWith fadeOut() using SizeTransform() },
+        label = "swipe pay replacement",
+    ) { replaced -> content(replaced) }
 }
 
 internal const val SWIPE_PAY_SHEET_TAG = "swipe_pay_sheet"
