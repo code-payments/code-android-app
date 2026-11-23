@@ -58,6 +58,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Paying the viewer's share of one payment request: refetch for the intent id, the swipe sheet,
@@ -92,6 +96,8 @@ internal class RequestPayFlow(
     private val onUnavailable: () -> Unit = {},
     /** The payment landed, before the refetched request may say so. */
     private val onPaid: () -> Unit = {},
+    /** The wait before a payment that failed after a top-up is tried again. */
+    private val payRetryInterval: Duration = 2.seconds,
 ) {
     data class State(
         val requestId: ID? = null,
@@ -380,7 +386,11 @@ internal class RequestPayFlow(
         }
     }
 
-    private suspend fun pay(pending: ShareToPay.Ready, token: Token, owner: AccountCluster) {
+    /**
+     * Pays [pending]. After a top-up lands, [retries] is how many more times a failed payment is
+     * tried before the sheet asks for a swipe (see [retryAfterTopUp]); a swipe's payment gets none.
+     */
+    private suspend fun pay(pending: ShareToPay.Ready, token: Token, owner: AccountCluster, retries: Int = 0) {
         retryAsksFirst = false
         if (_state.value.funding) payingPlan.value = payments.planCollection(pending.amount, token)
         _state.update { it.copy(progress = LoadingSuccessState(loading = true)) }
@@ -408,10 +418,43 @@ internal class RequestPayFlow(
                     // on the refresh, so a server that doesn't answer can't hold the request's lock.
                     showShortState()
                     scope.launch { tokenCoordinator.update() }
+                } else if (retries > 0 && cause.retriesAfterTopUp) {
+                    retryAfterTopUp(pending, token, owner, retries, cause)
                 } else {
                     afterFailedPayment(pending, cause)
                 }
             }
+    }
+
+    /**
+     * The Dollars a top-up added are on the device, but a payment sent from them can still fail
+     * once before the server takes them. That isn't the user's to retry: after [payRetryInterval]
+     * the intent id is asked for again and the payment sent under it, still in Finishing Payment.
+     * The id is the same one, so only one payment can land; a first try that landed after all, or
+     * a request closed meanwhile, ends the sheet as a failed payment's refetch does. A refetch
+     * that gets no answer stops the retries.
+     */
+    private suspend fun retryAfterTopUp(
+        pending: ShareToPay.Ready,
+        token: Token,
+        owner: AccountCluster,
+        retries: Int,
+        cause: Throwable,
+    ) {
+        delay(payRetryInterval)
+        val viewer = viewerId ?: return afterFailedPayment(pending, cause)
+        when (val found = payments.prepare(pending.request.id, viewer).getOrNull()) {
+            null -> afterFailedPayment(pending, cause)
+            is ShareToPay.Ready -> {
+                ready = found
+                _state.update { it.copy(amount = found.amount, creator = found.request.creator) }
+                pay(found, token, owner, retries - 1)
+            }
+            else -> {
+                _state.update { it.copy(progress = LoadingSuccessState(), finishing = false) }
+                showRefetched(found)
+            }
+        }
     }
 
     /**
@@ -549,7 +592,7 @@ internal class RequestPayFlow(
                 val plan = payments.planCollection(found.amount, token)
                 if (plan == null || plan.payableWithoutTopUp) {
                     _state.update { it.copy(finishing = true, open = true) }
-                    pay(found, token, owner)
+                    pay(found, token, owner, retries = PAY_RETRIES_AFTER_TOP_UP)
                 } else {
                     showShortState()
                 }
@@ -848,6 +891,20 @@ internal class RequestPayFlow(
         BottomBarManager.showError(title = resources.getString(title), message = resources.getString(message))
     }
 }
+
+/** How many more times a payment that failed after a top-up landed is sent before the sheet asks for a swipe. */
+internal const val PAY_RETRIES_AFTER_TOP_UP = 3
+
+/**
+ * Whether a payment that failed after a top-up is worth sending again unasked. Not one the server
+ * didn't confirm: the sheet unlocks on that and says so (spec, pay step 4). Not an amount below
+ * the minimum or a currency the wallet no longer knows, which a retry can't change.
+ */
+private val Throwable.retriesAfterTopUp: Boolean
+    get() = this !is CancellationException &&
+        this !is PaymentNotConfirmed &&
+        this !is ComputeVerifiedFiatError.AmountBelowMinimum &&
+        this !is CollectionFundingError.UnknownCurrency
 
 /**
  * The Request screen's Pay for a collection no balance funds. [button] and [footnote] are null when
