@@ -55,6 +55,11 @@ internal class RequestPayViewModel @Inject constructor(
     /** Routes to open once the sheet has closed, i.e. Add Money. */
     val routes: Flow<AppRoute> = effects.receiveAsFlow()
 
+    private val verifyEffects = Channel<AppRoute.Verification>(Channel.BUFFERED)
+
+    /** The check Coinbase asks for before a top-up, to open for a result and answer [onVerified]. */
+    val verifications: Flow<AppRoute.Verification> = verifyEffects.receiveAsFlow()
+
     private val flow = RequestPayFlow(
         scope = viewModelScope,
         payments = payments,
@@ -67,6 +72,7 @@ internal class RequestPayViewModel @Inject constructor(
         resources = resources,
         analytics = analytics,
         openScreen = { route -> effects.trySend(route) },
+        verify = { route -> verifyEffects.trySend(route) },
     )
 
     private val chatId = MutableStateFlow<ChatId?>(null)
@@ -81,6 +87,8 @@ internal class RequestPayViewModel @Inject constructor(
     fun pickCollectionCurrency(mint: Mint) = flow.pickCollectionCurrency(mint)
 
     val onAddAndPay: () -> Unit get() = flow.onAddAndPay
+
+    fun onVerified(verified: Boolean) = flow.onVerified(verified)
 
     /** The chat's members by id, for the creator's name and avatar on the sheet. */
     val members: StateFlow<Map<ID, ChatMember>> = combine(chatId, rosters.state) { id, all ->

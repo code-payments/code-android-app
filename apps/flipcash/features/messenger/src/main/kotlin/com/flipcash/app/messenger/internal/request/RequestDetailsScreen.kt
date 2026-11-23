@@ -79,6 +79,10 @@ import com.flipcash.app.messenger.internal.swipepay.SwipePaySheet
 import com.flipcash.app.messenger.internal.swipepay.SwipePayUiState
 import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
 import kotlin.time.Instant
+import com.flipcash.app.core.verification.VerificationResult
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.results.NavResultOrCanceled
+import com.getcode.navigation.results.navigateForResult
 
 /**
  * Request details (frames 09, 11, 24 and 35): the request, one row per share, the viewer's
@@ -93,6 +97,7 @@ internal fun RequestDetailsScreen(
     pushed: Boolean = false,
 ) {
     val viewModel = hiltViewModel<RequestDetailsViewModel>()
+    val navigator = LocalCodeNavigator.current
     val collections = LocalNavBarShell.current == NavBarShell.GroupMoney
     LaunchedEffect(chatId, requestId) {
         viewModel.open(chatId, requestId, collections)
@@ -107,6 +112,11 @@ internal fun RequestDetailsScreen(
         viewModel.effectFlow.collect { effect ->
             when (effect) {
                 is RequestDetailsViewModel.Effect.OpenScreen -> onOpenScreen(effect.route)
+                is RequestDetailsViewModel.Effect.Verify -> navigator.navigateForResult<VerificationResult>(effect.route) { result ->
+                    viewModel.onVerified(
+                        result is NavResultOrCanceled.ReturnValue && result.value is VerificationResult.Success
+                    )
+                }
             }
         }
     }

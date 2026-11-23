@@ -109,6 +109,7 @@ class CollectionTopUpFlowTest {
 
     /** Every screen the flow opened; Finishing Payment is a sheet state and opens none. */
     private val screens = mutableListOf<AppRoute>()
+    private val verifications = mutableListOf<AppRoute.Verification>()
 
     /** How many top-ups had been ordered at each settle of the kept conversions. */
     private val settles = mutableListOf<Int>()
@@ -117,6 +118,7 @@ class CollectionTopUpFlowTest {
     fun setUp() {
         BottomBarManager.clear()
         screens.clear()
+        verifications.clear()
         every { userManager.accountId } returns listOf<Byte>(1)
         every { userManager.accountCluster } returns owner
         every { owner.withTimelockForToken(any()) } returns owner
@@ -198,6 +200,7 @@ class CollectionTopUpFlowTest {
             resources = resources,
             analytics = RecordingAnalytics(),
             openScreen = { screens += it },
+            verify = { verifications += it },
             onNothingToPay = { nothingToPay++ },
             onPaid = { paid++ },
         ).also { f -> scope.launch { f.token.collect {} } }
@@ -559,6 +562,74 @@ class CollectionTopUpFlowTest {
 
         assertEquals(listOf(500L, 500L), rail.orders)
         assertEquals(1, paid)
+    }
+
+    /**
+     * Coinbase asks for a verified phone or email before the order. The payment waits through the
+     * check: the sheet hides while it is up, comes back once it passes, and Add and Pay runs again
+     * without a second tap.
+     */
+    @Test
+    fun `a verification Coinbase asks for brings the sheet back and pays once it passes`() {
+        useCase("s4-add-then-pay")
+        rail.orderFailure = CollectionTopUpBlocked(TopUpBlock.Verification(phone = true, email = true))
+        val f = openSheet()
+
+        f.onAddAndPay()
+
+        assertEquals(1, verifications.size)
+        assertTrue(verifications.single().includePhone && verifications.single().includeEmail)
+        assertTrue(screens.isEmpty(), "verification opens for a result, not as a plain screen")
+        assertEquals(false, f.state.value.open, "the sheet hides while verification is up")
+        assertTrue(f.state.value.funding, "the payment is kept")
+        assertEquals(0, paid)
+
+        rail.orderFailure = null
+        f.onVerified(verified = true)
+
+        assertEquals(listOf(500L), rail.orders)
+        assertEquals(1, paid)
+        assertTrue(f.state.value.open && f.state.value.progress.success, "the sheet holds the checkmark")
+    }
+
+    @Test
+    fun `backing out of a verification Coinbase asks for closes the sheet and orders nothing`() {
+        useCase("s4-add-then-pay")
+        rail.orderFailure = CollectionTopUpBlocked(TopUpBlock.Verification(phone = true, email = false))
+        val f = openSheet()
+        f.onAddAndPay()
+        rail.orderFailure = null
+
+        f.onVerified(verified = false)
+
+        assertTrue(rail.orders.isEmpty())
+        assertEquals(0, paid)
+        assertEquals(false, f.state.value.open)
+        assertEquals(false, f.state.value.funding)
+
+        // A result arriving late for a sheet that has gone does nothing.
+        f.onVerified(verified = true)
+        assertTrue(rail.orders.isEmpty())
+    }
+
+    @Test
+    fun `a verification the Request screen's Pay ran into resumes its top-up once it passes`() {
+        val case = useCase("s1-no-balance")
+        rail.orderFailure = CollectionTopUpBlocked(TopUpBlock.Verification(phone = false, email = true))
+        val f = flow()
+
+        tapRequestScreenPay(f)
+
+        assertEquals(1, verifications.size)
+        assertEquals(false, f.state.value.open)
+        assertEquals(0, paid)
+
+        rail.orderFailure = null
+        f.onVerified(verified = true)
+
+        assertEquals(listOf(expectedCents(case)), rail.orders)
+        assertEquals(1, paid)
+        assertTrue(f.state.value.open && f.state.value.progress.success, "the sheet holds the checkmark")
     }
 
     /**
