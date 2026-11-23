@@ -18,6 +18,12 @@ import javax.inject.Singleton
 /** The 32-byte chat key of a private group the viewer belongs to. */
 fun interface GroupKeySource {
     suspend fun key(chatId: ChatId): Result<ByteArray>
+
+    /**
+     * [chatId]'s key when this device can open it without the network, else null. Offline, [key]
+     * can wait for a connection instead of failing, so a read that must not wait asks this.
+     */
+    suspend fun localKey(chatId: ChatId): ByteArray? = null
 }
 
 /**
@@ -167,14 +173,26 @@ class GroupContentCrypto @Inject constructor(
      * Opens [text], a request [creatorId] made in [chatId]. Text that is not encrypted comes back as
      * it is. A key that could not be fetched fails, so the caller can retry; any other failure is
      * [PaymentRequestText.Undecryptable].
+     *
+     * With [localOnly], only a key this device holds is used ([GroupKeySource.localKey]), and a key
+     * it doesn't hold fails the same way a failed fetch does.
      */
-    suspend fun openPaymentRequestText(chatId: ChatId, creatorId: ID, text: PaymentRequestText): Result<PaymentRequestText> {
+    suspend fun openPaymentRequestText(
+        chatId: ChatId,
+        creatorId: ID,
+        text: PaymentRequestText,
+        localOnly: Boolean = false,
+    ): Result<PaymentRequestText> {
         if (text !is PaymentRequestText.Encrypted) return Result.success(text)
         if (text.scheme != PaymentRequestText.SCHEME_CHAT_KEY_XCHACHA20POLY1305) {
             return Result.success(PaymentRequestText.Undecryptable)
         }
-        val groupKey = keys.key(chatId).getOrElse { cause ->
-            return if (cause is UntrustedEnvelope) Result.success(PaymentRequestText.Undecryptable) else Result.failure(cause)
+        val groupKey = if (localOnly) {
+            keys.localKey(chatId) ?: return Result.failure(IllegalStateException("No chat key on this device"))
+        } else {
+            keys.key(chatId).getOrElse { cause ->
+                return if (cause is UntrustedEnvelope) Result.success(PaymentRequestText.Undecryptable) else Result.failure(cause)
+            }
         }
         val plaintext = try {
             cipher.decryptPaymentRequestText(

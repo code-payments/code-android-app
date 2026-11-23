@@ -124,6 +124,25 @@ class GroupKeyEnvelopes @Inject constructor(
     }
 
     /**
+     * The key held in memory, or opened from a stored self-wrapped envelope; null otherwise. Never
+     * calls the network, and never takes [key]'s lock, which a fetch waiting on a connection holds.
+     * A creator-wrapped envelope needs the creator's key from the Resolver, so it is left to [key].
+     */
+    override suspend fun localKey(chatId: ChatId): ByteArray? {
+        val own = keys.ownKeyPair() ?: return null
+        val cacheKey = CacheKey(chatId.bytes.toList(), own.publicKey.toList())
+        groupKeys[cacheKey]?.let { return it }
+        val stored = loadEnvelope(chatId, own) ?: return null
+        if (stored.envelope.scheme != KeyEnvelope.SCHEME_X25519_XCHACHA20POLY1305) return null
+        if (stored.wrappedBy != null && stored.wrappedBy != keys.ownUserId()) return null
+        val payload = EncryptedPayload(stored.envelope.nonce, stored.envelope.ciphertext)
+        val groupKey = runCatching { cipher.unwrapGroupKey(own, own.publicKey, chatId.bytes, payload) }.getOrNull()
+            ?: return null
+        groupKeys[cacheKey] = groupKey
+        return groupKey
+    }
+
+    /**
      * The key from the envelope stored for [chatId], or null when there is none or it can't be
      * used (the caller then fetches). One that fails a trust check is dropped; one that merely
      * couldn't be checked yet, such as a creator-wrapped envelope offline, is kept.

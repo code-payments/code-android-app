@@ -55,7 +55,7 @@ class PaymentRequestsStorageTest {
     fun setUp() {
         FlipcashDatabase.init(ApplicationProvider.getApplicationContext<Context>(), "payment-requests-storage-test")
         runBlocking { store.clear() }
-        coEvery { crypto.openPaymentRequestText(any(), any(), any()) } returns
+        coEvery { crypto.openPaymentRequestText(any(), any(), any(), any()) } returns
             Result.success(PaymentRequestText.Plain("Dinner", "Tacos"))
     }
 
