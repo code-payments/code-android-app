@@ -37,6 +37,10 @@ import kotlin.test.assertTrue
 class RealVerifiedFiatCalculatorTest {
 
     companion object {
+        private const val SEEKER_PRE_BUY_SUPPLY = 25_639_941_291_908_912L
+        private const val SEEKER_FRESH_SUPPLY = 25_640_363_264_428_011L
+        private const val SEEKER_HELD_AFTER_BUY = 1_055_025_875_970L
+
         @JvmStatic
         @BeforeClass
         fun initCurve() {
@@ -547,13 +551,22 @@ class RealVerifiedFiatCalculatorTest {
         assertTrue(local.underlyingTokenAmount.quarks > SEEKER_HELD_AFTER_BUY)
     }
 
+    @Test
+    fun `with a pre-buy balance but a fresh signed state the payment is capped at the stale balance and prices under half a cent short`() = runTest {
+        stubVerifiedState(CurrencyCode.USD, testMint, SEEKER_FRESH_SUPPLY)
+        val token = bondingCurveToken(supply = SEEKER_PRE_BUY_SUPPLY)
+        val balance = Fiat.tokenBalance(SEEKER_HELD_AFTER_BUY, token, SEEKER_PRE_BUY_SUPPLY)
+
+        val local = calculator.compute(Fiat(10_000_000L, CurrencyCode.USD), token, balance, Rate.oneToOne, trace = false).getOrThrow().localFiat
+
+        assertTrue(local.underlyingTokenAmount.quarks <= SEEKER_HELD_AFTER_BUY)
+        assertTrue(local.nativeAmount.quarks <= balance.quarks)
+        assertTrue(10_000_000L - local.nativeAmount.quarks < 5_000L)
+    }
+
     // endregion
 
     // region helpers
-
-    private val SEEKER_PRE_BUY_SUPPLY = 25_639_941_291_908_912L
-    private val SEEKER_FRESH_SUPPLY = 25_640_363_264_428_011L
-    private val SEEKER_HELD_AFTER_BUY = 1_055_025_875_970L
 
     private fun usdfToken(): Token = MintMetadata(
         address = Mint.usdf,
