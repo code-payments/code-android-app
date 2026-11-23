@@ -144,10 +144,11 @@ internal fun CollectionFeeLine(fee: String, onDetails: () -> Unit) {
 internal fun CollectionShortLine(shortBy: String, onDetails: () -> Unit) {
     PaymentDetailsEntryLine(
         text = shortBy,
-        style = CodeTheme.typography.textMedium,
+        // 7.2 (node 13966:122) draws it 21pt Bold; textLarge is the nearest size.
+        style = CodeTheme.typography.textLarge.copy(fontWeight = FontWeight.Bold),
         color = CodeTheme.colors.textMain,
-        // The fee line's ⓘ is 15dp beside 12sp; this keeps that ratio beside 16sp.
-        iconSize = CodeTheme.dimens.staticGrid.x4,
+        // The fee line's ⓘ is 15dp beside 12sp; this keeps that ratio beside 20sp.
+        iconSize = CodeTheme.dimens.staticGrid.x5,
         onDetails = onDetails,
         modifier = Modifier.testTag(COLLECTION_SHORT_LINE_TAG),
     )

@@ -1,6 +1,8 @@
 package com.flipcash.shared.payments.request
 
 import com.flipcash.app.tokens.TokenCoordinator
+import com.flipcash.libs.currency.math.Curves
+import com.flipcash.libs.currency.math.Estimator
 import com.flipcash.app.tokens.FundingLeg
 import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
@@ -8,6 +10,7 @@ import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.internal.solana.model.SwapId
+import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.GetPendingSwapsError
@@ -15,6 +18,7 @@ import com.getcode.opencode.model.core.errors.GetSwapError
 import com.getcode.opencode.model.core.errors.SwapError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
+import com.getcode.opencode.model.financial.LaunchpadMetadata
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Rate
 import com.getcode.opencode.model.financial.Token
@@ -35,6 +39,7 @@ import io.mockk.mockk
 import io.mockk.registerInstanceFactory
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import java.util.concurrent.TimeoutException
 import kotlinx.coroutines.test.runCurrent
@@ -53,12 +58,36 @@ class CollectionFunderTest {
 
     private val requestId: ID = List(32) { 4 }
     private val owner = mockk<AccountCluster>(relaxed = true)
-    private val state = mockk<VerifiedState>()
+    private val state = mockk<VerifiedState>(relaxed = true)
 
     private val jeffy = token(11)
     private val bob = token(12)
     private val al = token(13)
-    private val tokens = listOf(Token.usdf, jeffy, bob, al).associateBy { it.address }
+
+    /** The supply GetMints reports for Moony, which its balance is valued at. */
+    private var getMintsSupply = 0L
+
+    /** The supply in the signed reserve state, which a Moony payment is priced at. */
+    private var signedSupply = 0L
+
+    /** Quarks each leg into Moony delivers, in order; Moony's balance is held in quarks, not micros. */
+    private val moonyBuys = ArrayDeque<Long>()
+
+    /** Runs on each balance refresh, before the pending results land. */
+    private var onRefresh: () -> Unit = {}
+    private var refreshes = 0
+    private val moonyLaunchpad = mockk<LaunchpadMetadata>(relaxed = true) {
+        every { currentCirculatingSupplyQuarks } answers { getMintsSupply }
+        every { sellFeeBps } returns 100
+    }
+
+    /** A launchpad currency priced on the real curve, unlike the others, whose quarks are micros. */
+    private val moony = mockk<Token>(relaxed = true) {
+        every { this@mockk.address } returns Mint(List(32) { 14 })
+        every { decimals } returns 10
+        every { launchpadMetadata } returns moonyLaunchpad
+    }
+    private val tokens = listOf(Token.usdf, jeffy, bob, al, moony).associateBy { it.address }
 
     /** Balances in USD micros, as the wallet holds them; a leg's result lands on [pending]. */
     private val balances = mutableMapOf<Mint, Long>()
@@ -81,7 +110,16 @@ class CollectionFunderTest {
 
     private val funder = CollectionFunder(
         transactions, swaps, tokenCoordinator, calculator, exchange, planner, store,
-    ).also { it.settleInterval = Duration.ZERO }
+    ).also {
+        it.settleInterval = Duration.ZERO
+        it.log = { message, _ -> logged += message }
+    }
+
+    /** Every line the funder logged, in order. */
+    private val logged = mutableListOf<String>()
+
+    /** The payability checks the funder logged, each ending in its verdict. */
+    private val gateChecks get() = logged.filter { it.startsWith("collection gate") }
 
     /** Every leg submitted, in order: from, to, swap id, funding intent id, priced amount. */
     private val submitted = mutableListOf<Submitted>()
@@ -96,28 +134,42 @@ class CollectionFunderTest {
     private val eur = Rate(0.5, CurrencyCode.EUR)
 
     init {
+        // Moony is priced on the real curve.
+        runBlocking { Curves.initializeFromSourceTree() }
         // A matcher needs a placeholder swap id, and a random one isn't 32 bytes.
         registerInstanceFactory { SwapId.generate() }
         every { exchange.rateFor(CurrencyCode.USD) } returns usd
         every { exchange.rateFor(CurrencyCode.EUR) } returns eur
         every { tokenCoordinator.cachedTokens() } answers { tokens.values.toList() }
         every { tokenCoordinator.cachedToken(any()) } answers { tokens[firstArg()] }
-        every { tokenCoordinator.currentBalance(any()) } answers { Fiat(balances[firstArg()] ?: 0L, CurrencyCode.USD) }
-        every { tokenCoordinator.balanceForToken(any<Token>()) } answers {
-            Fiat(balances[firstArg<Token>().address] ?: 0L, CurrencyCode.USD)
-        }
+        every { tokenCoordinator.currentBalance(any()) } answers { valued(firstArg()) }
+        every { tokenCoordinator.balanceForToken(any<Token>()) } answers { valued(firstArg<Token>().address) }
         every { tokenCoordinator.heldQuarksForToken(any()) } answers { flowOf(balances[firstArg()]) }
         coEvery { tokenCoordinator.update() } answers {
+            refreshes++
+            onRefresh()
             pending.forEach { (mint, micros) -> balances[mint] = (balances[mint] ?: 0L) + micros }
             pending.clear()
         }
+        every { state.reserveSupplyFromBonding } answers { signedSupply }
         coEvery { calculator.compute(any(), any(), any(), any(), any()) } answers {
             val amount = firstArg<Fiat>()
             val token = secondArg<Token>()
-            computed += Triple(amount, token, arg(3))
-            Result.success(
-                VerifiedFiat(LocalFiat(Fiat(amount.quarks, CurrencyCode.USD), amount, arg(3), token.address), state),
-            )
+            val rate = arg<Rate>(3)
+            computed += Triple(amount, token, rate)
+            // As the real calculator does: the amount in USD, capped at the balance it's given.
+            val usd = (amount.quarks / rate.fx).roundToLong()
+            val capped = thirdArg<Fiat?>()?.let { balance ->
+                minOf(if (balance.currencyCode == CurrencyCode.USD) balance.quarks else (balance.quarks / rate.fx).roundToLong(), usd)
+            } ?: usd
+            val local = if (token == moony) {
+                // Quarks bought for the value at the signed supply, valued back as a sell there.
+                val quarks = Estimator.valueExchangeAsQuarks(capped, signedSupply, 6).getOrThrow().quarks.toLong()
+                LocalFiat(Fiat(quarks, CurrencyCode.USD), Fiat.tokenBalance(quarks, moony, signedSupply).convertingTo(rate), rate, token.address)
+            } else {
+                LocalFiat(Fiat(capped, CurrencyCode.USD), Fiat((capped * rate.fx).roundToLong(), amount.currencyCode), rate, token.address)
+            }
+            Result.success(VerifiedFiat(local, state))
         }
         coEvery { transactions.sell(owner, any(), any(), any(), any()) } answers {
             submit(arg<Token>(2).address, Mint.usdf, arg(3), arg(4), arg(1))
@@ -158,8 +210,18 @@ class CollectionFunderTest {
     private fun land(leg: Submitted) {
         val planned = requireNotNull(legs[leg.from]) { "no planned leg from ${leg.from}" }
         balances[leg.from] = (balances[leg.from] ?: 0L) - (planned.soldMicros / fx).roundToLong()
-        val delivered = (planned.deliveredMicros * delivery(leg.from, round) / fx).roundToLong()
+        val delivered = if (leg.to == moony.address) {
+            moonyBuys.removeFirstOrNull() ?: 0L
+        } else {
+            (planned.deliveredMicros * delivery(leg.from, round) / fx).roundToLong()
+        }
         pending[leg.to] = (pending[leg.to] ?: 0L) + delivered
+    }
+
+    /** A balance in USD micros: Moony's quarks valued as a sell at the GetMints supply, as the wallet does. */
+    private fun valued(mint: Mint): Fiat {
+        val held = balances[mint] ?: 0L
+        return if (mint == moony.address) Fiat.tokenBalance(held, moony, getMintsSupply) else Fiat(held, CurrencyCode.USD)
     }
 
     private fun hold(vararg held: Pair<Token, String>) {
@@ -232,11 +294,13 @@ class CollectionFunderTest {
 
         assertTrue(fund(Fiat("10.00", CurrencyCode.EUR), jeffy).isSuccess)
 
-        val (amount, token, rate) = computed.single()
+        val (amount, token, rate) = computed.first()
         assertEquals(CurrencyCode.EUR, amount.currencyCode)
         assertEquals(Fiat("10.00", CurrencyCode.EUR), amount)
         assertEquals(Token.usdf, token)
         assertEquals(eur, rate)
+        // Then the payment itself is priced, in the paying currency, as paying will price it.
+        assertEquals(Triple(Fiat("10.00", CurrencyCode.EUR), jeffy, eur), computed[1])
     }
 
     @Test
@@ -390,6 +454,22 @@ class CollectionFunderTest {
     }
 
     @Test
+    fun `a kept CREATED swap under the minimum is dropped, not funded, and its leg starts afresh`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CREATED)
+        serverHasPending(kept, kept.fundingIntentId, swapQuarks = 396L, feeQuarks = 0L)
+        legsSettle()
+
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
+
+        coVerify(exactly = 0) { transactions.fundSwap(any(), any(), any(), any()) }
+        assertEquals(2, submitted.size)
+        assertNotEquals(kept.swapId, submitted[1].swapId)
+        assertNotEquals(kept.fundingIntentId, submitted[1].fundingId)
+        assertTrue(store.legs(requestId).isEmpty())
+    }
+
+    @Test
     fun `a CREATED swap funded on retry that still hasn't settled stops on the pending state and keeps its ids`() = runTest {
         val kept = keepUnsettledLeg()
         serverSays(kept, SwapState.CREATED)
@@ -525,25 +605,26 @@ class CollectionFunderTest {
     }
 
     @Test
-    fun `a leg that lands short replans from the fetched balances and converts more when they cover it`() = runTest {
+    fun `a leg that lands short converts nothing more, though the balances would cover it`() = runTest {
         hold(Token.usdf to "2.00", bob to "5.00", al to "30.00")
-        // Al delivers half its planned amount the first round.
-        delivery = { from, round -> if (from == al.address && round == 1) 0.5 else 1.0 }
+        // Al delivers half its planned amount; what Al has left could cover the rest.
+        delivery = { from, _ -> if (from == al.address) 0.5 else 1.0 }
 
-        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
+        val result = fund(Fiat("10.00", CurrencyCode.USD), Token.usdf)
 
-        assertEquals(listOf(bob.address, al.address, al.address), submitted.map { it.from })
-        // The second Al leg is a new conversion, under its own swap id.
-        assertNotEquals(submitted[1].swapId, submitted[2].swapId)
-        assertTrue((balances[Mint.usdf] ?: 0L) >= Fiat("10.00", CurrencyCode.USD).quarks)
+        assertIs<CollectionFundingError.ConversionPending>(result.exceptionOrNull())
+        assertEquals(listOf(bob.address, al.address), submitted.map { it.from })
+        assertEquals(GATE_CHECKS, gateChecks.size)
+        assertTrue(gateChecks.all { it.endsWith("-> wait") })
     }
 
     @Test
-    fun `a leg that lands short with nothing left to convert stops short`() = runTest {
+    fun `a leg that lands short with nothing left to convert stops on the pending state, not short`() = runTest {
         hold(Token.usdf to "2.00", al to "8.20")
         delivery = { _, _ -> 0.5 }
 
-        assertIs<CollectionFundingError.Short>(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).exceptionOrNull())
+        // Short is the next tap's to find, from the balances as they are then.
+        assertIs<CollectionFundingError.ConversionPending>(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).exceptionOrNull())
 
         assertEquals(1, submitted.size)
     }
@@ -553,9 +634,50 @@ class CollectionFunderTest {
         hold(Token.usdf to "2.00", bob to "5.00", al to "30.00")
         delivery = { _, _ -> 0.0 }
 
-        assertIs<CollectionFundingError.Unsettled>(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).exceptionOrNull())
+        assertIs<CollectionFundingError.ConversionPending>(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).exceptionOrNull())
 
         assertEquals(2, submitted.size)
+        // One refresh to plan from, then one per check.
+        coVerify(exactly = 1 + GATE_CHECKS) { tokenCoordinator.update() }
+    }
+
+    @Test
+    fun `a leg under the minimum transfer is raised to it when its source holds that much`() = runTest {
+        hold(Token.usdf to "9.995", al to "20.00")
+
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
+
+        assertTrue(legs.getValue(al.address).soldMicros < MINIMUM_TRANSFER, "planned under a cent")
+        val leg = submitted.single()
+        assertEquals(al.address, leg.from)
+        assertEquals(MINIMUM_TRANSFER, leg.amount.localFiat.nativeAmount.quarks)
+        assertEquals(Fiat(MINIMUM_TRANSFER, CurrencyCode.USD), computed.first().first)
+    }
+
+    @Test
+    fun `a leg raised to the minimum drains a source holding exactly that much`() = runTest {
+        hold(Token.usdf to "9.995", al to "0.01")
+        // A few more quarks than the cent they're valued at, so a drain is told apart.
+        val mint = al.address
+        every { tokenCoordinator.heldQuarksForToken(mint) } returns flowOf(10_007L)
+
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), Token.usdf).isSuccess)
+
+        assertTrue(legs.getValue(al.address).soldMicros < MINIMUM_TRANSFER, "planned under a cent, short of a drain")
+        assertEquals(10_007L, submitted.single().amount.localFiat.underlyingTokenAmount.quarks)
+    }
+
+    @Test
+    fun `a leg under the minimum from a source holding less fails before any leg runs`() = runTest {
+        // Al's 0.8 cents isn't dust to the planner, but the server won't move less than a cent.
+        hold(Token.usdf to "9.00", bob to "2.00", al to "0.008")
+
+        val result = fund(Fiat("10.00", CurrencyCode.USD), Token.usdf)
+
+        assertIs<ComputeVerifiedFiatError.AmountBelowMinimum>(result.exceptionOrNull())
+        assertEquals(8_000L, legs.getValue(al.address).soldMicros, "the plan drains Al")
+        assertTrue(submitted.isEmpty(), "Bob's leg doesn't run either")
+        assertTrue(store.legs(requestId).isEmpty())
     }
 
     // settle: a retry that would top up settles what was kept first (spec, "Adding money and
@@ -585,6 +707,34 @@ class CollectionFunderTest {
         assertEquals(recordedId, funded.single().fundingId)
         assertEquals(1, submitted.size, "never started again")
         assertEquals(Fiat("10.00", CurrencyCode.USD).quarks, balances[Mint.usdf], "the $8.00 reached the balance")
+        assertTrue(store.legs(requestId).isEmpty())
+    }
+
+    @Test
+    fun `settling drops a kept CREATED swap whose recorded amount is under the minimum, never funding it`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CREATED)
+        serverHasPending(kept, kept.fundingIntentId, swapQuarks = 396L, feeQuarks = 0L)
+
+        assertEquals(true, settle().getOrThrow())
+
+        coVerify(exactly = 0) { transactions.fundSwap(any(), any(), any(), any()) }
+        assertTrue(store.legs(requestId).isEmpty())
+        // Only the first attempt's poll: nothing waits on a swap that will never move.
+        coVerify(exactly = 1) { transactions.pollSwapForState(any(), owner, any(), any(), any()) }
+    }
+
+    @Test
+    fun `settling drops a kept CREATED swap too small to price`() = runTest {
+        val kept = keepUnsettledLeg()
+        serverSays(kept, SwapState.CREATED)
+        serverHasPending(kept, kept.fundingIntentId, swapQuarks = 3L, feeQuarks = 0L)
+        coEvery { calculator.computeForQuarks(any(), any(), any()) } returns
+            Result.failure(ComputeVerifiedFiatError.AmountBelowMinimum())
+
+        assertEquals(true, settle().getOrThrow())
+
+        coVerify(exactly = 0) { transactions.fundSwap(any(), any(), any(), any()) }
         assertTrue(store.legs(requestId).isEmpty())
     }
 
@@ -764,5 +914,144 @@ class CollectionFunderTest {
         // The balances as last read already cover it, so nothing converts and funding goes on.
         assertTrue(result.await().isSuccess)
         assertTrue(submitted.isEmpty())
+    }
+
+    @Test
+    fun `the fake values Moony as the device did`() {
+        // The trace's reads: quarks before and after the buy, at the pre-buy and fresh supply.
+        assertEquals(6_000_177L, Fiat.tokenBalance(HELD_BEFORE_BUY, moony, PRE_BUY_SUPPLY).quarks)
+        assertEquals(9_999_604L, Fiat.tokenBalance(HELD_AFTER_BUY, moony, PRE_BUY_SUPPLY).quarks)
+        assertEquals(10_000_000L, Fiat.tokenBalance(HELD_AFTER_BUY, moony, FRESH_SUPPLY).quarks)
+    }
+
+    @Test
+    fun `a Moony buy read back at the pre-buy supply starts no second leg`() = runTest {
+        // Seeker, 2026-11-22: $10 paid in Moony from $6.000177 of Moony plus Dollars.
+        getMintsSupply = PRE_BUY_SUPPLY
+        signedSupply = PRE_BUY_SUPPLY
+        balances[moony.address] = HELD_BEFORE_BUY
+        hold(Token.usdf to "5.00")
+        // The buy lands its quarks; GetMints still reports the supply from before it.
+        moonyBuys += HELD_AFTER_BUY - HELD_BEFORE_BUY
+
+        val result = fund(Fiat("10.00", CurrencyCode.USD), moony)
+
+        val legs = submitted.map { it.from to it.amount.localFiat.underlyingTokenAmount.quarks }
+        assertEquals(listOf(Mint.usdf to 3_999_823L), legs)
+        assertTrue(result.isSuccess, "funding failed: ${result.exceptionOrNull()}")
+        // Still at the pre-buy supply, $10 prices 397 micros short: within half a cent, so it pays.
+        assertEquals(listOf("pay"), gateChecks.map { it.substringAfterLast("-> ") })
+        assertTrue(gateChecks.single().contains("priced=1055025844925 quarks / 9999603"), gateChecks.single())
+    }
+
+    @Test
+    fun `at the trace's fresh supply the payment prices whole`() = runTest {
+        // A $4 buy whose result shows with the fresh supply on the first check.
+        getMintsSupply = PRE_BUY_SUPPLY
+        signedSupply = PRE_BUY_SUPPLY
+        balances[moony.address] = HELD_BEFORE_BUY
+        hold(Token.usdf to "5.00")
+        moonyBuys += HELD_AFTER_BUY - HELD_BEFORE_BUY
+        onRefresh = { if (submitted.isNotEmpty()) freshSupply(FRESH_SUPPLY) }
+
+        assertTrue(fund(Fiat("10.00", CurrencyCode.USD), moony).isSuccess)
+
+        // $10 prices to 92,839 fewer quarks than held, and to one micro under $10.
+        val priced = buyQuarks(10_000_000L, FRESH_SUPPLY)
+        assertEquals(1_055_025_783_131L, priced)
+        assertTrue(priced <= HELD_AFTER_BUY)
+        assertEquals(9_999_999L, Fiat.tokenBalance(priced, moony, FRESH_SUPPLY).quarks)
+        assertEquals(listOf("pay"), gateChecks.map { it.substringAfterLast("-> ") })
+        assertTrue(gateChecks.single().contains("held=$HELD_AFTER_BUY quarks"), gateChecks.single())
+        assertTrue(gateChecks.single().contains("signed supply=$FRESH_SUPPLY"), gateChecks.single())
+    }
+
+    @Test
+    fun `a stale read short by more than half a cent waits until a refresh shows the fresh supply`() = runTest {
+        val (held, fresh) = sixtyPlusForty()
+        var reads = 0
+        onRefresh = { if (submitted.isNotEmpty() && ++reads > 3) freshSupply(fresh) }
+
+        assertTrue(fund(Fiat("100.00", CurrencyCode.USD), moony).isSuccess)
+
+        // Read at the pre-buy supply the new quarks fall more than a cent short: replanning from
+        // that read would have converted more, and the server would have taken it.
+        val staleGap = 100_000_000L - Fiat.tokenBalance(held, moony, PRE_BUY_SUPPLY).quarks
+        assertTrue(staleGap > MINIMUM_TRANSFER, "stale gap $staleGap")
+        assertEquals(1, submitted.size)
+        assertEquals(listOf("wait", "wait", "wait", "pay"), gateChecks.map { it.substringAfterLast("-> ") })
+    }
+
+    @Test
+    fun `a signed state from before the buy prices more quarks than held, so it waits`() = runTest {
+        val (_, fresh) = sixtyPlusForty()
+        var reads = 0
+        // GetMints catches up first; the signed reserve state a check later.
+        onRefresh = {
+            if (submitted.isNotEmpty()) {
+                getMintsSupply = fresh
+                if (++reads > 1) signedSupply = fresh
+            }
+        }
+
+        assertTrue(fund(Fiat("100.00", CurrencyCode.USD), moony).isSuccess)
+
+        assertEquals(1, submitted.size)
+        assertEquals(listOf("wait", "pay"), gateChecks.map { it.substringAfterLast("-> ") })
+    }
+
+    @Test
+    fun `a read that stays stale stops on the pending state without a second leg`() = runTest {
+        sixtyPlusForty()
+
+        val result = fund(Fiat("100.00", CurrencyCode.USD), moony)
+
+        assertIs<CollectionFundingError.ConversionPending>(result.exceptionOrNull())
+        assertEquals(1, submitted.size)
+        assertEquals(GATE_CHECKS, gateChecks.size)
+        assertTrue(gateChecks.all { it.endsWith("-> wait") })
+    }
+
+    private fun buyQuarks(micros: Long, supply: Long): Long =
+        Estimator.valueExchangeAsQuarks(micros, supply, 6).getOrThrow().quarks.toLong()
+
+    private fun freshSupply(supply: Long) {
+        getMintsSupply = supply
+        signedSupply = supply
+    }
+
+    /**
+     * $60 of Moony at the trace's pre-buy supply plus Dollars, for a $100 payment: the plan buys
+     * about $40 of Moony, whose quarks value at $100 at the supply after the buy. Returns the
+     * quarks held after the buy and that supply.
+     */
+    private fun sixtyPlusForty(): Pair<Long, Long> {
+        getMintsSupply = PRE_BUY_SUPPLY
+        signedSupply = PRE_BUY_SUPPLY
+        val before = buyQuarks(60_000_000L, PRE_BUY_SUPPLY)
+        balances[moony.address] = before
+        hold(Token.usdf to "40.01")
+        // The quarks a buy delivers so the holding values at $100 at the supply it leaves.
+        var bought = buyQuarks(40_000_000L, PRE_BUY_SUPPLY)
+        repeat(5) { bought = buyQuarks(100_000_000L, PRE_BUY_SUPPLY + bought) - before }
+        moonyBuys += bought
+        return (before + bought) to (PRE_BUY_SUPPLY + bought)
+    }
+
+    private companion object {
+        /** The server's minimum transfer in USD: a cent. */
+        const val MINIMUM_TRANSFER = 10_000L
+
+        /** How many times funding checks the payment prices whole before giving up. */
+        const val GATE_CHECKS = 20
+
+        /** Moony's supply from bonding as GetMints reported it after the buy, from before it. */
+        const val PRE_BUY_SUPPLY = 25_639_941_291_908_912L
+
+        /** The supply about 14 s later: [PRE_BUY_SUPPLY] plus exactly the quarks bought. */
+        const val FRESH_SUPPLY = 25_640_363_264_428_011L
+
+        const val HELD_BEFORE_BUY = 633_053_356_871L
+        const val HELD_AFTER_BUY = 1_055_025_875_970L
     }
 }

@@ -8,6 +8,7 @@ import com.getcode.opencode.controllers.TransactionOperations
 import com.getcode.opencode.exchange.Exchange
 import com.getcode.opencode.exchange.VerifiedFiat
 import com.getcode.opencode.exchange.VerifiedFiatCalculator
+import com.getcode.opencode.internal.extensions.fractionDigits
 import com.getcode.opencode.internal.solana.model.SwapId
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
@@ -27,11 +28,14 @@ import com.getcode.opencode.utils.generate
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.TimeoutException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration
@@ -49,8 +53,13 @@ import kotlin.time.Duration.Companion.seconds
  * funds one still CREATED under the funding id the server recorded for it rather than starting it
  * again, and mints fresh ids only once the server says the swap FAILED or was CANCELLED. A swap
  * funded on retry that still hasn't settled stops funding with
- * [CollectionFundingError.ConversionPending]. After legs land it plans again from the balances as
- * fetched, and converts more only if the balances cover the gap.
+ * [CollectionFundingError.ConversionPending].
+ *
+ * The legs of one plan run once per tap. After they land, the balances are re-read only to check
+ * that the payment prices whole; nothing is planned or converted again. A conversion's result can
+ * show before the price it moved: a buy's quarks reach the balance while GetMints still reports the
+ * supply from before it, which values them low. Planning again from that read started a sub-cent
+ * leg the server refused.
  */
 @Singleton
 class CollectionFunder @Inject constructor(
@@ -68,34 +77,118 @@ class CollectionFunder @Inject constructor(
     @androidx.annotation.VisibleForTesting
     internal var settleInterval: Duration = 1.seconds
 
+    /** Where each payability check is logged; tests swap it to read the lines. */
+    @androidx.annotation.VisibleForTesting
+    internal var log: (message: String, type: TraceType) -> Unit = { message, type ->
+        trace(tag = "PaymentRequest", message = message, type = type)
+    }
+
     /**
      * Makes [owner]'s [paying] balance cover [amount] (in the request's currency). Fails with
      * [CollectionFundingError.Short] when it would take adding money, and runs no leg then.
+     *
+     * Plans once from the balances as fetched and runs that plan's legs, each once. A leg under the
+     * server's minimum transfer (one unit of [amount]'s currency) is raised to it when its source
+     * holds that much; otherwise funding fails with [ComputeVerifiedFiatError.AmountBelowMinimum]
+     * before any leg runs. A plan with no conversion returns at once.
+     *
+     * After the legs, [awaitPayable] checks that [amount] prices whole in [paying], as the payment
+     * will price it, re-reading the balances until it does. It never plans or starts another leg;
+     * when the balances don't catch up in time, funding fails with
+     * [CollectionFundingError.ConversionPending] and the next tap plans afresh.
      */
     suspend fun fund(requestId: ID, amount: Fiat, paying: Token, owner: AccountCluster): Result<Unit> =
         mutex.withLock {
             val created = settleStarted(requestId, owner).getOrElse { return@withLock Result.failure(it) }
-            repeat(MAX_ROUNDS) {
-                refreshBalances()
-                val rate = exchange.rateFor(amount.currencyCode)
-                    ?: return@withLock Result.failure(ComputeVerifiedFiatError.StaleRate())
-                val balances = planner.balances(rate)
-                val plan = planner.plan(amount, paying.address, balances, rate)
-                // A short plan's legs describe the payment after a top-up, so none of them runs.
-                if (!plan.payableWithoutTopUp) return@withLock Result.failure(CollectionFundingError.Short(plan))
-                val legs = plan.legs.filter { it.conversion }
-                // Anything still kept (never seen, or CREATED) is left for paying to clear: a swap
-                // whose funding may yet land must not lose its ids to a later retry.
-                if (legs.isEmpty()) return@withLock Result.success(Unit)
-                val before = tokenCoordinator.currentBalance(paying.address)
-                for (leg in legs) {
-                    runLeg(requestId, leg, paying, balances, rate, owner, created)
-                        .onFailure { return@withLock Result.failure(it) }
-                }
-                awaitBalanceAbove(paying.address, before).onFailure { return@withLock Result.failure(it) }
+            refreshBalances()
+            val rate = exchange.rateFor(amount.currencyCode)
+                ?: return@withLock Result.failure(ComputeVerifiedFiatError.StaleRate())
+            val balances = planner.balances(rate)
+            val plan = planner.plan(amount, paying.address, balances, rate)
+            // A short plan's legs describe the payment after a top-up, so none of them runs.
+            if (!plan.payableWithoutTopUp) return@withLock Result.failure(CollectionFundingError.Short(plan))
+            // Anything still kept (never seen, or CREATED) is left for paying to clear: a swap
+            // whose funding may yet land must not lose its ids to a later retry.
+            val conversions = plan.legs.filter { it.conversion }
+            if (conversions.isEmpty()) return@withLock Result.success(Unit)
+            val minimum = minimumTransferMicros(amount.currencyCode)
+            val legs = conversions.map { leg ->
+                atMinimum(leg, balances, minimum) ?: return@withLock Result.failure(ComputeVerifiedFiatError.AmountBelowMinimum())
             }
-            Result.failure(CollectionFundingError.Unsettled())
+            for (leg in legs) {
+                runLeg(requestId, leg, paying, balances, rate, owner, created)
+                    .onFailure { return@withLock Result.failure(it) }
+            }
+            awaitPayable(amount, paying, minimum)
         }
+
+    /**
+     * [leg] as it can be sent: as planned when it moves at least [minimum], raised to [minimum]
+     * when its source holds that much, null when its source holds less. The fee scales with it.
+     */
+    private fun atMinimum(leg: FundingLeg, balances: List<FundingBalance>, minimum: Long): FundingLeg? {
+        if (leg.soldMicros >= minimum) return leg
+        val held = balances.firstOrNull { it.id == leg.source } ?: return null
+        if (held.fiatMicros < minimum) return null
+        val fee = if (leg.soldMicros > 0) leg.feeMicros * minimum / leg.soldMicros else 0L
+        return leg.copy(soldMicros = minimum, feeMicros = fee, deliveredMicros = minimum - fee)
+    }
+
+    /**
+     * Waits until [amount] prices whole in [paying], pricing it as the payment will: capped at
+     * the balance as valued from GetMints, converted at the signed reserve state's supply. Whole
+     * means the quarks it prices to are held, and its value falls short of [amount] by less than
+     * the server's tolerance of half of [minimum]. Each check re-reads the balances first, at most
+     * [GATE_CHECKS] of them [settleInterval] apart, and none starts a leg: a price read before
+     * the supply caught up would size one from a stale value.
+     *
+     * Fails with [CollectionFundingError.ConversionPending] when the checks run out, or when a
+     * refresh or the pricing gets no answer in time, since waiting longer shows nothing new.
+     */
+    private suspend fun awaitPayable(amount: Fiat, paying: Token, minimum: Long): Result<Unit> {
+        repeat(GATE_CHECKS) { check ->
+            if (check > 0) delay(settleInterval)
+            val refreshed = refreshBalances()
+            val rate = exchange.rateFor(amount.currencyCode)
+                ?: return Result.failure(ComputeVerifiedFiatError.StaleRate())
+            val priced = bounded("pricing the payment") {
+                verifiedFiatCalculator.compute(
+                    amount = amount,
+                    token = paying,
+                    balance = tokenCoordinator.balanceForToken(paying),
+                    rate = rate,
+                )
+            }
+            val error = priced.exceptionOrNull()
+            if (error is TimeoutException) return Result.failure(CollectionFundingError.ConversionPending())
+            // Dollars' quarks are its micros, so its balance is what it holds.
+            val held = if (paying.address == Mint.usdf) {
+                tokenCoordinator.balanceForToken(paying).quarks
+            } else {
+                tokenCoordinator.heldQuarksForToken(paying.address).first()
+            }
+            val local = priced.getOrNull()?.localFiat
+            val quarks = local?.underlyingTokenAmount?.quarks
+            val native = local?.nativeAmount?.quarks
+            val payable = held != null && quarks != null && native != null &&
+                quarks <= held && amount.quarks - native < minimum / 2
+            val state = priced.getOrNull()?.verifiedState
+            // [paying] is the token as the sheet read it; the refresh updates the cached one.
+            val getMints = (tokenCoordinator.cachedToken(paying.address) ?: paying).launchpadMetadata
+            log(
+                "collection gate ${check + 1}/$GATE_CHECKS: held=$held quarks, " +
+                    "getMints supply=${getMints?.currentCirculatingSupplyQuarks}, " +
+                    "signed supply=${state?.reserveSupplyFromBonding} at ${state?.reserveSignedAt}, " +
+                    "priced=$quarks quarks / $native of ${amount.quarks} ${amount.currencyCode}" +
+                    (error?.let { ", pricing failed: ${it::class.simpleName}" } ?: "") +
+                    if (payable) " -> pay" else " -> wait",
+                TraceType.Log,
+            )
+            if (payable) return Result.success(Unit)
+            if (!refreshed) return Result.failure(CollectionFundingError.ConversionPending())
+        }
+        return Result.failure(CollectionFundingError.ConversionPending())
+    }
 
     /**
      * Settles every swap an earlier attempt kept for [requestId], before a retry sizes a top-up:
@@ -137,8 +230,11 @@ class CollectionFunder @Inject constructor(
                             ?: return@withLock Result.failure(CollectionFundingError.UnknownCurrency())
                         val rate = exchange.rateFor(currency)
                             ?: return@withLock Result.failure(ComputeVerifiedFiatError.StaleRate())
-                        fundRecorded(record, from, rate, owner).onFailure { return@withLock Result.failure(it) }
-                        awaitSettled(record, owner, SwapState.FINALIZED)
+                        when (fundRecorded(record, from, rate, owner).getOrElse { return@withLock Result.failure(it) }) {
+                            // Nothing moved for it and it never will, so there is nothing to wait on.
+                            Recorded.Dropped -> Result.success(SettleOutcome.Ended)
+                            Recorded.Funded, Recorded.NotCreated -> awaitSettled(record, owner, SwapState.FINALIZED)
+                        }
                     }
                     else -> awaitSettled(record, owner, SwapState.FINALIZED)
                 }.getOrElse { return@withLock Result.failure(it) }
@@ -258,8 +354,17 @@ class CollectionFunder @Inject constructor(
     ): Result<Unit> {
         val from = tokenCoordinator.cachedToken(Mint(leg.source))
             ?: return Result.failure(CollectionFundingError.UnknownCurrency())
-        val kept = store.legs(requestId).firstOrNull { it.from == from.address && it.to == paying.address }
-        if (kept != null && kept.swapId in created) return fundCreated(requestId, kept, from, rate, owner)
+        var kept = store.legs(requestId).firstOrNull { it.from == from.address && it.to == paying.address }
+        if (kept != null && kept.swapId in created) {
+            when (fundRecorded(kept, from, rate, owner).getOrElse { return Result.failure(it) }) {
+                Recorded.Funded, Recorded.NotCreated -> return awaitLeg(requestId, kept, owner, retried = true)
+                // Too small for the server to fund: its record goes, and this leg starts afresh.
+                Recorded.Dropped -> {
+                    store.remove(requestId, kept.swapId)
+                    kept = null
+                }
+            }
+        }
         val record = kept
             ?: FundingLegRecord(
                 from = from.address,
@@ -291,31 +396,30 @@ class CollectionFunder @Inject constructor(
         return awaitLeg(requestId, record, owner, retried = kept != null)
     }
 
-    /**
-     * Funds [record]'s swap, which the server has in CREATED, under the funding id the server
-     * recorded for it, never starting it again: a second start isn't deduped, and funding under
-     * another intent id could pay the swap twice. The server's funding id wins over the kept one,
-     * and the amount is what the server recorded. A swap missing from the pending list, or listed
-     * in another state, has moved on since it was reported CREATED, so it is waited on.
-     */
-    private suspend fun fundCreated(
-        requestId: ID,
-        record: FundingLegRecord,
-        from: Token,
-        rate: Rate,
-        owner: AccountCluster,
-    ): Result<Unit> {
-        fundRecorded(record, from, rate, owner).onFailure { return Result.failure(it) }
-        return awaitLeg(requestId, record, owner, retried = true)
+    /** What [fundRecorded] did with a kept swap. */
+    private enum class Recorded {
+        /** Funded under the funding id the server recorded; it is waited on. */
+        Funded,
+
+        /** Its recorded amount is under the server's minimum transfer, so it was never funded. */
+        Dropped,
+
+        /** The server no longer lists it CREATED: it has moved on, so it is waited on. */
+        NotCreated,
     }
 
     /**
-     * Funds [record]'s CREATED swap under the funding id and amount the server recorded for it.
-     * Does nothing when the server no longer lists it CREATED: it has moved on, so the caller
-     * waits on it either way. An unknown outcome keeps the record: the retry finds the swap
-     * CREATED or in flight again.
+     * Funds [record]'s CREATED swap under the funding id and amount the server recorded for it,
+     * never starting it again: a second start isn't deduped, and funding under another intent id
+     * could pay the swap twice. The server's funding id wins over the kept one.
+     *
+     * A recorded amount that prices under the server's minimum transfer in [rate]'s currency is
+     * [Recorded.Dropped] instead: the server refuses to fund it on every retry, no money has moved
+     * for it, and there is no call to cancel it. Only a swap the pending list still has CREATED is
+     * dropped. An unknown outcome keeps the record: the retry finds the swap CREATED or in flight
+     * again.
      */
-    private suspend fun fundRecorded(record: FundingLegRecord, from: Token, rate: Rate, owner: AccountCluster): Result<Unit> {
+    private suspend fun fundRecorded(record: FundingLegRecord, from: Token, rate: Rate, owner: AccountCluster): Result<Recorded> {
         val pending = bounded("getPendingSwaps") { swaps.getPendingSwaps(owner.authority.keyPair) }.getOrElse { error ->
             if (error is GetPendingSwapsError.NotFound) emptyList() else return Result.failure(error)
         }
@@ -323,11 +427,19 @@ class CollectionFunder @Inject constructor(
             .firstOrNull { it.swapId == record.swapId && it.state == SwapState.CREATED }
             ?.verifiedMetadata
         val fundingId = (recorded?.fundingSource as? SwapFundingSource.SubmitIntent)?.id
-        if (recorded == null || fundingId == null) return Result.success(Unit)
+        if (recorded == null || fundingId == null) return Result.success(Recorded.NotCreated)
         val quarks = recorded.swapAmount.quarks + (recorded.feeAmount?.quarks ?: 0L)
         val amount = bounded("pricing a conversion") { verifiedFiatCalculator.computeForQuarks(quarks, from, rate) }
-            .getOrElse { return Result.failure(it) }
+            .getOrElse { error ->
+                // Too small to show a value is under the minimum too.
+                if (error is ComputeVerifiedFiatError.AmountBelowMinimum) return Result.success(Recorded.Dropped)
+                return Result.failure(error)
+            }
+        if (amount.localFiat.nativeAmount.quarks < minimumTransferMicros(rate.currency)) {
+            return Result.success(Recorded.Dropped)
+        }
         return bounded("funding a conversion") { transactions.fundSwap(owner, from, amount, fundingId) }
+            .map { Recorded.Funded }
     }
 
     /**
@@ -401,10 +513,21 @@ class CollectionFunder @Inject constructor(
             transactions.pollSwapForState(record.swapId, owner, target)
         }
 
+    /**
+     * The server's minimum transfer in [currency], in micros: one unit of its smallest
+     * denomination, a cent in USD (flipcash2 proto comments). Outside USD it is unverified.
+     */
+    private fun minimumTransferMicros(currency: CurrencyCode): Long {
+        var micros = 1L
+        repeat(6 - currency.fractionDigits.coerceIn(0, 6)) { micros *= 10 }
+        return micros
+    }
+
     private companion object {
-        /** Plan, convert, fetch: a short delivery gets this many more rounds before giving up. */
-        const val MAX_ROUNDS = 3
         const val SETTLE_CHECKS = 5
+
+        /** How many times [awaitPayable] checks the payment prices whole, [settleInterval] apart. */
+        const val GATE_CHECKS = 20
 
         /** [TransactionOperations.pollSwapForState]'s default attempts times its interval. */
         val POLL_BUDGET = 90.seconds
@@ -416,13 +539,17 @@ sealed class CollectionFundingError(message: String) : Exception(message) {
     /** Conversions can't cover the payment; it takes adding money first. */
     class Short(val plan: CollectionFundingPlan) : CollectionFundingError("conversions can't cover the payment")
 
-    /** A conversion finalised but the paying balance didn't move, so nothing more is converted. */
+    /**
+     * A drained leg's held quarks couldn't be read, so its sell amount is unknown and it isn't
+     * sent.
+     */
     class Unsettled : CollectionFundingError("a conversion's result hasn't reached the balance")
 
     /**
-     * A conversion kept from an earlier attempt still hasn't settled, after waiting on it or
-     * funding it on retry, or its Dollars haven't reached the balance. Nothing new is converted or
-     * ordered while it may still land; try again shortly.
+     * A conversion hasn't settled in time: one kept from an earlier attempt, after waiting on it
+     * or funding it on retry; a settled one's Dollars haven't reached the balance; or this tap's
+     * legs landed but the payment doesn't price whole before the checks run out. Nothing more is
+     * converted in the same tap; the next one plans afresh.
      */
     class ConversionPending : CollectionFundingError("a conversion is still pending")
 
