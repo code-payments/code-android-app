@@ -137,6 +137,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.flipcash.app.messenger.internal.invites.InviteHostViewModel
 import com.flipcash.app.messenger.internal.request.RequestPaySheet
 import com.flipcash.app.messenger.internal.request.RequestPayViewModel
+import com.flipcash.app.core.verification.VerificationResult
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -543,6 +544,15 @@ internal fun MessengerScreen(viewModel: ChatViewModel) {
     val requestPayMembers by requestPay.members.collectAsStateWithLifecycle()
     val requestPayToken by requestPay.token.collectAsStateWithLifecycle()
     LaunchedEffect(requestPay) { requestPay.routes.collect { route -> navigator.navigate(route) } }
+    LaunchedEffect(requestPay) {
+        requestPay.verifications.collect { route ->
+            navigator.navigateForResult<VerificationResult>(route) { result ->
+                requestPay.onVerified(
+                    result is NavResultOrCanceled.ReturnValue && result.value is VerificationResult.Success
+                )
+            }
+        }
+    }
 
     // Requests and pins stack under the top bar: the pin bar sits below the request stack.
     val pinBar = state.pins.bar(state.pinBarIndex)

@@ -123,6 +123,7 @@ class RequestPayFlowTest {
         resources = resources,
         analytics = analytics,
         openScreen = {},
+        verify = {},
         onNothingToPay = { nothingToPay++ },
         onPaid = { paid++ },
     ).also { f -> scope.launch { f.token.collect {} } }

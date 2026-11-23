@@ -117,6 +117,9 @@ internal class RequestDetailsViewModel @Inject constructor(
 
     sealed interface Effect {
         data class OpenScreen(val route: AppRoute) : Effect
+
+        /** The check Coinbase asks for before a top-up: open it for a result and answer [onVerified]. */
+        data class Verify(val route: AppRoute.Verification) : Effect
     }
 
     private val _state = MutableStateFlow(State())
@@ -217,6 +220,7 @@ internal class RequestDetailsViewModel @Inject constructor(
         resources = resources,
         analytics = analytics,
         openScreen = { route -> effects.trySend(Effect.OpenScreen(route)) },
+        verify = { route -> effects.trySend(Effect.Verify(route)) },
         onNothingToPay = {
             _state.update { it.copy(hasPaymentIntent = false, nothingToPay = true) }
             reloadCollectionPayers()
@@ -254,6 +258,8 @@ internal class RequestDetailsViewModel @Inject constructor(
     fun pickCollectionCurrency(mint: Mint) = payFlow.pickCollectionCurrency(mint)
 
     val onAddAndPay: () -> Unit get() = payFlow.onAddAndPay
+
+    fun onVerified(verified: Boolean) = payFlow.onVerified(verified)
 
     /** "Send <share>", or a collection's Pay, which tops up without the sheet when nothing funds it. */
     fun payTapped() {

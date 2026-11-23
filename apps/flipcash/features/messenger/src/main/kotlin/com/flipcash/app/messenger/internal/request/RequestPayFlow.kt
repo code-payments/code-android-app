@@ -90,6 +90,11 @@ internal class RequestPayFlow(
     private val analytics: FlipcashAnalytics,
     /** Where "Add Money" goes, once the sheet has closed. */
     private val openScreen: (AppRoute) -> Unit,
+    /**
+     * Opens the phone or email check Coinbase asks for before a top-up, for a result: the host
+     * answers [onVerified] with whether it passed.
+     */
+    private val verify: (AppRoute.Verification) -> Unit,
     /** The server has no payment intent for the viewer on this request any more. */
     private val onNothingToPay: () -> Unit = {},
     /** The viewer can no longer reach the request (a collection's DENIED or NOT_FOUND). */
@@ -236,6 +241,12 @@ internal class RequestPayFlow(
     private var ready: ShareToPay.Ready? = null
 
     /**
+     * A top-up stopped for the verification Coinbase asks for, and the payment in [ready] waits on
+     * its result ([onVerified]). True whether the sheet or the Request screen's button started it.
+     */
+    private var awaitingVerification = false
+
+    /**
      * A payment from this sheet failed, so whether it landed is unknown: the next swipe asks for
      * the intent id again before paying, and stops if it landed (spec, pay step 4). The next
      * payment clears it, since every payment but the plain swipe already asks just before it, and
@@ -264,6 +275,8 @@ internal class RequestPayFlow(
         val now = _state.value
         // One payment at a time: a refetch, the sheet, or the Request screen's top-up.
         if (now.preparing || now.open || (now.direct && !now.progress.isIdle)) return
+        // A new Pay replaces a payment still waiting on a verification result.
+        awaitingVerification = false
         _state.update { it.copy(requestId = requestId, preparing = true) }
         scope.launch {
             payments.prepare(requestId, viewer)
@@ -747,6 +760,7 @@ internal class RequestPayFlow(
         if (!_state.value.progress.isIdle && !_state.value.progress.success) return
         ready = null
         retryAsksFirst = false
+        awaitingVerification = false
         collectionPick.value = null
         _state.update {
             it.copy(
@@ -761,6 +775,23 @@ internal class RequestPayFlow(
         }
         // After the sheet's state, so no frame replans the open sheet from the balances left.
         payingPlan.value = null
+    }
+
+    /**
+     * The verification [verify] opened has closed: [verified] when it passed. A pass resumes the
+     * payment that stopped for it, in the sheet, or with no sheet when the Request screen's button
+     * started it (the sheet opens on Finishing Payment, as for any top-up). Backing out closes it.
+     */
+    fun onVerified(verified: Boolean) {
+        if (!awaitingVerification) return
+        awaitingVerification = false
+        if (ready == null) return
+        if (!verified) {
+            dismiss()
+            return
+        }
+        if (!_state.value.direct) _state.update { it.copy(open = true) }
+        addAndPay(checkGates = true)
     }
 
     /** "Add Money" from a modal: the sheet closes, then the deposit screen opens. */
@@ -838,11 +869,13 @@ internal class RequestPayFlow(
                     ) { addAndPay(checkGates = false) },
                 ),
             )
-            // Coinbase needs a verified phone or email first. The sheet closes for it; Pay again
-            // after verifying starts the top-up over.
+            // Coinbase needs a verified phone or email first. The payment is kept and the sheet
+            // hides while the check is up; [onVerified] brings it back and adds and pays again.
             is TopUpBlock.Verification -> {
-                close()
-                openScreen(
+                stopTopUp()
+                awaitingVerification = true
+                _state.update { it.copy(open = false) }
+                verify(
                     AppRoute.Verification(
                         origin = AppRoute.Token.Swap(SwapPurpose.Buy(Mint.usdf, FundingSource.Coinbase)),
                         includePhone = block.phone,
