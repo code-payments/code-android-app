@@ -61,6 +61,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
+import kotlin.time.Duration
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -106,6 +107,7 @@ class CollectionTopUpFlowTest {
     private var paid = 0
     private var nothingToPay = 0
     private var payFailures = 0
+    private lateinit var flowUnderTest: RequestPayFlow
 
     /** Every screen the flow opened; Finishing Payment is a sheet state and opens none. */
     private val screens = mutableListOf<AppRoute>()
@@ -200,6 +202,7 @@ class CollectionTopUpFlowTest {
             openScreen = { screens += it },
             onNothingToPay = { nothingToPay++ },
             onPaid = { paid++ },
+            payRetryInterval = Duration.ZERO,
         ).also { f -> scope.launch { f.token.collect {} } }
     }
 
@@ -299,7 +302,7 @@ class CollectionTopUpFlowTest {
     @Test
     fun `a payment failing after the top-up keeps the Dollars and the retry charges nothing`() {
         useCase("s7-short-under-min")
-        payFailures = 1
+        payFailures = FAILS_EVERY_ATTEMPT
         val f = openSheet()
 
         f.onAddAndPay()
@@ -311,13 +314,13 @@ class CollectionTopUpFlowTest {
 
         assertEquals(1, paid)
         assertEquals(listOf(500L), rail.orders)
-        coVerify(exactly = 2) { payments.pay(any(), any(), any(), any()) }
+        coVerify(exactly = FAILS_EVERY_ATTEMPT + 1) { payments.pay(any(), any(), any(), any()) }
     }
 
     @Test
     fun `a retry through Add and Pay after the top-up pays from the Dollars and orders nothing`() {
         useCase("s7-short-under-min")
-        payFailures = 1
+        payFailures = FAILS_EVERY_ATTEMPT
         val f = openSheet()
         f.onAddAndPay()
 
@@ -325,6 +328,92 @@ class CollectionTopUpFlowTest {
 
         assertEquals(1, paid)
         assertEquals(listOf(500L), rail.orders)
+    }
+
+    /**
+     * A payment that fails right after the Dollars land, as one sent before the server sees them
+     * can, is tried again in Finishing Payment: no error, and no second swipe.
+     */
+    @Test
+    fun `a payment failing right after the Dollars land retries itself and pays with no swipe`() {
+        every { resources.getString(any<Int>()) } answers { "string ${firstArg<Int>()}" }
+        useCase("s7-short-under-min")
+        payFailures = 1
+        var finishingAtRetry: Boolean? = null
+        coEvery { payments.pay(any(), any(), any(), any()) } answers {
+            if (payFailures > 0) {
+                payFailures--
+                Result.failure(IllegalStateException("submit failed"))
+            } else {
+                finishingAtRetry = flowUnderTest.state.value.finishing
+                Result.success(Unit)
+            }
+        }
+        val f = openSheet().also { flowUnderTest = it }
+
+        f.onAddAndPay()
+
+        assertEquals(1, paid)
+        assertEquals(true, finishingAtRetry, "the retry runs in Finishing Payment")
+        assertTrue(BottomBarManager.messages.value.isEmpty(), "no error shows, was ${BottomBarManager.messages.value}")
+        assertEquals(listOf(500L), rail.orders)
+        coVerify(exactly = 2) { payments.pay(any(), any(), any(), any()) }
+    }
+
+    /** Each retry asks for the intent id first, so it pays under the same one and only one can land. */
+    @Test
+    fun `each retry after the top-up asks for the intent id before it pays`() {
+        useCase("s7-short-under-min")
+        payFailures = FAILS_EVERY_ATTEMPT
+        val f = openSheet()
+
+        f.onAddAndPay()
+
+        coVerifyOrder {
+            repeat(PAY_RETRIES_AFTER_TOP_UP) {
+                payments.pay(any(), any(), any(), any())
+                payments.prepare(any(), any())
+            }
+            payments.pay(any(), any(), any(), any())
+        }
+    }
+
+    /** Once the retries run out, the error shows once and the sheet waits for a swipe. */
+    @Test
+    fun `a payment that keeps failing after the top-up shows one error once the retries run out`() {
+        every { resources.getString(any<Int>()) } answers { "string ${firstArg<Int>()}" }
+        useCase("s7-short-under-min")
+        payFailures = FAILS_EVERY_ATTEMPT
+        val f = openSheet()
+
+        f.onAddAndPay()
+
+        assertEquals(0, paid)
+        coVerify(exactly = FAILS_EVERY_ATTEMPT) { payments.pay(any(), any(), any(), any()) }
+        assertEquals("string ${R.string.error_title_cashFailedToSend}", BottomBarManager.messages.value.single().title)
+        val state = f.state.value
+        assertTrue(state.open && !state.finishing && state.progress.isIdle, "the sheet, unlocked, was $state")
+    }
+
+    /** The reported path: Pay on a request whose kept top-up has landed retries the payment itself. */
+    @Test
+    fun `Pay on a kept top-up that already landed retries a failed payment with no swipe`() {
+        useCase("s7-short-under-min")
+        rail.googlePay = CompletableDeferred()
+        flow().let(::openSheet).onAddAndPay()
+        assertTrue(store.topUps.isNotEmpty())
+        // The app stopped waiting before the Dollars landed; they land afterwards.
+        scopes.forEach { it.cancel() }
+        dollarsMicros += 5_000_000
+        payFailures = 1
+
+        val f = openSheet()
+
+        assertEquals(1, paid)
+        assertEquals(listOf(500L), rail.orders)
+        assertTrue(store.topUps.isEmpty())
+        coVerify(exactly = 2) { payments.pay(any(), any(), any(), any()) }
+        assertTrue(f.state.value.open)
     }
 
     /** Recovery 3 and 5: the failed payment refetches before any retry, and ALREADY_PAID stops it. */
@@ -404,7 +493,7 @@ class CollectionTopUpFlowTest {
     @Test
     fun `after a failed payment, a top-up closed in Google Pay still leaves the next swipe asking first`() {
         useCase("s7-short-under-min")
-        payFailures = 1
+        payFailures = FAILS_EVERY_ATTEMPT
         var asks = 0
         coEvery { payments.prepare(any(), any()) } answers {
             asks++
@@ -428,7 +517,7 @@ class CollectionTopUpFlowTest {
 
         assertEquals(before + 1, asks)
         assertEquals(1, paid)
-        coVerify(exactly = 2) { payments.pay(any(), any(), any(), any()) }
+        coVerify(exactly = FAILS_EVERY_ATTEMPT + 1) { payments.pay(any(), any(), any(), any()) }
     }
 
     /**
@@ -973,7 +1062,7 @@ class CollectionTopUpFlowTest {
     @Test
     fun `a payment failing after the Request screen's top-up leaves the sheet up, and the retry charges nothing`() {
         useCase("s1-no-balance")
-        payFailures = 1
+        payFailures = FAILS_EVERY_ATTEMPT
         val f = flow()
 
         tapRequestScreenPay(f)
@@ -1284,5 +1373,8 @@ class CollectionTopUpFlowTest {
         const val MOONY_ID = "moony"
         val MOONY = Token.usdf.copy(address = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"))
         val SECTIONS = listOf("s1-no-balance", "s2-min-top-up", "s4-add-then-pay", "s7-short-under-min", "s8-short-over-min")
+
+        /** The first payment after a top-up and every retry it gets fail. */
+        const val FAILS_EVERY_ATTEMPT = PAY_RETRIES_AFTER_TOP_UP + 1
     }
 }
