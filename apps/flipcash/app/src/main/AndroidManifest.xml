@@ -72,6 +72,11 @@
         <!-- Lets Macrobenchmark/simpleperf attach to a non-debuggable release build. -->
         <profileable android:shell="true" />
 
+        <!-- Declares the app as a notification-only Android Auto app, so the car shows its messaging notifications. -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
         <meta-data
             android:name="com.bugsnag.android.API_KEY"
             android:value="${BUGSNAG_API_KEY}" />
