@@ -163,4 +163,11 @@ data class VerifiedState(
     override val exchangeRate: Double get() = rateProto.exchangeRate.exchangeRate
     override val encodedRate: ByteArray get() = rateProto.toByteArray()
     override val encodedReserve: ByteArray? get() = reserveProto?.toByteArray()
+
+    /** The signed reserve state's supply from bonding, which a launchpad amount is priced at; null without one. */
+    val reserveSupplyFromBonding: Long? get() = reserveProto?.reserveState?.supplyFromBonding
+
+    /** When the server signed the reserve state; null without one. */
+    val reserveSignedAt: Instant?
+        get() = reserveProto?.reserveState?.timestamp?.let { Instant.fromEpochSeconds(it.seconds, it.nanos) }
 }
