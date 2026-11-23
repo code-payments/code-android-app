@@ -1645,6 +1645,14 @@ internal class ChatViewModel @AssistedInject constructor(
     }
 
     /**
+     * Tokens the transcript looked up off the page, by mint. A cash row whose mint this device
+     * doesn't hold isn't kept by [TokenCoordinator], so its name lives here for the chat's life.
+     * Declared above [mappedMessages], which reads it at construction.
+     */
+    private val cashTokens = MutableStateFlow<Map<Mint, Token>>(emptyMap())
+    private val cashTokensInFlight: MutableSet<Mint> = ConcurrentHashMap.newKeySet()
+
+    /**
      * The transcript's rows before separators. Cached so a change to the unread boundary or the
      * separator config re-runs only [messages]' separator pass, not the per-message lookups here.
      */
@@ -1654,7 +1662,7 @@ internal class ChatViewModel @AssistedInject constructor(
             messageStream,
             pendingMutations,
             messagePolicy,
-            senderProfiles,
+            combine(senderProfiles, cashTokens, ::Pair),
             combine(
                 viewerCanPost,
                 viewerCanSpeak,
@@ -1674,7 +1682,7 @@ internal class ChatViewModel @AssistedInject constructor(
                 }.distinctUntilChanged(),
                 ::ViewerGates,
             ),
-        ) { pagingData, mutations, policy, profiles, (canPost, canSpeak, canReactToMessages, previewing, facts) ->
+        ) { pagingData, mutations, policy, (profiles, resolvedTokens), (canPost, canSpeak, canReactToMessages, previewing, facts) ->
             val chatType = facts.chatType
             if (pagingData !== quotedGeneration) {
                 quotedGeneration = pagingData
@@ -1721,7 +1729,7 @@ internal class ChatViewModel @AssistedInject constructor(
                         )
                     }
 
-                    val enriched = content.withTokenMetadata()
+                    val enriched = content.withCachedTokenMetadata(resolvedTokens)
 
                     // Resolved here, next to the token-metadata lookup, because this is the one
                     // place in the transcript that already does async per-item work. A citation of
@@ -4515,6 +4523,35 @@ internal class ChatViewModel @AssistedInject constructor(
             quote.copy(snippet = ChatQuoteSnippet.Text(resources.getString(R.string.label_pinnedEncryptedMessage)))
         } else {
             quote
+        }
+    }
+
+    /**
+     * [withTokenMetadata] for the transcript: names the token from what's already on hand and never
+     * waits. Token lookups go to the network with no deadline, so a page that awaited one drew
+     * nothing offline. A miss renders without a name while a background lookup fills [cashTokens],
+     * which maps the page again.
+     */
+    private fun MessageContent.withCachedTokenMetadata(resolved: Map<Mint, Token>): MessageContent {
+        if (this !is MessageContent.Cash || tokenName.isNotBlank()) return this
+        val token = resolved[mint] ?: tokenCoordinator.cachedToken(mint)
+        if (token == null) {
+            resolveCashToken(mint)
+            return this
+        }
+        return copy(tokenName = token.name, tokenImageUrl = token.imageUrl)
+    }
+
+    private fun resolveCashToken(mint: Mint) {
+        if (!cashTokensInFlight.add(mint)) return
+        viewModelScope.launch {
+            val token = tokenCoordinator.getTokenMetadata(mint).getOrNull()?.token
+            if (token != null) {
+                cashTokens.update { it + (mint to token) }
+            } else {
+                // Let a later page map try again instead of leaving the name blank for good.
+                cashTokensInFlight.remove(mint)
+            }
         }
     }
 
