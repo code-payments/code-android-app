@@ -28,11 +28,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -84,16 +84,25 @@ class PaymentRequests @Inject constructor(
 
     private val hydrated = MutableStateFlow<Set<ChatId>>(emptySet())
 
-    /** The held requests made in [chatId], in no particular order; its stored ones are loaded first. */
-    fun inChat(chatId: ChatId): Flow<List<PaymentRequest>> = flow {
+    /**
+     * The held requests made in [chatId], in no particular order; its stored ones are loaded first.
+     *
+     * Text this device holds the key for is open in the first emission. Text that needs the key
+     * fetched opens alongside, not before it: offline that fetch waits for a connection instead of
+     * failing, and the chat's transcript waits on this flow, so waiting here kept a private group's
+     * messages from drawing offline.
+     */
+    fun inChat(chatId: ChatId): Flow<List<PaymentRequest>> = channelFlow {
         hydrate(chatId)
-        emitAll(requests.map { all -> all.values.filter { it.chatId == chatId } }.distinctUntilChanged())
+        launch { openHeld { it.chatId == chatId } }
+        requests.map { all -> all.values.filter { it.chatId == chatId } }.distinctUntilChanged().collect { send(it) }
     }
 
-    /** The held request, loaded from storage first when the map has none. */
-    fun request(id: ID): Flow<PaymentRequest?> = flow {
+    /** The held request, loaded from storage first when the map has none. Opens as [inChat] does. */
+    fun request(id: ID): Flow<PaymentRequest?> = channelFlow {
         if (id !in requests.value) hydrate(id)
-        emitAll(requests.map { it[id] }.distinctUntilChanged())
+        launch { openHeld { it.id == id } }
+        requests.map { it[id] }.distinctUntilChanged().collect { send(it) }
     }
 
     /**
@@ -324,25 +333,34 @@ class PaymentRequests @Inject constructor(
     suspend fun clearStored() = store.clear()
 
     /**
-     * Loads [chatId]'s stored requests into the map, once per session. They merge like fetched
-     * copies, so a newer one already held stays, and they are not written back. A store that fails
-     * leaves the map as it was.
+     * Loads [chatId]'s stored requests into the map, once per session. Their text is opened only
+     * with a key this device holds; what that leaves sealed, [openHeld] opens. They merge like
+     * fetched copies, so a newer one already held stays, and they are not written back. A store
+     * that fails leaves the map as it was.
      */
     private suspend fun hydrate(chatId: ChatId) {
         var first = false
         hydrated.update { held -> first = chatId !in held; held.plusElement(chatId) }
         if (!first) return
         val stored = storeCatching { store.inChat(chatId) } ?: return
-        load(stored)
+        val opened = stored.map { open(it, localOnly = true) }
+        requests.update { held -> opened.fold(held, ::merge) }
     }
 
     private suspend fun hydrate(id: ID) {
         val stored = storeCatching { store.find(id) } ?: return
-        load(listOf(stored))
+        val opened = open(stored, localOnly = true)
+        requests.update { held -> merge(held, opened) }
     }
 
-    private suspend fun load(stored: List<PaymentRequest>) {
-        val opened = stored.map { open(it) }
+    /**
+     * Opens the held requests matching [which] whose text is still sealed. One whose key can't be
+     * fetched stays sealed; a copy that arrived meanwhile wins by [merge]'s rules.
+     */
+    private suspend fun openHeld(which: (PaymentRequest) -> Boolean) {
+        val sealed = requests.value.values.filter { which(it) && it.split?.text is PaymentRequestText.Encrypted }
+        if (sealed.isEmpty()) return
+        val opened = sealed.map { open(it) }.filter { it.split?.text !is PaymentRequestText.Encrypted }
         requests.update { held -> opened.fold(held, ::merge) }
     }
 
@@ -365,11 +383,11 @@ class PaymentRequests @Inject constructor(
         return requests.value[request.id] ?: request
     }
 
-    private suspend fun open(request: PaymentRequest): PaymentRequest {
+    private suspend fun open(request: PaymentRequest, localOnly: Boolean = false): PaymentRequest {
         val kind = request.kind as? PaymentRequest.Kind.GroupSplit ?: return request
         val sealed = kind.split.text as? PaymentRequestText.Encrypted ?: return request
         // A key that can't be fetched yet leaves the text sealed; a later fetch opens it.
-        val text = crypto.openPaymentRequestText(kind.chatId, request.creator, sealed)
+        val text = crypto.openPaymentRequestText(kind.chatId, request.creator, sealed, localOnly)
             .getOrElse { return request }
         // The sealed form rides along so storage keeps the text as received.
         return request.copy(kind = kind.copy(split = kind.split.copy(text = text, sealedText = sealed)))
