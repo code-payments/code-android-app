@@ -29,11 +29,16 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -77,25 +82,30 @@ import com.getcode.ui.theme.CodeScaffold
 import com.flipcash.app.messenger.internal.swipepay.LocalSwipePayCurrencyPicker
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
 import com.flipcash.app.messenger.internal.swipepay.SwipePayPage
+import com.flipcash.app.messenger.internal.swipepay.SwipePayReplacement
 import com.flipcash.app.messenger.internal.swipepay.SwipePaySheet
+import com.flipcash.app.messenger.internal.swipepay.SwipePaySheetState
 import com.flipcash.app.messenger.internal.swipepay.SwipePayUiState
 import com.flipcash.app.messenger.internal.swipepay.rememberSwipePaySheetState
+import kotlinx.coroutines.flow.first
 
 /**
  * The swipe-to-pay sheet for the share [pay] holds, drawn while [pay] is open. In-window, so the
  * entry decorator's bar lands above it. Shared by Request details and the chat.
  *
  * The amount comes from [pay], not the live request: the request reads paid during the success
- * hold, and the sheet keeps its amount until it has gone.
+ * hold, and the sheet keeps its amount until it has gone. Once [pay] closes, the sheet slides down
+ * on the last frame it drew while open, as Currency Send's sheet does after a send (`finishSend`):
+ * the flow has already reset, so its live state would draw an empty or replanned sheet.
  *
  * A collection being funded ([RequestPayFlow.State.funding]) picks its currency from
  * [collectionCurrencies] in its own sheet, through [onPickCollectionCurrency], instead of the
  * wallet's currency list: the pick is this payment's alone. Its [funding] fee line pushes Payment
  * Details inside the sheet, in place of its content, and back slides the content back. When the
  * balances can't cover it, [CollectionFundingUi.short] takes the swipe's place, its short line
- * opening the same Payment Details, and [onAddAndPay] adds the rest;
- * [RequestPayFlow.State.finishing] then draws
- * "Finishing Payment" until it's paid.
+ * opening the same Payment Details, and [onAddAndPay] adds the rest.
+ * [RequestPayFlow.State.finishing] fades "Finishing Payment" in for the sheet's content until the
+ * payment lands or times out, whichever entry started the top-up.
  */
 @Composable
 internal fun RequestPaySheet(
@@ -108,25 +118,100 @@ internal fun RequestPaySheet(
     funding: CollectionFundingUi? = null,
     onAddAndPay: () -> Unit = {},
 ) {
-    if (!pay.open) return
+    val held = remember { HeldPayFrame() }
+    // Bumped once a closed sheet has slid down: the next open gets a sheet state of its own, since
+    // a caller's hide() leaves its state hidden for good.
+    var sheets by remember { mutableIntStateOf(0) }
+    val frame = if (pay.open) {
+        RequestPayFrame(pay, members, token, collectionCurrencies, funding)
+    } else {
+        held.frame ?: return
+    }
+    if (pay.open) SideEffect { held.frame = frame }
+    key(sheets) {
+        RequestPayFrameSheet(
+            frame = frame,
+            closing = !pay.open,
+            actions = actions,
+            onPickCollectionCurrency = onPickCollectionCurrency,
+            onAddAndPay = onAddAndPay,
+            onHidden = {
+                held.frame = null
+                sheets++
+            },
+        )
+    }
+}
+
+/** What [RequestPaySheet] draws, as of its last composition with the flow open. */
+private data class RequestPayFrame(
+    val pay: RequestPayFlow.State,
+    val members: Map<ID, ChatMember>,
+    val token: Token?,
+    val collectionCurrencies: List<TokenWithLocalizedBalance>,
+    val funding: CollectionFundingUi?,
+)
+
+/** The frame a closed [RequestPaySheet] slides down on. Not observed: [frame] is set after each open composition. */
+private class HeldPayFrame {
+    var frame: RequestPayFrame? = null
+}
+
+/**
+ * The sheet for [frame]. Once [closing], it slides down, through `InWindowSheetState.hide` past its
+ * lock, and then calls [onHidden].
+ */
+@Composable
+private fun RequestPayFrameSheet(
+    frame: RequestPayFrame,
+    closing: Boolean,
+    actions: SwipePayActions,
+    onPickCollectionCurrency: (Mint) -> Unit,
+    onAddAndPay: () -> Unit,
+    onHidden: () -> Unit,
+) {
+    val pay = frame.pay
+    val funding = frame.funding
+    val token = frame.token
     val amount = pay.amount ?: return
     val swipePay = requestPaySwipeState(pay, token)
+    val sheetState = rememberSwipePaySheetState(locked = swipePay.locked)
+    val closingNow by rememberUpdatedState(closing)
+    val currentOnHidden by rememberUpdatedState(onHidden)
+    LaunchedEffect(sheetState) {
+        snapshotFlow { closingNow }.first { it }
+        sheetState.sheet.hide()
+        currentOnHidden()
+    }
+    // A sheet sliding down still draws its swipe and Add and Pay, but the flow behind it has
+    // closed: neither reaches it. Checked when called, so a swipe that ends after the close is
+    // dropped too. Dismiss passes through, since hide() never calls it.
+    val gatedActions = remember(actions) {
+        SwipePayActions(
+            onConfirm = { if (!closingNow) actions.onConfirm() },
+            onDismiss = actions.onDismiss,
+        )
+    }
+    val gatedAddAndPay = remember(onAddAndPay) { { if (!closingNow) onAddAndPay() } }
     val sheet = @Composable { feeLine: (@Composable () -> Unit)?, onDetails: () -> Unit, page: SwipePayPage? ->
         PayShareSheet(
-            creator = pay.creator?.let(members::get),
+            creator = pay.creator?.let(frame.members::get),
             amount = amount,
             swipePay = swipePay,
-            actions = actions,
+            sheetState = sheetState,
+            actions = gatedActions,
             feeLine = feeLine,
             showsHandle = !pay.funding,
             showsCents = pay.funding,
             action = funding?.short?.takeIf { pay.funding }?.let { short ->
                 @Composable { modifier: Modifier ->
-                    CollectionShortAction(short, swipePay, onAddAndPay, onDetails, modifier)
+                    CollectionShortAction(short, swipePay, gatedAddAndPay, onDetails, modifier)
                 }
             },
-            replacement = if (pay.finishing) {
-                @Composable { CollectionFinishing() }
+            // Every collection's sheet keeps its swap, so Finishing Payment fades in and out of
+            // the same sheet: Google Pay's spinner to it, then it to the checkmark or the swipe.
+            replacement = if (pay.funding) {
+                SwipePayReplacement(shown = pay.finishing) { CollectionFinishing() }
             } else {
                 null
             },
@@ -155,9 +240,9 @@ internal fun RequestPaySheet(
     CompositionLocalProvider(LocalSwipePayCurrencyPicker provides { picking = true }) {
         sheet(feeLine, openDetails, page)
     }
-    if (picking) {
+    if (picking && !closing) {
         CollectionCurrencySheet(
-            currencies = collectionCurrencies,
+            currencies = frame.collectionCurrencies,
             selected = token?.address,
             onPick = onPickCollectionCurrency,
             onClosed = { picking = false },
@@ -185,10 +270,11 @@ private fun PayShareSheet(
     creator: ChatMember?,
     amount: Fiat,
     swipePay: SwipePayUiState,
+    sheetState: SwipePaySheetState,
     actions: SwipePayActions,
     feeLine: (@Composable () -> Unit)? = null,
     action: (@Composable (Modifier) -> Unit)? = null,
-    replacement: (@Composable () -> Unit)? = null,
+    replacement: SwipePayReplacement? = null,
     page: SwipePayPage? = null,
     showsHandle: Boolean = true,
     showsCents: Boolean = false,
@@ -196,7 +282,7 @@ private fun PayShareSheet(
     SwipePaySheet(
         state = swipePay,
         actions = actions,
-        sheetState = rememberSwipePaySheetState(locked = swipePay.locked),
+        sheetState = sheetState,
         action = action,
         replacement = replacement,
         page = page,
@@ -286,8 +372,8 @@ private fun CollectionShortAction(
 }
 
 /**
- * Frames 1.3, 4.4, 7.5, 8.4: a top-up is landing and the payment runs after it. In the sheet, or
- * over the Request screen when its button started the top-up (1.3).
+ * Frames 1.3, 4.4, 7.5, 8.4: a top-up is landing and the payment runs after it. Drawn in the pay
+ * sheet in place of its content, whichever entry started the top-up.
  */
 @Composable
 internal fun CollectionFinishing(modifier: Modifier = Modifier) {

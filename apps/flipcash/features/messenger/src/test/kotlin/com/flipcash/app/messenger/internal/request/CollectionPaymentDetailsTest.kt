@@ -26,6 +26,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeRight
 import com.flipcash.app.messenger.internal.swipepay.SWIPE_PAY_PAGES_TAG
 import com.flipcash.app.messenger.internal.swipepay.SWIPE_PAY_SHEET_TAG
 import com.flipcash.app.messenger.internal.swipepay.SwipePayActions
@@ -122,15 +124,7 @@ class CollectionPaymentDetailsTest {
             DesignSystem {
                 host {
                     RequestPaySheet(
-                        pay = RequestPayFlow.State(
-                            requestId = List(16) { 9 },
-                            open = true,
-                            amount = Fiat(10.0, CurrencyCode.USD),
-                            creator = List(16) { 1 },
-                            funding = isFunding,
-                            finishing = finishing,
-                            progress = progress,
-                        ),
+                        pay = collectionPay(isFunding = isFunding, finishing = finishing, progress = progress),
                         members = emptyMap(),
                         token = null,
                         actions = SwipePayActions(onConfirm = {}, onDismiss = onDismiss),
@@ -140,6 +134,80 @@ class CollectionPaymentDetailsTest {
                 }
             }
         }
+    }
+
+    /** The flow's state for an open collection sheet of $10.00. */
+    private fun collectionPay(
+        isFunding: Boolean = true,
+        finishing: Boolean = false,
+        progress: LoadingSuccessState = LoadingSuccessState(),
+    ) = RequestPayFlow.State(
+        requestId = List(16) { 9 },
+        open = true,
+        amount = Fiat(10.0, CurrencyCode.USD),
+        creator = List(16) { 1 },
+        funding = isFunding,
+        finishing = finishing,
+        progress = progress,
+    )
+
+    /** One sheet over [pay] and [funding], which a test changes in place as the flow does. */
+    private fun showFlowSheet(
+        pay: () -> RequestPayFlow.State,
+        funding: () -> CollectionFundingUi?,
+        onConfirm: () -> Unit = {},
+        onAddAndPay: () -> Unit = {},
+    ) {
+        composeTestRule.setContent {
+            DesignSystem {
+                RequestPaySheet(
+                    pay = pay(),
+                    members = emptyMap(),
+                    token = null,
+                    actions = SwipePayActions(onConfirm = onConfirm, onDismiss = {}),
+                    funding = funding(),
+                    onAddAndPay = onAddAndPay,
+                )
+            }
+        }
+    }
+
+    /** [case] with [dollarsMicros] in Dollars and no other balance: the plan once a top-up landed. */
+    private fun withDollars(case: JSONObject, dollarsMicros: Long): JSONObject = JSONObject(case.toString()).apply {
+        getJSONObject("input").put(
+            "balances",
+            JSONArray().put(
+                JSONObject()
+                    .put("id", "dollars").put("name", "Dollars").put("kind", "dollars")
+                    .put("fiat_micros", dollarsMicros).put("sell_fee_bps", 0),
+            ),
+        )
+    }
+
+    /**
+     * With the clock held, steps frames until [to] is drawn, and checks [from] is still drawn on
+     * that frame: the sheet fades one into the other rather than swapping them.
+     */
+    private fun assertFades(from: String, to: String, maxFrames: Int = 10) {
+        composeTestRule.mainClock.autoAdvance = false
+        var frames = 0
+        while (composeTestRule.onAllNodesWithTag(to).fetchSemanticsNodes().isEmpty() && frames < maxFrames) {
+            composeTestRule.mainClock.advanceTimeByFrame()
+            frames++
+        }
+        composeTestRule.onNodeWithTag(to).assertExists()
+        composeTestRule.onNodeWithTag(from).assertExists()
+    }
+
+    /** Steps [frames] frames with the clock held, checking the sheet is up on each. */
+    private fun assertSheetUpEachFrame(frames: Int = 40) {
+        composeTestRule.mainClock.autoAdvance = false
+        repeat(frames) {
+            composeTestRule.mainClock.advanceTimeByFrame()
+            composeTestRule.onNodeWithTag(SWIPE_PAY_SHEET_TAG).assertExists()
+        }
+        composeTestRule.mainClock.autoAdvance = true
+        composeTestRule.waitForIdle()
     }
 
     /** Draws [name]'s modal, opens Payment Details from its ⓘ, and checks both against the fixture. */
@@ -352,13 +420,188 @@ class CollectionPaymentDetailsTest {
     }
 
     @Test
-    fun `1_3 and 4_4 - Finishing Payment replaces the sheet while the top-up lands`() {
+    fun `1_3 and 4_4 - Finishing Payment takes the sheet's content while the top-up lands`() {
         showSheet(ui(case("s4-add-then-pay")), finishing = true)
 
         composeTestRule.onNodeWithTag("request_pay_finishing").assertExists()
         composeTestRule.onNodeWithText("Finishing Payment").assertExists()
         composeTestRule.onNodeWithText("This usually takes about 10 seconds").assertExists()
         composeTestRule.onNodeWithTag("request_pay_add").assertDoesNotExist()
+    }
+
+    /**
+     * Frames 1.3 to 3.3 in one sheet: Finishing Payment, the checkmark, then the slide down. The
+     * sheet is up on every frame between them, so nothing closes and reopens. The flow resets
+     * when the hold ends, and section 1's balances are short again once the payment spent the
+     * Dollars: the sheet slides down on the checkmark it held, with no short line.
+     */
+    @Test
+    fun `1_3 to 3_3 - Finishing Payment, the checkmark and the slide down are one sheet`() {
+        val atCharge = ui(case("s1-no-balance"))
+        val paidWith = ui(withDollars(case("s1-no-balance"), 10_000_000L))
+        assertNull(paidWith.short)
+        var pay by mutableStateOf(collectionPay(finishing = true, progress = LoadingSuccessState(loading = true)))
+        var funding by mutableStateOf<CollectionFundingUi?>(atCharge)
+        showFlowSheet(pay = { pay }, funding = { funding })
+        composeTestRule.onNodeWithTag(SWIPE_PAY_SHEET_TAG).assertExists()
+        composeTestRule.onNodeWithTag("request_pay_finishing").assertExists()
+
+        // One frame in, both are drawn as Finishing Payment fades to the checkmark: no hard swap.
+        composeTestRule.mainClock.autoAdvance = false
+        pay = collectionPay(progress = LoadingSuccessState(success = true))
+        funding = paidWith
+        assertFades(from = "request_pay_finishing", to = "request_pay_swipe")
+        assertSheetUpEachFrame()
+        composeTestRule.onNodeWithTag("request_pay_finishing").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("request_pay_swipe").assertExists()
+        composeTestRule.onNodeWithTag(COLLECTION_SHORT_LINE_TAG).assertDoesNotExist()
+
+        // The hold ends and dismiss() resets the flow: the sheet slides down on the frame it held.
+        composeTestRule.mainClock.autoAdvance = false
+        pay = RequestPayFlow.State()
+        funding = atCharge
+        repeat(2) {
+            composeTestRule.mainClock.advanceTimeByFrame()
+            composeTestRule.onNodeWithTag(SWIPE_PAY_SHEET_TAG).assertExists()
+            composeTestRule.onNodeWithTag("request_pay_swipe").assertExists()
+            composeTestRule.onNodeWithTag(COLLECTION_SHORT_LINE_TAG).assertDoesNotExist()
+        }
+        composeTestRule.mainClock.autoAdvance = true
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(SWIPE_PAY_SHEET_TAG).assertDoesNotExist()
+    }
+
+    /** Frames 4.3 to 4.4: Google Pay's spinner on Add and Pay fades to Finishing Payment, in the same sheet. */
+    @Test
+    fun `4_4 - Add and Pay's spinner fades to Finishing Payment in the same sheet`() {
+        var pay by mutableStateOf(collectionPay(progress = LoadingSuccessState(loading = true)))
+        showFlowSheet(pay = { pay }, funding = { ui(case("s4-add-then-pay")) })
+        composeTestRule.onNodeWithTag("request_pay_add").assertExists()
+
+        composeTestRule.mainClock.autoAdvance = false
+        pay = collectionPay(finishing = true, progress = LoadingSuccessState(loading = true))
+        assertFades(from = "request_pay_add", to = "request_pay_finishing")
+        assertSheetUpEachFrame()
+
+        composeTestRule.onNodeWithTag("request_pay_add").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("request_pay_finishing").assertExists()
+    }
+
+    /**
+     * The flow can close the sheet a few frames after opening it: a top-up that stops right after
+     * the charge. The sheet slides down from wherever it got to, and the next open draws a new one.
+     */
+    @Test
+    fun `a sheet closed while it is still opening slides down, and the next open draws again`() {
+        composeTestRule.mainClock.autoAdvance = false
+        var pay by mutableStateOf(collectionPay(finishing = true, progress = LoadingSuccessState(loading = true)))
+        showFlowSheet(pay = { pay }, funding = { ui(case("s1-no-balance")) })
+        repeat(2) { composeTestRule.mainClock.advanceTimeByFrame() }
+        composeTestRule.onNodeWithTag(SWIPE_PAY_SHEET_TAG).assertExists()
+
+        pay = RequestPayFlow.State()
+        composeTestRule.mainClock.autoAdvance = true
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(SWIPE_PAY_SHEET_TAG).assertDoesNotExist()
+
+        pay = collectionPay()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(SWIPE_PAY_SHEET_TAG).assertExists()
+        composeTestRule.onNodeWithTag("request_pay_add").assertExists()
+    }
+
+    /**
+     * Holds the clock, closes the flow under the sheet, and steps two frames into the slide-down,
+     * checking the sheet is still drawn with [tag] on it.
+     */
+    private fun closeIntoSlideDown(close: () -> Unit, tag: String) {
+        composeTestRule.mainClock.autoAdvance = false
+        close()
+        repeat(2) { composeTestRule.mainClock.advanceTimeByFrame() }
+        composeTestRule.onNodeWithTag(SWIPE_PAY_SHEET_TAG).assertExists()
+        composeTestRule.onNodeWithTag(tag).assertExists()
+    }
+
+    /** Lets the slide-down finish, checks the sheet has gone, and opens the next sheet on [open]. */
+    private fun finishSlideDownAndReopen(open: () -> Unit) {
+        composeTestRule.mainClock.autoAdvance = true
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(SWIPE_PAY_SHEET_TAG).assertDoesNotExist()
+        open()
+        composeTestRule.waitForIdle()
+    }
+
+    /** The flow has reset once its sheet slides down: a tap there must not start a top-up. */
+    @Test
+    fun `Add and Pay on a sheet sliding down reaches nothing, and the next sheet's reaches the flow`() {
+        var adds = 0
+        var pay by mutableStateOf(collectionPay())
+        showFlowSheet(pay = { pay }, funding = { ui(case("s7-short-under-min")) }, onAddAndPay = { adds++ })
+        composeTestRule.waitForIdle()
+
+        closeIntoSlideDown(close = { pay = RequestPayFlow.State() }, tag = "request_pay_add")
+        composeTestRule.onNodeWithTag("request_pay_add").performClick()
+        composeTestRule.mainClock.advanceTimeByFrame()
+        assertEquals("a tap on the closing sheet", 0, adds)
+
+        finishSlideDownAndReopen { pay = collectionPay() }
+        composeTestRule.onNodeWithTag("request_pay_add").performClick()
+        composeTestRule.waitForIdle()
+        assertEquals("a tap on the next sheet", 1, adds)
+    }
+
+    /** The finger's path: down on the track, a drag to its end, and up, while the sheet slides down. */
+    @Test
+    fun `a swipe on a sheet sliding down reaches nothing, and the next sheet's reaches the flow`() {
+        var confirms = 0
+        var pay by mutableStateOf(collectionPay(isFunding = false))
+        showFlowSheet(pay = { pay }, funding = { null }, onConfirm = { confirms++ })
+        composeTestRule.waitForIdle()
+
+        closeIntoSlideDown(close = { pay = RequestPayFlow.State() }, tag = "request_pay_swipe")
+        composeTestRule.onNodeWithTag("request_pay_swipe").performTouchInput {
+            swipeRight(startX = left + 1f, endX = right, durationMillis = 120)
+        }
+        repeat(2) { composeTestRule.mainClock.advanceTimeByFrame() }
+        assertEquals("a swipe on the closing sheet", 0, confirms)
+
+        finishSlideDownAndReopen { pay = collectionPay(isFunding = false) }
+        composeTestRule.onNodeWithTag("request_pay_swipe").performTouchInput {
+            swipeRight(startX = left + 1f, endX = right, durationMillis = 120)
+        }
+        composeTestRule.waitForIdle()
+        assertEquals("a swipe on the next sheet", 1, confirms)
+    }
+
+    /** Pay step 4: the 60 s deadline takes Finishing Payment back to the sheet's swipe, in the same sheet. */
+    @Test
+    fun `a payment not confirmed takes Finishing Payment back to the swipe in the same sheet`() {
+        var pay by mutableStateOf(collectionPay(finishing = true, progress = LoadingSuccessState(loading = true)))
+        showFlowSheet(pay = { pay }, funding = { ui(case("s5-s6-convert-shortfall")) })
+        composeTestRule.onNodeWithTag("request_pay_finishing").assertExists()
+
+        pay = collectionPay()
+        assertSheetUpEachFrame()
+
+        composeTestRule.onNodeWithTag("request_pay_finishing").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("request_pay_swipe").assertExists()
+    }
+
+    @Test
+    fun `back during Finishing Payment leaves the sheet up in Finishing Payment`() {
+        var dismissals = 0
+        showSheet(
+            ui(case("s4-add-then-pay")),
+            finishing = true,
+            progress = LoadingSuccessState(loading = true),
+            onDismiss = { dismissals++ },
+        )
+
+        systemBack()
+
+        composeTestRule.onNodeWithTag(SWIPE_PAY_SHEET_TAG).assertExists()
+        composeTestRule.onNodeWithTag("request_pay_finishing").assertExists()
+        assertEquals(0, dismissals)
     }
 
     @Test

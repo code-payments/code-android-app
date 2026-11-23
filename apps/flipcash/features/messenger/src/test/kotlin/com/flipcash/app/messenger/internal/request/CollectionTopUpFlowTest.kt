@@ -1,6 +1,7 @@
 package com.flipcash.app.messenger.internal.request
 
 import com.flipcash.app.analytics.RecordingAnalytics
+import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.MainCoroutineRule
 import com.flipcash.app.messenger.internal.payment.StartChattingPayer
 import com.flipcash.app.tokens.FundingBalance
@@ -49,6 +50,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.After
@@ -59,7 +62,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -102,12 +107,16 @@ class CollectionTopUpFlowTest {
     private var nothingToPay = 0
     private var payFailures = 0
 
+    /** Every screen the flow opened; Finishing Payment is a sheet state and opens none. */
+    private val screens = mutableListOf<AppRoute>()
+
     /** How many top-ups had been ordered at each settle of the kept conversions. */
     private val settles = mutableListOf<Int>()
 
     @Before
     fun setUp() {
         BottomBarManager.clear()
+        screens.clear()
         every { userManager.accountId } returns listOf<Byte>(1)
         every { userManager.accountCluster } returns owner
         every { owner.withTimelockForToken(any()) } returns owner
@@ -161,9 +170,9 @@ class CollectionTopUpFlowTest {
         return case
     }
 
-    /** The case's plan over the balances as they now stand. */
-    private fun planNow() = planCollectionFunding(
-        amountMicros = input.getLong("amount_micros"),
+    /** The case's plan for [amountMicros], by default its own amount, over the balances as they now stand. */
+    private fun planNow(amountMicros: Long = input.getLong("amount_micros")) = planCollectionFunding(
+        amountMicros = amountMicros,
         minorDigits = input.getInt("minor_digits"),
         minTopUpMicros = input.getLong("min_top_up_micros"),
         dollarsId = DOLLARS,
@@ -188,7 +197,7 @@ class CollectionTopUpFlowTest {
             userManager = userManager,
             resources = resources,
             analytics = RecordingAnalytics(),
-            openScreen = {},
+            openScreen = { screens += it },
             onNothingToPay = { nothingToPay++ },
             onPaid = { paid++ },
         ).also { f -> scope.launch { f.token.collect {} } }
@@ -680,10 +689,11 @@ class CollectionTopUpFlowTest {
 
     /**
      * Sections 1 and 2: no balance funds it, so the Request screen's button is the top-up. It
-     * orders the case's cents ($10.00, $5.00) and pays once the Dollars land, with no sheet.
+     * orders the case's cents ($10.00, $5.00) with Google Pay over the Request screen and no
+     * sheet, then pays once the Dollars land, the sheet up from the charge on.
      */
     @Test
-    fun `sections 1 and 2 - the Request screen's Pay tops up and pays without the sheet`() {
+    fun `sections 1 and 2 - the Request screen's Pay opens Google Pay with no sheet, then pays in the sheet`() {
         for (name in listOf("s1-no-balance", "s2-min-top-up")) {
             setUp()
             rail.orders.clear()
@@ -702,8 +712,9 @@ class CollectionTopUpFlowTest {
             rail.googlePay!!.complete(Unit)
 
             assertEquals(1, paid, name)
-            assertEquals(false, f.state.value.open, name)
+            assertTrue(f.state.value.open && f.state.value.progress.success, "$name: the sheet holds the checkmark")
             assertTrue(store.topUps.isEmpty(), name)
+            assertTrue(screens.isEmpty(), name)
         }
         coVerify(exactly = 2) { payments.pay(any(), Token.usdf, owner, true) }
     }
@@ -775,25 +786,230 @@ class CollectionTopUpFlowTest {
         coVerify(exactly = 1) { payments.pay(any(), any(), any(), any()) }
     }
 
-    /** Frame 1.3: "Finishing Payment" covers the Request screen from Google Pay closing until paid. */
+    /**
+     * "Finishing Payment" is a state of the pay sheet on every entry: the sheet is up and locked
+     * in it, and no screen opened for it.
+     */
+    private fun assertFinishingInTheSheet(f: RequestPayFlow, entry: String) {
+        val state = f.state.value
+        assertTrue(state.open && state.finishing, "$entry: Finishing Payment in the sheet, was $state")
+        assertTrue(state.progress.loading, "$entry: the sheet is locked")
+        assertTrue(screens.isEmpty(), "$entry: no screen opened, was $screens")
+        assertEquals(0, paid, entry)
+    }
+
+    /** Frame 1.3: the Request screen's Pay, with no balance, shows Finishing Payment in the sheet. */
     @Test
-    fun `the Request screen shows Finishing Payment while the Dollars land`() {
+    fun `1_3 - the Request screen's Pay shows Finishing Payment in the sheet while the Dollars land`() {
         useCase("s1-no-balance")
         rail.delivery = CompletableDeferred()
         val f = flow()
 
         tapRequestScreenPay(f)
-        assertTrue(f.state.value.direct && f.state.value.finishing)
-        assertEquals(false, f.state.value.open)
-        assertEquals(0, paid)
+        assertFinishingInTheSheet(f, "section 1")
+        assertTrue(f.state.value.direct, "the Request screen's button started it")
 
         rail.delivery!!.complete(Unit)
         assertEquals(1, paid)
     }
 
-    /** Recovery 1 from the Request screen: the relaunch's tap, or the deck's Pay, waits and pays once. */
+    /** Section 2: the Request screen's Add and Pay, under the minimum, shows Finishing Payment in the sheet. */
     @Test
-    fun `process death after the Request screen's top-up - the next Pay waits on it and orders nothing`() {
+    fun `2 - the Request screen's Add and Pay shows Finishing Payment in the sheet while the Dollars land`() {
+        useCase("s2-min-top-up")
+        rail.delivery = CompletableDeferred()
+        val f = flow()
+
+        tapRequestScreenPay(f)
+        assertFinishingInTheSheet(f, "section 2")
+        assertEquals(listOf(500L), rail.orders)
+
+        rail.delivery!!.complete(Unit)
+        assertEquals(1, paid)
+    }
+
+    /** Frames 4.4, 7.5 and 8.4: the sheet's own Add and Pay shows Finishing Payment in the same sheet. */
+    @Test
+    fun `4_4, 7_5 and 8_4 - the sheet's Add and Pay shows Finishing Payment in the same sheet`() {
+        for (name in listOf("s4-add-then-pay", "s7-short-under-min", "s8-short-over-min")) {
+            setUp()
+            paid = 0
+            useCase(name)
+            rail.delivery = CompletableDeferred()
+            val f = flow()
+            tapRequestScreenPay(f)
+            assertTrue(f.state.value.open, "$name: a balance funds part, so Pay opens the sheet")
+
+            f.onAddAndPay()
+            assertFinishingInTheSheet(f, name)
+
+            rail.delivery!!.complete(Unit)
+            assertEquals(1, paid, name)
+        }
+    }
+
+    /** Recovery 1: Pay on the Request screen with a top-up kept opens the sheet straight in Finishing Payment. */
+    @Test
+    fun `a Pay with a kept top-up from the Request screen opens the sheet in Finishing Payment`() {
+        useCase("s2-min-top-up")
+        rail.googlePay = CompletableDeferred()
+        tapRequestScreenPay(flow())
+        assertTrue(store.topUps.isNotEmpty(), "kept before Google Pay opened")
+        scopes.forEach { it.cancel() }
+        rail.delivery = CompletableDeferred()
+
+        val relaunched = flow()
+        tapRequestScreenPay(relaunched)
+        assertFinishingInTheSheet(relaunched, "kept top-up")
+
+        rail.delivery!!.complete(Unit)
+        assertEquals(listOf(500L), rail.orders)
+        assertEquals(1, paid)
+    }
+
+    /** Frame 1.3 to 3.3: Finishing Payment, the checkmark held in the same sheet, then the sheet closes. */
+    @Test
+    fun `the sheet holds the checkmark once the Request screen's payment lands, then closes`() {
+        useCase("s1-no-balance")
+        val f = flow()
+
+        tapRequestScreenPay(f)
+
+        assertEquals(1, paid)
+        val held = f.state.value
+        assertTrue(held.open && held.progress.success && !held.finishing, "the checkmark in the sheet, was $held")
+        runBlocking { withTimeout(5_000) { f.state.first { !it.open } } }
+        assertTrue(screens.isEmpty())
+    }
+
+    /**
+     * Frame 3.3: the checkmark draws the plan it paid with. Section 1's payment spends the Dollars
+     * it added, and a replan from what is left would put "You're $10.00 Short" under the checkmark.
+     */
+    @Test
+    fun `1_3 to 3_3 - the checkmark draws the plan it paid with, not the balance the payment left`() {
+        useCase("s1-no-balance")
+        coEvery { payments.pay(any(), any(), any(), any()) } answers {
+            dollarsMicros -= request.amount.quarks
+            Result.success(Unit)
+        }
+        val f = flow()
+        CoroutineScope(Dispatchers.Unconfined).also(scopes::add).launch { f.fundingUi.collect {} }
+
+        tapRequestScreenPay(f)
+
+        assertTrue(f.state.value.progress.success, "the checkmark, was ${f.state.value}")
+        assertEquals(0L, dollarsMicros, "the payment spent the Dollars")
+        assertNull(assertNotNull(f.fundingUi.value).short, "no short line under the checkmark")
+        assertTrue(f.state.value.open, "in the sheet")
+    }
+
+    /**
+     * The plan held for the checkmark ends with the sheet: the next collection's sheet draws its own
+     * plan over the balances the payment left, not the one the last payment paid with.
+     */
+    @Test
+    fun `the next collection's sheet draws its own plan, not the one the last payment held`() {
+        useCase("s1-no-balance")
+        every { payments.planCollection(any(), any()) } answers { planNow(firstArg<Fiat>().quarks) }
+        coEvery { payments.pay(any(), any(), any(), any()) } answers {
+            dollarsMicros -= firstArg<ShareToPay.Ready>().amount.quarks
+            Result.success(Unit)
+        }
+        val next = ShareToPay.Ready(
+            request = mockk(relaxed = true) {
+                every { id } returns OTHER_REQUEST_ID
+                every { collection } returns mockk(relaxed = true)
+            },
+            amount = Fiat(quarks = 4_000_000L, currencyCode = CurrencyCode.USD),
+            intentId = mockk(relaxed = true),
+        )
+        coEvery { payments.prepare(OTHER_REQUEST_ID, any()) } returns Result.success(next)
+        val f = flow()
+        CoroutineScope(Dispatchers.Unconfined).also(scopes::add).launch { f.fundingUi.collect {} }
+
+        tapRequestScreenPay(f)
+
+        assertTrue(f.state.value.progress.success, "the checkmark, was ${f.state.value}")
+        val held = assertNotNull(f.plan.value, "the plan under the checkmark")
+        assertTrue(held.payableWithoutTopUp, "the checkmark draws the plan it paid with, was $held")
+        f.start(OTHER_REQUEST_ID, fund = true)
+        assertEquals(REQUEST_ID, f.state.value.requestId, "no second sheet during the hold")
+        runBlocking { withTimeout(5_000) { f.state.first { !it.open } } }
+
+        f.start(OTHER_REQUEST_ID, fund = true)
+
+        assertTrue(f.state.value.open, "the next collection's sheet, was ${f.state.value}")
+        assertEquals(OTHER_REQUEST_ID, f.state.value.requestId)
+        assertEquals(0, nothingToPay)
+        val live = planNow(next.amount.quarks)
+        assertEquals(false, live.payableWithoutTopUp, "the Dollars were spent, so the next one is short")
+        // The hold's delay releases on another thread, so read the plan once it settles. A held
+        // plan that outlived the sheet never settles to [live] and is what the assert reports.
+        val drawn = runBlocking { withTimeoutOrNull(5_000) { f.plan.first { it == live } } } ?: f.plan.value
+        assertEquals(live, drawn, "the next collection's plan over the balances left")
+        assertNotEquals(held, drawn)
+        val ui = runBlocking { withTimeoutOrNull(5_000) { f.fundingUi.first { it?.short != null } } } ?: f.fundingUi.value
+        assertNotNull(assertNotNull(ui).short, "its short line")
+    }
+
+    /** Pay step 4: the 60 s deadline unlocks the sheet on "Payment Not Confirmed"; it doesn't close. */
+    @Test
+    fun `a payment not confirmed after the Request screen's top-up leaves the sheet up and unlocked`() {
+        every { resources.getString(any<Int>()) } answers { "string ${firstArg<Int>()}" }
+        useCase("s1-no-balance")
+        coEvery { payments.pay(any(), any(), any(), any()) } returns Result.failure(PaymentNotConfirmed())
+        val f = flow()
+
+        tapRequestScreenPay(f)
+
+        val state = f.state.value
+        assertTrue(state.open && !state.finishing, "the sheet stays up, out of Finishing Payment, was $state")
+        assertTrue(state.progress.isIdle, "the sheet can be left")
+        assertEquals("string ${R.string.error_title_paymentNotConfirmed}", BottomBarManager.messages.value.single().title)
+    }
+
+    /** A failed payment after the Request screen's top-up stays in the sheet, and its retry pays from the Dollars. */
+    @Test
+    fun `a payment failing after the Request screen's top-up leaves the sheet up, and the retry charges nothing`() {
+        useCase("s1-no-balance")
+        payFailures = 1
+        val f = flow()
+
+        tapRequestScreenPay(f)
+
+        val state = f.state.value
+        assertTrue(state.open && !state.finishing && state.progress.isIdle, "the sheet, unlocked, was $state")
+        assertEquals(false, state.direct, "a later stop from this sheet leaves it up")
+
+        f.confirm()
+
+        assertEquals(listOf(1000L), rail.orders)
+        assertEquals(1, paid)
+    }
+
+    /** No short state for sections 1 and 2: a top-up that won't land closes the sheet back to the Request screen's button. */
+    @Test
+    fun `a top-up still pending after the Request screen's Pay closes the sheet back to the button`() {
+        every { resources.getString(any<Int>()) } answers { "string ${firstArg<Int>()}" }
+        useCase("s1-no-balance")
+        rail.delivery = CompletableDeferred()
+        rail.deliveryResult = TopUpDelivery.TimedOut
+        val f = flow()
+        tapRequestScreenPay(f)
+        assertFinishingInTheSheet(f, "section 1")
+
+        rail.delivery!!.complete(Unit)
+
+        val state = f.state.value
+        assertTrue(!state.open && !state.finishing && state.progress.isIdle, "back to the button, was $state")
+        assertEquals("string ${R.string.error_title_collectionTopUpPending}", BottomBarManager.messages.value.single().title)
+        assertEquals(0, paid)
+    }
+
+    /** Recovery 1 from the Request screen: the relaunch's tap, or the deck's Pay, waits in the sheet and pays once. */
+    @Test
+    fun `process death after the Request screen's top-up - the next Pay waits on it in the sheet and orders nothing`() {
         for (reopen in listOf("request screen", "deck")) {
             setUp()
             rail.orders.clear()
@@ -811,7 +1027,8 @@ class CollectionTopUpFlowTest {
             assertEquals(listOf(500L), rail.orders, reopen)
             assertEquals(1, paid, reopen)
             assertTrue(store.topUps.isEmpty(), reopen)
-            assertEquals(reopen == "deck", relaunched.state.value.open, reopen)
+            assertTrue(relaunched.state.value.open && relaunched.state.value.progress.success, "$reopen: the checkmark in the sheet")
+            assertTrue(screens.isEmpty(), reopen)
         }
     }
 
@@ -1062,6 +1279,7 @@ class CollectionTopUpFlowTest {
         const val FIXTURE = "../../shared/tokens/src/androidHostTest/resources/collection_funding.json"
         const val DOLLARS = "dollars"
         val REQUEST_ID = listOf<Byte>(2)
+        val OTHER_REQUEST_ID = listOf<Byte>(3)
         const val MICROS_PER_CENT = 10_000L
         const val MOONY_ID = "moony"
         val MOONY = Token.usdf.copy(address = Mint("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"))

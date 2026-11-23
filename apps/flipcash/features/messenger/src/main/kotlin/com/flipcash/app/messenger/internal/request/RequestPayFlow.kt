@@ -111,14 +111,16 @@ internal class RequestPayFlow(
          */
         val funding: Boolean = false,
         /**
-         * "Finishing Payment" in place of the sheet: a top-up has been charged and its Dollars are
-         * landing, then the payment runs (frames 1.3, 4.4, 7.5, 8.4).
+         * "Finishing Payment" in the sheet, in place of its content: a top-up has been charged and
+         * its Dollars are landing, then the payment runs (frames 1.3, 4.4, 7.5, 8.4). Every write
+         * of it opens the sheet, whichever entry started the top-up.
          */
         val finishing: Boolean = false,
         /**
-         * The Request screen's own button is the top-up, with no sheet (sections 1 and 2): no
-         * balance funds the collection, or a kept top-up is resuming. The button spins while
-         * Google Pay is up, and [finishing] covers the screen (frame 1.3).
+         * The Request screen's own button started the top-up (sections 1 and 2): no balance funds
+         * the collection, or a kept top-up is resuming. The button spins while Google Pay is up
+         * with no sheet; the sheet opens on [finishing]. A top-up that stops closes the sheet back
+         * to the button, which has no short state of its own.
          */
         val direct: Boolean = false,
     )
@@ -128,6 +130,13 @@ internal class RequestPayFlow(
 
     /** The currency picked in the open collection sheet; null until the viewer picks one. */
     private val collectionPick = MutableStateFlow<Mint?>(null)
+
+    /**
+     * The plan [pay] pays with, from the payment through its success hold, so the sheet draws what
+     * it paid (frame 3.3) rather than a replan of the balances the payment left: once section 1's
+     * payment spends the Dollars it added, that replan is short. Null otherwise.
+     */
+    private val payingPlan = MutableStateFlow<CollectionFundingPlan?>(null)
 
     /**
      * What the sheet pays from. A split pays from the wallet's selected token. A collection being
@@ -154,9 +163,10 @@ internal class RequestPayFlow(
         _state,
         token,
         tokenCoordinator.tokenBalances.map { }.onStart { emit(Unit) },
-    ) { state, token, _ ->
+        payingPlan,
+    ) { state, token, _, paying ->
         val amount = state.amount
-        if (!state.funding || amount == null || token == null) null else payments.planCollection(amount, token)
+        if (!state.funding || amount == null || token == null) null else paying ?: payments.planCollection(amount, token)
     }.stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
@@ -372,6 +382,7 @@ internal class RequestPayFlow(
 
     private suspend fun pay(pending: ShareToPay.Ready, token: Token, owner: AccountCluster) {
         retryAsksFirst = false
+        if (_state.value.funding) payingPlan.value = payments.planCollection(pending.amount, token)
         _state.update { it.copy(progress = LoadingSuccessState(loading = true)) }
         payments.pay(pending, token, owner.withTimelockForToken(token), fund = _state.value.funding)
             .onSuccess {
@@ -390,6 +401,7 @@ internal class RequestPayFlow(
                 }
             }
             .onFailure { cause ->
+                payingPlan.value = null
                 if (cause is CollectionFundingError.Short) {
                     // Conversions can't cover it, so nothing was paid. Fresh balances replan the
                     // sheet into the short state, which asks before adding anything. Nothing waits
@@ -447,7 +459,7 @@ internal class RequestPayFlow(
                     payingCurrency = token.address,
                     owner = owner,
                     checkGates = checkGates,
-                    onCharged = { _state.update { it.copy(finishing = true) } },
+                    onCharged = { _state.update { it.copy(finishing = true, open = true) } },
                 )
                 afterTopUp(found, token, owner, result)
             }
@@ -495,7 +507,7 @@ internal class RequestPayFlow(
      */
     private fun resumeTopUp(pending: ShareToPay.Ready, default: Token) {
         val owner = userManager.accountCluster ?: return
-        _state.update { it.copy(progress = LoadingSuccessState(loading = true), finishing = true) }
+        _state.update { it.copy(progress = LoadingSuccessState(loading = true), finishing = true, open = true) }
         scope.launch {
             topUp.exclusive(pending.request.id) {
                 // Read before the wait, which drops the record once the Dollars land.
@@ -536,7 +548,7 @@ internal class RequestPayFlow(
                 }
                 val plan = payments.planCollection(found.amount, token)
                 if (plan == null || plan.payableWithoutTopUp) {
-                    _state.update { it.copy(finishing = true) }
+                    _state.update { it.copy(finishing = true, open = true) }
                     pay(found, token, owner)
                 } else {
                     showShortState()
@@ -597,11 +609,14 @@ internal class RequestPayFlow(
     }
 
     /**
-     * Back to the sheet as the balances now plan it: the short state, or the swipe. With no sheet
-     * ([State.direct]), back to the Request screen's button, which plans again when tapped.
+     * Back to the sheet as the balances now plan it: the short state, or the swipe. A top-up the
+     * Request screen's button started ([State.direct]) closes the sheet back to the button, which
+     * plans again when tapped: sections 1 and 2 have no short state in a sheet.
      */
     private fun stopTopUp() {
-        _state.update { it.copy(progress = LoadingSuccessState(), finishing = false) }
+        _state.update {
+            it.copy(progress = LoadingSuccessState(), finishing = false, open = it.open && !it.direct)
+        }
     }
 
     /**
@@ -636,11 +651,14 @@ internal class RequestPayFlow(
      * A payment the server didn't confirm in time ([PaymentNotConfirmed]) unlocks the sheet and
      * says so before refetching (spec, pay step 4): that server may not answer the refetch either,
      * so it runs outside the request's lock and the user can leave meanwhile.
+     *
+     * The sheet stays up for the retry, even on a payment the Request screen's top-up started: it
+     * is no longer [State.direct], so a stop from this sheet leaves it up.
      */
     private suspend fun afterFailedPayment(pending: ShareToPay.Ready, cause: Throwable) {
         analytics.track(sentCash(AnalyticsState.FAILURE, pending, cause.analytics))
         retryAsksFirst = true
-        _state.update { it.copy(progress = LoadingSuccessState(), finishing = false) }
+        _state.update { it.copy(progress = LoadingSuccessState(), finishing = false, direct = false) }
         val viewer = viewerId ?: return
         if (cause is PaymentNotConfirmed) {
             presentPaymentError(cause)
@@ -698,6 +716,8 @@ internal class RequestPayFlow(
                 direct = false,
             )
         }
+        // After the sheet's state, so no frame replans the open sheet from the balances left.
+        payingPlan.value = null
     }
 
     /** "Add Money" from a modal: the sheet closes, then the deposit screen opens. */

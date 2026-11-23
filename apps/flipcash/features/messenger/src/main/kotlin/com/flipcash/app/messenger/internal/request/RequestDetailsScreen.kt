@@ -1,6 +1,5 @@
 package com.flipcash.app.messenger.internal.request
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -122,10 +121,6 @@ internal fun RequestDetailsScreen(
     val paidPayers by viewModel.paidPayers.collectAsStateWithLifecycle()
     val directPay by viewModel.directPay.collectAsStateWithLifecycle()
     val viewerId = viewModel.viewerId
-    // The Request screen's button started a top-up, which has landed and is paying (frame 1.3):
-    // "Finishing Payment" covers the screen, and back waits for it.
-    val directFinishing = pay.direct && pay.finishing
-    BackHandler(enabled = directFinishing) { }
 
     val current = request
     // Group Money on: a collection takes the collection rules; a split keeps the shipped screen.
@@ -136,7 +131,6 @@ internal fun RequestDetailsScreen(
 
     CodeScaffold(
         topBar = {
-            if (directFinishing) return@CodeScaffold
             AppBarWithTitle(
                 title = stringResource(R.string.title_requestDetails),
                 titleAlignment = Alignment.CenterHorizontally,
@@ -170,7 +164,6 @@ internal fun RequestDetailsScreen(
             )
         },
         bottomBar = {
-            if (directFinishing) return@CodeScaffold
             val each = collection?.let {
                 payableCollectionAmount(it, viewerId, now, state.callerPaid, paidPayers, state.nothingToPay)
             }
@@ -178,7 +171,8 @@ internal fun RequestDetailsScreen(
                 CollectionPayButton(
                     // With no balance to fund it, the button is the top-up: "Pay $10.00" when the
                     // top-up is the amount (frame 1.1), "Add $5.00 and Pay $2.00" over Google Pay's
-                    // minimum (2.1). It spins while Google Pay is up.
+                    // minimum (2.1). It spins while Google Pay is up, and under the pay sheet's
+                    // "Finishing Payment" once the top-up is charged (1.3).
                     text = directPay?.button
                         ?: stringResource(R.string.action_payShare, each.inDisplayCurrency().collectionText()),
                     footnote = directPay?.footnote,
@@ -205,15 +199,6 @@ internal fun RequestDetailsScreen(
             }
         },
     ) { padding ->
-        if (directFinishing) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center,
-            ) {
-                CollectionFinishing()
-            }
-            return@CodeScaffold
-        }
         if (current == null || (collection != null && state.payUnavailable)) {
             if (unavailable) {
                 Box(
