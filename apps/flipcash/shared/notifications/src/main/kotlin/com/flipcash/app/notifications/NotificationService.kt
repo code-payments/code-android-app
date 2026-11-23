@@ -4,7 +4,6 @@ import android.Manifest
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import androidx.core.app.RemoteInput
 import android.content.pm.PackageManager
 import android.os.Build
 import android.graphics.Bitmap
@@ -547,8 +546,8 @@ class NotificationService : FirebaseMessagingService(),
 
         setStyle(style)
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
-            .addAction(buildReplyAction(chatId, notificationId))
-            .addAction(buildMarkAsReadAction(chatId))
+            .addAction(buildChatReplyAction(this@NotificationService, chatId, notificationId))
+            .addAction(buildChatMarkAsReadAction(this@NotificationService, chatId))
 
         return notificationId
     }
@@ -712,53 +711,6 @@ class NotificationService : FirebaseMessagingService(),
         } else {
             block()
         }
-    }
-
-    @OptIn(ExperimentalStdlibApi::class)
-    private fun buildReplyAction(chatId: ChatId, notificationId: Int): NotificationCompat.Action {
-        val remoteInput = RemoteInput.Builder(NotificationActionReceiver.KEY_TEXT_REPLY)
-            .setLabel(getString(R.string.notification_action_reply))
-            .build()
-
-        val intent = Intent(this, NotificationActionReceiver::class.java).apply {
-            action = NotificationActionReceiver.ACTION_REPLY
-            putExtra(NotificationActionReceiver.KEY_CHAT_ID_HEX, chatId.bytes.toHexString())
-            putExtra(NotificationActionReceiver.KEY_NOTIFICATION_ID, notificationId)
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            this,
-            chatId.hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
-        )
-
-        return NotificationCompat.Action.Builder(
-            R.drawable.ic_reply,
-            getString(R.string.notification_action_reply),
-            pendingIntent,
-        ).addRemoteInput(remoteInput).build()
-    }
-
-    @OptIn(ExperimentalStdlibApi::class)
-    private fun buildMarkAsReadAction(chatId: ChatId): NotificationCompat.Action {
-        val intent = Intent(this, NotificationActionReceiver::class.java).apply {
-            action = NotificationActionReceiver.ACTION_MARK_READ
-            putExtra(NotificationActionReceiver.KEY_CHAT_ID_HEX, chatId.bytes.toHexString())
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            this,
-            chatId.hashCode() + 1,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
-        return NotificationCompat.Action.Builder(
-            R.drawable.ic_mark_read,
-            getString(R.string.notification_action_mark_as_read),
-            pendingIntent,
-        ).build()
     }
 
     /**
