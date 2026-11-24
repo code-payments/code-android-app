@@ -1,7 +1,11 @@
 package com.flipcash.shared.chat
 
-/** The chip selected above the Chats list. Not persisted: every cold start opens on [All]. */
-enum class ChatListFilter { All, Unread, Groups }
+/**
+ * The chip selected above the Chats list. Not persisted: every cold start opens on [All]. The row
+ * offers [Groups] or [DMs], never both: [DMs] replaces [Groups] under the group-money UI, where the
+ * tab is group-focused.
+ */
+enum class ChatListFilter { All, Unread, Groups, DMs }
 
 /**
  * One chat as the list projection sees it. [id] is opaque here (the app passes the chat id's
@@ -40,6 +44,9 @@ data class ChatListEntry(
  *   included.
  * @property groupsChip [main] filtered to groups. The chip's *number* is [groupsChipCount], the
  *   unread groups among them.
+ * @property dmsChip [main] filtered to every chat that is not a group, for the chip that replaces
+ *   Groups under the group-money UI. The chip's *number* is [dmsChipCount], the unread ones among
+ *   them.
  * @property archived the chats under the Archived row, muted ones included.
  * @property archivedRowVisible whether any chat is archived; the row is shown whenever it is, even
  *   when [main] is empty.
@@ -54,9 +61,11 @@ data class ChatListProjection(
     val main: List<String>,
     val unreadChip: List<String>,
     val groupsChip: List<String>,
+    val dmsChip: List<String>,
     val archived: List<String>,
     val unreadChipCount: Int,
     val groupsChipCount: Int,
+    val dmsChipCount: Int,
     val archivedRowVisible: Boolean,
     val archivedRowCount: Int,
     val tabBadge: Int,
@@ -65,6 +74,7 @@ data class ChatListProjection(
         ChatListFilter.All -> main
         ChatListFilter.Unread -> unreadChip
         ChatListFilter.Groups -> groupsChip
+        ChatListFilter.DMs -> dmsChip
     }
 
     companion object {
@@ -72,9 +82,11 @@ data class ChatListProjection(
             main = emptyList(),
             unreadChip = emptyList(),
             groupsChip = emptyList(),
+            dmsChip = emptyList(),
             archived = emptyList(),
             unreadChipCount = 0,
             groupsChipCount = 0,
+            dmsChipCount = 0,
             archivedRowVisible = false,
             archivedRowCount = 0,
             tabBadge = 0,
@@ -93,15 +105,17 @@ fun projectChatList(entries: List<ChatListEntry>): ChatListProjection {
     val main = active.sortedByDescending { it.sortTimeMs }
     val archivedSorted = archived.sortedByDescending { it.sortTimeMs }
     val unread = main.filter { it.isUnread }
-    val groups = main.filter { it.isGroup }
+    val (groups, dms) = main.partition { it.isGroup }
 
     return ChatListProjection(
         main = main.map { it.id },
         unreadChip = unread.map { it.id },
         groupsChip = groups.map { it.id },
+        dmsChip = dms.map { it.id },
         archived = archivedSorted.map { it.id },
         unreadChipCount = unread.size,
         groupsChipCount = groups.count { it.isUnread },
+        dmsChipCount = dms.count { it.isUnread },
         archivedRowVisible = archivedSorted.isNotEmpty(),
         archivedRowCount = archivedSorted.count { it.isUnread },
         tabBadge = unread.size,

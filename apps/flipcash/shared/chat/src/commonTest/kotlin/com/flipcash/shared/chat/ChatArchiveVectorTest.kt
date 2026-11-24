@@ -68,10 +68,12 @@ class ChatArchiveVectorTest {
             assertEquals(expect.strings("main"), actual.main, "$name: main. $note")
             assertEquals(expect.strings("unreadChip"), actual.unreadChip, "$name: unreadChip. $note")
             assertEquals(expect.strings("groupsChip"), actual.groupsChip, "$name: groupsChip. $note")
+            assertEquals(expect.strings("dmsChip"), actual.dmsChip, "$name: dmsChip. $note")
             assertEquals(expect.strings("archived"), actual.archived, "$name: archived. $note")
             val counts = expect.getJSONObject("chipCounts")
             assertEquals(counts.getInt("unread"), actual.unreadChipCount, "$name: unread chip count. $note")
             assertEquals(counts.getInt("groups"), actual.groupsChipCount, "$name: groups chip count. $note")
+            assertEquals(counts.getInt("dms"), actual.dmsChipCount, "$name: DMs chip count. $note")
             val row = expect.getJSONObject("archivedRow")
             assertEquals(row.getBoolean("visible"), actual.archivedRowVisible, "$name: archived row visible. $note")
             assertEquals(row.getInt("count"), actual.archivedRowCount, "$name: archived row count. $note")
@@ -85,11 +87,13 @@ class ChatArchiveVectorTest {
             listOf(
                 ChatListEntry("a", isGroup = false, lastActivityMs = 3, archived = false, muted = false, hidden = false, unread = 0),
                 ChatListEntry("b", isGroup = true, lastActivityMs = 2, archived = false, muted = false, hidden = false, unread = 4),
+                ChatListEntry("c", isGroup = true, lastActivityMs = 1, archived = false, muted = false, hidden = false, unread = 0),
             )
         )
-        assertEquals(listOf("a", "b"), projection.idsFor(ChatListFilter.All))
+        assertEquals(listOf("a", "b", "c"), projection.idsFor(ChatListFilter.All))
         assertEquals(listOf("b"), projection.idsFor(ChatListFilter.Unread))
-        assertEquals(listOf("b"), projection.idsFor(ChatListFilter.Groups))
+        assertEquals(listOf("b", "c"), projection.idsFor(ChatListFilter.Groups))
+        assertEquals(listOf("a"), projection.idsFor(ChatListFilter.DMs))
     }
 
     private fun JSONObject.triState(key: String): Boolean {
