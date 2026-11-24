@@ -12,6 +12,7 @@ import com.flipcash.app.persistence.sources.lastMessagesByChat
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.PagingToken
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import kotlinx.coroutines.Dispatchers
@@ -100,7 +101,7 @@ class ChatFeedRemoteMediator(
                 }
             }
 
-            if (watermark.isComplete) reconcileGroupRemovals()
+            if (watermark.isComplete) reconcileGroupRemovals(limit = state.config.pageSize)
 
             MediatorResult.Success(endOfPaginationReached = watermark.isComplete)
         } catch (e: Exception) {
@@ -110,9 +111,10 @@ class ChatFeedRemoteMediator(
 
     private suspend fun fetch(chatType: ChatType, token: PagingToken?, limit: Int) {
         val options = QueryOptions(limit = limit, token = token, descending = true)
+        // The inbox: the list this pages leaves archived chats out.
         val page = when (chatType) {
-            ChatType.GROUP -> controller.getGroupChatFeed(options)
-            else -> controller.getDmChatFeed(chatType, options)
+            ChatType.GROUP -> controller.getGroupChatFeed(options, ChatFolder.INBOX)
+            else -> controller.getDmChatFeed(chatType, options, ChatFolder.INBOX)
         }.getOrElse {
             // One source erroring stops that source advancing and nothing else. It does keep the
             // pass from reporting itself complete, which is what holds back the removal
@@ -152,12 +154,37 @@ class ChatFeedRemoteMediator(
      * clearing it optimistically. This is the backstop for a removal that happened while the
      * stream was down, and it only runs at the end of pagination: a chat missing from a partial
      * pass has not been left, it has not been reached.
+     *
+     * The pass pages the inbox, which leaves out every archived group, so those are read to the
+     * end before anything is cleared. Read rather than taken from local state: a group archived
+     * on another device while this one was offline is absent from the inbox and not yet marked
+     * archived here. If any archived page fails, nothing is cleared.
      */
-    private suspend fun reconcileGroupRemovals() {
+    private suspend fun reconcileGroupRemovals(limit: Int) {
         if (ChatType.GROUP !in chatTypes) return
+        val archived = archivedGroupIds(limit) ?: return
         for (chatIdHex in metadataDataSource.getChatIdsOfType(ChatType.GROUP)) {
-            if (chatIdHex in seenGroupIds) continue
+            if (chatIdHex in seenGroupIds || chatIdHex in archived) continue
             metadataDataSource.removeFromChat(chatIdHex)
         }
+    }
+
+    /**
+     * Every archived group, paged to the end and persisted like any other page. Null when a page
+     * fails or the server says there is more without a token to fetch it.
+     */
+    private suspend fun archivedGroupIds(limit: Int): Set<String>? {
+        val ids = mutableSetOf<String>()
+        var token: PagingToken? = null
+        do {
+            val options = QueryOptions(limit = limit, token = token, descending = true)
+            val page = controller.getGroupChatFeed(options, ChatFolder.ARCHIVED)
+                .getOrElse { return null }
+            persist(page.chats)
+            page.chats.mapTo(ids) { metadataDataSource.chatIdHex(it.chatId) }
+            token = page.pagingToken
+            if (page.hasMore && token == null) return null
+        } while (page.hasMore)
+        return ids
     }
 }
