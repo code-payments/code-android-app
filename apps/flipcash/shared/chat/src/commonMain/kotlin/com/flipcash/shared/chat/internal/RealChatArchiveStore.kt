@@ -34,8 +34,9 @@ import javax.inject.Singleton
  * foreground. Writes go one at a time. Each write's answer decides what happens to it:
  * - OK applies the returned viewer state through the version gate, then retires the write.
  * - DENIED or NOT_FOUND retires it: the server will never take it.
- * - UNIMPLEMENTED keeps it and stops every send until logout: this server has no archive, and
- *   asking again per write or per pass would only get the same answer.
+ * - UNIMPLEMENTED keeps it and stops every send until the app restarts or the user signs out:
+ *   this server has no archive, and asking again per write or per pass would only get the same
+ *   answer. The flag is held in memory, so the next launch asks once more.
  * - No answer at all keeps it and ends the pass: the rest would fail the same way.
  * - Any other answer keeps it, and the pass goes on to the next write: the server answered, so
  *   the failure belongs to this write, not to the connection.

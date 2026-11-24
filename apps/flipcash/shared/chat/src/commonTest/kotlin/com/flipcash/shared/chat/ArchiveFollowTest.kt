@@ -39,7 +39,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Following the archive on the event stream: when the stream is asked to carry archived groups,
- * what answers a follow, and what of an archived group's updates still lands while it is not
+ * what answers a follow, and that an archived group's updates still land when it is not
  * followed.
  *
  * The seq and ack bookkeeping under this is the controller's, and is covered in
@@ -208,6 +208,11 @@ class ArchiveFollowTest {
     }
 
     @Test
+    fun `the grace before unfollowing is 500ms, as on iOS`() {
+        assertEquals(500.milliseconds, EventStreamDelegate.FOLLOW_OFF_GRACE)
+    }
+
+    @Test
     fun `going from the archive into an archived group keeps following`() = runTest {
         serverArchived.value = mapOf(groupHex to 1_000L)
         startFollowing()
@@ -293,6 +298,28 @@ class ArchiveFollowTest {
         runCurrent()
 
         verify(exactly = 1) { messagingController.getDelta(group, 42L, any()) }
+    }
+
+    @Test
+    fun `an archived group opened after the follow is confirmed fetches no catch-up`() = runTest {
+        // Confirmed on the Archived screen: the stream has carried the group since, and its
+        // opening page seats the cursor at head, so nothing is left for a delta to fetch.
+        serverArchived.value = mapOf(groupHex to 1_000L)
+        coEvery { metadataDataSource.archivedAt(group) } returns 1_000L
+        coEvery { metadataDataSource.getLatestEventSequence(group) } returns 42L
+        openStream()
+        startFollowing()
+        delegate.setArchiveVisible(true)
+        runCurrent()
+        acks.emit(true)
+        runCurrent()
+
+        stateHolder.update { it.copy(activeChat = group) }
+        delegate.setArchiveVisible(false)
+        advanceTimeBy(EventStreamDelegate.FOLLOW_OFF_GRACE * 3)
+
+        assertTrue(following)
+        verify(exactly = 0) { messagingController.getDelta(any(), any(), any()) }
     }
 
     @Test
