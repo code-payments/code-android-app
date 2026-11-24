@@ -24,7 +24,7 @@ class PaymentRequestTextVectorTest {
     private val creatorId = root.hex("creatorId")
 
     @Test
-    fun texts_encryptAndDecrypt() {
+    fun texts_encryptAndDecrypt() = sodiumTest {
         val vectors = list("texts")
         assertEquals(4, vectors.size)
         for (v in vectors) {
@@ -43,7 +43,7 @@ class PaymentRequestTextVectorTest {
     }
 
     @Test
-    fun rejects_failToDecrypt() {
+    fun rejects_failToDecrypt() = sodiumTest {
         val vectors = list("rejects")
         assertEquals(5, vectors.size)
         val label = root.string("label").encodeToByteArray()
@@ -67,7 +67,7 @@ class PaymentRequestTextVectorTest {
     }
 
     @Test
-    fun randomNonces_roundTripAndDiffer() {
+    fun randomNonces_roundTripAndDiffer() = sodiumTest {
         val v = list("texts")[1]
         val a = DefaultChatCipher.encryptPaymentRequestText(v.hex("plaintext"), chatKey, chatId, creatorId)
         val b = DefaultChatCipher.encryptPaymentRequestText(v.hex("plaintext"), chatKey, chatId, creatorId)

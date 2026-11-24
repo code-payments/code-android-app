@@ -24,7 +24,7 @@ class InviteVectorTest {
     private fun rejects(key: String) = root["rejects"]!!.jsonObject[key]!!.jsonArray.map { it.jsonObject }
 
     @Test
-    fun derivation() {
+    fun derivation() = sodiumTest {
         val vectors = list("derivation")
         assertEquals(8, vectors.size)
         for (v in vectors) {
@@ -36,7 +36,7 @@ class InviteVectorTest {
     }
 
     @Test
-    fun keyEnvelopes_sealAndOpen() {
+    fun keyEnvelopes_sealAndOpen() = sodiumTest {
         val vectors = list("keyEnvelopes")
         assertEquals(4, vectors.size)
         for (v in vectors) {
@@ -58,7 +58,7 @@ class InviteVectorTest {
     }
 
     @Test
-    fun secretEnvelopes_sealAndOpen() {
+    fun secretEnvelopes_sealAndOpen() = sodiumTest {
         val vectors = list("secretEnvelopes")
         assertEquals(4, vectors.size)
         for (v in vectors) {
@@ -73,7 +73,7 @@ class InviteVectorTest {
     }
 
     @Test
-    fun bundles_open() {
+    fun bundles_open() = sodiumTest {
         val vectors = list("bundles")
         assertTrue(vectors.isNotEmpty())
         for (v in vectors) {
@@ -84,7 +84,7 @@ class InviteVectorTest {
     }
 
     @Test
-    fun links_encode() {
+    fun links_encode() = sodiumTest {
         val vectors = list("links")
         assertEquals(4, vectors.size)
         for (v in vectors) {
@@ -95,7 +95,7 @@ class InviteVectorTest {
     }
 
     @Test
-    fun fragmentParse() {
+    fun fragmentParse() = sodiumTest {
         val vectors = list("fragmentParse")
         assertEquals(13, vectors.size)
         for (v in vectors) {
@@ -105,7 +105,7 @@ class InviteVectorTest {
     }
 
     @Test
-    fun routes() {
+    fun routes() = sodiumTest {
         val vectors = list("routes")
         assertEquals(7, vectors.size)
         for (v in vectors) {
@@ -124,7 +124,7 @@ class InviteVectorTest {
     }
 
     @Test
-    fun rejects_keyEnvelopes_failAtTheirStep() {
+    fun rejects_keyEnvelopes_failAtTheirStep() = sodiumTest {
         val vectors = rejects("keyEnvelope")
         assertEquals(8, vectors.size)
         for (v in vectors) {
@@ -146,7 +146,7 @@ class InviteVectorTest {
     }
 
     @Test
-    fun rejects_secretEnvelopes() {
+    fun rejects_secretEnvelopes() = sodiumTest {
         val vectors = rejects("secretEnvelope")
         assertEquals(6, vectors.size)
         for (v in vectors) {
@@ -160,7 +160,7 @@ class InviteVectorTest {
     }
 
     @Test
-    fun rejects_bundles_failAtTheirStep() {
+    fun rejects_bundles_failAtTheirStep() = sodiumTest {
         val vectors = rejects("bundles")
         assertEquals(3, vectors.size)
         // The reject cases carry no inviteId; every bundle in the fixture is for the same invite.
@@ -174,7 +174,7 @@ class InviteVectorTest {
     }
 
     @Test
-    fun randomSeal_roundTripsAndDiffers() {
+    fun randomSeal_roundTripsAndDiffers() = sodiumTest {
         val v = list("keyEnvelopes").first()
         val inviter = Ed25519Kmp.createKeyPair(v.hex("inviterSeed"))
         val a = DefaultInviteCipher.sealInviteKeyEnvelope(inviter, v.hex("secret"), v.hex("chatId"), v.hex("chatKey"))

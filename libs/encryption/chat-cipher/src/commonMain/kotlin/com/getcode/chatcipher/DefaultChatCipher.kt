@@ -290,7 +290,12 @@ object DefaultChatCipher : ChatCipher {
     }
 
     internal fun ensureSodium() {
-        // Synchronous on JVM/Android/Native; the app also initializes it at startup.
+        // Synchronous on JVM/Android/Native; the app also initializes it at startup. On JS the
+        // bindings load libsodium with an async import(), so this call only starts the load and
+        // the check below fails until it finishes: JS callers await [awaitSodium] first.
         if (!LibsodiumInitializer.isInitialized()) LibsodiumInitializer.initializeWithCallback { }
+        if (!LibsodiumInitializer.isInitialized()) {
+            throw ChatCipherException("libsodium is still loading; await awaitSodium() before using the cipher")
+        }
     }
 }

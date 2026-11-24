@@ -17,7 +17,7 @@ class GroupCipherVectorTest {
     private fun list(key: String) = root[key]!!.jsonArray.map { it.jsonObject }
 
     @Test
-    fun messages_encryptAndDecrypt() {
+    fun messages_encryptAndDecrypt() = sodiumTest {
         val vectors = list("messages")
         assertTrue(vectors.size >= 4)
         for (v in vectors) {
@@ -31,7 +31,7 @@ class GroupCipherVectorTest {
     }
 
     @Test
-    fun blobs_encryptAndDecrypt() {
+    fun blobs_encryptAndDecrypt() = sodiumTest {
         val vectors = list("blobs")
         assertTrue(vectors.isNotEmpty())
         for (v in vectors) {
@@ -47,7 +47,7 @@ class GroupCipherVectorTest {
     }
 
     @Test
-    fun wraps_matchAndOpen() {
+    fun wraps_matchAndOpen() = sodiumTest {
         val vectors = list("wraps")
         assertTrue(vectors.size >= 2)
         for (v in vectors) {
@@ -62,7 +62,7 @@ class GroupCipherVectorTest {
     }
 
     @Test
-    fun rejects_messages() {
+    fun rejects_messages() = sodiumTest {
         val vectors = root["rejects"]!!.jsonObject["decryptGroup"]!!.jsonArray.map { it.jsonObject }
         assertTrue(vectors.size >= 5)
         for (v in vectors) {
@@ -73,7 +73,7 @@ class GroupCipherVectorTest {
     }
 
     @Test
-    fun randomNonces_roundTripAndDiffer() {
+    fun randomNonces_roundTripAndDiffer() = sodiumTest {
         val v = list("messages")[1]
         val a = DefaultChatCipher.encryptGroup(v.hex("content"), v.hex("groupKey"), v.hex("chatId"), v.hex("senderId"))
         val b = DefaultChatCipher.encryptGroup(v.hex("content"), v.hex("groupKey"), v.hex("chatId"), v.hex("senderId"))
