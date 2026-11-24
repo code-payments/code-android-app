@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flipcash.app.core.AppRoute
 import com.flipcash.app.core.chat.ChatIdentifier
@@ -31,6 +32,10 @@ fun ArchivedChatsScreen() {
     val viewModel = hiltViewModel<HiltArchivedChatsViewModel>()
     val collections = LocalNavBarShell.current == NavBarShell.GroupMoney
     LaunchedEffect(collections) { viewModel.showCollections(collections) }
+    LifecycleStartEffect(viewModel) {
+        viewModel.setVisible(true)
+        onStopOrDispose { viewModel.setVisible(false) }
+    }
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
 

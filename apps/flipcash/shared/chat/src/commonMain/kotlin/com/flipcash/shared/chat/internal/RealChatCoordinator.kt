@@ -183,9 +183,14 @@ class RealChatCoordinator @Inject constructor(
         // could open them at all. A chat's own writes retry it too; this reaches the chats that
         // don't get one.
         scope.launch { messagingDelegate.openKeyPending() }
+        followArchiveJob?.cancel()
+        followArchiveJob = scope.launch { eventStreamDelegate.followArchiveWhileVisible() }
         eventStreamDelegate.open()
         eventStreamDelegate.startHeartbeat(::resync)
     }
+
+    /** Follows the archive while it is on screen; one per session. */
+    private var followArchiveJob: Job? = null
 
     // endregion
 
@@ -230,6 +235,10 @@ class RealChatCoordinator @Inject constructor(
                     }
                     is EventStreamDelegate.Event.LobbyChanged ->
                         lobbyUpdates.apply(event.chatId, event.updates)
+                    // Off this loop: a feed read would hold roster and lobby events behind it.
+                    EventStreamDelegate.Event.ArchivedGroupsStale -> {
+                        scope.launch { readArchivedGroups() }
+                    }
                 }
             }.launchIn(scope)
 
@@ -474,11 +483,24 @@ class RealChatCoordinator @Inject constructor(
         dmChats != null && groupChats != null
     }
 
+    /**
+     * Re-reads the archived groups once the stream follows them, with a catch-up this time: the
+     * stream replays nothing it did not carry, so this is how an archived group that moved while
+     * unfollowed gets its missed window.
+     */
+    private suspend fun readArchivedGroups() {
+        val chats = groupFeedDelegate.fetchGroupFeed(ChatFolder.ARCHIVED) ?: return
+        feedDelegate.writeFeed(chats)
+        groupFeedDelegate.requestCatchUp(chats)
+    }
+
     override suspend fun teardown() {
         eventStreamDelegate.stopHeartbeat()
         eventStreamDelegate.close()
         feedSyncJob?.cancel()
         feedSyncJob = null
+        followArchiveJob?.cancel()
+        followArchiveJob = null
         feedDelegate.cancelJobs()
         groupFeedDelegate.cancelJobs()
         networkObserverJob?.cancel()

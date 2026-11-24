@@ -46,15 +46,25 @@ import com.getcode.opencode.model.financial.Fiat
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.launch
@@ -125,6 +135,15 @@ class EventStreamDelegate @Inject constructor(
 
         /** Bounds a catch-up stream, which runs inline in the coordinator's event handling. */
         private val DELTA_SYNC_TIMEOUT = 60.seconds
+
+        /**
+         * How long following outlasts the last archive surface. Going from the Archived screen
+         * into one of its groups stops the one before the other starts.
+         */
+        internal val FOLLOW_OFF_GRACE = 1.seconds
+
+        /** How long a follow waits on its ack. A server older than FollowArchive never sends one. */
+        internal val FOLLOW_ACK_TIMEOUT = 5.seconds
     }
 
     sealed interface Event {
@@ -139,6 +158,12 @@ class EventStreamDelegate @Inject constructor(
 
         /** [chatId]'s lobby changed. Sent only to the group's creator; unversioned. */
         data class LobbyChanged(val chatId: ChatId, val updates: List<LobbyUpdate>) : Event
+
+        /**
+         * The stream now follows the archive, or a follow went unanswered. It carried none of the
+         * archived groups' events before and replays none, so they are read again.
+         */
+        data object ArchivedGroupsStale : Event
     }
 
     private val _events = Channel<Event>(Channel.UNLIMITED)
@@ -399,6 +424,93 @@ class EventStreamDelegate @Inject constructor(
         sequenceTracker.clearAll()
         reactionStates.clear()
         typingTracker.clear()
+        // The controller holds the follow across streams; the next account starts not following.
+        archiveVisible.value = false
+        eventStreamingController.setFollowArchive(false)
+    }
+
+    private val archiveVisible = MutableStateFlow(false)
+
+    override fun setArchiveVisible(visible: Boolean) {
+        archiveVisible.value = visible
+    }
+
+    /**
+     * Follows the archive while the Archived screen or a server-archived group's conversation is
+     * on screen, and stops once neither is. Runs until cancelled.
+     *
+     * Each follow is answered by [Event.ArchivedGroupsStale] when its ack lands, again after
+     * every reconnect that re-follows, or once after [FOLLOW_ACK_TIMEOUT] when nothing answers.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    internal suspend fun followArchiveWhileVisible() {
+        combine(archiveVisible, viewingArchivedGroup()) { screen, group -> screen || group }
+            .distinctUntilChanged()
+            .transformLatest { on ->
+                if (!on) delay(FOLLOW_OFF_GRACE)
+                emit(on)
+            }
+            .distinctUntilChanged()
+            .collectLatest { on ->
+                if (on) followArchive() else eventStreamingController.setFollowArchive(false)
+            }
+    }
+
+    /** Whether the open chat is a group the server holds as archived. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun viewingArchivedGroup(): Flow<Boolean> =
+        combine(
+            stateHolder.state.map { it.activeChat }.distinctUntilChanged(),
+            metadataDataSource.observeArchived(),
+        ) { chatId, archived ->
+            chatId?.takeIf { metadataDataSource.chatIdHex(it) in archived }
+        }
+            .distinctUntilChanged()
+            .mapLatest { chatId -> chatId != null && metadataDataSource.getChatType(chatId) == ChatType.GROUP }
+
+    private suspend fun followArchive(): Nothing = coroutineScope {
+        val acked = CompletableDeferred<Unit>()
+        // Listening before asking: an ack can land before setFollowArchive returns.
+        launch(start = CoroutineStart.UNDISPATCHED) {
+            eventStreamingController.followArchiveAcks
+                .filter { following -> following }
+                .collect {
+                    acked.complete(Unit)
+                    _events.send(Event.ArchivedGroupsStale)
+                }
+        }
+        eventStreamingController.setFollowArchive(true)
+        if (withTimeoutOrNull(FOLLOW_ACK_TIMEOUT) { acked.await() } == null) {
+            trace(tag = TAG, message = "FollowArchive unanswered; reading the archive anyway", type = TraceType.Process)
+            _events.send(Event.ArchivedGroupsStale)
+        }
+        awaitCancellation()
+    }
+
+    /**
+     * [update] less what a stream that does not follow the archive still carried for a group the
+     * server holds as archived: the OFF reaches the server after the stream has sent a few more of
+     * its updates. Kept are the two the server sends a stream that does not follow anyway: the
+     * viewer's own ViewerStateChanged (an unarchive, here or on another device) and their own
+     * MemberLeft (a leave or a removal).
+     *
+     * The dropped events leave the chat's cursor where it was, so the gap is fetched once the
+     * group is followed again or unarchived. Null when nothing is left to apply.
+     */
+    private suspend fun withoutStrays(update: ChatUpdate): ChatUpdate? {
+        if (eventStreamingController.followsArchive) return update
+        val chatId = update.chatId
+        if (metadataDataSource.archivedAt(chatId) == null) return update
+        if (metadataDataSource.getChatType(chatId) != ChatType.GROUP) return update
+
+        val selfId = userManager.accountId
+        val kept = ChatUpdate(
+            chatId = chatId,
+            metadataUpdates = update.metadataUpdates.filterIsInstance<MetadataUpdate.ViewerStateChanged>(),
+            rosterUpdates = update.rosterUpdates.filter { it is RosterChange.MemberLeft && it.userId == selfId },
+        )
+        trace(tag = TAG, message = "Dropped stray updates for archived group $chatId", type = TraceType.Process)
+        return kept.takeIf { it.metadataUpdates.isNotEmpty() || it.rosterUpdates.isNotEmpty() }
     }
 
     private fun ensureCollector(scope: CoroutineScope) {
@@ -409,7 +521,8 @@ class EventStreamDelegate @Inject constructor(
         }
     }
 
-    private suspend fun applyUpdate(update: ChatUpdate) {
+    private suspend fun applyUpdate(incoming: ChatUpdate) {
+        val update = withoutStrays(incoming) ?: return
         val chatId = update.chatId
 
         // --- Resolve messages from the event log ---
