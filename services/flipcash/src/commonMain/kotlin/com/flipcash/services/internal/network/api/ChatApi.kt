@@ -5,6 +5,7 @@ import com.codeinc.flipcash.gen.chat.v1.ChatService as RpcChatService
 import com.codeinc.flipcash.gen.chat.v1.validate
 import com.flipcash.services.internal.annotations.FlipcashManagedChannel
 import com.flipcash.services.internal.network.extensions.asChatId
+import com.flipcash.services.internal.network.extensions.asProtoChatFolder
 import com.flipcash.services.internal.network.extensions.asProtoChatType
 import com.flipcash.services.internal.network.extensions.asProtoIdempotencyKey
 import com.flipcash.services.internal.network.extensions.asProtoMuteState
@@ -24,6 +25,7 @@ import com.flipcash.services.internal.network.extensions.asMessageId
 import com.flipcash.services.internal.network.extensions.asViewMode
 import com.flipcash.services.internal.network.extensions.authenticate
 import com.flipcash.services.models.QueryOptions
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.DescriptionEdit
@@ -82,10 +84,13 @@ internal class ChatApi @Inject constructor(
         owner: KeyPair,
         queryOptions: QueryOptions,
         chatType: ChatType,
+        folder: ChatFolder = ChatFolder.INBOX,
     ): RpcChatService.GetDmChatFeedResponse {
         val request = RpcChatService.GetDmChatFeedRequest.newBuilder()
             .setQueryOptions(queryOptions.asQueryOptions())
             .setDmChatType(chatType.asProtoChatType())
+            // INBOX is the proto default, so an inbox read puts nothing new on the wire.
+            .setFolder(folder.asProtoChatFolder())
             .apply { setAuth(authenticate(owner)) }
             .build()
 
@@ -99,9 +104,11 @@ internal class ChatApi @Inject constructor(
     suspend fun getGroupChatFeed(
         owner: KeyPair,
         queryOptions: QueryOptions,
+        folder: ChatFolder = ChatFolder.INBOX,
     ): RpcChatService.GetGroupChatFeedResponse {
         val request = RpcChatService.GetGroupChatFeedRequest.newBuilder()
             .setQueryOptions(queryOptions.asQueryOptions())
+            .setFolder(folder.asProtoChatFolder())
             .apply { setAuth(authenticate(owner)) }
             .build()
 
@@ -395,6 +402,38 @@ internal class ChatApi @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             api.unmuteChat(request)
+        }
+    }
+
+    suspend fun archiveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): RpcChatService.ArchiveChatResponse {
+        val request = RpcChatService.ArchiveChatRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.archiveChat(request)
+        }
+    }
+
+    suspend fun unarchiveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): RpcChatService.UnarchiveChatResponse {
+        val request = RpcChatService.UnarchiveChatRequest.newBuilder()
+            .setChatId(chatId.asChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        request.validate().orThrow()
+
+        return withContext(Dispatchers.IO) {
+            api.unarchiveChat(request)
         }
     }
 

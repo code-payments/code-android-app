@@ -38,6 +38,9 @@ import com.flipcash.services.models.SampleChattersError
 import com.flipcash.services.models.SetFeaturedGroupsError
 import com.flipcash.services.models.StartChatError
 import com.flipcash.services.models.UnmuteChatError
+import com.flipcash.services.models.ArchiveChatError
+import com.flipcash.services.models.UnarchiveChatError
+import com.flipcash.services.models.isUnimplementedStatus
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
@@ -50,6 +53,7 @@ import com.flipcash.services.models.chat.KeyEnvelope
 import com.flipcash.services.models.chat.MuteState
 import com.flipcash.services.models.chat.SilenceState
 import com.flipcash.services.models.chat.StartChatParameters
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewMode
 import com.getcode.ed25519kmp.Ed25519.KeyPair
@@ -89,9 +93,10 @@ internal class ChatService @Inject constructor(
         owner: KeyPair,
         queryOptions: QueryOptions,
         chatType: ChatType,
+        folder: ChatFolder = ChatFolder.INBOX,
     ): Result<RpcChatService.GetDmChatFeedResponse> {
         return runCatching {
-            api.getDmChatFeed(owner, queryOptions, chatType)
+            api.getDmChatFeed(owner, queryOptions, chatType, folder)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -111,9 +116,10 @@ internal class ChatService @Inject constructor(
     suspend fun getGroupChatFeed(
         owner: KeyPair,
         queryOptions: QueryOptions,
+        folder: ChatFolder = ChatFolder.INBOX,
     ): Result<RpcChatService.GetGroupChatFeedResponse> {
         return runCatching {
-            api.getGroupChatFeed(owner, queryOptions)
+            api.getGroupChatFeed(owner, queryOptions, folder)
         }.foldWithSuppression(
             onSuccess = { response ->
                 when (response.result) {
@@ -394,6 +400,63 @@ internal class ChatService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { UnmuteChatError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun archiveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<ChatModel.ViewerState> {
+        return runCatching {
+            api.archiveChat(owner, chatId)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.ArchiveChatResponse.Result.OK -> Result.success(response.viewerState)
+                    RpcChatService.ArchiveChatResponse.Result.DENIED -> Result.failure(ArchiveChatError.Denied())
+                    RpcChatService.ArchiveChatResponse.Result.NOT_FOUND -> Result.failure(ArchiveChatError.NotFound())
+                    RpcChatService.ArchiveChatResponse.Result.UNRECOGNIZED -> Result.failure(ArchiveChatError.Unrecognized())
+                    else -> Result.failure(ArchiveChatError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(
+                    if (cause.isUnimplementedStatus()) {
+                        ArchiveChatError.Unimplemented()
+                    } else {
+                        cause.toValidationOrElse { ArchiveChatError.Other(cause = it) }
+                    }
+                )
+            }
+        )
+    }
+
+    /** The response's `chat` is the chat as GetChat returns it, set on OK including a no-op. */
+    suspend fun unarchiveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<RpcChatService.UnarchiveChatResponse> {
+        return runCatching {
+            api.unarchiveChat(owner, chatId)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    RpcChatService.UnarchiveChatResponse.Result.OK -> Result.success(response)
+                    RpcChatService.UnarchiveChatResponse.Result.DENIED -> Result.failure(UnarchiveChatError.Denied())
+                    RpcChatService.UnarchiveChatResponse.Result.NOT_FOUND -> Result.failure(UnarchiveChatError.NotFound())
+                    RpcChatService.UnarchiveChatResponse.Result.UNRECOGNIZED -> Result.failure(UnarchiveChatError.Unrecognized())
+                    else -> Result.failure(UnarchiveChatError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(
+                    if (cause.isUnimplementedStatus()) {
+                        UnarchiveChatError.Unimplemented()
+                    } else {
+                        cause.toValidationOrElse { UnarchiveChatError.Other(cause = it) }
+                    }
+                )
             }
         )
     }

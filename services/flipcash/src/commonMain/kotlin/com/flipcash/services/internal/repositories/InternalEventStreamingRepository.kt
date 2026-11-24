@@ -1,6 +1,7 @@
 package com.flipcash.services.internal.repositories
 
 import com.flipcash.services.internal.network.services.EventStreamReference
+import com.flipcash.services.internal.network.services.FollowArchiveSender
 import com.flipcash.services.internal.network.services.EventStreamingService
 import com.flipcash.services.models.chat.BlobUpdate
 import com.flipcash.services.models.chat.ChatUpdate
@@ -17,7 +18,11 @@ internal class InternalEventStreamingRepository(
         onEvent: (ChatUpdate) -> Unit,
         onBlobUpdate: (BlobUpdate) -> Unit,
         onError: (Throwable) -> Unit,
+        onStreamStarted: (sendFollowArchive: FollowArchiveSender) -> Unit,
+        onFollowArchiveAck: (seq: Long) -> Unit,
     ): EventStreamReference {
-        return service.openEventStream(scope, owner, onEvent, onBlobUpdate, onError)
+        return service.openEventStream(
+            scope, owner, onEvent, onBlobUpdate, onError, onStreamStarted, onFollowArchiveAck,
+        )
     }
 }

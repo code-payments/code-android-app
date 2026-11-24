@@ -5,7 +5,9 @@ import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.UnarchivedChat
 import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
@@ -513,6 +515,9 @@ private class FakeChatRepository : ChatRepository {
     var leaveChatResult: Result<Unit> = Result.failure(RuntimeException("not configured"))
     var muteChatResult: Result<ViewerState> = Result.failure(RuntimeException("not configured"))
     var unmuteChatResult: Result<ViewerState> = Result.failure(RuntimeException("not configured"))
+    var archiveChatResult: Result<ViewerState> = Result.failure(RuntimeException("not configured"))
+    var unarchiveChatResult: Result<UnarchivedChat> = Result.failure(RuntimeException("not configured"))
+    var lastFolder: ChatFolder? = null
     var getRosterResult: Result<RosterPage> = Result.failure(RuntimeException("not configured"))
     var editChatResult: Result<ChatMetadata> = Result.failure(RuntimeException("not configured"))
     var lastChatId: ChatId? = null
@@ -534,17 +539,21 @@ private class FakeChatRepository : ChatRepository {
         owner: Ed25519.KeyPair,
         queryOptions: QueryOptions,
         chatType: ChatType,
+        folder: ChatFolder,
     ): Result<ChatFeedPage> {
         lastQueryOptions = queryOptions
         lastChatType = chatType
+        lastFolder = folder
         return getDmChatFeedResult
     }
 
     override suspend fun getGroupChatFeed(
         owner: Ed25519.KeyPair,
         queryOptions: QueryOptions,
+        folder: ChatFolder,
     ): Result<ChatFeedPage> {
         lastQueryOptions = queryOptions
+        lastFolder = folder
         return getGroupChatFeedResult
     }
 
@@ -620,6 +629,16 @@ private class FakeChatRepository : ChatRepository {
     override suspend fun unmuteChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<ViewerState> {
         lastChatId = chatId
         return unmuteChatResult
+    }
+
+    override suspend fun archiveChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<ViewerState> {
+        lastChatId = chatId
+        return archiveChatResult
+    }
+
+    override suspend fun unarchiveChat(owner: Ed25519.KeyPair, chatId: ChatId): Result<UnarchivedChat> {
+        lastChatId = chatId
+        return unarchiveChatResult
     }
 
     var enterLobbyResult: Result<Lobby> = Result.failure(RuntimeException("not configured"))

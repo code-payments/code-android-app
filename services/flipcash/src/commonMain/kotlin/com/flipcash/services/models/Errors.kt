@@ -67,6 +67,12 @@ sealed class AddTokenError(
 private fun Throwable?.hasTransportCause(codes: Set<Status.Code> = transportCodes): Boolean =
     generateSequence(this) { it.cause }.take(8).any { it.isTransportCause(codes) }
 
+/** The server answered with gRPC `UNIMPLEMENTED`: it does not know the RPC. */
+internal fun Throwable?.isUnimplementedStatus(): Boolean =
+    generateSequence(this) { it.cause }.take(8).any {
+        it !is IOException && it.isTransportCause(setOf(Status.Code.UNIMPLEMENTED))
+    }
+
 private fun Throwable.isTransportCause(codes: Set<Status.Code>): Boolean = when (this) {
     is IOException -> true
     is StatusException -> status.code in codes
@@ -878,6 +884,34 @@ sealed class UnmuteChatError(
     class NotFound: UnmuteChatError("Not found")
     class Unrecognized : UnmuteChatError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : UnmuteChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
+/**
+ * [Unimplemented] means the server predates the archive RPCs (gRPC `UNIMPLEMENTED`). It is the
+ * expected answer while the rollout reaches servers, so it is not reported as a fault: the caller
+ * keeps its local record and retries on a later launch.
+ */
+sealed class ArchiveChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: ArchiveChatError("Caller is not a member")
+    class NotFound: ArchiveChatError("Not found")
+    class Unimplemented: ArchiveChatError("Server does not implement ArchiveChat")
+    class Unrecognized : ArchiveChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : ArchiveChatError(message = cause?.message, cause = cause), NotifiableError
+}
+
+/** Same outcomes as [ArchiveChatError], for UnarchiveChat. */
+sealed class UnarchiveChatError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied: UnarchiveChatError("Caller is not a member")
+    class NotFound: UnarchiveChatError("Not found")
+    class Unimplemented: UnarchiveChatError("Server does not implement UnarchiveChat")
+    class Unrecognized : UnarchiveChatError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : UnarchiveChatError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class EnterLobbyError(

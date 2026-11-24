@@ -1,14 +1,18 @@
 package com.flipcash.services.controllers
 
 import com.flipcash.services.internal.network.services.EventStreamReference
+import com.flipcash.services.internal.network.services.FollowArchiveSender
 import com.flipcash.services.models.chat.BlobUpdate
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.repository.EventStreamingRepository
 import com.flipcash.services.user.UserManager
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,6 +48,39 @@ class EventStreamingController @Inject constructor(
     private val lock = Any()
     private var streamRef: EventStreamReference? = null
 
+    // Whether the client wants the stream to follow the archive. Held here, not on a stream, so
+    // it outlives close()/open() and the reconnect loop's attempts: each new stream starts not
+    // following, and is told to follow again right after Params. Guarded by [lock].
+    private var wantsArchive = false
+    // The current stream attempt's sender and its seq bookkeeping. Guarded by [lock].
+    private var followSender: FollowArchiveSender? = null
+    private val followSequencer = FollowArchiveSequencer()
+
+    private val _followArchiveAcks = MutableSharedFlow<Boolean>(
+        extraBufferCapacity = 8,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+
+    /**
+     * The follow state each stream confirms, from the ack for the latest FollowArchive sent on it.
+     * Acks for an earlier seq are dropped. `true` arrives again after every reconnect while
+     * [setFollowArchive] is on: the server replays nothing a stream missed, so a consumer that
+     * re-reads on `true` covers the gap.
+     */
+    val followArchiveAcks: Flow<Boolean> = _followArchiveAcks.asSharedFlow()
+
+    /**
+     * Asks the stream to carry archived groups ([follow] true) or to stop. Survives reconnects
+     * until changed. A stream that is not up yet is told when it starts.
+     */
+    fun setFollowArchive(follow: Boolean) = synchronized(lock) {
+        if (wantsArchive == follow) return@synchronized
+        wantsArchive = follow
+        // A stream that never followed has nothing to turn off.
+        val sender = followSender ?: return@synchronized
+        sender(follow, followSequencer.next(follow))
+    }
+
     val isConnected: Boolean get() = synchronized(lock) { streamRef != null }
 
     val isStreamActive: Boolean get() = synchronized(lock) { streamRef?.isActive == true }
@@ -75,6 +112,20 @@ class EventStreamingController @Inject constructor(
                 trace("EventStreamingController: Received blob update, blobs=${update.blobs.size}")
                 _blobUpdates.trySend(update)
             },
+            onStreamStarted = { sender ->
+                synchronized(lock) {
+                    if (streamRef !== openedRef) return@synchronized
+                    followSequencer.reset()
+                    followSender = sender
+                    if (wantsArchive) sender(true, followSequencer.next(true))
+                }
+            },
+            onFollowArchiveAck = { seq ->
+                synchronized(lock) {
+                    if (streamRef !== openedRef) return@synchronized
+                    followSequencer.ack(seq)?.let { _followArchiveAcks.tryEmit(it) }
+                }
+            },
             onError = { error ->
                 trace("EventStreamingController: Stream error: ${error.message}")
                 // Clear the ref so the next heartbeat, lifecycle, or network
@@ -83,6 +134,7 @@ class EventStreamingController @Inject constructor(
                 synchronized(lock) {
                     if (streamRef === openedRef) {
                         streamRef = null
+                        followSender = null
                         _streamFailures.trySend(Unit)
                     }
                 }
@@ -95,5 +147,6 @@ class EventStreamingController @Inject constructor(
     fun close() = synchronized(lock) {
         streamRef?.destroy()
         streamRef = null
+        followSender = null
     }
 }

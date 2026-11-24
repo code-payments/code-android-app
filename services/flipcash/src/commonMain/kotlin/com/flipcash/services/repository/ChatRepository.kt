@@ -7,7 +7,9 @@ import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatterSample
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.UnarchivedChat
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.Invite
@@ -75,6 +77,7 @@ interface ChatRepository {
         owner: KeyPair,
         queryOptions: QueryOptions,
         chatType: ChatType,
+        folder: ChatFolder = ChatFolder.INBOX,
     ): Result<ChatFeedPage>
 
     /**
@@ -84,6 +87,7 @@ interface ChatRepository {
     suspend fun getGroupChatFeed(
         owner: KeyPair,
         queryOptions: QueryOptions,
+        folder: ChatFolder = ChatFolder.INBOX,
     ): Result<ChatFeedPage>
 
     /**
@@ -168,6 +172,25 @@ interface ChatRepository {
         owner: KeyPair,
         chatId: ChatId,
     ): Result<ViewerState>
+
+    /**
+     * Archives [chatId] for the caller, returning the new viewer state. A chat already archived is
+     * a no-op that returns the current state. [com.flipcash.services.models.ArchiveChatError.Unimplemented]
+     * means the server predates the RPC.
+     */
+    suspend fun archiveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<ViewerState>
+
+    /**
+     * Unarchives [chatId] for the caller, returning the new viewer state and the chat as GetChat
+     * returns it. A chat not archived is a no-op that returns the current state.
+     */
+    suspend fun unarchiveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<UnarchivedChat>
 
     /**
      * Places the caller in private group [chatId]'s lobby, where the creator can admit or deny

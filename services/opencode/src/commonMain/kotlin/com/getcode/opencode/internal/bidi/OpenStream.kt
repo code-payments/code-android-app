@@ -5,6 +5,7 @@ import com.getcode.utils.trace
 import io.grpc.Status
 import io.grpc.StatusException
 import io.grpc.StatusRuntimeException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.delay
@@ -38,7 +39,12 @@ fun <Request, Response, StreamRef> openBidirectionalStream(
     // activate-then-immediately-fail stream from resetting forever.
     healthyThreshold: Duration = 30.seconds,
     timeSource: TimeSource = TimeSource.Monotonic,
-    onReconnectAttempt: ((attempt: Int, reason: Throwable?) -> Unit)? = null
+    onReconnectAttempt: ((attempt: Int, reason: Throwable?) -> Unit)? = null,
+    // Called once per attempt, right after [initialRequest] is sent, with a sender bound to that
+    // attempt's request channel. Lets a caller put a request on the stream without waiting for a
+    // response, and replay per-stream state on every reconnect. The sender goes stale when the
+    // attempt ends; anything sent through it after that is dropped.
+    onInitialRequestSent: ((sendRequest: (Request) -> Unit) -> Unit)? = null,
 ) where StreamRef : BidirectionalStreamReference<*, *> {
 
     val tag = streamRef.instanceLabel.takeIf { it.isNotBlank() }
@@ -140,6 +146,30 @@ fun <Request, Response, StreamRef> openBidirectionalStream(
                 streamRef.postponeTimeout()
                 requestChannel.send(initialRequest())
                 trace(tag = tag, message = "Initial request sent")
+                onInitialRequestSent?.let { hook ->
+                    // One outbox per attempt, drained by one forwarder, so requests reach the
+                    // wire in the order they were handed over. The forwarder is a child of this
+                    // attempt's collection: it dies with the attempt and closes the outbox, and
+                    // anything sent after that is dropped.
+                    val outbox = Channel<Request>(capacity = Channel.UNLIMITED)
+                    CoroutineScope(coroutineContext + collectionJob).launch {
+                        try {
+                            for (request in outbox) requestChannel.send(request)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            trace(
+                                tag = tag,
+                                message = "Failed to send request after the initial one",
+                                type = TraceType.Error,
+                                error = e
+                            )
+                        } finally {
+                            outbox.close()
+                        }
+                    }
+                    hook { request -> outbox.trySend(request) }
+                }
             } catch (e: Exception) {
                 collectionJob.cancel()
                 requestChannel.close()
