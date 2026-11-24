@@ -73,6 +73,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Clock
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -140,7 +141,7 @@ class EventStreamDelegate @Inject constructor(
          * How long following outlasts the last archive surface. Going from the Archived screen
          * into one of its groups stops the one before the other starts.
          */
-        internal val FOLLOW_OFF_GRACE = 1.seconds
+        internal val FOLLOW_OFF_GRACE = 500.milliseconds
 
         /** How long a follow waits on its ack. A server older than FollowArchive never sends one. */
         internal val FOLLOW_ACK_TIMEOUT = 5.seconds
@@ -487,32 +488,6 @@ class EventStreamDelegate @Inject constructor(
         awaitCancellation()
     }
 
-    /**
-     * [update] less what a stream that does not follow the archive still carried for a group the
-     * server holds as archived: the OFF reaches the server after the stream has sent a few more of
-     * its updates. Kept are the two the server sends a stream that does not follow anyway: the
-     * viewer's own ViewerStateChanged (an unarchive, here or on another device) and their own
-     * MemberLeft (a leave or a removal).
-     *
-     * The dropped events leave the chat's cursor where it was, so the gap is fetched once the
-     * group is followed again or unarchived. Null when nothing is left to apply.
-     */
-    private suspend fun withoutStrays(update: ChatUpdate): ChatUpdate? {
-        if (eventStreamingController.followsArchive) return update
-        val chatId = update.chatId
-        if (metadataDataSource.archivedAt(chatId) == null) return update
-        if (metadataDataSource.getChatType(chatId) != ChatType.GROUP) return update
-
-        val selfId = userManager.accountId
-        val kept = ChatUpdate(
-            chatId = chatId,
-            metadataUpdates = update.metadataUpdates.filterIsInstance<MetadataUpdate.ViewerStateChanged>(),
-            rosterUpdates = update.rosterUpdates.filter { it is RosterChange.MemberLeft && it.userId == selfId },
-        )
-        trace(tag = TAG, message = "Dropped stray updates for archived group $chatId", type = TraceType.Process)
-        return kept.takeIf { it.metadataUpdates.isNotEmpty() || it.rosterUpdates.isNotEmpty() }
-    }
-
     private fun ensureCollector(scope: CoroutineScope) {
         if (eventStreamCollectJob?.isActive != true) {
             eventStreamCollectJob = scope.launch {
@@ -521,8 +496,9 @@ class EventStreamDelegate @Inject constructor(
         }
     }
 
-    private suspend fun applyUpdate(incoming: ChatUpdate) {
-        val update = withoutStrays(incoming) ?: return
+    // An update that lands after the follow was turned off is applied like any other: the OFF
+    // reaches the server after the stream has sent a few more, and they are real events.
+    private suspend fun applyUpdate(update: ChatUpdate) {
         val chatId = update.chatId
 
         // --- Resolve messages from the event log ---

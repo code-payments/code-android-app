@@ -81,12 +81,6 @@ class EventStreamingController @Inject constructor(
         sender(follow, followSequencer.next(follow))
     }
 
-    /**
-     * Whether the client last asked to follow the archive. An archived group's update that
-     * arrives while this is false is a stray from before the server applied the OFF.
-     */
-    val followsArchive: Boolean get() = synchronized(lock) { wantsArchive }
-
     val isConnected: Boolean get() = synchronized(lock) { streamRef != null }
 
     val isStreamActive: Boolean get() = synchronized(lock) { streamRef?.isActive == true }

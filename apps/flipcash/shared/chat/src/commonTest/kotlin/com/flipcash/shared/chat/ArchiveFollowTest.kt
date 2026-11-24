@@ -72,7 +72,6 @@ class ArchiveFollowTest {
             if (follow != following) followCalls += follow
             following = follow
         }
-        every { controller.followsArchive } answers { following }
 
         metadataDataSource = mockk(relaxed = true)
         every { metadataDataSource.observeArchived() } returns serverArchived
@@ -264,7 +263,7 @@ class ArchiveFollowTest {
 
     // endregion
 
-    // region Strays while not following
+    // region Updates after the follow is off
 
     private fun rosterUpdate(vararg changes: RosterChange, metadata: List<MetadataUpdate> = emptyList()) =
         ChatUpdate(chatId = group, rosterUpdates = changes.toList(), metadataUpdates = metadata)
@@ -273,35 +272,26 @@ class ArchiveFollowTest {
         filterIsInstance<EventStreamDelegate.Event.RosterChanged>().flatMap { it.changes }
 
     @Test
-    fun `an unfollowed archived group's stray updates are dropped`() = runTest {
-        coEvery { metadataDataSource.archivedAt(group) } returns 1_000L
-        val events = collectEvents()
-        openStream()
-
-        chatUpdates.send(rosterUpdate(RosterChange.MemberLeft(otherId, summary)))
-        runCurrent()
-
-        assertTrue(events.rosterChanges().isEmpty())
-    }
-
-    @Test
-    fun `the viewer's own leave and viewer state still land from an unfollowed archived group`() = runTest {
+    fun `an archived group's updates that land after the follow is off are applied`() = runTest {
+        // Server-archived and not followed: the stream sends a few more before the OFF reaches
+        // the server. They are real events, and a pending unarchive shows this group in the inbox.
         coEvery { metadataDataSource.archivedAt(group) } returns 1_000L
         val events = collectEvents()
         openStream()
         val viewerState = ViewerState(version = 7)
+        val otherLeave = RosterChange.MemberLeft(otherId, summary)
         val ownLeave = RosterChange.MemberLeft(selfId, summary)
 
         chatUpdates.send(
             rosterUpdate(
-                RosterChange.MemberLeft(otherId, summary),
+                otherLeave,
                 ownLeave,
                 metadata = listOf(MetadataUpdate.ViewerStateChanged(viewerState)),
             ),
         )
         runCurrent()
 
-        assertEquals(listOf<RosterChange>(ownLeave), events.rosterChanges())
+        assertEquals(listOf<RosterChange>(otherLeave, ownLeave), events.rosterChanges())
         coVerify { metadataDataSource.updateViewerState(group, viewerState) }
     }
 
@@ -309,34 +299,6 @@ class ArchiveFollowTest {
     fun `a group archived only on this device keeps its live updates`() = runTest {
         // The server does not hold it as archived, so the stream is meant to carry it.
         coEvery { metadataDataSource.archivedAt(group) } returns null
-        val events = collectEvents()
-        openStream()
-        val change = RosterChange.MemberLeft(otherId, summary)
-
-        chatUpdates.send(rosterUpdate(change))
-        runCurrent()
-
-        assertEquals(listOf<RosterChange>(change), events.rosterChanges())
-    }
-
-    @Test
-    fun `a followed archived group's updates land`() = runTest {
-        coEvery { metadataDataSource.archivedAt(group) } returns 1_000L
-        following = true
-        val events = collectEvents()
-        openStream()
-        val change = RosterChange.MemberLeft(otherId, summary)
-
-        chatUpdates.send(rosterUpdate(change))
-        runCurrent()
-
-        assertEquals(listOf<RosterChange>(change), events.rosterChanges())
-    }
-
-    @Test
-    fun `an archived DM's updates are never filtered`() = runTest {
-        coEvery { metadataDataSource.archivedAt(group) } returns 1_000L
-        coEvery { metadataDataSource.getChatType(group) } returns ChatType.TIP_DM
         val events = collectEvents()
         openStream()
         val change = RosterChange.MemberLeft(otherId, summary)
