@@ -20,8 +20,8 @@ class ChatsViewModelStateTest {
 
     private val projection = ChatListProjection.Empty.copy(
         main = listOf(dm.chatId.toString(), group.chatId.toString()),
-        unreadChip = listOf(dm.chatId.toString()),
-        groupsChip = listOf(group.chatId.toString()),
+        unreadChip = listOf(group.chatId.toString()),
+        dmsChip = listOf(dm.chatId.toString()),
         archivedRowVisible = true,
         archivedRowCount = 2,
     )
@@ -60,12 +60,12 @@ class ChatsViewModelStateTest {
     fun `each filter shows its own rows in feed order`() {
         assertEquals(listOf(dm, group), loaded.visibleChats)
         assertEquals(
-            listOf(dm),
+            listOf(group),
             reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.Unread)).visibleChats,
         )
         assertEquals(
-            listOf(group),
-            reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.Groups)).visibleChats,
+            listOf(dm),
+            reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.DMs)).visibleChats,
         )
     }
 
@@ -73,7 +73,7 @@ class ChatsViewModelStateTest {
     fun `the Archived row shows only under All`() {
         assertTrue(loaded.showsArchivedRow)
         assertFalse(reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.Unread)).showsArchivedRow)
-        assertFalse(reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.Groups)).showsArchivedRow)
+        assertFalse(reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.DMs)).showsArchivedRow)
     }
 
     @Test

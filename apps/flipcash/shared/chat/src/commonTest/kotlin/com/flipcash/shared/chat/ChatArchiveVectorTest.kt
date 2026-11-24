@@ -67,11 +67,11 @@ class ChatArchiveVectorTest {
 
             assertEquals(expect.strings("main"), actual.main, "$name: main. $note")
             assertEquals(expect.strings("unreadChip"), actual.unreadChip, "$name: unreadChip. $note")
-            assertEquals(expect.strings("groupsChip"), actual.groupsChip, "$name: groupsChip. $note")
+            assertEquals(expect.strings("dmsChip"), actual.dmsChip, "$name: dmsChip. $note")
             assertEquals(expect.strings("archived"), actual.archived, "$name: archived. $note")
             val counts = expect.getJSONObject("chipCounts")
             assertEquals(counts.getInt("unread"), actual.unreadChipCount, "$name: unread chip count. $note")
-            assertEquals(counts.getInt("groups"), actual.groupsChipCount, "$name: groups chip count. $note")
+            assertEquals(counts.getInt("dms"), actual.dmsChipCount, "$name: DMs chip count. $note")
             val row = expect.getJSONObject("archivedRow")
             assertEquals(row.getBoolean("visible"), actual.archivedRowVisible, "$name: archived row visible. $note")
             assertEquals(row.getInt("count"), actual.archivedRowCount, "$name: archived row count. $note")
@@ -89,7 +89,7 @@ class ChatArchiveVectorTest {
         )
         assertEquals(listOf("a", "b"), projection.idsFor(ChatListFilter.All))
         assertEquals(listOf("b"), projection.idsFor(ChatListFilter.Unread))
-        assertEquals(listOf("b"), projection.idsFor(ChatListFilter.Groups))
+        assertEquals(listOf("a"), projection.idsFor(ChatListFilter.DMs))
     }
 
     private fun JSONObject.triState(key: String): Boolean {
