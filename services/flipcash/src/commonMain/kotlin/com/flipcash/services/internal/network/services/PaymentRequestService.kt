@@ -7,16 +7,21 @@ import com.flipcash.services.internal.network.extensions.asGroupChatPaymentReque
 import com.flipcash.services.internal.network.extensions.asPaymentRequestId
 import com.flipcash.services.internal.network.extensions.asPaymentRequestIdempotencyKey
 import com.flipcash.services.internal.network.extensions.toFlaggedCategory
+import com.flipcash.services.internal.network.extensions.toPayer
 import com.flipcash.services.internal.network.extensions.toPaymentRequest
 import com.flipcash.services.internal.network.extensions.toPagingToken
 import com.flipcash.services.models.ClosePaymentRequestError
 import com.flipcash.services.models.CreatePaymentRequestError
 import com.flipcash.services.models.GetChatPaymentRequestsError
+import com.flipcash.services.models.GetPayersError
+import com.flipcash.services.models.GetPaymentIntentIdError
 import com.flipcash.services.models.GetPaymentRequestError
 import com.flipcash.services.models.MarkPaymentRequestPaidError
 import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatId
-import com.flipcash.services.models.paymentrequest.NewSplitRequest
+import com.flipcash.services.models.paymentrequest.NewPaymentRequest
+import com.flipcash.services.models.paymentrequest.PayerPage
+import com.flipcash.services.models.paymentrequest.PayerSection
 import com.flipcash.services.models.paymentrequest.PaymentIntentId
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
@@ -33,7 +38,7 @@ internal class PaymentRequestService @Inject constructor(
 ) {
     suspend fun createPaymentRequest(
         owner: Ed25519.KeyPair,
-        request: NewSplitRequest,
+        request: NewPaymentRequest,
         idempotencyKey: IdempotencyKey,
     ): Result<PaymentRequest> {
         return runCatching {
@@ -50,6 +55,7 @@ internal class PaymentRequestService @Inject constructor(
                     PaymentrequestService.CreatePaymentRequestResponse.Result.INVALID_SHARES -> Result.failure(CreatePaymentRequestError.InvalidShares())
                     PaymentrequestService.CreatePaymentRequestResponse.Result.INVALID_CURRENCY -> Result.failure(CreatePaymentRequestError.InvalidCurrency())
                     PaymentrequestService.CreatePaymentRequestResponse.Result.TEXT_MODERATED -> Result.failure(CreatePaymentRequestError.TextModerated(response.flaggedCategory.toFlaggedCategory()))
+                    PaymentrequestService.CreatePaymentRequestResponse.Result.INVALID_AMOUNT -> Result.failure(CreatePaymentRequestError.InvalidAmount())
                     PaymentrequestService.CreatePaymentRequestResponse.Result.UNRECOGNIZED -> Result.failure(CreatePaymentRequestError.Unrecognized())
                     else -> Result.failure(CreatePaymentRequestError.Other())
                 }
@@ -72,6 +78,7 @@ internal class PaymentRequestService @Inject constructor(
                     PaymentrequestService.GetPaymentRequestResponse.Result.OK -> Result.success(PaymentRequestDetails(
                         paymentRequest = response.paymentRequest.toPaymentRequest(),
                         paymentIntentId = if (response.hasPaymentIntentId()) PaymentIntentId(response.paymentIntentId.value.toByteArray()) else null,
+                        callerPayer = if (response.hasCallerPayer()) response.callerPayer.toPayer() else null,
                     ))
                     PaymentrequestService.GetPaymentRequestResponse.Result.DENIED -> Result.failure(GetPaymentRequestError.Denied())
                     PaymentrequestService.GetPaymentRequestResponse.Result.NOT_FOUND -> Result.failure(GetPaymentRequestError.NotFound())
@@ -131,6 +138,62 @@ internal class PaymentRequestService @Inject constructor(
             },
             onFailure = { cause ->
                 Result.failure(cause.toValidationOrElse { ClosePaymentRequestError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun getPaymentIntentId(
+        owner: Ed25519.KeyPair,
+        paymentRequestId: ID,
+    ): Result<PaymentIntentId> {
+        return runCatching {
+            api.getPaymentIntentId(owner, paymentRequestId.asPaymentRequestId())
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    PaymentrequestService.GetPaymentIntentIdResponse.Result.OK ->
+                        if (response.hasPaymentIntentId()) Result.success(PaymentIntentId(response.paymentIntentId.value.toByteArray()))
+                        else Result.failure(GetPaymentIntentIdError.Other())
+                    PaymentrequestService.GetPaymentIntentIdResponse.Result.DENIED -> Result.failure(GetPaymentIntentIdError.Denied())
+                    PaymentrequestService.GetPaymentIntentIdResponse.Result.NOT_FOUND -> Result.failure(GetPaymentIntentIdError.NotFound())
+                    PaymentrequestService.GetPaymentIntentIdResponse.Result.NOT_OPEN -> Result.failure(GetPaymentIntentIdError.NotOpen())
+                    PaymentrequestService.GetPaymentIntentIdResponse.Result.NOT_A_PAYER -> Result.failure(GetPaymentIntentIdError.NotAPayer())
+                    PaymentrequestService.GetPaymentIntentIdResponse.Result.ALREADY_PAID -> Result.failure(GetPaymentIntentIdError.AlreadyPaid())
+                    PaymentrequestService.GetPaymentIntentIdResponse.Result.UNRECOGNIZED -> Result.failure(GetPaymentIntentIdError.Unrecognized())
+                    else -> Result.failure(GetPaymentIntentIdError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { GetPaymentIntentIdError.Other(cause = it) })
+            }
+        )
+    }
+
+    suspend fun getPayers(
+        owner: Ed25519.KeyPair,
+        paymentRequestId: ID,
+        section: PayerSection,
+        queryOptions: QueryOptions,
+    ): Result<PayerPage> {
+        return runCatching {
+            api.getPayers(owner, paymentRequestId.asPaymentRequestId(), section, queryOptions)
+        }.foldWithSuppression(
+            onSuccess = { response ->
+                when (response.result) {
+                    PaymentrequestService.GetPayersResponse.Result.OK -> Result.success(PayerPage(
+                        payers = response.payersList.map { it.toPayer() },
+                        pagingToken = if (response.hasPagingToken()) response.pagingToken.toPagingToken() else null,
+                        hasMore = response.hasMore,
+                        version = response.version,
+                    ))
+                    PaymentrequestService.GetPayersResponse.Result.DENIED -> Result.failure(GetPayersError.Denied())
+                    PaymentrequestService.GetPayersResponse.Result.NOT_FOUND -> Result.failure(GetPayersError.NotFound())
+                    PaymentrequestService.GetPayersResponse.Result.UNRECOGNIZED -> Result.failure(GetPayersError.Unrecognized())
+                    else -> Result.failure(GetPayersError.Other())
+                }
+            },
+            onFailure = { cause ->
+                Result.failure(cause.toValidationOrElse { GetPayersError.Other(cause = it) })
             }
         )
     }

@@ -18,10 +18,13 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(libs.bundles.unit.testing)
     testImplementation(libs.robolectric)
+    testImplementation(libs.grpc.api)
 
+    implementation(libs.androidx.datastore.preferences.core)
     implementation(project(":apps:flipcash:core"))
     implementation(project(":apps:flipcash:shared:chat"))
     implementation(project(":apps:flipcash:shared:contacts"))
+    implementation(project(":apps:flipcash:shared:onramp:coinbase"))
     implementation(project(":apps:flipcash:shared:tokens"))
     implementation(project(":apps:flipcash:shared:userflags"))
     implementation(project(":services:flipcash"))

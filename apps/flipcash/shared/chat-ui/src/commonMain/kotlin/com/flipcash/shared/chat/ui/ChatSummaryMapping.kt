@@ -17,6 +17,7 @@ import com.flipcash.core.resources.label_sharePayment_toViewer
 import com.flipcash.core.resources.label_chat_preview_sentCash_bySender
 import com.flipcash.core.resources.label_chat_preview_sentMessage
 import com.flipcash.core.resources.label_chat_preview_sentRequest
+import com.flipcash.core.resources.label_requestEachAmount
 import com.flipcash.core.resources.label_chat_preview_sentRequest_bySender
 import com.flipcash.core.resources.label_chat_preview_sentRequest_untitled
 import com.flipcash.core.resources.label_chat_preview_sentRequest_untitled_bySender
@@ -32,6 +33,7 @@ import com.flipcash.services.models.chat.WidgetContent
 import com.flipcash.services.models.handle
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
+import com.flipcash.services.models.paymentrequest.amountEach
 import com.flipcash.shared.chat.models.displayText
 import com.flipcash.shared.chat.models.namedUsers
 import com.flipcash.shared.chat.ChatSummary
@@ -66,6 +68,9 @@ import com.getcode.utils.hexEncodedString
  *
  * [paymentRequests] supplies the per-person share for a payment request widget's preview; one the
  * device doesn't hold yet previews as nothing until it arrives.
+ *
+ * [collections] previews a collection by what each member pays, as under the Group Money flag;
+ * off, it previews as an untitled request, as it did before.
  */
 fun ChatSummary.toConversationReference(
     selfId: ID?,
@@ -74,6 +79,7 @@ fun ChatSummary.toConversationReference(
     senderProfiles: Map<String, UserProfile> = emptyMap(),
     exchange: Exchange? = null,
     paymentRequests: Map<ID, PaymentRequest> = emptyMap(),
+    collections: Boolean = false,
 ): ConversationReference {
     val isGroup = metadata.type == ChatType.GROUP
     val other = metadata.members.firstOrNull { it.userId != selfId }
@@ -88,7 +94,7 @@ fun ChatSummary.toConversationReference(
         title = metadata.title,
         isGroup = isGroup,
         chatType = metadata.type,
-        lastMessagePreview = formatPreview(selfId, tokensByMint, resources, senderProfiles, exchange, paymentRequests),
+        lastMessagePreview = formatPreview(selfId, tokensByMint, resources, senderProfiles, exchange, paymentRequests, collections),
         hasMessages = metadata.lastMessage != null,
         // The feed carries the roster size, privacy and the viewer's permissions, so the row needs no
         // fetch of its own. memberCount defaults to 0 for metadata never fetched, which is not 1.
@@ -147,6 +153,7 @@ private fun ChatSummary.formatPreview(
     senderProfiles: Map<String, UserProfile>,
     exchange: Exchange?,
     paymentRequests: Map<ID, PaymentRequest>,
+    collections: Boolean,
 ): String? {
     val lastMsg = metadata.lastMessage ?: return null
     val isGroup = metadata.type == ChatType.GROUP
@@ -165,6 +172,7 @@ private fun ChatSummary.formatPreview(
             sentBySelf, senderName, isGroup, tokensByMint, resources, exchange, paymentRequests,
             selfId = selfId,
             nameOf = { groupSenderName(it, senderProfiles) },
+            collections = collections,
         ) { content ->
             content.displayText(resources, selfId) { groupSenderName(it, senderProfiles) }
         }
@@ -189,6 +197,8 @@ fun MessageContent.previewText(
     /** The viewer and a member's name, for the one preview that names someone besides the sender: a share payment's receiver. */
     selfId: ID? = null,
     nameOf: (ID) -> String? = { null },
+    /** As on [toConversationReference]. */
+    collections: Boolean = false,
     systemText: (MessageContent.System) -> String?,
 ): String? = when (this) {
     is MessageContent.Text -> {
@@ -274,7 +284,7 @@ fun MessageContent.previewText(
         null
     } else {
         content.firstOrNull()
-            ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, exchange, paymentRequests, depth + 1, selfId, nameOf, systemText)
+            ?.previewText(sentBySelf, senderName, isGroup, tokensByMint, resources, exchange, paymentRequests, depth + 1, selfId, nameOf, collections, systemText)
     }
 
     // The feed carries the newest message that still has content, so a tombstone only
@@ -300,9 +310,14 @@ fun MessageContent.previewText(
     // A widget this client can't draw previews as nothing, as an undecryptable message does.
     is MessageContent.Widget -> when (val widget = widget) {
         is WidgetContent.ShareProfile -> resources.getString(Res.string.label_chat_preview_sharedProfile)
-        // Who sent it and its title; a title that can't be opened drops the "for" part.
+        // Who sent it and its title; a title that can't be opened drops the "for" part. A
+        // collection has no title, so what each member pays stands in for it.
         is WidgetContent.PaymentRequest -> paymentRequests[widget.id]?.let { request ->
-            val title = (request.split?.text as? PaymentRequestText.Plain)?.title?.takeIf { it.isNotBlank() }
+            val each = request.collection?.amountEach?.takeIf { collections }?.let { amount ->
+                val shown = (exchange?.let { amount.forViewer(it.preferredRate, it.rates()) } ?: amount)
+                resources.getString(Res.string.label_requestEachAmount, shown.formatted(Fiat.FormattingRule.Truncated))
+            }
+            val title = each ?: (request.split?.text as? PaymentRequestText.Plain)?.title?.takeIf { it.isNotBlank() }
             when {
                 sentBySelf && title != null -> resources.getString(Res.string.label_chat_preview_sentRequest, title)
                 sentBySelf -> resources.getString(Res.string.label_chat_preview_sentRequest_untitled)

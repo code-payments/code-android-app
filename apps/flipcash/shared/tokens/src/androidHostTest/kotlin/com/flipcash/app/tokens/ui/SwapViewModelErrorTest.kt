@@ -262,7 +262,7 @@ class SwapViewModelErrorTest {
         dispatchers = TestDispatchers(testScheduler)
         // Ensure balance check passes so the sell call is reached
         every { tokenCoordinator.balanceForToken(any<Token>()) } returns Fiat(999_999.0)
-        whenever(transactionController.sell(any(), any(), any()))
+        whenever(transactionController.sell(any(), any(), any(), anyOrNull(), any()))
             .thenReturn(Result.failure(RuntimeException("sell failed")))
 
         val token = mockk<Token>(relaxed = true) {

@@ -158,3 +158,9 @@ of `capture(slot)`.
   for things that genuinely need a device.
 - **Fakes over mocks.** Write a small fake implementing the interface; it's clearer
   and survives refactors better than mock setups.
+- **A fake stands in for the network edge only.** It writes through the same store
+  the production path writes to, and never waits for state the production path
+  doesn't wait for. A wait or poll inside a fake has to point at the production
+  line that makes it true. On iOS, a collection-funding fake that waited for
+  balances to catch up hid a stale read, and a device payment then tried the same
+  conversion a second time (code-ios-app#1295).

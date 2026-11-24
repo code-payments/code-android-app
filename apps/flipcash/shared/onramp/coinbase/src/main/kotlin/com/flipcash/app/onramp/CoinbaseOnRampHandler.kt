@@ -48,12 +48,14 @@ fun CoinbaseOnRampHandler(
         is CoinbaseOnRampState.Completed -> {
             LaunchedEffect(current) {
                 val swapId = current.swapId
-                val completion = if (swapId != null) {
-                    CoinbaseOnRampCompletion.SwapSubmitted(swapId)
-                } else {
-                    CoinbaseOnRampCompletion.DepositSubmitted(current.orderId)
+                val completion = when {
+                    swapId != null -> CoinbaseOnRampCompletion.SwapSubmitted(swapId)
+                    // A collection's top-up has no amount here and waits on the controller's
+                    // outcomes, not on the add-money flow's navigation.
+                    current.amount == null -> null
+                    else -> CoinbaseOnRampCompletion.DepositSubmitted(current.orderId)
                 }
-                controller.emitCompletion(completion)
+                completion?.let(controller::emitCompletion)
                 controller.reset()
             }
         }

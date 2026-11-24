@@ -16,14 +16,17 @@ import com.getcode.opencode.solana.intents.IntentType
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.CoroutineScope
+import kotlin.time.Duration
 import kotlin.time.Instant
 
 interface TransactionRepository {
 
+    /** [streamTimeout] replaces the submission stream's default timeout when it is set. */
     suspend fun submitIntent(
         scope: CoroutineScope,
         intent: IntentType,
         owner: KeyPair,
+        streamTimeout: Duration? = null,
     ): Result<IntentType>
 
     suspend fun getIntentMetadata(
@@ -63,6 +66,8 @@ interface TransactionRepository {
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
+        swapId: SwapId? = null,
+        source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         verifiedState: VerifiedState,
     ): Result<SwapId>
 
@@ -79,6 +84,16 @@ interface TransactionRepository {
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (StatefulSwapRequest) -> Result<Unit>)? = null,
     ): Result<SwapId>
+
+    /** Funds a swap the server has in CREATED under the funding intent id it recorded, [fundingId]. */
+    suspend fun fundSwap(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        from: Token,
+        amount: LocalFiat,
+        fundingId: List<Byte>,
+        verifiedState: VerifiedState,
+    ): Result<Unit>
 
     suspend fun withdrawUsdf(
         scope: CoroutineScope,

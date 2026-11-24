@@ -24,6 +24,7 @@ import com.getcode.opencode.model.financial.Limits
 import com.getcode.opencode.model.financial.LocalFiat
 import com.getcode.opencode.model.financial.Token
 import com.getcode.opencode.model.financial.minus
+import com.getcode.opencode.model.financial.usdf
 import com.getcode.opencode.model.transactions.ExchangeData
 import com.getcode.opencode.model.transactions.StatefulSwapRequest
 import com.getcode.opencode.model.transactions.StatelessSwapRequest
@@ -40,6 +41,7 @@ import com.getcode.solana.keys.base58
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
+import kotlin.time.Duration
 import kotlin.time.Instant
 
 
@@ -52,9 +54,10 @@ internal class TransactionService @Inject constructor(
         scope: CoroutineScope,
         intent: IntentType,
         owner: KeyPair,
+        streamTimeout: Duration? = null,
     ): Result<IntentType> {
         val executor = IntentExecutor(api)
-        return executor.execute(scope, intent, owner)
+        return executor.execute(scope, intent, owner, streamTimeout)
     }
 
     suspend fun getIntentMetadata(
@@ -183,32 +186,7 @@ internal class TransactionService @Inject constructor(
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         fund: (suspend (StatefulSwapRequest) -> Result<Unit>)?,
     ): Result<SwapId> {
-        // For a freshly-launched stub Token (launchpadMetadata == null && address != USDF), the
-        // Solana program requires authority == buyer == swapAuthority for the atomic 11-instruction
-        // swap that initializes the currency + pool + VM. The server infers new-vs-existing from
-        // owner == swapAuthority in the Initiate request, so we must use the owner's keypair here.
-        // Otherwise the server returns RESERVE_EXISTING_CURRENCY params, and the client crashes at
-        // ExistingCurrencyBuyInstructions ("Target mint has no launchpad metadata").
-        val isFreshlyLaunchedStub =
-            of.launchpadMetadata == null && of.address != Mint.usdf
-        val swapAuthority =
-            if (isFreshlyLaunchedStub) owner.authority.keyPair else Ed25519.createKeyPair()
-
-        val netAmount = amount - (feeAmount ?: LocalFiat.Zero)
-        val request = StatefulSwapRequest(
-            owner = owner,
-            swapAuthority = swapAuthority,
-            program = SwapProgram.Reserve(
-                fromMint = Mint.usdf,
-                toMint = of.address,
-                fundingSource = source,
-            ),
-            route = SwapRoute.Buy(of),
-            swapAmount = netAmount,
-            feeAmount = feeAmount,
-            swapId = swapId ?: SwapId.generate(),
-            verifiedState = verifiedState,
-        )
+        val request = buySwapRequest(owner, of, amount, feeAmount, swapId, verifiedState, source)
 
         val fundedWith = fund ?: { swapFunding.fund(scope, owner, it).map { Unit } }
         return statefulSwap(scope, request, owner, fundedWith)
@@ -219,6 +197,7 @@ internal class TransactionService @Inject constructor(
         amount: LocalFiat,
         of: Token,
         owner: AccountCluster,
+        swapId: SwapId? = null,
         source: SwapFundingSource = SwapFundingSource.SubmitIntent(),
         verifiedState: VerifiedState,
     ): Result<SwapId> {
@@ -226,7 +205,7 @@ internal class TransactionService @Inject constructor(
 
         val request = StatefulSwapRequest(
             owner = tokenCluster,
-            swapId = SwapId.generate(),
+            swapId = swapId ?: SwapId.generate(),
             swapAuthority = Ed25519.createKeyPair(),
             program = SwapProgram.Reserve(
                 fromMint = of.address,
@@ -291,6 +270,28 @@ internal class TransactionService @Inject constructor(
         val fundedWith = fund ?: { swapFunding.fund(scope, tokenCluster, it).map { Unit } }
         return statefulSwap(scope, request, tokenCluster, fundedWith)
     }
+
+    /**
+     * Funds a swap the server already has in CREATED, under the funding intent id it recorded:
+     * moves [amount] (the swap's amount plus fee) of [from] out of [owner]'s [from] vault, the
+     * same intent [statefulSwap] submits once the swap starts.
+     */
+    suspend fun fundSwap(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        from: Token,
+        amount: LocalFiat,
+        fundingId: List<Byte>,
+        verifiedState: VerifiedState,
+    ): Result<Unit> = swapFunding.fund(
+        scope = scope,
+        owner = owner,
+        intentId = PublicKey(fundingId),
+        sourceCluster = owner.withTimelockForToken(from),
+        amount = amount,
+        from = from,
+        verifiedState = verifiedState,
+    ).map { Unit }
 
     suspend fun withdrawUsdf(
         scope: CoroutineScope,
@@ -372,4 +373,48 @@ internal class TransactionService @Inject constructor(
                 }
             ).map { request.swapId }
     }
+}
+
+/**
+ * The swap request for a buy of [of] with USDF, funded from [owner]'s USDF vault.
+ *
+ * The request carries [owner]'s USDF cluster whichever token's cluster the caller holds, because
+ * [SwapFunding] moves the funds out of the request owner's vault. A collection paid in another
+ * token hands its pay cluster to every leg, and the server rejects a buy funded from that vault.
+ */
+internal fun buySwapRequest(
+    owner: AccountCluster,
+    of: Token,
+    amount: LocalFiat,
+    feeAmount: LocalFiat?,
+    swapId: SwapId?,
+    verifiedState: VerifiedState,
+    source: SwapFundingSource,
+): StatefulSwapRequest {
+    // For a freshly-launched stub Token (launchpadMetadata == null && address != USDF), the
+    // Solana program requires authority == buyer == swapAuthority for the atomic 11-instruction
+    // swap that initializes the currency + pool + VM. The server infers new-vs-existing from
+    // owner == swapAuthority in the Initiate request, so we must use the owner's keypair here.
+    // Otherwise the server returns RESERVE_EXISTING_CURRENCY params, and the client crashes at
+    // ExistingCurrencyBuyInstructions ("Target mint has no launchpad metadata").
+    val isFreshlyLaunchedStub =
+        of.launchpadMetadata == null && of.address != Mint.usdf
+    val swapAuthority =
+        if (isFreshlyLaunchedStub) owner.authority.keyPair else Ed25519.createKeyPair()
+
+    val netAmount = amount - (feeAmount ?: LocalFiat.Zero)
+    return StatefulSwapRequest(
+        owner = owner.withTimelockForToken(Token.usdf),
+        swapAuthority = swapAuthority,
+        program = SwapProgram.Reserve(
+            fromMint = Mint.usdf,
+            toMint = of.address,
+            fundingSource = source,
+        ),
+        route = SwapRoute.Buy(of),
+        swapAmount = netAmount,
+        feeAmount = feeAmount,
+        swapId = swapId ?: SwapId.generate(),
+        verifiedState = verifiedState,
+    )
 }

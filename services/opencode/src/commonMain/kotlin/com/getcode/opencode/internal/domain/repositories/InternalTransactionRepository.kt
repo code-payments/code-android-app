@@ -22,6 +22,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.network.retryableOrThrow
 import kotlinx.coroutines.CoroutineScope
+import kotlin.time.Duration
 import kotlin.time.Instant
 import kotlin.time.Duration.Companion.seconds
 import javax.inject.Inject
@@ -32,14 +33,15 @@ internal class InternalTransactionRepository @Inject constructor(
     override suspend fun submitIntent(
         scope: CoroutineScope,
         intent: IntentType,
-        owner: Ed25519.KeyPair
+        owner: Ed25519.KeyPair,
+        streamTimeout: Duration?,
     ): Result<IntentType> = runCatching {
         retryableOrThrow(
             maxRetries = 3,
             delayDuration = 1.seconds,
             retryIf = { it is SubmitIntentError.StaleState && it.isRaceCondition },
         ) {
-            service.submitIntent(scope, intent, owner).getOrThrow()
+            service.submitIntent(scope, intent, owner, streamTimeout).getOrThrow()
         }
     }.onFailure {
         ErrorUtils.handleError(it)
@@ -93,12 +95,16 @@ internal class InternalTransactionRepository @Inject constructor(
         owner: AccountCluster,
         amount: LocalFiat,
         of: Token,
+        swapId: SwapId?,
+        source: SwapFundingSource,
         verifiedState: VerifiedState,
     ): Result<SwapId> = service.sell(
         scope = scope,
         amount = amount,
         of = of,
         owner = owner,
+        swapId = swapId,
+        source = source,
         verifiedState = verifiedState
     ).onFailure { ErrorUtils.handleError(it) }
 
@@ -126,6 +132,22 @@ internal class InternalTransactionRepository @Inject constructor(
         swapId = swapId,
         source = source,
         fund = fund,
+    ).onFailure { ErrorUtils.handleError(it) }
+
+    override suspend fun fundSwap(
+        scope: CoroutineScope,
+        owner: AccountCluster,
+        from: Token,
+        amount: LocalFiat,
+        fundingId: List<Byte>,
+        verifiedState: VerifiedState,
+    ): Result<Unit> = service.fundSwap(
+        scope = scope,
+        owner = owner,
+        from = from,
+        amount = amount,
+        fundingId = fundingId,
+        verifiedState = verifiedState,
     ).onFailure { ErrorUtils.handleError(it) }
 
     override suspend fun withdrawUsdf(

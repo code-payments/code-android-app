@@ -69,7 +69,10 @@ kotlin {
             implementation(project(":ui:resources:test-fixtures"))
             implementation(project(":libs:currency-math:test-fixtures"))
             implementation(libs.mockito.kotlin)
+            implementation(libs.kotlinx.serialization.json)
             implementation(project(":apps:flipcash:shared:analytics:test-fixtures"))
+            // CollectionFundingVectorsTest renders the vectors' English from the real string resources.
+            implementation(libs.robolectric)
         }
     }
 }

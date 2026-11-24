@@ -1,11 +1,13 @@
 package com.getcode.opencode.utils.logging
 
 import com.codeinc.flipcash.gen.common.v1.Common
+import com.codeinc.flipcash.gen.paymentrequest.v1.Model as PaymentRequestModel
 import com.codeinc.flipcash.gen.paymentrequest.v1.PaymentrequestService.GetPaymentRequestResponse
 import com.codeinc.opencode.gen.common.v1.Model
 import com.getcode.utils.LiveSecrets
 import com.getcode.vendor.Base58
 import com.google.protobuf.ByteString
+import com.google.protobuf.Timestamp
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -35,6 +37,20 @@ class FormatProtoTest {
         assertFalse(idBase58 in line, "full id leaked: $line")
         // The rest of the body is still logged (OK is the zero value, which the formatter skips).
         assertContains(line, "result=")
+    }
+
+    @Test
+    fun `the intent in a payer's paid record is logged as its last six characters`() {
+        val paid = PaymentRequestModel.Paid.newBuilder()
+            .setPaidAt(Timestamp.newBuilder().setSeconds(1_764_000_000L))
+            .setIntent(Common.IntentId.newBuilder().setValue(ByteString.copyFrom(idBytes)))
+            .build()
+
+        val line = formatProto(paid)
+
+        assertContains(line, "how=…${idBase58.takeLast(6)}")
+        assertFalse(idBase58 in line, "full id leaked: $line")
+        assertContains(line, "paidAt=")
     }
 
     @Test

@@ -2,6 +2,8 @@ package com.flipcash.shared.chat
 
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.paymentrequest.PaidShare
+import com.flipcash.services.models.paymentrequest.Payer
+import com.flipcash.services.models.paymentrequest.PayerSummary
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
@@ -96,6 +98,45 @@ class PaymentRequestsUpdateTest {
         assertTrue(result.split!!.shares.all { it.isPaid })
         assertEquals(PaymentRequestStatus.Completed, result.status)
         assertEquals(closedAt, result.closedAt)
+    }
+
+    @Test
+    fun `a payment's batch with its payer and summary changes applies without a refetch`() {
+        val summary = PayerSummary(
+            payerCount = 2,
+            paidCount = 1,
+            amountDueQuarks = 10_000_000,
+            amountPaidQuarks = 10_000_000,
+        )
+        val payer = Payer(
+            alice,
+            amountDueQuarks = 0,
+            amountPaidQuarks = 10_000_000,
+            status = Payer.Status.Paid(paid),
+        )
+        val out = apply(
+            request(3),
+            updates(
+                4,
+                Change.SharePaid(alice, paid),
+                Change.PayerChanged(payer),
+                Change.PayerSummaryChanged(summary),
+            ),
+        )
+        assertFalse(out.refetch)
+        val result = out.requests.getValue(id)
+        assertEquals(4, result.version)
+        assertEquals(paid, result.split?.shareOf(alice)?.paid)
+        assertEquals(summary, result.payerSummary)
+    }
+
+    @Test
+    fun `a payer change alone leaves the request as it was, at the new version`() {
+        val held = request(3)
+        val payer = Payer(bob, amountDueQuarks = 10_000_000, amountPaidQuarks = 0, status = Payer.Status.Unpaid)
+        val out = apply(held, updates(4, Change.PayerChanged(payer)))
+        assertFalse(out.refetch)
+        assertEquals(held.copy(version = 4), out.requests.getValue(id))
     }
 
     @Test

@@ -1,6 +1,9 @@
 // kmp-audit: hiltViewModel and BackHandler are Android-only; the screen content is ArchivedChatsContent in commonMain.
 package com.flipcash.app.tipping
 
+import androidx.compose.runtime.LaunchedEffect
+import com.flipcash.app.core.navigation.NavBarShell
+import com.flipcash.app.core.navigation.LocalNavBarShell
 import com.flipcash.app.tipping.internal.components.ChatSelectionTopBar
 import com.flipcash.app.tipping.internal.components.SelectionArchiveAction
 import androidx.activity.compose.BackHandler
@@ -26,6 +29,8 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ArchivedChatsScreen() {
     val viewModel = hiltViewModel<HiltArchivedChatsViewModel>()
+    val collections = LocalNavBarShell.current == NavBarShell.GroupMoney
+    LaunchedEffect(collections) { viewModel.showCollections(collections) }
     val state by viewModel.stateFlow.collectAsStateWithLifecycle()
     val navigator = LocalCodeNavigator.current
 

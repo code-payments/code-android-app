@@ -29,7 +29,17 @@ data class PaymentRequestUpdate(
         /** The request moved to [status] (COMPLETED or CLOSED on the wire), closed at [closedAt]. */
         data class StatusChanged(val status: PaymentRequestStatus, val closedAt: Instant?) : Change
 
-        /** A change kind this build does not know, or a share update with no share. */
+        /**
+         * A payment recorded against [payer]'s user, the payer as it now stands. Sent for every
+         * payment, a split's after its [SharePaid]. A list of payers replaces the one with the same
+         * user id, adding it if absent; the request itself carries no payers.
+         */
+        data class PayerChanged(val payer: Payer) : Change
+
+        /** The request's [PayerSummary] as it now stands, after the changes before it in the batch. */
+        data class PayerSummaryChanged(val summary: PayerSummary) : Change
+
+        /** A change kind this build does not know, or a share or payer update missing its payload. */
         data object Unknown : Change
     }
 }

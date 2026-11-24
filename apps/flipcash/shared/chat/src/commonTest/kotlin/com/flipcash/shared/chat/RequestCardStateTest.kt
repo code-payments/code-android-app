@@ -1,11 +1,14 @@
 package com.flipcash.shared.chat
 
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.paymentrequest.CollectionAmount
+import com.flipcash.services.models.paymentrequest.PaymentCollection
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestStatus
 import com.flipcash.services.models.paymentrequest.PaymentRequestText
 import com.flipcash.services.models.paymentrequest.Split
 import com.getcode.opencode.model.financial.CurrencyCode
+import com.getcode.opencode.model.financial.Fiat
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -74,5 +77,41 @@ class RequestCardStateTest {
     fun `a request not held yet is loading, and one found missing is unsupported`() {
         assertEquals(RequestCardState.Loading, requestCardState(null, false, chat, creator))
         assertEquals(RequestCardState.Unsupported, requestCardState(null, true, chat, creator))
+    }
+
+    private fun collection(chatId: ChatId = chat) = request(
+        kind = PaymentRequest.Kind.GroupCollection(
+            chatId = chatId,
+            collection = PaymentCollection(
+                text = PaymentRequestText.Plain("", ""),
+                currency = CurrencyCode.USD,
+                endsAt = null,
+                amount = CollectionAmount.Fixed(Fiat(fiat = 10.0, currencyCode = CurrencyCode.USD)),
+            ),
+        ),
+    )
+
+    @Test
+    fun `a collection stays unsupported with collections off, as before the Group Money flag`() {
+        assertEquals(RequestCardState.Unsupported, requestCardState(collection(), false, chat, creator))
+    }
+
+    @Test
+    fun `a collection from the sender in this chat is a card with collections on, and has no title`() {
+        val state = requestCardState(collection(), false, chat, creator, collections = true)
+        assertIs<RequestCardState.Ready>(state)
+        assertEquals("", state.title)
+    }
+
+    @Test
+    fun `a collection from another chat or another creator is unsupported with collections on`() {
+        val other = ChatId(ByteArray(32) { 4 })
+        assertEquals(RequestCardState.Unsupported, requestCardState(collection(chatId = other), false, chat, creator, collections = true))
+        assertEquals(RequestCardState.Unsupported, requestCardState(collection(), false, chat, List(16) { 2 }, collections = true))
+    }
+
+    @Test
+    fun `a split reads the same with collections on`() {
+        assertEquals(requestCardState(request(), false, chat, creator), requestCardState(request(), false, chat, creator, collections = true))
     }
 }

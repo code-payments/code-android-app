@@ -23,6 +23,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -289,6 +290,74 @@ class CoinbaseOnRampControllerTest {
 
         coVerify(exactly = 0) { googlePayReadiness.check() }
         coVerify(exactly = 0) { webViewChannelDetector.detect() }
+    }
+
+    // endregion
+
+    // region collection top-up
+
+    @Test
+    fun `usdCentsAmount writes an exact cents amount`() {
+        assertEquals("12.04", usdCentsAmount(1204))
+        assertEquals("5.00", usdCentsAmount(500))
+        assertEquals("0.07", usdCentsAmount(7))
+        assertEquals("100.10", usdCentsAmount(10010))
+    }
+
+    @Test
+    fun `placeTopUpOrder orders the exact cents in USDC, fee on top`() = runTest {
+        stubValidUser()
+        coEvery { jwtProvider.provideJwtForEndpoint(any(), any()) } returns Result.success("jwt")
+        val request = slot<Map<String, String>>()
+        coEvery { api.placeOrder(url = any(), request = capture(request), jwt = any()) } throws RuntimeException("stop")
+
+        controller.placeTopUpOrder(usdCents = 637)
+
+        assertEquals("6.37", request.captured["purchaseAmount"])
+        assertEquals("USD", request.captured["paymentCurrency"])
+        assertEquals(Token.usdc.symbol.uppercase(), request.captured["purchaseCurrency"])
+        assertEquals(null, request.captured["paymentAmount"])
+    }
+
+    @Test
+    fun `placeTopUpOrder needs a verified phone and email before ordering`() = runTest {
+        stubAccountCluster()
+        stubProfile(phone = null)
+
+        val result = controller.placeTopUpOrder(usdCents = 637)
+
+        assertIs<OnRampAuthError.VerificationRequired>(result.exceptionOrNull())
+        coVerify(exactly = 0) { api.placeOrder(url = any(), request = any(), jwt = any()) }
+    }
+
+    @Test
+    fun `a top-up's webview end is reported on outcomes with its order id`() = runTest {
+        val seen = mutableListOf<CoinbaseOnRampOutcome>()
+        val completions = mutableListOf<CoinbaseOnRampCompletion>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { controller.outcomes.collect { seen += it } }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            controller.pendingCompletion.collect { completions += it }
+        }
+
+        controller.startTopUpPayment(OnrampOrder("order-1", "https://pay"))
+        controller.onPaymentAuthorized()
+        controller.onPaymentSuccess("order-1")
+        controller.reset()
+        controller.startTopUpPayment(OnrampOrder("order-2", "https://pay"))
+        controller.onPaymentCancel()
+        controller.startTopUpPayment(OnrampOrder("order-3", "https://pay"))
+        controller.onPaymentFailure(com.flipcash.app.onramp.internal.CoinbaseOnRampWebError.UnknownFailure.Unknown())
+
+        assertEquals(
+            listOf(
+                CoinbaseOnRampOutcome.Authorized("order-1"),
+                CoinbaseOnRampOutcome.Succeeded("order-1"),
+                CoinbaseOnRampOutcome.Cancelled("order-2"),
+                CoinbaseOnRampOutcome.Failed("order-3"),
+            ),
+            seen,
+        )
+        assertEquals(emptyList(), completions)
     }
 
     // endregion

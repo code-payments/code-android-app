@@ -2,6 +2,7 @@ package com.getcode.opencode.model.core.errors
 
 import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService
 import com.codeinc.opencode.gen.transaction.v1.OcpTransactionService.SubmitIntentResponse
+import com.getcode.opencode.internal.bidi.grpcStatusCode
 import com.getcode.opencode.model.core.errors.SubmitIntentError.Denied
 import com.getcode.opencode.model.core.errors.SubmitIntentError.InvalidIntent
 import com.getcode.opencode.model.core.errors.SubmitIntentError.Other
@@ -13,6 +14,7 @@ import com.getcode.opencode.model.transactions.TransactionMetadata
 import com.getcode.utils.CodeServerError
 import com.getcode.utils.ConditionallyNotifiable
 import com.getcode.utils.NotifiableError
+import java.util.concurrent.TimeoutException
 import kotlin.reflect.KClass
 
 sealed class CodeAccountCheckError(
@@ -218,6 +220,16 @@ sealed class SubmitIntentError(
             }
         }
     }
+}
+
+/**
+ * True when a submission ended without the server's answer, so the intent may or may not have
+ * landed: its stream timed out, or the connection failed with a gRPC status. A refusal the server
+ * sends on the stream arrives as a typed [SubmitIntentError] and is not counted.
+ */
+fun Throwable.isUnansweredSubmission(): Boolean {
+    val failure = if (this is SubmitIntentError.Other) cause ?: return false else this
+    return failure is TimeoutException || failure.grpcStatusCode() != null
 }
 
 sealed class GetIntentMetadataError(

@@ -31,7 +31,7 @@ class KeyEnvelopeRequestTest {
     private fun list(key: String) = root.getValue(key).jsonArray.map { it.jsonObject }
 
     @Test
-    fun contentCanonicalBytesMatchAndroid() {
+    fun contentCanonicalBytesMatchAndroid() = sodiumTest {
         val failures = root.getValue("contents").jsonArray.map { it.jsonObject }.filter { it.text("direction") == "encode" }.mapNotNull { v ->
             val bytes = v.text("bytes")
             val reEncoded = canonicalContent(com.flipcash.chat.ContentCodec.encode(com.flipcash.chat.ContentCodec.decode(bytes.unhex()))).hex()
@@ -41,12 +41,12 @@ class KeyEnvelopeRequestTest {
     }
 
     @Test
-    fun getKeyEnvelopeMatchesAndroid() {
+    fun getKeyEnvelopeMatchesAndroid() = sodiumTest {
         assertEquals(requests.text("getKeyEnvelope"), KeyEnvelopeRequests.getKeyEnvelopeRequest(owner, chatId).hex())
     }
 
     @Test
-    fun setKeyEnvelopeMatchesAndroid() {
+    fun setKeyEnvelopeMatchesAndroid() = sodiumTest {
         val set = requests.getValue("setKeyEnvelope").jsonObject
         val w = root.getValue("keyEnvelopes").jsonArray.map { it.jsonObject }.first { it.text("name") == set.text("envelope") }
         val envelope = KeyEnvelope(w.getValue("scheme").jsonPrimitive.int, w.text("nonce").unhex(), w.text("ciphertext").unhex())
@@ -54,7 +54,7 @@ class KeyEnvelopeRequestTest {
     }
 
     @Test
-    fun getKeyEnvelopeResponsesDecodeLikeAndroid() {
+    fun getKeyEnvelopeResponsesDecodeLikeAndroid() = sodiumTest {
         val vectors = list("getKeyEnvelopeResponses")
         assertEquals(9, vectors.size)
         for (v in vectors) {
@@ -63,7 +63,7 @@ class KeyEnvelopeRequestTest {
     }
 
     @Test
-    fun setKeyEnvelopeResponsesDecodeLikeAndroid() {
+    fun setKeyEnvelopeResponsesDecodeLikeAndroid() = sodiumTest {
         for (v in list("setKeyEnvelopeResponses")) {
             val expected = v.text("result").let { if (it == "UNRECOGNIZED") "UNKNOWN" else it }
             assertEquals(expected, KeyEnvelopeResponses.decodeSetKeyEnvelopeResponse(v.text("bytes").unhex()).name, v.text("name"))

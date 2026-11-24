@@ -37,6 +37,10 @@ import kotlin.test.assertTrue
 class RealVerifiedFiatCalculatorTest {
 
     companion object {
+        private const val SEEKER_PRE_BUY_SUPPLY = 25_639_941_291_908_912L
+        private const val SEEKER_FRESH_SUPPLY = 25_640_363_264_428_011L
+        private const val SEEKER_HELD_AFTER_BUY = 1_055_025_875_970L
+
         @JvmStatic
         @BeforeClass
         fun initCurve() {
@@ -462,6 +466,102 @@ class RealVerifiedFiatCalculatorTest {
 
         assertTrue(result.isSuccess, "Expected success but got: ${result.exceptionOrNull()}")
         assertTrue(result.getOrThrow().localFiat.underlyingTokenAmount.quarks > 0)
+    }
+
+    @Test
+    fun `computeForQuarks moves exactly the quarks given, valued as compute values them`() = runTest {
+        val supply = 1_000_000_000_000L
+        val token = bondingCurveToken(supply = supply)
+        stubVerifiedState(CurrencyCode.USD, testMint, supply)
+        val priced = calculator.compute(
+            amount = Fiat(fiat = 1.0, currencyCode = CurrencyCode.USD),
+            token = token,
+            rate = Rate.oneToOne,
+            trace = false,
+        ).getOrThrow()
+        val quarks = priced.localFiat.underlyingTokenAmount.quarks
+
+        val result = calculator.computeForQuarks(quarks = quarks, token = token, rate = Rate.oneToOne).getOrThrow()
+
+        assertEquals(quarks, result.localFiat.underlyingTokenAmount.quarks)
+        assertEquals(priced.localFiat.nativeAmount, result.localFiat.nativeAmount)
+        assertEquals(testMint, result.localFiat.mint)
+        assertTrue(result.verifiedState != null)
+    }
+
+    @Test
+    fun `computeForQuarks returns StaleRate when verified state is null`() = runTest {
+        val token = bondingCurveToken(supply = 1_000_000_000_000L)
+        every { verifiedStateManager.getVerifiedStateFor(any(), any()) } returns null
+
+        val result = calculator.computeForQuarks(quarks = 5_000_000_000L, token = token, rate = Rate.oneToOne)
+
+        assertIs<ComputeVerifiedFiatError.StaleRate>(result.exceptionOrNull())
+    }
+
+    @Test
+    fun `computeForQuarks on USDF moves exactly the quarks given`() = runTest {
+        val result = calculator.computeForQuarks(quarks = 1_500_000L, token = usdfToken(), rate = Rate.oneToOne).getOrThrow()
+
+        assertEquals(1_500_000L, result.localFiat.underlyingTokenAmount.quarks)
+        assertEquals(Mint.usdf, result.localFiat.mint)
+    }
+
+    // endregion
+
+    // region a collection payment after a buy, at the Seeker's 2026-11-22 numbers
+    // A $10 Moony payment right after a Dollars -> Moony buy. The wallet held
+    // SEEKER_HELD_AFTER_BUY quarks; GetMints and the signed reserve state each showed either the
+    // pre-buy or the fresh supply. The collection funder pays only when the payment prices to no
+    // more quarks than are held and its native amount is under half a cent short.
+
+    @Test
+    fun `at the fresh supply a $10 payment prices to no more quarks than held, a micro short`() = runTest {
+        stubVerifiedState(CurrencyCode.USD, testMint, SEEKER_FRESH_SUPPLY)
+        val token = bondingCurveToken(supply = SEEKER_FRESH_SUPPLY)
+        val balance = Fiat.tokenBalance(SEEKER_HELD_AFTER_BUY, token, SEEKER_FRESH_SUPPLY)
+
+        val local = calculator.compute(Fiat(10_000_000L, CurrencyCode.USD), token, balance, Rate.oneToOne, trace = false).getOrThrow().localFiat
+
+        assertTrue(local.underlyingTokenAmount.quarks <= SEEKER_HELD_AFTER_BUY)
+        assertEquals(9_999_999L, local.nativeAmount.quarks)
+    }
+
+    @Test
+    fun `with both supplies pre-buy the payment is capped at the stale balance and prices under half a cent short`() = runTest {
+        stubVerifiedState(CurrencyCode.USD, testMint, SEEKER_PRE_BUY_SUPPLY)
+        val token = bondingCurveToken(supply = SEEKER_PRE_BUY_SUPPLY)
+        val balance = Fiat.tokenBalance(SEEKER_HELD_AFTER_BUY, token, SEEKER_PRE_BUY_SUPPLY)
+        assertEquals(9_999_604L, balance.quarks)
+
+        val local = calculator.compute(Fiat(10_000_000L, CurrencyCode.USD), token, balance, Rate.oneToOne, trace = false).getOrThrow().localFiat
+
+        assertTrue(local.underlyingTokenAmount.quarks <= SEEKER_HELD_AFTER_BUY)
+        assertTrue(10_000_000L - local.nativeAmount.quarks < 5_000L)
+    }
+
+    @Test
+    fun `with a fresh balance but a pre-buy signed state the payment prices more quarks than held`() = runTest {
+        stubVerifiedState(CurrencyCode.USD, testMint, SEEKER_PRE_BUY_SUPPLY)
+        val token = bondingCurveToken(supply = SEEKER_FRESH_SUPPLY)
+        val balance = Fiat.tokenBalance(SEEKER_HELD_AFTER_BUY, token, SEEKER_FRESH_SUPPLY)
+
+        val local = calculator.compute(Fiat(10_000_000L, CurrencyCode.USD), token, balance, Rate.oneToOne, trace = false).getOrThrow().localFiat
+
+        assertTrue(local.underlyingTokenAmount.quarks > SEEKER_HELD_AFTER_BUY)
+    }
+
+    @Test
+    fun `with a pre-buy balance but a fresh signed state the payment is capped at the stale balance and prices under half a cent short`() = runTest {
+        stubVerifiedState(CurrencyCode.USD, testMint, SEEKER_FRESH_SUPPLY)
+        val token = bondingCurveToken(supply = SEEKER_PRE_BUY_SUPPLY)
+        val balance = Fiat.tokenBalance(SEEKER_HELD_AFTER_BUY, token, SEEKER_PRE_BUY_SUPPLY)
+
+        val local = calculator.compute(Fiat(10_000_000L, CurrencyCode.USD), token, balance, Rate.oneToOne, trace = false).getOrThrow().localFiat
+
+        assertTrue(local.underlyingTokenAmount.quarks <= SEEKER_HELD_AFTER_BUY)
+        assertTrue(local.nativeAmount.quarks <= balance.quarks)
+        assertTrue(10_000_000L - local.nativeAmount.quarks < 5_000L)
     }
 
     // endregion

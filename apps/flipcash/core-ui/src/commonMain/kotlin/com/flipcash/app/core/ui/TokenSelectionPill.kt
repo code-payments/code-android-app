@@ -40,6 +40,8 @@ fun TokenSelectionPill(
     // False draws the currency alone, with no dropdown mark and nothing to tap, for a flow that is
     // locked to one currency.
     showsPicker: Boolean = true,
+    // False keeps the tap but drops the dropdown mark, as a collection's pay sheet draws it.
+    showsDropdownMark: Boolean = showsPicker,
     onClick: () -> Unit
 ) {
     // [contentPadding] only applies when a background is supplied, so call sites without one
@@ -65,7 +67,7 @@ fun TokenSelectionPill(
                 textStyle = textStyle,
             )
 
-            if (showsPicker) {
+            if (showsPicker && showsDropdownMark) {
                 Image(
                     modifier = Modifier
                         .size(CodeTheme.dimens.grid.x4),

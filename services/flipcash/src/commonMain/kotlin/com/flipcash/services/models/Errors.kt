@@ -1098,6 +1098,8 @@ sealed class CreatePaymentRequestError(
     class InvalidEndsAt : CreatePaymentRequestError("Invalid end time")
     class InvalidShares : CreatePaymentRequestError("Invalid shares")
     class InvalidCurrency : CreatePaymentRequestError("Invalid currency")
+    // A collection's amount is not a whole number, at least one, of the currency's minimum transfer value.
+    class InvalidAmount : CreatePaymentRequestError("Invalid amount")
     class TextModerated(val category: ModerationResult.FlaggedCategory) : CreatePaymentRequestError("Payment request text flagged: $category")
     class Unrecognized : CreatePaymentRequestError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : CreatePaymentRequestError(message = cause?.message, cause = cause), NotifiableError
@@ -1145,6 +1147,32 @@ sealed class MarkPaymentRequestPaidError(
     class NotAShare : MarkPaymentRequestPaidError("Not a share")
     class Unrecognized : MarkPaymentRequestPaidError("Unrecognized"), NotifiableError
     data class Other(override val cause: Throwable? = null) : MarkPaymentRequestPaidError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetPaymentIntentIdError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetPaymentIntentIdError("Denied")
+    class NotFound : GetPaymentIntentIdError("Not found")
+    // The request is not open as of now: completed, closed, or expired.
+    class NotOpen : GetPaymentIntentIdError("Not open")
+    // The caller has nothing to pay into the request: its creator, or no share of a split.
+    class NotAPayer : GetPaymentIntentIdError("Not a payer")
+    // The caller has nothing left to pay, whatever the request's status.
+    class AlreadyPaid : GetPaymentIntentIdError("Already paid")
+    class Unrecognized : GetPaymentIntentIdError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetPaymentIntentIdError(message = cause?.message, cause = cause), NotifiableError
+}
+
+sealed class GetPayersError(
+    override val message: String? = null,
+    override val cause: Throwable? = null
+): CodeServerError(message, cause) {
+    class Denied : GetPayersError("Denied")
+    class NotFound : GetPayersError("Not found")
+    class Unrecognized : GetPayersError("Unrecognized"), NotifiableError
+    data class Other(override val cause: Throwable? = null) : GetPayersError(message = cause?.message, cause = cause), NotifiableError
 }
 
 sealed class CreateInviteError(

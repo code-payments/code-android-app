@@ -2,9 +2,12 @@ package com.flipcash.shared.payments.request
 
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ResolverController
+import com.flipcash.services.models.GetPaymentIntentIdError
 import com.flipcash.services.models.buildRequestedPaymentMetadata
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.paymentrequest.CollectionAmount
 import com.flipcash.services.models.paymentrequest.PaidShare
+import com.flipcash.services.models.paymentrequest.PaymentCollection
 import com.flipcash.services.models.paymentrequest.PaymentIntentId
 import com.flipcash.services.models.paymentrequest.PaymentRequest
 import com.flipcash.services.models.paymentrequest.PaymentRequestDetails
@@ -20,6 +23,7 @@ import com.getcode.opencode.exchange.VerifiedFiatCalculator
 import com.getcode.opencode.internal.manager.VerifiedState
 import com.getcode.opencode.model.accounts.AccountCluster
 import com.getcode.opencode.model.core.ID
+import com.getcode.opencode.model.core.errors.SubmitIntentError
 import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.LocalFiat
@@ -28,22 +32,33 @@ import com.getcode.opencode.model.financial.Token
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.LiveSecrets
 import com.getcode.vendor.Base58
+import io.grpc.Status
+import io.grpc.StatusException
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import java.util.concurrent.TimeoutException
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 class PaymentRequestPaymentDelegateTest {
 
@@ -53,9 +68,12 @@ class PaymentRequestPaymentDelegateTest {
     private val calculator = mockk<VerifiedFiatCalculator>()
     private val exchange = mockk<Exchange>(relaxed = true)
     private val paymentRequests = mockk<PaymentRequests>()
+    private val held = MutableStateFlow<Map<ID, PaymentRequest>>(emptyMap())
+
+    private val funder = mockk<CollectionFunder>(relaxed = true)
 
     private val delegate = PaymentRequestPaymentDelegate(
-        resolverController, transactionController, tokenCoordinator, calculator, exchange, paymentRequests,
+        resolverController, transactionController, tokenCoordinator, calculator, exchange, paymentRequests, funder,
     )
 
     private val chatId = ChatId(ByteArray(32) { 9 })
@@ -102,10 +120,12 @@ class PaymentRequestPaymentDelegateTest {
     }
 
     init {
+        every { paymentRequests.state } returns held
         every { exchange.rateFor(CurrencyCode.EUR) } returns eur
         coEvery { resolverController.resolve(userId = creator) } returns Result.success(creatorKey)
         coEvery { calculator.compute(any(), any(), any(), any(), any()) } returns
             Result.success(VerifiedFiat(mockk<LocalFiat>(relaxed = true), state))
+        coEvery { funder.fund(any(), any(), any(), any()) } returns Result.success(Unit)
     }
 
     @Test
@@ -114,7 +134,7 @@ class PaymentRequestPaymentDelegateTest {
 
         val ready = assertIs<ShareToPay.Ready>(delegate.prepare(requestId, viewer).getOrThrow())
 
-        assertEquals(viewer, ready.share.userId)
+        assertEquals(Fiat("12.50", CurrencyCode.EUR), ready.amount)
         assertFalse(ready.toString().contains(intentBytes.toList().toString()))
     }
 
@@ -151,7 +171,7 @@ class PaymentRequestPaymentDelegateTest {
         val metadata = slot<ByteArray>()
         val intentId = slot<PublicKey>()
         coEvery {
-            transactionController.directTransfer(any(), token, source, creatorKey, capture(metadata), any(), capture(intentId))
+            transactionController.directTransfer(any(), token, source, creatorKey, capture(metadata), any(), capture(intentId), any())
         } returns Result.success(mockk())
 
         assertTrue(delegate.pay(ready, token, source).isSuccess)
@@ -169,7 +189,7 @@ class PaymentRequestPaymentDelegateTest {
         coEvery { calculator.compute(any(), any(), any(), any(), any()) } returns
             Result.success(VerifiedFiat(mockk<LocalFiat>(relaxed = true), state))
         coEvery {
-            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any())
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
         } returns outcome.map { mockk() }
         val lines = mutableListOf<String>()
         delegate.log = { message, _ -> lines += message }
@@ -195,5 +215,373 @@ class PaymentRequestPaymentDelegateTest {
         assertFalse(intentBase58 in lines.single())
         assertTrue(LiveSecrets.isLive(intentBase58))
         LiveSecrets.release(intentBase58)
+    }
+
+    // A collection the viewer's screen already holds, as the chat card and Request details do.
+    private fun collection(status: PaymentRequestStatus = PaymentRequestStatus.Open) = PaymentRequest(
+        id = requestId,
+        creator = creator,
+        createdAt = Clock.System.now(),
+        status = status,
+        closedAt = null,
+        version = 3,
+        kind = PaymentRequest.Kind.GroupCollection(
+            chatId = chatId,
+            collection = PaymentCollection(
+                text = PaymentRequestText.Plain("", ""),
+                currency = CurrencyCode.EUR,
+                endsAt = null,
+                amount = CollectionAmount.Fixed(Fiat("10.00", CurrencyCode.EUR)),
+            ),
+        ),
+    )
+
+    private fun holdingCollection(intentId: Result<PaymentIntentId>) {
+        held.value = mapOf(requestId to collection())
+        coEvery { paymentRequests.paymentIntentId(requestId) } returns intentId
+        coEvery { paymentRequests.fetch(requestId) } returns
+            Result.success(PaymentRequestDetails(collection(PaymentRequestStatus.Closed), null))
+        coEvery { paymentRequests.loadPayers(requestId) } returns Result.success(PaymentRequests.PaidPayers(4, emptyList()))
+    }
+
+    @Test
+    fun `a collection asks GetPaymentIntentId and is ready for its fixed amount, without a refetch`() = runTest {
+        holdingCollection(Result.success(PaymentIntentId(intentBytes)))
+
+        val ready = assertIs<ShareToPay.Ready>(delegate.prepare(requestId, viewer).getOrThrow())
+
+        assertEquals(Fiat("10.00", CurrencyCode.EUR), ready.amount)
+        assertContentEquals(intentBytes, ready.intentId.bytes)
+        coVerify(exactly = 0) { paymentRequests.fetch(any()) }
+    }
+
+    @Test
+    fun `a collection not open refetches and is closed`() = runTest {
+        holdingCollection(Result.failure(GetPaymentIntentIdError.NotOpen()))
+
+        val closed = assertIs<ShareToPay.Closed>(delegate.prepare(requestId, viewer).getOrThrow())
+
+        assertEquals(PaymentRequestStatus.Closed, closed.request.status)
+        coVerify(exactly = 1) { paymentRequests.fetch(requestId) }
+        coVerify(exactly = 1) { paymentRequests.loadPayers(requestId) }
+    }
+
+    @Test
+    fun `a collection already paid, or a viewer who is no payer, refetches and has nothing to pay`() = runTest {
+        for (error in listOf(GetPaymentIntentIdError.AlreadyPaid(), GetPaymentIntentIdError.NotAPayer())) {
+            holdingCollection(Result.failure(error))
+
+            assertIs<ShareToPay.NothingToPay>(delegate.prepare(requestId, viewer).getOrThrow(), error.message)
+        }
+        coVerify(exactly = 2) { paymentRequests.fetch(requestId) }
+    }
+
+    @Test
+    fun `a collection denied or not found is unavailable`() = runTest {
+        for (error in listOf(GetPaymentIntentIdError.Denied(), GetPaymentIntentIdError.NotFound())) {
+            holdingCollection(Result.failure(error))
+
+            assertIs<ShareToPay.Unavailable>(delegate.prepare(requestId, viewer).getOrThrow(), error.message)
+        }
+    }
+
+    @Test
+    fun `any other GetPaymentIntentId failure fails prepare`() = runTest {
+        val error = GetPaymentIntentIdError.Other(IllegalStateException("offline"))
+        holdingCollection(Result.failure(error))
+
+        assertSame(error, delegate.prepare(requestId, viewer).exceptionOrNull())
+    }
+
+    @Test
+    fun `a collection fetched rather than held still asks GetPaymentIntentId`() = runTest {
+        coEvery { paymentRequests.fetch(requestId) } returns Result.success(PaymentRequestDetails(collection(), null))
+        coEvery { paymentRequests.paymentIntentId(requestId) } returns Result.success(PaymentIntentId(intentBytes))
+
+        val ready = assertIs<ShareToPay.Ready>(delegate.prepare(requestId, viewer).getOrThrow())
+
+        assertEquals(Fiat("10.00", CurrencyCode.EUR), ready.amount)
+    }
+
+    @Test
+    fun `a retry after an unknown outcome asks for the intent id again and stops once paid`() = runTest {
+        holdingCollection(Result.success(PaymentIntentId(intentBytes)))
+        assertIs<ShareToPay.Ready>(delegate.prepare(requestId, viewer).getOrThrow())
+
+        coEvery { paymentRequests.paymentIntentId(requestId) } returns Result.failure(GetPaymentIntentIdError.AlreadyPaid())
+
+        assertIs<ShareToPay.NothingToPay>(delegate.prepare(requestId, viewer).getOrThrow())
+        coVerify(exactly = 2) { paymentRequests.paymentIntentId(requestId) }
+    }
+
+    @Test
+    fun `paying a collection sends its fixed amount to the creator under the issued id, with the request in its metadata`() = runTest {
+        holdingCollection(Result.success(PaymentIntentId(intentBytes)))
+        val ready = delegate.prepare(requestId, viewer).getOrThrow() as ShareToPay.Ready
+        val amount = slot<Fiat>()
+        val rate = slot<Rate>()
+        coEvery { calculator.compute(capture(amount), any(), any(), capture(rate), any()) } returns
+            Result.success(VerifiedFiat(mockk<LocalFiat>(relaxed = true), state))
+        val metadata = slot<ByteArray>()
+        val intentId = slot<PublicKey>()
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, capture(metadata), any(), capture(intentId), any())
+        } returns Result.success(mockk())
+
+        assertTrue(delegate.pay(ready, token, source).isSuccess)
+
+        assertEquals(Fiat("10.00", CurrencyCode.EUR), amount.captured)
+        assertSame(eur, rate.captured)
+        assertContentEquals(intentBytes, intentId.captured.byteArray)
+        assertContentEquals(buildRequestedPaymentMetadata(chatId, requestId.toByteArray()), metadata.captured)
+        coVerify(exactly = 1) { paymentRequests.fetch(requestId) }
+        coVerify(exactly = 1) { paymentRequests.loadPayers(requestId) }
+    }
+
+    private suspend fun payCollectionWith(outcome: Result<Unit>): Pair<List<String>, Boolean> {
+        holdingCollection(Result.success(PaymentIntentId(intentBytes)))
+        val ready = delegate.prepare(requestId, viewer).getOrThrow() as ShareToPay.Ready
+        var heldWhileSending = false
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
+        } answers {
+            heldWhileSending = LiveSecrets.isLive(intentBase58)
+            outcome.map { mockk() }
+        }
+        val lines = mutableListOf<String>()
+        delegate.log = { message, _ -> lines += message }
+        delegate.pay(ready, token, source)
+        return lines to heldWhileSending
+    }
+
+    @Test
+    fun `a collection's intent id reaches no log line when the payment lands`() = runTest {
+        val (lines, heldWhileSending) = payCollectionWith(Result.success(Unit))
+
+        assertTrue(lines.isNotEmpty())
+        lines.forEach { assertFalse(intentBase58.takeLast(6) in it, it) }
+        assertTrue(heldWhileSending, "lower layers must see the id masked while it is sent")
+        assertTrue(LiveSecrets.isLive(intentBase58), "the call logs its bodies after it resumes")
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `a collection's intent id reaches no log line when the payment fails`() = runTest {
+        val (lines, heldWhileSending) = payCollectionWith(Result.failure(IllegalStateException("boom")))
+
+        assertTrue(lines.isNotEmpty())
+        lines.forEach { assertFalse(intentBase58.takeLast(6) in it, it) }
+        assertTrue(heldWhileSending)
+        assertTrue(LiveSecrets.isLive(intentBase58), "an unspent id stays masked after a failure")
+        LiveSecrets.release(intentBase58)
+    }
+
+    private suspend fun readyCollection(): ShareToPay.Ready {
+        holdingCollection(Result.success(PaymentIntentId(intentBytes)))
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
+        } returns Result.success(mockk())
+        return delegate.prepare(requestId, viewer).getOrThrow() as ShareToPay.Ready
+    }
+
+    @Test
+    fun `without funding a collection pays from the balance as it stands`() = runTest {
+        val ready = readyCollection()
+
+        assertTrue(delegate.pay(ready, token, source).isSuccess)
+
+        coVerify(exactly = 0) { funder.fund(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { funder.paid(any(), any()) }
+    }
+
+    @Test
+    fun `settling a collection's kept conversions prices them in the request's currency`() = runTest {
+        val ready = readyCollection()
+        coEvery { funder.settle(any(), any(), any()) } returns Result.success(true)
+
+        assertEquals(true, delegate.settleKeptConversions(ready, source).getOrThrow())
+
+        coVerify(exactly = 1) { funder.settle(requestId, CurrencyCode.EUR, source) }
+    }
+
+    @Test
+    fun `with funding a collection converts first, then pays once, then records the currency`() = runTest {
+        val ready = readyCollection()
+
+        assertTrue(delegate.pay(ready, token, source, fund = true).isSuccess)
+
+        coVerifyOrder {
+            funder.fund(requestId, Fiat("10.00", CurrencyCode.EUR), token, source)
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
+            funder.paid(requestId, token)
+        }
+        coVerify(exactly = 1) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `funding that stops short stops the payment`() = runTest {
+        val ready = readyCollection()
+        val short = CollectionFundingError.Short(mockk())
+        coEvery { funder.fund(any(), any(), any(), any()) } returns Result.failure(short)
+
+        assertSame(short, delegate.pay(ready, token, source, fund = true).exceptionOrNull())
+
+        coVerify(exactly = 0) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { funder.paid(any(), any()) }
+    }
+
+    @Test
+    fun `a failed payment after funding keeps the currency unrecorded`() = runTest {
+        val ready = readyCollection()
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
+        } returns Result.failure(IllegalStateException("boom"))
+
+        assertTrue(delegate.pay(ready, token, source, fund = true).isFailure)
+
+        coVerify(exactly = 0) { funder.paid(any(), any()) }
+    }
+
+    @Test
+    fun `a retry that finds the collection already paid stops and forgets the kept conversions`() = runTest {
+        holdingCollection(Result.failure(GetPaymentIntentIdError.AlreadyPaid()))
+
+        assertIs<ShareToPay.NothingToPay>(delegate.prepare(requestId, viewer).getOrThrow())
+
+        coVerify(exactly = 1) { funder.forget(requestId) }
+        coVerify(exactly = 0) { funder.fund(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any(), any()) }
+    }
+
+    // --- Every wait on the pay path has a deadline (group-collections spec, pay step 4) ---
+
+    @Test
+    fun `a submission that never answers ends at 60 seconds as not confirmed, sent once`() = runTest {
+        val ready = readyCollection()
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
+        } coAnswers { awaitCancellation() }
+
+        val paying = async { delegate.pay(ready, token, source) }
+        advanceTimeBy(59_999)
+        runCurrent()
+        assertFalse(paying.isCompleted, "still waiting at 59.999 s")
+
+        advanceTimeBy(1)
+        runCurrent()
+        assertTrue(paying.isCompleted, "ended at 60 s")
+        assertIs<PaymentNotConfirmed>(paying.await().exceptionOrNull())
+
+        advanceTimeBy(5.minutes)
+        runCurrent()
+        coVerify(exactly = 1) { transactionController.directTransfer(any(), any(), any(), any(), any(), any(), any(), any()) }
+        // Not known to be paid, so the request isn't refreshed as if it were.
+        coVerify(exactly = 0) { paymentRequests.fetch(requestId) }
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `a submission whose stream times out first is not confirmed either`() = runTest {
+        val ready = readyCollection()
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
+        } returns Result.failure(SubmitIntentError.Other(TimeoutException("Intent stream timed out")))
+
+        assertIs<PaymentNotConfirmed>(delegate.pay(ready, token, source).exceptionOrNull())
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `any other failed submission keeps its own error`() = runTest {
+        val ready = readyCollection()
+        val boom = IllegalStateException("boom")
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
+        } returns Result.failure(boom)
+
+        assertSame(boom, delegate.pay(ready, token, source).exceptionOrNull())
+
+        // A refusal the server sent on the stream is an answer, so it stays what it was.
+        val refused = SubmitIntentError.Denied(listOf("denied"))
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
+        } returns Result.failure(refused)
+        assertSame(refused, delegate.pay(ready, token, source).exceptionOrNull())
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `a submission whose connection drops is not confirmed`() = runTest {
+        val ready = readyCollection()
+        val dropped = StatusException(Status.UNAVAILABLE)
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), any())
+        } returns Result.failure(dropped)
+
+        val error = delegate.pay(ready, token, source).exceptionOrNull()
+
+        assertIs<PaymentNotConfirmed>(error)
+        assertSame(dropped, error.cause)
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `a collection's submission stream waits as long as the deadline`() = runTest {
+        val ready = readyCollection()
+        val streamTimeouts = mutableListOf<Duration?>()
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), captureNullable(streamTimeouts))
+        } returns Result.success(mockk())
+
+        assertTrue(delegate.pay(ready, token, source).isSuccess)
+
+        assertEquals(listOf<Duration?>(60.seconds), streamTimeouts)
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `a share's submission keeps the stream's own timeout`() = runTest {
+        serverReturns(request(), PaymentIntentId(intentBytes))
+        val ready = delegate.prepare(requestId, viewer).getOrThrow() as ShareToPay.Ready
+        coEvery { calculator.compute(any(), any(), any(), any(), any()) } returns
+            Result.success(VerifiedFiat(mockk<LocalFiat>(relaxed = true), state))
+        val streamTimeouts = mutableListOf<Duration?>()
+        coEvery {
+            transactionController.directTransfer(any(), token, source, creatorKey, any(), any(), any(), captureNullable(streamTimeouts))
+        } returns Result.success(mockk())
+
+        assertTrue(delegate.pay(ready, token, source).isSuccess)
+
+        assertEquals(listOf<Duration?>(null), streamTimeouts)
+    }
+
+    @Test
+    fun `a refresh after the payment landed that never answers still reports it paid`() = runTest {
+        val ready = readyCollection()
+        coEvery { paymentRequests.fetch(requestId) } coAnswers { awaitCancellation() }
+        coEvery { paymentRequests.loadPayers(requestId) } coAnswers { awaitCancellation() }
+
+        val paying = async { delegate.pay(ready, token, source) }
+        advanceTimeBy(2.minutes)
+        runCurrent()
+
+        assertTrue(paying.isCompleted)
+        assertTrue(paying.await().isSuccess)
+        LiveSecrets.release(intentBase58)
+    }
+
+    @Test
+    fun `asking for the intent id that never answers fails at 60 seconds`() = runTest {
+        holdingCollection(Result.success(PaymentIntentId(intentBytes)))
+        coEvery { paymentRequests.paymentIntentId(requestId) } coAnswers { awaitCancellation() }
+
+        val preparing = async { delegate.prepare(requestId, viewer) }
+        advanceTimeBy(59_999)
+        runCurrent()
+        assertFalse(preparing.isCompleted)
+
+        advanceTimeBy(1)
+        runCurrent()
+        assertIs<TimeoutException>(preparing.await().exceptionOrNull())
     }
 }

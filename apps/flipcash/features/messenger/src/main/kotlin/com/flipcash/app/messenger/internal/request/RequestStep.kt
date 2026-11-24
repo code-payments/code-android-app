@@ -41,8 +41,12 @@ internal sealed interface RequestStep : FlowStep, Parcelable, NonDraggableRoute 
     data class Details(val requestId: String) : RequestStep
 }
 
-/** The back stack that puts [stage] on top: History, then Amount, then Summary and its editors. */
-internal fun stackFor(stage: RequestMoneyViewModel.Stage): List<RequestStep> {
+/**
+ * The back stack that puts [stage] on top: History, then Amount, then Summary and its editors. A
+ * [collections] flow is Amount alone; its confirm sheet opens over it.
+ */
+internal fun stackFor(stage: RequestMoneyViewModel.Stage, collections: Boolean = false): List<RequestStep> {
+    if (collections) return listOf(RequestStep.Amount)
     val toSummary = listOf(RequestStep.History, RequestStep.Amount, RequestStep.Summary)
     return when (stage) {
         RequestMoneyViewModel.Stage.History -> listOf(RequestStep.History)

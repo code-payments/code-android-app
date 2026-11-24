@@ -16,10 +16,13 @@ import com.flipcash.features.messenger.R
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.paymentrequest.PaymentRequest
+import com.flipcash.services.models.paymentrequest.Payer
+import com.flipcash.services.models.paymentrequest.amountEach
 import com.flipcash.services.models.paymentrequest.unpaidShareOf
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.GroupRosters
 import com.flipcash.shared.chat.PaymentRequests
+import com.flipcash.shared.payments.request.CollectionTopUp
 import com.flipcash.shared.payments.request.PaymentRequestPaymentDelegate
 import com.flipcash.shared.payments.request.ShareToPay
 import com.getcode.manager.BottomBarManager
@@ -29,6 +32,8 @@ import com.getcode.opencode.model.core.ID
 import com.getcode.opencode.model.core.errors.ComputeVerifiedFiatError
 import com.getcode.opencode.model.financial.Fiat
 import com.getcode.opencode.model.financial.Token
+import com.getcode.opencode.model.financial.TokenWithLocalizedBalance
+import com.getcode.solana.keys.Mint
 import com.flipcash.app.tokens.TokenCoordinator
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
@@ -67,6 +72,7 @@ internal class RequestDetailsViewModel @Inject constructor(
     private val requests: PaymentRequests,
     private val rosters: GroupRosters,
     private val payments: PaymentRequestPaymentDelegate,
+    private val topUp: CollectionTopUp,
     private val payer: StartChattingPayer,
     private val tokenCoordinator: TokenCoordinator,
     private val transactionController: TransactionController,
@@ -99,10 +105,21 @@ internal class RequestDetailsViewModel @Inject constructor(
          * to pay with, so Send stays hidden (case 20). The id itself is not kept here.
          */
         val hasPaymentIntent: Boolean = false,
+        /** Group Money is on, so a collection gets its own details (group-collections spec). */
+        val collections: Boolean = false,
+        /** The viewer has paid this collection: the last fetch's `caller_payer`, or a payment that landed here. */
+        val callerPaid: Boolean = false,
+        /** Pay found nothing to pay (ALREADY_PAID or NOT_A_PAYER), so it stays hidden here. */
+        val nothingToPay: Boolean = false,
+        /** Pay found the collection DENIED or NOT_FOUND: the screen says it is no longer available. */
+        val payUnavailable: Boolean = false,
     )
 
     sealed interface Effect {
         data class OpenScreen(val route: AppRoute) : Effect
+
+        /** The check Coinbase asks for before a top-up: open it for a result and answer [onVerified]. */
+        data class Verify(val route: AppRoute.Verification) : Effect
     }
 
     private val _state = MutableStateFlow(State())
@@ -127,13 +144,18 @@ internal class RequestDetailsViewModel @Inject constructor(
      * none is held to show. The screen says so instead of staying blank.
      */
     val unavailable: StateFlow<Boolean> = combine(_state, requests.missing, request) { s, missing, held ->
-        held == null && s.requestId in missing
+        (held == null && s.requestId in missing) || s.payUnavailable
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     /** The chat's members by id, for the creator's and each share's name and avatar. */
     val members: StateFlow<Map<ID, ChatMember>> = combine(_state, rosters.state) { s, all ->
         all[s.chatId].orEmpty().associateBy { it.userId }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /** A collection's paid payers, newest first (`GetPayers` PAID); empty for a split or until loaded. */
+    val paidPayers: StateFlow<List<Payer>> = combine(_state, requests.payers) { s, all ->
+        s.requestId?.let { all[it]?.payers }.orEmpty()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val token: StateFlow<Token?> get() = payFlow.token
 
@@ -146,10 +168,19 @@ internal class RequestDetailsViewModel @Inject constructor(
         }
     }
 
-    fun open(chatId: ChatId, requestId: String) {
+    fun open(chatId: ChatId, requestId: String, collections: Boolean = false) {
         val id = runCatching { requestId.decodeBase58().toList() }.getOrNull() ?: return
         if (_state.value.requestId == id) return
-        _state.update { it.copy(chatId = chatId, requestId = id) }
+        _state.update {
+            it.copy(
+                chatId = chatId,
+                requestId = id,
+                collections = collections,
+                callerPaid = false,
+                nothingToPay = false,
+                payUnavailable = false,
+            )
+        }
         if (rosters.state.value[chatId] == null) viewModelScope.launch { rosters.load(chatId) }
     }
 
@@ -161,7 +192,16 @@ internal class RequestDetailsViewModel @Inject constructor(
         val id = _state.value.requestId ?: return
         while (true) {
             requests.fetch(id)
-                .onSuccess { details -> _state.update { it.copy(hasPaymentIntent = details.paymentIntentId != null) } }
+                .onSuccess { details ->
+                    _state.update {
+                        it.copy(
+                            hasPaymentIntent = details.paymentIntentId != null,
+                            callerPaid = callerPaidAfterFetch(it.callerPaid, details.callerPayer?.isPaid == true),
+                        )
+                    }
+                    // A collection's details list its paid payers beside the request.
+                    if (_state.value.collections && details.paymentRequest.collection != null) requests.loadPayers(id)
+                }
             _now.value = Clock.System.now()
             delay(ChatRequestsViewModel.POLL_INTERVAL)
         }
@@ -171,6 +211,7 @@ internal class RequestDetailsViewModel @Inject constructor(
     private val payFlow = RequestPayFlow(
         scope = viewModelScope,
         payments = payments,
+        topUp = topUp,
         payer = payer,
         tokenCoordinator = tokenCoordinator,
         transactionController = transactionController,
@@ -179,15 +220,51 @@ internal class RequestDetailsViewModel @Inject constructor(
         resources = resources,
         analytics = analytics,
         openScreen = { route -> effects.trySend(Effect.OpenScreen(route)) },
-        onNothingToPay = { _state.update { it.copy(hasPaymentIntent = false) } },
+        verify = { route -> effects.trySend(Effect.Verify(route)) },
+        onNothingToPay = {
+            _state.update { it.copy(hasPaymentIntent = false, nothingToPay = true) }
+            reloadCollectionPayers()
+        },
+        onUnavailable = { _state.update { it.copy(payUnavailable = true) } },
+        // Pay stays hidden even if the payer list is slow to show the viewer.
+        onPaid = { _state.update { it.copy(callerPaid = true) } },
     )
+
+    /** After Pay found a collection already paid, the payer list catches up with the refetch. */
+    private fun reloadCollectionPayers() {
+        val s = _state.value
+        val id = s.requestId ?: return
+        if (!s.collections || request.value?.collection == null) return
+        viewModelScope.launch { requests.loadPayers(id) }
+    }
 
     val pay: StateFlow<RequestPayFlow.State> = payFlow.state
     val swipePayActions: SwipePayActions = payFlow.actions
+    val collectionCurrencies: StateFlow<List<TokenWithLocalizedBalance>> get() = payFlow.collectionCurrencies
 
-    /** "Send <share>". */
+    val fundingUi: StateFlow<CollectionFundingUi?> get() = payFlow.fundingUi
+
+    /**
+     * The Pay button as the top-up itself, when no balance funds the collection (sections 1 and 2):
+     * Pay then opens Google Pay without the sheet. Null when Group Money is off, for a split, or when
+     * a balance funds part of it.
+     */
+    val directPay: StateFlow<CollectionDirectPayUi?> = payFlow.directPay(
+        combine(_state, request) { s, request ->
+            request?.let { collectionDetailsOf(it, s.collections) }?.collection?.amountEach
+        },
+    ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun pickCollectionCurrency(mint: Mint) = payFlow.pickCollectionCurrency(mint)
+
+    val onAddAndPay: () -> Unit get() = payFlow.onAddAndPay
+
+    fun onVerified(verified: Boolean) = payFlow.onVerified(verified)
+
+    /** "Send <share>", or a collection's Pay, which tops up without the sheet when nothing funds it. */
     fun payTapped() {
-        _state.value.requestId?.let(payFlow::start)
+        val collections = _state.value.collections
+        _state.value.requestId?.let { payFlow.start(it, fund = collections, direct = collections) }
     }
 
     fun confirmPay() = payFlow.confirm()
@@ -272,3 +349,46 @@ internal fun sendableShareOf(request: PaymentRequest, viewerId: ID?, now: Instan
 /** Whether the viewer has a share to pay on [request] now. */
 internal fun unpaidShareOf(request: PaymentRequest, viewerId: ID?, now: Instant) =
     request.unpaidShareOf(viewerId, now)
+
+/**
+ * [request] when Request details shows it by the collection rules: a collection with Group Money on.
+ * A split, or anything with the flag off, keeps the shipped screen.
+ */
+internal fun collectionDetailsOf(request: PaymentRequest, collections: Boolean): PaymentRequest? =
+    request.takeIf { collections && it.collection != null }
+
+/**
+ * What "Pay <amount>" pays on a collection, or null to hide it: the collection is OPEN, the viewer
+ * is not its creator, and the viewer has not paid. Paid is `caller_payer` from the last fetch or the
+ * viewer in the paid list, which the stream's payer updates keep current.
+ */
+internal fun payableCollectionAmount(
+    request: PaymentRequest,
+    viewerId: ID?,
+    now: Instant,
+    callerPaid: Boolean,
+    paid: List<Payer>,
+    nothingToPay: Boolean = false,
+): Fiat? {
+    val each = request.collection?.amountEach ?: return null
+    if (viewerId == null || request.creator == viewerId || !request.isOpen(now)) return null
+    if (callerPaid || nothingToPay || paid.any { it.userId == viewerId }) return null
+    return each
+}
+
+/**
+ * Whether the viewer has paid after a fetch lands. Paid never goes back to unpaid, so a fetch that
+ * started before the viewer's payment landed cannot bring Pay back.
+ */
+internal fun callerPaidAfterFetch(heldPaid: Boolean, fetchedPaid: Boolean): Boolean = heldPaid || fetchedPaid
+
+/**
+ * "<total paid> paid · <amount> each", as "$0 paid · $10.00 each": nothing paid reads as a whole
+ * "$0", other amounts keep their cents.
+ */
+internal fun collectionHeaderText(resources: ResourceHelper, paid: Fiat, each: Fiat): String =
+    resources.getString(R.string.label_collectionHeader, paid.collectionText(), each.collectionText())
+
+/** A collection amount on its details: cents kept, except a whole zero. */
+internal fun Fiat.collectionText(): String =
+    formatted(if (quarks == 0L) Fiat.FormattingRule.Truncated else Fiat.FormattingRule.None)

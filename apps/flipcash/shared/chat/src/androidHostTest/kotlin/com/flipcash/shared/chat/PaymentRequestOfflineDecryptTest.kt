@@ -31,8 +31,14 @@ import com.getcode.opencode.model.financial.CurrencyCode
 import com.getcode.opencode.model.financial.Fiat
 import io.mockk.coEvery
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -41,6 +47,7 @@ import org.robolectric.RobolectricTestRunner
 import java.io.IOException
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 /**
@@ -102,14 +109,21 @@ class PaymentRequestOfflineDecryptTest {
         ),
     )
 
-    /** One app launch: its own in-memory caches over the shared databases. */
-    private fun launch(online: Boolean): PaymentRequests {
+    private fun selfWrapped(): StoredKeyEnvelope {
+        val self = FakeChatCipher.wrapGroupKey(ownKeys, ownKeys.publicKey, chatId.bytes, groupKey)
+        return StoredKeyEnvelope(KeyEnvelope(KeyEnvelope.SCHEME_X25519_XCHACHA20POLY1305, self.nonce, self.ciphertext), wrappedBy = null)
+    }
+
+    /**
+     * One app launch: its own in-memory caches over the shared databases. With [keyAnswer], the
+     * key fetch waits on it, as a `withWaitForReady` call does with no connection.
+     */
+    private fun launch(online: Boolean, keyAnswer: CompletableDeferred<Unit>? = null): PaymentRequests {
         val chats = mockk<ChatController>()
-        if (online) {
-            val self = FakeChatCipher.wrapGroupKey(ownKeys, ownKeys.publicKey, chatId.bytes, groupKey)
-            coEvery { chats.getKeyEnvelope(chatId) } returns Result.success(
-                StoredKeyEnvelope(KeyEnvelope(KeyEnvelope.SCHEME_X25519_XCHACHA20POLY1305, self.nonce, self.ciphertext), wrappedBy = null),
-            )
+        if (keyAnswer != null) {
+            coEvery { chats.getKeyEnvelope(chatId) } coAnswers { keyAnswer.await(); Result.success(selfWrapped()) }
+        } else if (online) {
+            coEvery { chats.getKeyEnvelope(chatId) } returns Result.success(selfWrapped())
         } else {
             coEvery { chats.getKeyEnvelope(chatId) } returns Result.failure(GetKeyEnvelopeError.Other(IOException("offline")))
         }
@@ -142,6 +156,42 @@ class PaymentRequestOfflineDecryptTest {
         val shown = launch(online = false).inChat(chatId).first().single()
 
         assertIs<PaymentRequestText.Encrypted>(shown.split?.text)
+        Unit
+    }
+
+    /**
+     * Offline, the chat gRPC calls wait for a connection rather than fail. The chat's transcript
+     * waits on [PaymentRequests.inChat], so a key fetch that never answers must not hold back the
+     * stored requests; the text opens once the key arrives.
+     */
+    @Test
+    fun `a key fetch that never answers does not hold back the stored requests`() = runBlocking {
+        launch(online = true).loadChat(chatId).getOrThrow()
+        envelopeStore.clear()
+        val keyAnswer = CompletableDeferred<Unit>()
+
+        val shown = withTimeout(5.seconds) {
+            launch(online = false, keyAnswer = keyAnswer).inChat(chatId)
+                .onEach { if (it.single().split?.text is PaymentRequestText.Encrypted) keyAnswer.complete(Unit) }
+                .map { it.single().split?.text }
+                .take(2)
+                .toList()
+        }
+
+        assertIs<PaymentRequestText.Encrypted>(shown[0])
+        assertEquals(PaymentRequestText.Plain("Dinner", "Tacos"), shown[1])
+    }
+
+    @Test
+    fun `a key fetch that never answers does not hold back a stored request`() = runBlocking {
+        launch(online = true).loadChat(chatId).getOrThrow()
+        envelopeStore.clear()
+
+        val shown = withTimeout(5.seconds) {
+            launch(online = false, keyAnswer = CompletableDeferred()).request(requestId).first()
+        }
+
+        assertIs<PaymentRequestText.Encrypted>(shown?.split?.text)
         Unit
     }
 }
