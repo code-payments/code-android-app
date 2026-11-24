@@ -16,6 +16,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -91,7 +92,16 @@ class ChatServiceArchiveTest {
     fun `archiveChat transport failure is Other, not Unimplemented`() = runTest {
         coEvery { api.archiveChat(any(), any()) } throws StatusException(Status.UNAVAILABLE)
 
-        assertIs<ArchiveChatError.Other>(service.archiveChat(owner, chatId).exceptionOrNull())
+        val error = assertIs<ArchiveChatError.Other>(service.archiveChat(owner, chatId).exceptionOrNull())
+        assertTrue(error.isTransportFailure)
+    }
+
+    @Test
+    fun `archiveChat answered with another status is Other, and not a transport failure`() = runTest {
+        coEvery { api.archiveChat(any(), any()) } throws StatusException(Status.UNAUTHENTICATED)
+
+        val error = assertIs<ArchiveChatError.Other>(service.archiveChat(owner, chatId).exceptionOrNull())
+        assertFalse(error.isTransportFailure)
     }
 
     // endregion
@@ -140,6 +150,17 @@ class ChatServiceArchiveTest {
         coEvery { api.unarchiveChat(any(), any()) } throws StatusException(Status.UNIMPLEMENTED)
 
         assertIs<UnarchiveChatError.Unimplemented>(service.unarchiveChat(owner, chatId).exceptionOrNull())
+    }
+
+    @Test
+    fun `unarchiveChat tells a transport failure from an answered status`() = runTest {
+        coEvery { api.unarchiveChat(any(), any()) } throws StatusException(Status.DEADLINE_EXCEEDED)
+        val unreachable = assertIs<UnarchiveChatError.Other>(service.unarchiveChat(owner, chatId).exceptionOrNull())
+        assertTrue(unreachable.isTransportFailure)
+
+        coEvery { api.unarchiveChat(any(), any()) } throws StatusException(Status.PERMISSION_DENIED)
+        val answered = assertIs<UnarchiveChatError.Other>(service.unarchiveChat(owner, chatId).exceptionOrNull())
+        assertFalse(answered.isTransportFailure)
     }
 
     // endregion

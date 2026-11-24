@@ -899,7 +899,11 @@ sealed class ArchiveChatError(
     class NotFound: ArchiveChatError("Not found")
     class Unimplemented: ArchiveChatError("Server does not implement ArchiveChat")
     class Unrecognized : ArchiveChatError("Unrecognized"), NotifiableError
-    data class Other(override val cause: Throwable? = null) : ArchiveChatError(message = cause?.message, cause = cause), NotifiableError
+    data class Other(override val cause: Throwable? = null) : ArchiveChatError(message = cause?.message, cause = cause), NotifiableError {
+        /** The call never got an answer from the server: no network, or the channel gave up. */
+        val isTransportFailure: Boolean
+            get() = cause.hasTransportCause()
+    }
 }
 
 /** Same outcomes as [ArchiveChatError], for UnarchiveChat. */
@@ -911,7 +915,11 @@ sealed class UnarchiveChatError(
     class NotFound: UnarchiveChatError("Not found")
     class Unimplemented: UnarchiveChatError("Server does not implement UnarchiveChat")
     class Unrecognized : UnarchiveChatError("Unrecognized"), NotifiableError
-    data class Other(override val cause: Throwable? = null) : UnarchiveChatError(message = cause?.message, cause = cause), NotifiableError
+    data class Other(override val cause: Throwable? = null) : UnarchiveChatError(message = cause?.message, cause = cause), NotifiableError {
+        /** The call never got an answer from the server: no network, or the channel gave up. */
+        val isTransportFailure: Boolean
+            get() = cause.hasTransportCause()
+    }
 }
 
 sealed class EnterLobbyError(
