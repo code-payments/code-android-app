@@ -76,7 +76,17 @@ open class ChatsViewModel @Inject constructor(
         val chipsRevealed: Boolean = false,
         // Select mode: the chats picked so far, or null outside it. Empty right after Select Chats.
         val selection: Set<ChatId>? = null,
+        // The group-money UI, where the tab is group-focused and the third chip is DMs, not Groups.
+        val groupMoney: Boolean = false,
     ) {
+
+        /** The third chip: Groups, or DMs under the group-money UI. */
+        val kindFilter: ChatListFilter
+            get() = if (groupMoney) ChatListFilter.DMs else ChatListFilter.Groups
+
+        /** The third chip's number: its unread chats. */
+        val kindChipCount: Int
+            get() = if (groupMoney) projection.dmsChipCount else projection.groupsChipCount
 
         val isSelecting: Boolean get() = selection != null
 
@@ -120,6 +130,8 @@ open class ChatsViewModel @Inject constructor(
         ) : Event
 
         data class FilterSelected(val filter: ChatListFilter) : Event
+
+        data class GroupMoneyChanged(val on: Boolean) : Event
 
         data object ChipsRevealed : Event
 
@@ -200,10 +212,12 @@ open class ChatsViewModel @Inject constructor(
 
     // Collections preview by what each member pays under the Group Money flag, which only the
     // screen can read; until it says so they preview as untitled requests, as before the flag.
+    // The same flag swaps the Groups chip for DMs.
     private val collections = MutableStateFlow(false)
 
     fun showCollections(on: Boolean) {
         collections.value = on
+        dispatchEvent(Event.GroupMoneyChanged(on))
     }
 
     init {
@@ -302,6 +316,14 @@ open class ChatsViewModel @Inject constructor(
                 }
                 // A chip can only be tapped once the row is on screen, so choosing one reveals it.
                 is Event.FilterSelected -> { state -> state.copy(filter = event.filter, chipsRevealed = true) }
+                // The chip that leaves the row can't stay selected: fall back to All.
+                is Event.GroupMoneyChanged -> { state ->
+                    val dropped = if (event.on) ChatListFilter.Groups else ChatListFilter.DMs
+                    state.copy(
+                        groupMoney = event.on,
+                        filter = if (state.filter == dropped) ChatListFilter.All else state.filter,
+                    )
+                }
                 Event.ChipsRevealed -> { state -> state.copy(chipsRevealed = true) }
                 is Event.SelectionStarted -> { state -> state.copy(selection = setOfNotNull(event.chatId)) }
                 is Event.SelectionToggled -> { state ->

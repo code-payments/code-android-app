@@ -1416,8 +1416,10 @@
     <string name="content_description_archivedUnread">Archived, %1$d unread</string>
     <string name="title_filterAll">All</string>
     <string name="title_filterUnread">Unread</string>
+    <string name="title_filterGroups">Groups</string>
     <string name="title_filterDms">DMs</string>
     <string name="title_noUnreadChats">No unread chats</string>
+    <string name="title_noGroupChats">No groups</string>
     <string name="title_noDmChats">No DMs</string>
     <string name="title_noArchivedChats">No archived chats</string>
     <string name="title_allChatsArchived">All your chats are archived</string>

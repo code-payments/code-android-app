@@ -20,9 +20,11 @@ import com.flipcash.core.resources.title_allChatsArchived
 import com.flipcash.core.resources.title_archived
 import com.flipcash.core.resources.title_filterAll
 import com.flipcash.core.resources.title_filterDms
+import com.flipcash.core.resources.title_filterGroups
 import com.flipcash.core.resources.title_filterUnread
 import com.flipcash.core.resources.title_noChatsYet
 import com.flipcash.core.resources.title_noDmChats
+import com.flipcash.core.resources.title_noGroupChats
 import com.flipcash.core.resources.title_noUnreadChats
 import com.flipcash.core.resources.title_tabChat
 import androidx.compose.animation.AnimatedVisibility
@@ -115,9 +117,10 @@ import dev.chrisbanes.haze.rememberHazeState
  * The "Chats" root tab: tip DMs and groups under the standard centred screen title, with no dismiss
  * affordance (the root nav bar is the chrome). The tip card lives on the "You" tab.
  *
- * The All / Unread / DMs chips are the list's first item. The list starts on item 1, so they sit
- * just out of view (under the bar, at zero alpha) until a pull from the top brings them on; see
- * [ChipRevealConnection] for how a pull settles.
+ * The All / Unread / Groups chips (DMs in place of Groups under the group-money UI) are the list's
+ * first item. The list starts on item 1, so they sit just out of view (under the bar, at zero
+ * alpha) until a pull from the top brings them on; see [ChipRevealConnection] for how a pull
+ * settles.
  */
 @Composable
 fun ChatsScreenContent(
@@ -221,8 +224,9 @@ fun ChatsScreenContent(
                                 alpha = if (state.showsChips) 1f else listState.chipVisibleFraction()
                             },
                         selected = state.filter,
+                        kind = state.kindFilter,
                         unreadCount = state.projection.unreadChipCount,
-                        dmsCount = state.projection.dmsChipCount,
+                        kindCount = state.kindChipCount,
                         onSelect = { filter ->
                             if (!state.showsChips && listState.chipVisibleFraction() < 1f) {
                                 // Hidden under the bar (a stray tap, or a screen reader reaching it):
@@ -277,6 +281,7 @@ fun ChatsScreenContent(
                                 .fillParentMaxSize(),
                             message = when (state.filter) {
                                 ChatListFilter.Unread -> Res.string.title_noUnreadChats
+                                ChatListFilter.Groups -> Res.string.title_noGroupChats
                                 ChatListFilter.DMs -> Res.string.title_noDmChats
                                 ChatListFilter.All -> Res.string.title_allChatsArchived
                             },
@@ -493,14 +498,16 @@ internal fun ChatSwipeRow(
 }
 
 /**
- * The filter chips. All carries no number: the tab badge already shows it. Unread and DMs show
- * theirs only when non-zero; DMs counts the unread chats that are not groups.
+ * The filter chips. All carries no number: the tab badge already shows it. Unread and the third
+ * chip, [kind], show theirs only when non-zero. [kind] is Groups, counting unread groups, or DMs
+ * under the group-money UI, counting the unread chats that are not groups.
  */
 @Composable
 private fun ChatFilterRow(
     selected: ChatListFilter,
+    kind: ChatListFilter,
     unreadCount: Int,
-    dmsCount: Int,
+    kindCount: Int,
     onSelect: (ChatListFilter) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -523,10 +530,12 @@ private fun ChatFilterRow(
             count = unreadCount,
         )
         FilterChip(
-            label = stringResource(Res.string.title_filterDms),
-            selected = selected == ChatListFilter.DMs,
-            onClick = { onSelect(ChatListFilter.DMs) },
-            count = dmsCount,
+            label = stringResource(
+                if (kind == ChatListFilter.DMs) Res.string.title_filterDms else Res.string.title_filterGroups
+            ),
+            selected = selected == kind,
+            onClick = { onSelect(kind) },
+            count = kindCount,
         )
     }
 }

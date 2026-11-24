@@ -52460,7 +52460,7 @@ PLcom/flipcash/shared/chat/ChatListProjection;-><init>(Ljava/util/List;Ljava/uti
 PLcom/flipcash/shared/chat/ChatListProjection;->access$getEmpty$cp()Lcom/flipcash/shared/chat/ChatListProjection;
 PLcom/flipcash/shared/chat/ChatListProjection;->equals(Ljava/lang/Object;)Z
 PLcom/flipcash/shared/chat/ChatListProjection;->getArchivedRowVisible()Z
-PLcom/flipcash/shared/chat/ChatListProjection;->getDmsChipCount()I
+PLcom/flipcash/shared/chat/ChatListProjection;->getGroupsChipCount()I
 PLcom/flipcash/shared/chat/ChatListProjection;->getUnreadChipCount()I
 Lcom/flipcash/shared/chat/ChatListProjection$Companion;
 PLcom/flipcash/shared/chat/ChatListProjection$Companion;-><init>()V

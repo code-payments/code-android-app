@@ -17,19 +17,26 @@ class ChatsViewModelStateTest {
 
     private val dm = ConversationReference(chatId = ChatId(byteArrayOf(1)))
     private val group = ConversationReference(chatId = ChatId(byteArrayOf(2)), isGroup = true)
+    private val unreadDm = ConversationReference(chatId = ChatId(byteArrayOf(3)))
 
+    private fun ids(vararg chats: ConversationReference) = chats.map { it.chatId.toString() }
+
+    // Unread, Groups and DMs each hold different chats, so a chip reading the wrong list fails.
     private val projection = ChatListProjection.Empty.copy(
-        main = listOf(dm.chatId.toString(), group.chatId.toString()),
-        unreadChip = listOf(group.chatId.toString()),
-        dmsChip = listOf(dm.chatId.toString()),
+        main = ids(dm, group, unreadDm),
+        unreadChip = ids(group, unreadDm),
+        groupsChip = ids(group),
+        dmsChip = ids(dm, unreadDm),
         archivedRowVisible = true,
         archivedRowCount = 2,
     )
 
     private val loaded = reduce(
         ChatsViewModel.State(),
-        ChatsViewModel.Event.ChatsUpdated(Loadable.Loaded(listOf(dm, group)), projection),
+        ChatsViewModel.Event.ChatsUpdated(Loadable.Loaded(listOf(dm, group, unreadDm)), projection),
     )
+
+    private val groupMoney = reduce(loaded, ChatsViewModel.Event.GroupMoneyChanged(on = true))
 
     @Test
     fun `chips start hidden under All`() {
@@ -58,22 +65,73 @@ class ChatsViewModelStateTest {
 
     @Test
     fun `each filter shows its own rows in feed order`() {
-        assertEquals(listOf(dm, group), loaded.visibleChats)
+        assertEquals(listOf(dm, group, unreadDm), loaded.visibleChats)
         assertEquals(
-            listOf(group),
+            listOf(group, unreadDm),
             reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.Unread)).visibleChats,
         )
         assertEquals(
-            listOf(dm),
-            reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.DMs)).visibleChats,
+            listOf(group),
+            reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.Groups)).visibleChats,
         )
+        assertEquals(
+            listOf(dm, unreadDm),
+            reduce(groupMoney, ChatsViewModel.Event.FilterSelected(ChatListFilter.DMs)).visibleChats,
+        )
+    }
+
+    @Test
+    fun `the third chip is Groups, or DMs under the group-money UI`() {
+        assertEquals(ChatListFilter.Groups, ChatsViewModel.State().kindFilter)
+        assertEquals(ChatListFilter.Groups, loaded.kindFilter)
+        assertEquals(ChatListFilter.DMs, groupMoney.kindFilter)
+        assertEquals(
+            ChatListFilter.Groups,
+            reduce(groupMoney, ChatsViewModel.Event.GroupMoneyChanged(on = false)).kindFilter,
+        )
+    }
+
+    @Test
+    fun `the third chip counts the unread chats of its kind`() {
+        val counted = reduce(
+            ChatsViewModel.State(),
+            ChatsViewModel.Event.ChatsUpdated(
+                Loadable.Loaded(listOf(dm, group, unreadDm)),
+                projection.copy(groupsChipCount = 3, dmsChipCount = 5),
+            ),
+        )
+        assertEquals(3, counted.kindChipCount)
+        assertEquals(5, reduce(counted, ChatsViewModel.Event.GroupMoneyChanged(on = true)).kindChipCount)
+    }
+
+    @Test
+    fun `a selected chip that leaves the row falls back to All`() {
+        val groups = reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.Groups))
+        assertEquals(ChatListFilter.All, reduce(groups, ChatsViewModel.Event.GroupMoneyChanged(on = true)).filter)
+
+        val dms = reduce(groupMoney, ChatsViewModel.Event.FilterSelected(ChatListFilter.DMs))
+        assertEquals(ChatListFilter.All, reduce(dms, ChatsViewModel.Event.GroupMoneyChanged(on = false)).filter)
+    }
+
+    @Test
+    fun `a chip still in the row stays selected when the flag is reported again or flips`() {
+        // The screen reports the flag each time it enters composition, usually unchanged.
+        val dms = reduce(groupMoney, ChatsViewModel.Event.FilterSelected(ChatListFilter.DMs))
+        assertEquals(ChatListFilter.DMs, reduce(dms, ChatsViewModel.Event.GroupMoneyChanged(on = true)).filter)
+
+        val groups = reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.Groups))
+        assertEquals(ChatListFilter.Groups, reduce(groups, ChatsViewModel.Event.GroupMoneyChanged(on = false)).filter)
+
+        val unread = reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.Unread))
+        assertEquals(ChatListFilter.Unread, reduce(unread, ChatsViewModel.Event.GroupMoneyChanged(on = true)).filter)
     }
 
     @Test
     fun `the Archived row shows only under All`() {
         assertTrue(loaded.showsArchivedRow)
         assertFalse(reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.Unread)).showsArchivedRow)
-        assertFalse(reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.DMs)).showsArchivedRow)
+        assertFalse(reduce(loaded, ChatsViewModel.Event.FilterSelected(ChatListFilter.Groups)).showsArchivedRow)
+        assertFalse(reduce(groupMoney, ChatsViewModel.Event.FilterSelected(ChatListFilter.DMs)).showsArchivedRow)
     }
 
     @Test
