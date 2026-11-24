@@ -39,6 +39,7 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.kotlinx.serialization.json)
+                implementation(libs.kotlinx.coroutines.test)
             }
         }
         getByName("androidDeviceTest") {

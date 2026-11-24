@@ -18,7 +18,7 @@ class GroupKeyWrapTest {
     private val groupKey = ByteArray(32) { (0xA0 + it).toByte() }
 
     @Test
-    fun creatorWrap_opensForTheRecipient() {
+    fun creatorWrap_opensForTheRecipient() = sodiumTest {
         val envelope = DefaultChatCipher.wrapGroupKey(creator, member.publicKey, chatId, groupKey)
 
         assertEquals(24, envelope.nonce.size)
@@ -27,14 +27,14 @@ class GroupKeyWrapTest {
     }
 
     @Test
-    fun selfWrap_opensForTheWrapper() {
+    fun selfWrap_opensForTheWrapper() = sodiumTest {
         val envelope = DefaultChatCipher.wrapGroupKey(creator, creator.publicKey, chatId, groupKey)
 
         assertContentEquals(groupKey, DefaultChatCipher.unwrapGroupKey(creator, creator.publicKey, chatId, envelope))
     }
 
     @Test
-    fun envelope_rejectsAnyOtherWrapperOrRecipient() {
+    fun envelope_rejectsAnyOtherWrapperOrRecipient() = sodiumTest {
         val envelope = DefaultChatCipher.wrapGroupKey(creator, member.publicKey, chatId, groupKey)
 
         assertFailsWith<ChatCipherException> {
@@ -46,7 +46,7 @@ class GroupKeyWrapTest {
     }
 
     @Test
-    fun envelope_isBoundToTheChat() {
+    fun envelope_isBoundToTheChat() = sodiumTest {
         val envelope = DefaultChatCipher.wrapGroupKey(creator, member.publicKey, chatId, groupKey)
         val otherChat = chatId.copyOf().also { it[0] = 0x7F }
 
@@ -56,7 +56,7 @@ class GroupKeyWrapTest {
     }
 
     @Test
-    fun wrappingKey_isNotTheDmChatKey() {
+    fun wrappingKey_isNotTheDmChatKey() = sodiumTest {
         // Same pair and chat, different label: a DM key must never open a group envelope.
         val nonce = ByteArray(24)
         val envelope = DefaultChatCipher.wrapGroupKey(creator, member.publicKey, chatId, groupKey, nonce)
@@ -67,14 +67,14 @@ class GroupKeyWrapTest {
     }
 
     @Test
-    fun wrap_rejectsAShortKey() {
+    fun wrap_rejectsAShortKey() = sodiumTest {
         assertFailsWith<ChatCipherException> {
             DefaultChatCipher.wrapGroupKey(creator, member.publicKey, chatId, ByteArray(16))
         }
     }
 
     @Test
-    fun newGroupKey_isThirtyTwoFreshBytes() {
+    fun newGroupKey_isThirtyTwoFreshBytes() = sodiumTest {
         val a = DefaultChatCipher.newGroupKey()
         val b = DefaultChatCipher.newGroupKey()
 

@@ -28,7 +28,7 @@ class ChatEnvelopeVectorTest {
     private fun list(key: String) = root.getValue(key).jsonArray.map { it.jsonObject }
 
     @Test
-    fun contentDecodesLikeAndroid() {
+    fun contentDecodesLikeAndroid() = sodiumTest {
         val vectors = list("contents")
         assertEquals(25, vectors.size)
         for (v in vectors) {
@@ -43,7 +43,7 @@ class ChatEnvelopeVectorTest {
      * fails here for the cash vectors.
      */
     @Test
-    fun contentEncodesLikeAndroid() {
+    fun contentEncodesLikeAndroid() = sodiumTest {
         val vectors = list("contents").filter { it.str("direction") == "encode" }
         assertEquals(16, vectors.size)
         for (v in vectors) {
@@ -53,20 +53,20 @@ class ChatEnvelopeVectorTest {
 
     /** protobuf-java's bytes are already in canonical order, so the schema covers every field they hold. */
     @Test
-    fun androidContentBytesAreCanonical() {
+    fun androidContentBytesAreCanonical() = sodiumTest {
         for (v in list("contents")) {
             assertEquals(v.str("bytes"), canonicalize(v.hex("bytes"), "flipcash.messaging.v1.Content", ContentCanonicalSchema).hex(), v.str("name"))
         }
     }
 
     @Test
-    fun unknownEncryptionSchemeCannotBeEncoded() {
+    fun unknownEncryptionSchemeCannotBeEncoded() = sodiumTest {
         val unknown = ContentCodec.decode(list("contents").first { it.str("name") == "encrypted-unknown-scheme" }.hex("bytes"))
         assertFailsWith<IllegalArgumentException> { ContentCodec.encode(unknown) }
     }
 
     @Test
-    fun sealedContentOpens() {
+    fun sealedContentOpens() = sodiumTest {
         val crypto = ChatCrypto()
         val vectors = list("sealed")
         assertEquals(4, vectors.size)
@@ -81,7 +81,7 @@ class ChatEnvelopeVectorTest {
     }
 
     @Test
-    fun sealedContentFailsWithTheWrongSender() {
+    fun sealedContentFailsWithTheWrongSender() = sodiumTest {
         val v = list("sealed").first { it.str("kind") == "group" }
         val encrypted = assertIs<MessageContent.Encrypted>(ContentCodec.decode(v.hex("bytes")))
         val opened = ChatCrypto().openGroup(encrypted, v.hex("groupKey"), v.hex("chatId"), ByteArray(16))
@@ -89,7 +89,7 @@ class ChatEnvelopeVectorTest {
     }
 
     @Test
-    fun keyEnvelopesMatchAndroidAndOpen() {
+    fun keyEnvelopesMatchAndroidAndOpen() = sodiumTest {
         val vectors = list("keyEnvelopes")
         assertEquals(3, vectors.size)
         for (v in vectors) {

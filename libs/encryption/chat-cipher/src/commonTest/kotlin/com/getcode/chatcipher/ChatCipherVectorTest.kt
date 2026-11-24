@@ -21,7 +21,7 @@ class ChatCipherVectorTest {
     private fun rejects(key: String) = root["rejects"]!!.jsonObject[key]!!.jsonArray.map { it.jsonObject }
 
     @Test
-    fun keyConversion() {
+    fun keyConversion() = sodiumTest {
         val vectors = list("keyConversion")
         assertTrue(vectors.isNotEmpty())
         for (v in vectors) {
@@ -33,7 +33,7 @@ class ChatCipherVectorTest {
     }
 
     @Test
-    fun chatKey_isTheSameFromBothMembers() {
+    fun chatKey_isTheSameFromBothMembers() = sodiumTest {
         val vectors = list("chatKey")
         assertTrue(vectors.isNotEmpty())
         for (v in vectors) {
@@ -48,7 +48,7 @@ class ChatCipherVectorTest {
     }
 
     @Test
-    fun messages_encryptAndDecrypt() {
+    fun messages_encryptAndDecrypt() = sodiumTest {
         val vectors = list("messages")
         assertTrue(vectors.size >= 7)
         for (v in vectors) {
@@ -66,7 +66,7 @@ class ChatCipherVectorTest {
     }
 
     @Test
-    fun blobs_encryptAndDecrypt() {
+    fun blobs_encryptAndDecrypt() = sodiumTest {
         val vectors = list("blobs")
         assertTrue(vectors.isNotEmpty())
         for (v in vectors) {
@@ -85,7 +85,7 @@ class ChatCipherVectorTest {
     }
 
     @Test
-    fun randomNonces_roundTripAndDiffer() {
+    fun randomNonces_roundTripAndDiffer() = sodiumTest {
         val v = list("messages").first()
         val args = arrayOf(v.hex("chatKey"), v.hex("senderPublicKey"), v.hex("recipientPublicKey"), v.hex("chatId"))
         val a = DefaultChatCipher.encrypt(v.hex("content"), args[0], args[1], args[2], args[3])
@@ -95,7 +95,7 @@ class ChatCipherVectorTest {
     }
 
     @Test
-    fun rejects_invalidPeerKeys() {
+    fun rejects_invalidPeerKeys() = sodiumTest {
         val vectors = rejects("invalidEdPublicKeys")
         assertTrue(vectors.size >= 4)
         for (v in vectors) {
@@ -105,7 +105,7 @@ class ChatCipherVectorTest {
     }
 
     @Test
-    fun rejects_zeroSharedSecret() {
+    fun rejects_zeroSharedSecret() = sodiumTest {
         for (v in rejects("zeroSharedSecret")) {
             assertFailsWith<ChatCipherException>(v.name()) {
                 DefaultChatCipher.sharedSecret(v.hex("x25519PrivateKey"), v.hex("peerX25519PublicKey"))
@@ -114,7 +114,7 @@ class ChatCipherVectorTest {
     }
 
     @Test
-    fun rejects_messages() {
+    fun rejects_messages() = sodiumTest {
         for (key in listOf("decrypt", "decryptBlobAsMessage")) {
             val vectors = rejects(key)
             assertTrue(vectors.isNotEmpty())
@@ -130,7 +130,7 @@ class ChatCipherVectorTest {
     }
 
     @Test
-    fun rejects_blobs() {
+    fun rejects_blobs() = sodiumTest {
         val vectors = rejects("decryptBlob")
         assertTrue(vectors.isNotEmpty())
         for (v in vectors) {
@@ -144,7 +144,7 @@ class ChatCipherVectorTest {
     }
 
     @Test
-    fun policy_shouldEncrypt() {
+    fun policy_shouldEncrypt() = sodiumTest {
         val policy = root["policy"]!!.jsonObject
         assertContentEquals(policy.hex("flipcashUserId"), ChatEncryptionPolicy.FLIPCASH_USER_ID)
         val vectors = policy["cases"]!!.jsonArray.map { it.jsonObject }
@@ -160,7 +160,7 @@ class ChatCipherVectorTest {
     }
 
     @Test
-    fun flipcashUserId_isACopy() {
+    fun flipcashUserId_isACopy() = sodiumTest {
         ChatEncryptionPolicy.FLIPCASH_USER_ID[0] = 0
         assertTrue(!ChatEncryptionPolicy.shouldEncrypt(true, true, root["policy"]!!.jsonObject.hex("flipcashUserId")))
     }
