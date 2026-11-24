@@ -172,6 +172,25 @@ If the verdict is **APPROVE WITH CHANGES**:
    fix(deps): adapt to <library> <new_version> API changes
    ```
 
+Rules for this step (from `.claude/reflections/2026-11-24-dep-review-sodium-lock-and-merge-order.md`
+in the orchestrator hub):
+
+- **Gradle before CI.** Before saying no local build is possible, check
+  `/opt/homebrew/opt/openjdk@21`; run Gradle with `JAVA_HOME` set to its
+  `libexec/openjdk.jdk/Contents/Home`. Gradle cannot download a JDK on this Mac.
+- **Regenerate `kotlin-js-store/package-lock.json` with
+  `./gradlew kotlinUpgradePackageLock`**, never by hand: Kotlin copies a KMP
+  library's npm deps into every module that depends on it, so a hand edit misses entries.
+  Confirm with `./gradlew kotlinStorePackageLock` before pushing.
+- **A fix the bump needs goes in the bump PR.** A separate fix PR off the base
+  runs against the old version; check it passes there before planning to merge it
+  first, or it lands red.
+- **Wait on CI by run ID** (`gh run watch <id> --exit-status`), never a loop that
+  looks the run up by commit: that lookup can come back empty and the loop never ends.
+- **Merge one at a time** and let each PR's CI start before the next merge: a
+  burst of merges starts parallel runs that fail on Maven Central downloads
+  (Robolectric jars) and reads as a real break.
+
 ## Never
 
 - Auto-merge a PR without user approval
