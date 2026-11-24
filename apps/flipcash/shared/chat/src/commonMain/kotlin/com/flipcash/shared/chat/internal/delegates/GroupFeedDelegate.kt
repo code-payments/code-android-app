@@ -4,11 +4,13 @@ import com.flipcash.app.persistence.sources.ChatFeedWriter
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.mediator.readFolder
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.InviteParameters
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
@@ -114,6 +116,12 @@ class GroupFeedDelegate @Inject constructor(
         }
         return page.chats
     }
+
+    /** Every archived group, read to the last page. Nothing is written. Null when a page failed. */
+    internal suspend fun fetchArchivedGroups(): List<ChatMetadata>? =
+        chatController.readFolder(ChatType.GROUP, ChatFolder.ARCHIVED).also {
+            if (it == null) trace(tag = TAG, message = "Archived group read failed", type = TraceType.Error)
+        }
 
     /** What follows a committed write of [chats]: transcripts to fetch or gaps to fill. */
     internal suspend fun requestCatchUp(chats: List<ChatMetadata>) {

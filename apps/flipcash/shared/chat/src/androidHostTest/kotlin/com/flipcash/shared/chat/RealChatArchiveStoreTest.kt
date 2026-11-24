@@ -128,22 +128,81 @@ class RealChatArchiveStoreTest {
     }
 
     @Test
-    fun `UNIMPLEMENTED keeps the write showing and a later flush sends it`() = runBlocking {
+    fun `UNIMPLEMENTED keeps the write showing and sends nothing more until the next launch`() = runBlocking {
         seed(a, viewerState = inbox(1))
-        coEvery { chatController.archiveChat(a) } returns Result.failure(ArchiveChatError.Unimplemented())
+        seed(b, viewerState = inbox(1))
+        coEvery { chatController.archiveChat(any()) } returns Result.failure(ArchiveChatError.Unimplemented())
 
         store.archive(a)
-
-        assertTrue(store.isArchived(a), "the write still shows")
-        assertEquals(1, archiveDataSource.pending().size)
-        assertFalse(marker.uploaded, "a queue the server did not answer is not uploaded")
-
-        coEvery { chatController.archiveChat(a) } returns Result.success(archived(2))
+        store.archive(b)
         store.flush()
+
+        coVerify(exactly = 1) { chatController.archiveChat(any()) }
+        assertTrue(store.isArchived(a), "the write still shows")
+        assertTrue(store.isArchived(b), "a write made after the answer still shows")
+        assertEquals(2, archiveDataSource.pending().size)
+        assertFalse(marker.uploaded, "a queue the server did not take is not uploaded")
+
+        // The next launch asks again.
+        val relaunched = RealChatArchiveStore(archiveDataSource, metadata, chatController, marker) { 1_000L }
+        coEvery { chatController.archiveChat(any()) } answers { Result.success(archived(2)) }
+        relaunched.flush()
 
         assertTrue(archiveDataSource.pending().isEmpty())
         assertNotNull(metadata.archivedAt(a))
+        assertNotNull(metadata.archivedAt(b))
         assertTrue(marker.uploaded)
+    }
+
+    @Test
+    fun `an answered error keeps the write and the pass goes on to the next`() = runBlocking {
+        seed(a, viewerState = inbox(1))
+        seed(b, viewerState = inbox(1))
+        archiveDataSource.putPending(hex(a), archived = true, at = 1)
+        archiveDataSource.putPending(hex(b), archived = true, at = 2)
+        coEvery { chatController.archiveChat(a) } returns
+            Result.failure(ArchiveChatError.Other(RuntimeException("UNAUTHENTICATED")))
+        coEvery { chatController.archiveChat(b) } returns Result.success(archived(2))
+
+        store.flush()
+
+        coVerify(exactly = 1) { chatController.archiveChat(b) }
+        assertEquals(listOf(hex(a)), archiveDataSource.pending().map { it.chatIdHex })
+        assertTrue(store.isArchived(a), "the refused write still shows")
+        assertFalse(marker.uploaded, "a write still waiting means the upload is not done")
+    }
+
+    @Test
+    fun `a transport failure keeps the write and ends the pass`() = runBlocking {
+        seed(a, viewerState = inbox(1))
+        seed(b, viewerState = inbox(1))
+        archiveDataSource.putPending(hex(a), archived = true, at = 1)
+        archiveDataSource.putPending(hex(b), archived = true, at = 2)
+        coEvery { chatController.archiveChat(any()) } returns
+            Result.failure(ArchiveChatError.Other(java.io.IOException("offline")))
+
+        store.flush()
+
+        coVerify(exactly = 1) { chatController.archiveChat(any()) }
+        assertEquals(2, archiveDataSource.pending().size)
+        assertFalse(marker.uploaded)
+    }
+
+    @Test
+    fun `a send stays unsettled for the prune from before it goes until after its answer`() = runBlocking {
+        seed(a, viewerState = inbox(1))
+        val before = metadata.archiveMark()
+        var unsettledDuringSend: Set<String>? = null
+        coEvery { chatController.archiveChat(a) } answers {
+            unsettledDuringSend = metadata.archiveUnsettledSince(before)
+            Result.success(archived(2))
+        }
+
+        store.archive(a)
+
+        assertEquals(setOf(hex(a)), unsettledDuringSend, "in flight while the call is out")
+        assertEquals(setOf(hex(a)), metadata.archiveUnsettledSince(before), "moved since a pass that began before it")
+        assertTrue(metadata.archiveUnsettledSince(metadata.archiveMark()).isEmpty(), "settled for a pass that begins after")
     }
 
     @Test

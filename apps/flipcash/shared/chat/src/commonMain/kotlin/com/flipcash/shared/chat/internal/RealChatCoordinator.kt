@@ -465,9 +465,9 @@ class RealChatCoordinator @Inject constructor(
     private var archivedSnapshotPending = false
 
     /**
-     * Writes the first page of the archived DM and group feeds, once per session. No catch-up:
-     * the rows need their preview and unread count, not their transcript, and opening the archive
-     * re-reads its groups with one.
+     * Writes the archived DM and group feeds, each read to the last page, once per session. No
+     * catch-up: the rows need their preview and unread count, not their transcript, and opening
+     * the archive re-reads its groups with one.
      *
      * Whether each chat is archived is read off its viewer state, not off the folder it came
      * from: a server that ignores the folder answers with the inbox.
@@ -475,8 +475,8 @@ class RealChatCoordinator @Inject constructor(
      * @return whether both reads succeeded.
      */
     private suspend fun readArchivedSnapshot(): Boolean = coroutineScope {
-        val dm = async { feedDelegate.fetchCombinedFeed(ChatFolder.ARCHIVED) }
-        val groups = async { groupFeedDelegate.fetchGroupFeed(ChatFolder.ARCHIVED) }
+        val dm = async { feedDelegate.fetchArchivedFeed() }
+        val groups = async { groupFeedDelegate.fetchArchivedGroups() }
         val dmChats = dm.await().getOrNull()
         val groupChats = groups.await()
         feedDelegate.writeFeed(dmChats.orEmpty() + groupChats.orEmpty())

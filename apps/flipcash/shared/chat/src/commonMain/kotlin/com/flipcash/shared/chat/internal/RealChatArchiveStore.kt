@@ -12,6 +12,7 @@ import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.UnarchivedChat
 import com.flipcash.services.models.chat.ViewerState
 import com.flipcash.shared.chat.ChatArchiveStore
+import com.getcode.opencode.model.core.errors.ValidationException
 import com.getcode.utils.TraceType
 import com.getcode.utils.hexEncodedString
 import com.getcode.utils.trace
@@ -30,11 +31,16 @@ import javax.inject.Singleton
  *
  * Every write lands in the queue first, so it shows at once and survives a failed send. The
  * queue drains on [flush], which the feed reconcile runs on every launch, reconnect and
- * foreground. Each write's answer decides what happens to it:
+ * foreground. Writes go one at a time. Each write's answer decides what happens to it:
  * - OK applies the returned viewer state through the version gate, then retires the write.
  * - DENIED or NOT_FOUND retires it: the server will never take it.
- * - UNIMPLEMENTED, or no answer at all, keeps it and ends the pass: the rest would fail the same
- *   way. The write keeps showing until a later pass gets an answer.
+ * - UNIMPLEMENTED keeps it and stops every send until logout: this server has no archive, and
+ *   asking again per write or per pass would only get the same answer.
+ * - No answer at all keeps it and ends the pass: the rest would fail the same way.
+ * - Any other answer keeps it, and the pass goes on to the next write: the server answered, so
+ *   the failure belongs to this write, not to the connection.
+ *
+ * A kept write keeps showing until a later pass gets it an answer.
  */
 @Singleton
 class RealChatArchiveStore internal constructor(
@@ -56,6 +62,9 @@ class RealChatArchiveStore internal constructor(
     // One send at a time, so a tap and a flush never send the same write twice.
     private val sending = Mutex()
 
+    // The server answered UNIMPLEMENTED. Read and written under [sending]; cleared at logout.
+    private var serverLacksArchive = false
+
     private val _unarchivedGroups = MutableSharedFlow<ChatId>(extraBufferCapacity = 16)
 
     override fun observeArchived(): Flow<Set<ChatId>> =
@@ -71,13 +80,17 @@ class RealChatArchiveStore internal constructor(
 
     override fun unarchivedGroups(): Flow<ChatId> = _unarchivedGroups.asSharedFlow()
 
-    override suspend fun clearAll() = dataSource.clear()
+    override suspend fun clearAll() {
+        sending.withLock { serverLacksArchive = false }
+        dataSource.clear()
+    }
 
     private suspend fun write(chatId: ChatId, archived: Boolean) {
         val hex = chatId.hex
         if (dataSource.isArchived(hex) == archived) return
         dataSource.putPending(hex, archived, now())
         sending.withLock {
+            if (serverLacksArchive) return
             // Read back rather than rebuilt, so the write sent is the one stored: resolving it
             // checks the stored row still matches.
             val pending = dataSource.pending().firstOrNull { it.chatIdHex == hex } ?: return
@@ -86,6 +99,7 @@ class RealChatArchiveStore internal constructor(
     }
 
     override suspend fun flush() = sending.withLock {
+        if (serverLacksArchive) return@withLock
         // Until the first pass that empties the queue, it holds the archive this device kept
         // before the server stored one. A record the server already shows as archived needs no
         // call; two devices uploading at once give the union.
@@ -97,6 +111,8 @@ class RealChatArchiveStore internal constructor(
             }
             if (send(pending) == Sent.Stopped) return@withLock
         }
+        // Set only once the server has taken or refused every write: a write it never answered,
+        // or answered with an error, is still waiting to be uploaded.
         if (dataSource.pending().isEmpty()) marker.set()
     }
 
@@ -104,20 +120,33 @@ class RealChatArchiveStore internal constructor(
 
     private suspend fun send(pending: ChatArchiveEntity): Sent {
         val chatId = ChatId(pending.chatIdHex)
-        val result = if (pending.archived) {
-            chatController.archiveChat(chatId).map { applyArchived(chatId, it) }
-        } else {
-            chatController.unarchiveChat(chatId).map { applyUnarchived(chatId, it) }
+        // Marked in flight for the feed prune: until the answer is applied, the chat can be in
+        // neither folder's read without having been left.
+        metadata.beginArchiveSend(chatId)
+        val result = try {
+            if (pending.archived) {
+                chatController.archiveChat(chatId).map { applyArchived(chatId, it) }
+            } else {
+                chatController.unarchiveChat(chatId).map { applyUnarchived(chatId, it) }
+            }
+        } finally {
+            metadata.endArchiveSend(chatId)
         }
         val error = result.exceptionOrNull()
         val sent = when (error) {
             null -> Sent.Resolved
             is ArchiveChatError.Denied, is ArchiveChatError.NotFound,
             is UnarchiveChatError.Denied, is UnarchiveChatError.NotFound -> Sent.Resolved
-            // A result code this build does not know names this write, not the connection.
-            is ArchiveChatError.Unrecognized, is UnarchiveChatError.Unrecognized -> Sent.Kept
-            // UNIMPLEMENTED, a transport failure, or no signed-in account: every other write
-            // would fail the same way.
+            is ArchiveChatError.Unimplemented, is UnarchiveChatError.Unimplemented -> {
+                serverLacksArchive = true
+                Sent.Stopped
+            }
+            is ArchiveChatError.Other -> if (error.isTransportFailure) Sent.Stopped else Sent.Kept
+            is UnarchiveChatError.Other -> if (error.isTransportFailure) Sent.Stopped else Sent.Kept
+            // A result code this build does not know, or a request that failed validation: the
+            // server answered about this write, not about the connection.
+            is ArchiveChatError, is UnarchiveChatError, is ValidationException -> Sent.Kept
+            // No signed-in account: every other write would fail the same way.
             else -> Sent.Stopped
         }
         if (sent == Sent.Resolved) dataSource.resolve(pending)
