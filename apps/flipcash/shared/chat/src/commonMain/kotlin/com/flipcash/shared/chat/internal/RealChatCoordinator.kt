@@ -6,6 +6,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.chat.GroupKeyEnvelopeStore
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.AppForeground
@@ -176,6 +177,7 @@ class RealChatCoordinator @Inject constructor(
         // on every core while the Room reads waited to run). Bounded, so a read that never
         // answers delays the sync rather than cancelling it.
         withTimeoutOrNull(FEED_READ_WAIT) { stateHolder.state.first { it.feed != null } }
+        archivedSnapshotPending = true
         syncFeeds()
         // Encrypted messages a previous session couldn't open, and any stored before this version
         // could open them at all. A chat's own writes retry it too; this reaches the chats that
@@ -240,6 +242,13 @@ class RealChatCoordinator @Inject constructor(
                         eventStreamDelegate.performDeltaSync(event.chatId)
                 }
             }.launchIn(scope)
+
+        // A group back from the archive: while it was archived the stream carried none of its
+        // events unless it followed the archive, so the window it missed is fetched from the
+        // latest sequence held.
+        archiveStore.unarchivedGroups()
+            .onEach { eventStreamDelegate.performDeltaSync(it) }
+            .launchIn(scope)
 
         // `map { it.connected }` before `distinctUntilChanged`: [NetworkState] also carries signal
         // strength and connection type, which a cellular radio reports every few seconds, so
@@ -350,12 +359,8 @@ class RealChatCoordinator @Inject constructor(
     override suspend fun leave(chatId: ChatId): Result<Unit> =
         groupFeedDelegate.leave(chatId).onSuccess {
             draftStore.clear(chatId)
-            // Leaving a group clears its archive the way it clears mute. A remote leave, from another
-            // device, arrives through GroupFeedDelegate's roster path, which has no store: the
-            // record is left behind, harmlessly, because the chat is no longer a member chat and
-            // so is in neither feed.
-            archiveStore.unarchive(chatId)
-            // And its unread mark, for the same reason.
+            // The archive goes with the membership, in GroupFeedDelegate: the server clears it on
+            // leave and on removal alike. The unread mark is local, so it is cleared here.
             markedUnreadStore.clear(chatId)
             // The stored requests went with the membership change; this is the in-memory copy.
             // A removal or remote leave has no path here, and its cards stay until the session ends.
@@ -437,6 +442,36 @@ class RealChatCoordinator @Inject constructor(
                 groupFeedDelegate.requestCatchUp(it)
             }
         }
+
+        if (archivedSnapshotPending && readArchivedSnapshot()) archivedSnapshotPending = false
+        // After the archived read, so the first upload can skip what the server already holds.
+        archiveStore.flush()
+    }
+
+    /**
+     * Set at sign-in, cleared once [readArchivedSnapshot] lands. The main list reads the inbox
+     * alone, so this is how a chat archived on another device reaches this one's archive list.
+     */
+    @Volatile
+    private var archivedSnapshotPending = false
+
+    /**
+     * Writes the first page of the archived DM and group feeds, once per session. No catch-up:
+     * the rows need their preview and unread count, not their transcript, and opening the archive
+     * re-reads its groups with one.
+     *
+     * Whether each chat is archived is read off its viewer state, not off the folder it came
+     * from: a server that ignores the folder answers with the inbox.
+     *
+     * @return whether both reads succeeded.
+     */
+    private suspend fun readArchivedSnapshot(): Boolean = coroutineScope {
+        val dm = async { feedDelegate.fetchCombinedFeed(ChatFolder.ARCHIVED) }
+        val groups = async { groupFeedDelegate.fetchGroupFeed(ChatFolder.ARCHIVED) }
+        val dmChats = dm.await().getOrNull()
+        val groupChats = groups.await()
+        feedDelegate.writeFeed(dmChats.orEmpty() + groupChats.orEmpty())
+        dmChats != null && groupChats != null
     }
 
     override suspend fun teardown() {

@@ -67,7 +67,7 @@ class GroupChatRoutingTest {
 
     private val groupFeedDelegate = mockk<GroupFeedDelegate>(relaxed = true)
     private val chatController = mockk<ChatController>(relaxed = true).also {
-        coEvery { it.getDmChatFeed(any(), any()) } returns Result.failure(RuntimeException("not needed"))
+        coEvery { it.getDmChatFeed(any(), any(), any()) } returns Result.failure(RuntimeException("not needed"))
     }
 
     private val testDispatchers = TestDispatchers(TestCoroutineScheduler())

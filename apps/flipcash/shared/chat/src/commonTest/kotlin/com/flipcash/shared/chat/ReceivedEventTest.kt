@@ -88,7 +88,7 @@ class ReceivedEventTest {
         every { eventStreamingController.isStreamActive } returns true
 
         val chatController = mockk<ChatController>(relaxed = true)
-        coEvery { chatController.getDmChatFeed(any(), any()) } returns
+        coEvery { chatController.getDmChatFeed(any(), any(), any()) } returns
             Result.failure(RuntimeException("not needed"))
 
         testDispatchers = TestDispatchers(TestCoroutineScheduler())

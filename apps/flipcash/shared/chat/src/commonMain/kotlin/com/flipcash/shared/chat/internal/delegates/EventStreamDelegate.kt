@@ -5,6 +5,7 @@ import com.flipcash.app.analytics.FlipcashAnalytics
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.ChatMetadataDataSource.ViewerStateWrite
 import com.flipcash.app.tokens.TokenCoordinator
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
@@ -489,7 +490,16 @@ class EventStreamDelegate @Inject constructor(
                     // Convergent, like the roster and reaction overlays below: applied by version
                     // rather than in arrival order, because the stream does not order deliveries
                     // and a mute and the unmute after it can land either way round.
-                    metadataDataSource.updateViewerState(chatId, metaUpdate.viewerState)
+                    val write = metadataDataSource.updateViewerState(chatId, metaUpdate.viewerState)
+                    // Unarchived, here or on another device: while archived, the stream carried
+                    // none of the group's events unless it followed the archive, so the missed
+                    // window is fetched. Read off the write that landed, so a stale state the gate
+                    // dropped, or this device's own unarchive already applied, fetches nothing.
+                    if (write == ViewerStateWrite.Unarchived &&
+                        metadataDataSource.getChatType(chatId) == ChatType.GROUP
+                    ) {
+                        scope?.launch { performDeltaSync(chatId) }
+                    }
                 }
                 is MetadataUpdate.TitleChanged -> {
                     // Best-effort, applied as received (unversioned, unlike the roster and

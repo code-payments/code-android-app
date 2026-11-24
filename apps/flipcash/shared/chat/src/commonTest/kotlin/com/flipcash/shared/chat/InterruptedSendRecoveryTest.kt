@@ -71,7 +71,7 @@ class InterruptedSendRecoveryTest {
         every { eventStreamingController.isStreamActive } returns true
 
         val chatController = mockk<ChatController>(relaxed = true)
-        coEvery { chatController.getDmChatFeed(any(), any()) } coAnswers {
+        coEvery { chatController.getDmChatFeed(any(), any(), any()) } coAnswers {
             feedFetchSawFinishedSweep = sweepFinished
             Result.failure(RuntimeException("feed contents are not what this test is about"))
         }
