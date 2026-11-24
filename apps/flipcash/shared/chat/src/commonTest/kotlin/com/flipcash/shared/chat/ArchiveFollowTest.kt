@@ -1,6 +1,7 @@
 package com.flipcash.shared.chat
 
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
@@ -16,10 +17,12 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -58,6 +61,7 @@ class ArchiveFollowTest {
     private var following = false
 
     private lateinit var controller: EventStreamingController
+    private lateinit var messagingController: ChatMessagingController
     private lateinit var metadataDataSource: ChatMetadataDataSource
     private lateinit var stateHolder: ChatStateHolder
     private lateinit var delegate: EventStreamDelegate
@@ -73,6 +77,9 @@ class ArchiveFollowTest {
             following = follow
         }
 
+        messagingController = mockk(relaxed = true)
+        every { messagingController.getDelta(any(), any(), any()) } returns emptyFlow()
+
         metadataDataSource = mockk(relaxed = true)
         every { metadataDataSource.observeArchived() } returns serverArchived
         every { metadataDataSource.chatIdHex(group) } returns groupHex
@@ -87,7 +94,7 @@ class ArchiveFollowTest {
         stateHolder = ChatStateHolder()
         delegate = EventStreamDelegate(
             eventStreamingController = controller,
-            messagingController = mockk(relaxed = true),
+            messagingController = messagingController,
             metadataDataSource = metadataDataSource,
             messageDataSource = mockk(relaxed = true),
             memberDataSource = mockk(relaxed = true),
@@ -259,6 +266,69 @@ class ArchiveFollowTest {
         runCurrent()
 
         assertFalse(following)
+    }
+
+    // endregion
+
+    // region Catch-up on follow
+
+    private fun TestScope.openArchivedGroupHolding(cursor: Long, serverArchived: Boolean = true) {
+        if (serverArchived) {
+            this@ArchiveFollowTest.serverArchived.value = mapOf(groupHex to 1_000L)
+            coEvery { metadataDataSource.archivedAt(group) } returns 1_000L
+        }
+        coEvery { metadataDataSource.getLatestEventSequence(group) } returns cursor
+        openStream()
+        startFollowing()
+        stateHolder.update { it.copy(activeChat = group) }
+        runCurrent()
+    }
+
+    @Test
+    fun `a confirmed follow fetches what an open archived group missed, from its cursor`() = runTest {
+        openArchivedGroupHolding(cursor = 42L)
+        verify(exactly = 0) { messagingController.getDelta(any(), any(), any()) }
+
+        acks.emit(true)
+        runCurrent()
+
+        verify(exactly = 1) { messagingController.getDelta(group, 42L, any()) }
+    }
+
+    @Test
+    fun `a follow nothing answers fetches no catch-up`() = runTest {
+        openArchivedGroupHolding(cursor = 42L)
+
+        advanceTimeBy(EventStreamDelegate.FOLLOW_ACK_TIMEOUT * 2)
+        runCurrent()
+
+        verify(exactly = 0) { messagingController.getDelta(any(), any(), any()) }
+    }
+
+    @Test
+    fun `an open archived group with no cursor yet fetches no catch-up`() = runTest {
+        openArchivedGroupHolding(cursor = 0L)
+
+        acks.emit(true)
+        runCurrent()
+
+        verify(exactly = 0) { messagingController.getDelta(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a confirmed follow fetches nothing for an open inbox group`() = runTest {
+        // Followed for the Archived screen while an inbox group is open: the stream carried it.
+        coEvery { metadataDataSource.getLatestEventSequence(group) } returns 42L
+        openStream()
+        startFollowing()
+        delegate.setArchiveVisible(true)
+        stateHolder.update { it.copy(activeChat = group) }
+        runCurrent()
+
+        acks.emit(true)
+        runCurrent()
+
+        verify(exactly = 0) { messagingController.getDelta(any(), any(), any()) }
     }
 
     // endregion

@@ -478,6 +478,7 @@ class EventStreamDelegate @Inject constructor(
                 .collect {
                     acked.complete(Unit)
                     _events.send(Event.ArchivedGroupsStale)
+                    catchUpOpenArchivedGroup()
                 }
         }
         eventStreamingController.setFollowArchive(true)
@@ -486,6 +487,19 @@ class EventStreamDelegate @Inject constructor(
             _events.send(Event.ArchivedGroupsStale)
         }
         awaitCancellation()
+    }
+
+    /**
+     * Fetches what the open conversation missed, once a follow is confirmed: until then the
+     * stream carried nothing for a group the server holds as archived. Only a conversation that
+     * already holds a cursor; one without loads its newest page when it opens.
+     */
+    private suspend fun catchUpOpenArchivedGroup() {
+        val chatId = stateHolder.state.value.activeChat ?: return
+        if (metadataDataSource.archivedAt(chatId) == null) return
+        if (metadataDataSource.getChatType(chatId) != ChatType.GROUP) return
+        if (metadataDataSource.getLatestEventSequence(chatId) <= 0L) return
+        scope?.launch { performDeltaSync(chatId) }
     }
 
     private fun ensureCollector(scope: CoroutineScope) {
