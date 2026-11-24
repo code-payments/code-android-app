@@ -57,6 +57,11 @@ class ChatFeedRemoteMediator(
     // Every group id this pass has seen, for the reconciliation at the end of it.
     private val seenGroupIds = mutableSetOf<String>()
 
+    // Where the archive's moves stood when this pass began, for the same reconciliation. A pass
+    // that starts with an append, before any refresh, counts from construction: earlier, so it
+    // keeps more rather than less.
+    private var passMark = metadataDataSource.archiveMark()
+
     /**
      * The delegates fetch the first page on login, and Room already holds whatever the last
      * session left. Refreshing on every subscribe would re-fetch that first page each time the
@@ -75,6 +80,8 @@ class ChatFeedRemoteMediator(
                 LoadType.REFRESH -> {
                     watermark.reset()
                     seenGroupIds.clear()
+                    // Before the first read: a chat that moves while the reads run must count.
+                    passMark = metadataDataSource.archiveMark()
                     // Concurrent, so a refresh costs the slower source rather than their sum.
                     coroutineScope {
                         chatTypes
@@ -155,36 +162,44 @@ class ChatFeedRemoteMediator(
      * stream was down, and it only runs at the end of pagination: a chat missing from a partial
      * pass has not been left, it has not been reached.
      *
-     * The pass pages the inbox, which leaves out every archived group, so those are read to the
-     * end before anything is cleared. Read rather than taken from local state: a group archived
-     * on another device while this one was offline is absent from the inbox and not yet marked
-     * archived here. If any archived page fails, nothing is cleared.
+     * The pass pages the inbox, which leaves out every archived chat, so the archived folder of
+     * every source this pages is read to the end first, DMs included. Read rather than taken from
+     * local state: a group archived on another device while this one was offline is absent from
+     * the inbox and not yet marked archived here. If any archived read fails or stops part way,
+     * nothing is cleared.
+     *
+     * A group can also be in neither read without having been left: it moved between the folders
+     * while the reads ran, so the inbox read passed it before the move and the archived read came
+     * after it. A group whose archive write is in flight, or whose archive changed or had a write
+     * come back since the pass began, is kept for the next pass to judge.
+     *
+     * A chat in both reads is settled by version: each is written through the viewer-state gate,
+     * so the copy with the higher version wins whichever read lands last.
      */
     private suspend fun reconcileGroupRemovals(limit: Int) {
+        val archived = readArchived(limit) ?: return
         if (ChatType.GROUP !in chatTypes) return
-        val archived = archivedGroupIds(limit) ?: return
+        val unsettled = metadataDataSource.archiveUnsettledSince(passMark)
         for (chatIdHex in metadataDataSource.getChatIdsOfType(ChatType.GROUP)) {
-            if (chatIdHex in seenGroupIds || chatIdHex in archived) continue
+            if (chatIdHex in seenGroupIds || chatIdHex in archived || chatIdHex in unsettled) continue
             metadataDataSource.removeFromChat(chatIdHex)
         }
     }
 
     /**
-     * Every archived group, paged to the end and persisted like any other page. Null when a page
-     * fails or the server says there is more without a token to fetch it.
+     * Every archived chat of every source this pages, each folder read to the end and persisted
+     * like any other page. Null when any of the reads failed or stopped part way.
      */
-    private suspend fun archivedGroupIds(limit: Int): Set<String>? {
-        val ids = mutableSetOf<String>()
-        var token: PagingToken? = null
-        do {
-            val options = QueryOptions(limit = limit, token = token, descending = true)
-            val page = controller.getGroupChatFeed(options, ChatFolder.ARCHIVED)
-                .getOrElse { return null }
-            persist(page.chats)
-            page.chats.mapTo(ids) { metadataDataSource.chatIdHex(it.chatId) }
-            token = page.pagingToken
-            if (page.hasMore && token == null) return null
-        } while (page.hasMore)
-        return ids
+    private suspend fun readArchived(limit: Int): Set<String>? {
+        val reads = coroutineScope {
+            chatTypes
+                .map { type -> async { controller.readFolder(type, ChatFolder.ARCHIVED, limit) } }
+                .awaitAll()
+        }
+        // What did come back is written either way: each row goes through the version gate.
+        val chats = reads.filterNotNull().flatten()
+        if (chats.isNotEmpty()) persist(chats)
+        if (reads.any { it == null }) return null
+        return chats.mapTo(HashSet()) { metadataDataSource.chatIdHex(it.chatId) }
     }
 }

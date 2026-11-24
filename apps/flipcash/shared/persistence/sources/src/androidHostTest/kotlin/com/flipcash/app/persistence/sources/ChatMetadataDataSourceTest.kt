@@ -6,6 +6,7 @@ import com.flipcash.app.persistence.dao.ChatMetadataDao
 import com.flipcash.app.persistence.inTransaction
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
+import com.flipcash.services.models.chat.ArchiveState
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewerState
@@ -20,7 +21,9 @@ import io.mockk.unmockkStatic
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 /**
  * The per-user database is opened at login, so every read here can be attempted before it
@@ -80,6 +83,69 @@ class ChatMetadataDataSourceTest {
                     version = 3, archivedAtEpochMs = null,
                 )
             }
+        } finally {
+            unmockkStatic(TRANSACTIONS)
+            unmockkObject(FlipcashDatabase.Companion)
+        }
+    }
+
+    @Test
+    fun `a send leaves its chat unsettled while in flight and past every earlier mark after`() {
+        val chatId = ChatId(listOf(0xAB.toByte()))
+        val before = dataSource.archiveMark()
+
+        dataSource.beginArchiveSend(chatId)
+        assertTrue("ab" in dataSource.archiveUnsettledSince(dataSource.archiveMark()))
+
+        dataSource.endArchiveSend(chatId)
+        assertTrue("ab" in dataSource.archiveUnsettledSince(before))
+        assertFalse("ab" in dataSource.archiveUnsettledSince(dataSource.archiveMark()))
+    }
+
+    @Test
+    fun `overlapping sends keep the chat in flight until the last comes back`() {
+        val chatId = ChatId(listOf(0xAB.toByte()))
+        dataSource.beginArchiveSend(chatId)
+        dataSource.beginArchiveSend(chatId)
+
+        dataSource.endArchiveSend(chatId)
+        assertTrue("ab" in dataSource.archiveUnsettledSince(dataSource.archiveMark()))
+
+        dataSource.endArchiveSend(chatId)
+        assertFalse("ab" in dataSource.archiveUnsettledSince(dataSource.archiveMark()))
+    }
+
+    @Test
+    fun `a landed flip marks the chat moved, and a dropped write or a same-side write does not`() = runTest {
+        val dao = mockk<ChatMetadataDao>(relaxed = true)
+        mockkObject(FlipcashDatabase.Companion)
+        mockkStatic(TRANSACTIONS)
+        try {
+            val db = mockk<FlipcashDatabase> { every { chatMetadataDao() } returns dao }
+            coEvery { db.inTransaction(any<suspend () -> Any?>()) } coAnswers {
+                secondArg<suspend () -> Any?>().invoke()
+            }
+            every { FlipcashDatabase.getInstance() } returns db
+            val chatId = ChatId(listOf(0xAB.toByte()))
+            val archived = ViewerState(version = 4, archive = ArchiveState(Instant.fromEpochMilliseconds(9)))
+            coEvery { dao.getArchivedAt("ab") } returns null
+
+            // The gate dropped it: nothing moved.
+            coEvery { dao.updateViewerStateIfNewer(chatIdHex = "ab", any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns 0
+            var mark = dataSource.archiveMark()
+            assertEquals(ChatMetadataDataSource.ViewerStateWrite.Dropped, dataSource.updateViewerState(chatId, archived))
+            assertFalse("ab" in dataSource.archiveUnsettledSince(mark))
+
+            // Landed, and still out of the archive: a mute change, not a move.
+            coEvery { dao.updateViewerStateIfNewer(chatIdHex = "ab", any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns 1
+            mark = dataSource.archiveMark()
+            assertEquals(ChatMetadataDataSource.ViewerStateWrite.Applied, dataSource.updateViewerState(chatId, ViewerState(version = 5)))
+            assertFalse("ab" in dataSource.archiveUnsettledSince(mark))
+
+            // Landed, and into the archive: moved.
+            mark = dataSource.archiveMark()
+            assertEquals(ChatMetadataDataSource.ViewerStateWrite.Archived, dataSource.updateViewerState(chatId, archived))
+            assertTrue("ab" in dataSource.archiveUnsettledSince(mark))
         } finally {
             unmockkStatic(TRANSACTIONS)
             unmockkObject(FlipcashDatabase.Companion)

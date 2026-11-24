@@ -158,6 +158,24 @@ class ChatMetadataDaoTest {
         assertEquals(9_000L, dao.getArchivedAt(CHAT_HEX))
     }
 
+    /**
+     * A chat that moved between the inbox and archived reads of one pass comes back from both. The
+     * copy with the higher viewer-state version wins, whichever read is written last.
+     */
+    @Test
+    fun `a chat in both folder reads keeps the higher version whichever lands last`() = runTest {
+        val inbox = entity(viewerStateVersion = 5, archivedAtEpochMs = null)
+        val archived = entity(viewerStateVersion = 6, archivedAtEpochMs = 9_000)
+
+        dao.upsert(inbox)
+        dao.upsert(archived)
+        assertEquals(9_000L, dao.getArchivedAt(CHAT_HEX))
+
+        dao.upsert(entity(chatIdHex = OTHER_HEX, viewerStateVersion = 6, archivedAtEpochMs = 9_000))
+        dao.upsert(entity(chatIdHex = OTHER_HEX, viewerStateVersion = 5, archivedAtEpochMs = null))
+        assertEquals(9_000L, dao.getArchivedAt(OTHER_HEX))
+    }
+
     @Test
     fun `clearViewerState drops the archive`() = runTest {
         dao.upsert(entity(viewerStateVersion = 4, archivedAtEpochMs = 9_000))

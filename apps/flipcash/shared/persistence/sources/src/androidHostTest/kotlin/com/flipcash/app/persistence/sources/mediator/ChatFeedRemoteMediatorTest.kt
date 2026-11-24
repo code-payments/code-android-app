@@ -18,6 +18,8 @@ import com.flipcash.services.models.chat.ChatType
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.verify
 import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -80,9 +82,17 @@ class ChatFeedRemoteMediatorTest {
             pages.map { Result.success(it) }
     }
 
+    private fun archivedDmsReturn(vararg pages: ChatFeedPage) {
+        coEvery { controller.getDmChatFeed(ChatType.CONTACT_DM, any(), ChatFolder.ARCHIVED) } returnsMany
+            pages.map { Result.success(it) }
+    }
+
     init {
-        // No archived groups unless a test says otherwise; a complete pass always reads them.
+        // Nothing archived unless a test says otherwise; a complete pass always reads the folder.
         archivedGroupsReturn(page(hasMore = false))
+        archivedDmsReturn(page(hasMore = false))
+        every { metadataDataSource.archiveMark() } returns 0L
+        every { metadataDataSource.archiveUnsettledSince(any()) } returns emptySet()
     }
 
     @Test
@@ -280,5 +290,67 @@ class ChatFeedRemoteMediatorTest {
 
         coVerify(exactly = 1) { controller.getGroupChatFeed(any(), ChatFolder.ARCHIVED) }
         coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<String>()) }
+    }
+
+    @Test
+    fun `archived DMs are read to the end on a complete pass`() = runTest {
+        val first = chat("11", ChatType.CONTACT_DM, 400)
+        val second = chat("12", ChatType.CONTACT_DM, 300)
+        dmReturns(page(hasMore = false))
+        groupReturns(page(hasMore = false))
+        archivedDmsReturn(
+            ChatFeedPage(chats = listOf(first), pagingToken = listOf(1.toByte()), hasMore = true),
+            page(second, hasMore = false),
+        )
+
+        mediator().load(LoadType.REFRESH, state)
+
+        coVerify(exactly = 2) { controller.getDmChatFeed(ChatType.CONTACT_DM, any(), ChatFolder.ARCHIVED) }
+        coVerify { metadataDataSource.upsert(listOf(first, second)) }
+    }
+
+    @Test
+    fun `a failed archived DM read holds the group prune back`() = runTest {
+        dmReturns(page(hasMore = false))
+        groupReturns(page(hasMore = false))
+        coEvery { controller.getDmChatFeed(ChatType.CONTACT_DM, any(), ChatFolder.ARCHIVED) } returns
+            Result.failure(Throwable("unreachable"))
+        coEvery { metadataDataSource.getChatIdsOfType(ChatType.GROUP) } returns listOf("02")
+
+        mediator().load(LoadType.REFRESH, state)
+
+        coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<String>()) }
+    }
+
+    /**
+     * "02" moved between the folders while the reads ran, so the inbox read passed it before the
+     * move and the archived read came after it: it is in neither. Its write being in flight, or
+     * its archive having moved since the pass began, is what keeps it.
+     */
+    @Test
+    fun `a group whose archive is unsettled keeps its membership`() = runTest {
+        dmReturns(page(hasMore = false))
+        groupReturns(page(hasMore = false))
+        every { metadataDataSource.archiveUnsettledSince(any()) } returns setOf("02")
+        coEvery { metadataDataSource.getChatIdsOfType(ChatType.GROUP) } returns listOf("02", "03")
+        coEvery { metadataDataSource.removeFromChat(any<String>()) } just Runs
+
+        mediator().load(LoadType.REFRESH, state)
+
+        coVerify(exactly = 1) { metadataDataSource.removeFromChat(any<String>()) }
+        coVerify { metadataDataSource.removeFromChat("03") }
+    }
+
+    @Test
+    fun `the prune judges moves against the mark taken when the refresh began`() = runTest {
+        dmReturns(page(hasMore = false))
+        groupReturns(page(hasMore = false))
+        // Construction reads 0; the refresh reads 7 before its first fetch.
+        every { metadataDataSource.archiveMark() } returnsMany listOf(0L, 7L)
+        coEvery { metadataDataSource.getChatIdsOfType(ChatType.GROUP) } returns emptyList()
+
+        mediator().load(LoadType.REFRESH, state)
+
+        verify { metadataDataSource.archiveUnsettledSince(7L) }
     }
 }
