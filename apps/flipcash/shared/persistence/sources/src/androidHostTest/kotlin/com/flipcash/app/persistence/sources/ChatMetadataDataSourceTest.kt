@@ -3,16 +3,20 @@ package com.flipcash.app.persistence.sources
 import androidx.paging.PagingSource
 import com.flipcash.app.persistence.FlipcashDatabase
 import com.flipcash.app.persistence.dao.ChatMetadataDao
+import com.flipcash.app.persistence.inTransaction
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.app.persistence.sources.mapper.chat.ChatEntityMapper
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ViewerState
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
+import io.mockk.mockkStatic
 import io.mockk.unmockkObject
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -52,8 +56,14 @@ class ChatMetadataDataSourceTest {
     fun `the invite grant is stored with the rest of the viewer state`() = runTest {
         val dao = mockk<ChatMetadataDao>(relaxed = true)
         mockkObject(FlipcashDatabase.Companion)
+        // The write runs in a transaction, which a mocked database cannot open: run the block.
+        mockkStatic(TRANSACTIONS)
         try {
-            every { FlipcashDatabase.getInstance() } returns mockk { every { chatMetadataDao() } returns dao }
+            val db = mockk<FlipcashDatabase> { every { chatMetadataDao() } returns dao }
+            coEvery { db.inTransaction(any<suspend () -> Any?>()) } coAnswers {
+                secondArg<suspend () -> Any?>().invoke()
+            }
+            every { FlipcashDatabase.getInstance() } returns db
 
             dataSource.updateViewerState(
                 ChatId(listOf(0xAB.toByte())),
@@ -67,11 +77,16 @@ class ChatMetadataDataSourceTest {
                     muteForever = false,
                     canEdit = false,
                     canInvite = true,
-                    version = 3,
+                    version = 3, archivedAtEpochMs = null,
                 )
             }
         } finally {
+            unmockkStatic(TRANSACTIONS)
             unmockkObject(FlipcashDatabase.Companion)
         }
+    }
+
+    private companion object {
+        const val TRANSACTIONS = "com.flipcash.app.persistence.Transactions_androidKt"
     }
 }

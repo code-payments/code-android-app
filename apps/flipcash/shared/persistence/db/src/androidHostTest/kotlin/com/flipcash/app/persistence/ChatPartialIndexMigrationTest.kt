@@ -143,10 +143,11 @@ class ChatPartialIndexMigrationTest {
 
     @Test
     fun `an index rebuilt without its WHERE is made partial again on the next open`() {
-        openV53().apply { openHelper.writableDatabase; close() }
+        // The version the open left the file at: the current one, which moves on every bump.
+        val version = openV53().run { openHelper.writableDatabase.version.also { close() } }
         val raw = FrameworkSQLiteOpenHelperFactory().create(
             SupportSQLiteOpenHelper.Configuration.builder(context).name(file.path).callback(
-                object : SupportSQLiteOpenHelper.Callback(53) {
+                object : SupportSQLiteOpenHelper.Callback(version) {
                     override fun onCreate(db: SupportSQLiteDatabase) = Unit
                     override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
                 },

@@ -143,21 +143,56 @@ class ChatMetadataDataSource @Inject constructor(
      * delivery is unordered, so the newest state is the one with the highest version, not the one
      * that arrived last.
      */
-    suspend fun updateViewerState(chatId: ChatId, viewerState: ViewerState) {
-        db?.chatMetadataDao()?.updateViewerStateIfNewer(
-            chatIdHex = mapper.chatIdHex(chatId),
-            muteUntilEpochMs = mapper.muteUntilEpochMs(viewerState.mute),
-            muteForever = mapper.isMuteForever(viewerState.mute),
-            canEdit = viewerState.permissions.canEdit,
-            canInvite = viewerState.permissions.canInvite,
-            version = viewerState.version,
-            canSilence = viewerState.permissions.moderation.canSilence,
-            canBan = viewerState.permissions.moderation.canBan,
-            silenceUntilEpochMs = mapper.silenceUntilEpochMs(viewerState.restrictions?.silence),
-            silenceForever = mapper.isSilenceForever(viewerState.restrictions?.silence),
-            canPin = viewerState.permissions.canPin,
-        )
+    suspend fun updateViewerState(chatId: ChatId, viewerState: ViewerState): ViewerStateWrite {
+        val db = db ?: return ViewerStateWrite.Dropped
+        val dao = db.chatMetadataDao()
+        val chatIdHex = mapper.chatIdHex(chatId)
+        // Read and write in one transaction, so the archive this write replaced is the one it
+        // actually replaced. A caller acting on an unarchive acts on the write that landed, not on
+        // a stale payload the gate dropped.
+        return db.inTransaction {
+            val wasArchived = dao.getArchivedAt(chatIdHex) != null
+            val changed = dao.updateViewerStateIfNewer(
+                chatIdHex = chatIdHex,
+                muteUntilEpochMs = mapper.muteUntilEpochMs(viewerState.mute),
+                muteForever = mapper.isMuteForever(viewerState.mute),
+                canEdit = viewerState.permissions.canEdit,
+                canInvite = viewerState.permissions.canInvite,
+                version = viewerState.version,
+                archivedAtEpochMs = mapper.archivedAtEpochMs(viewerState.archive),
+                canSilence = viewerState.permissions.moderation.canSilence,
+                canBan = viewerState.permissions.moderation.canBan,
+                silenceUntilEpochMs = mapper.silenceUntilEpochMs(viewerState.restrictions?.silence),
+                silenceForever = mapper.isSilenceForever(viewerState.restrictions?.silence),
+                canPin = viewerState.permissions.canPin,
+            )
+            when {
+                changed == 0 -> ViewerStateWrite.Dropped
+                wasArchived && viewerState.archive == null -> ViewerStateWrite.Unarchived
+                else -> ViewerStateWrite.Applied
+            }
+        }
     }
+
+    /** What [updateViewerState] did with the state it was given. */
+    enum class ViewerStateWrite {
+        /** The stored state was as new or newer, or the chat is not stored. Nothing changed. */
+        Dropped,
+        Applied,
+        /** Applied, and it took the chat out of the archive. */
+        Unarchived,
+    }
+
+    /** When the server says the viewer archived [chatId], or null. */
+    suspend fun archivedAt(chatId: ChatId): Long? =
+        db?.chatMetadataDao()?.getArchivedAt(mapper.chatIdHex(chatId))
+
+    /** The chats the server holds as archived, keyed by hex, with when each was archived. */
+    fun observeArchived(): Flow<Map<String, Long>> =
+        db?.chatMetadataDao()?.observeArchived()
+            ?.map { rows -> rows.associate { it.chatIdHex to it.archivedAtEpochMs } }
+            ?.distinctUntilChanged()
+            ?: flowOf(emptyMap())
 
     /** Stores the moderation grants a fresh read of [chatId] reported, ahead of any version gate. */
     suspend fun updateModerationGrants(chatId: ChatId, canSilence: Boolean, canBan: Boolean) {

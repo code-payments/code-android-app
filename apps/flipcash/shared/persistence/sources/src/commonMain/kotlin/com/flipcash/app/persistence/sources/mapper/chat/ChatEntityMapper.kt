@@ -22,6 +22,7 @@ import com.flipcash.services.chat.MessageEncryption
 import com.flipcash.services.chat.UndecryptableReason
 import com.flipcash.services.models.SocialAccount
 import com.flipcash.services.models.UserProfile
+import com.flipcash.services.models.chat.ArchiveState
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.DeliveryStatus
 import com.flipcash.services.models.chat.ChatMember
@@ -100,6 +101,7 @@ class ChatEntityMapper @Inject constructor() {
             muteUntilEpochMs = muteUntilEpochMs(metadata.viewerState?.mute),
             muteForever = isMuteForever(metadata.viewerState?.mute),
             viewerStateVersion = metadata.viewerState?.version ?: 0,
+            archivedAtEpochMs = archivedAtEpochMs(metadata.viewerState?.archive),
             canEdit = metadata.viewerState?.permissions?.canEdit ?: false,
             canInvite = metadata.viewerState?.permissions?.canInvite ?: false,
             canSilence = metadata.viewerState?.permissions?.moderation?.canSilence ?: false,
@@ -163,6 +165,8 @@ class ChatEntityMapper @Inject constructor() {
     /** The `mute_forever` column a [mute] writes. */
     fun isMuteForever(mute: MuteState?): Boolean = mute is MuteState.Forever
 
+    fun archivedAtEpochMs(archive: ArchiveState?): Long? = archive?.archivedAt?.toEpochMilliseconds()
+
     /** The `silence_until_epoch_ms` column a [silence] writes; null for forever and for none. */
     fun silenceUntilEpochMs(silence: SilenceState?): Long? =
         (silence as? SilenceState.Until)?.until?.toEpochMilliseconds()
@@ -196,11 +200,14 @@ class ChatEntityMapper @Inject constructor() {
             silenceUntil != null -> SilenceState.Until(Instant.fromEpochMilliseconds(silenceUntil))
             else -> null
         }
-        if (mute == null && silence == null && viewerStateVersion == 0L && !canEdit && !canInvite && !canSilence && !canBan && !canPin) {
+        val archivedAt = archivedAtEpochMs
+        val archive = archivedAt?.let { ArchiveState(archivedAt = Instant.fromEpochMilliseconds(it)) }
+        if (mute == null && silence == null && archive == null && viewerStateVersion == 0L && !canEdit && !canInvite && !canSilence && !canBan && !canPin) {
             return null
         }
         return ViewerState(
             mute = mute,
+            archive = archive,
             version = viewerStateVersion,
             permissions = ViewerState.Permissions(
                 canEdit = canEdit,
