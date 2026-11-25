@@ -93,6 +93,12 @@ dependencyResolutionManagement {
     repositories {
         mavenLocal()
         google()
+        // Maven Central answers CI's android-all jar downloads with 429 Too Many Requests.
+        // Google's mirror of Central serves the same files; a 404 here falls through to
+        // mavenCentral().
+        maven(url = "https://maven-central.storage-download.googleapis.com/maven2/") {
+            content { includeModule("org.robolectric", "android-all-instrumented") }
+        }
         mavenCentral()
         maven(url = "https://plugins.gradle.org/m2/")
         maven(url = "https://maven.fpregistry.io/releases")
