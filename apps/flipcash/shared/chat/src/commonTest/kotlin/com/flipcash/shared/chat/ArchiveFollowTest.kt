@@ -56,7 +56,11 @@ class ArchiveFollowTest {
 
     private val chatUpdates = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
     private val acks = MutableSharedFlow<Boolean>(extraBufferCapacity = 8)
-    private val serverArchived = MutableStateFlow<Map<String, Long>>(emptyMap())
+    // The store's archive: the server's plus the writes it has not answered.
+    private val archived = MutableStateFlow<Set<ChatId>>(emptySet())
+    private val archiveStore = object : ChatArchiveStore by ChatArchiveStore.None {
+        override fun observeArchived() = archived
+    }
     private val followCalls = mutableListOf<Boolean>()
     private var following = false
 
@@ -81,7 +85,6 @@ class ArchiveFollowTest {
         every { messagingController.getDelta(any(), any(), any()) } returns emptyFlow()
 
         metadataDataSource = mockk(relaxed = true)
-        every { metadataDataSource.observeArchived() } returns serverArchived
         every { metadataDataSource.chatIdHex(group) } returns groupHex
         coEvery { metadataDataSource.getChatType(any()) } returns ChatType.GROUP
         coEvery { metadataDataSource.archivedAt(any()) } returns null
@@ -103,6 +106,7 @@ class ArchiveFollowTest {
             stateHolder = stateHolder,
             analytics = mockk(relaxed = true),
             exchange = mockk(relaxed = true),
+            archiveStore = archiveStore,
         )
     }
 
@@ -214,7 +218,7 @@ class ArchiveFollowTest {
 
     @Test
     fun `going from the archive into an archived group keeps following`() = runTest {
-        serverArchived.value = mapOf(groupHex to 1_000L)
+        archived.value = setOf(group)
         startFollowing()
         delegate.setArchiveVisible(true)
         runCurrent()
@@ -229,7 +233,7 @@ class ArchiveFollowTest {
 
     @Test
     fun `opening an archived group from outside the archive follows it`() = runTest {
-        serverArchived.value = mapOf(groupHex to 1_000L)
+        archived.value = setOf(group)
         startFollowing()
 
         stateHolder.update { it.copy(activeChat = group) }
@@ -240,7 +244,7 @@ class ArchiveFollowTest {
 
     @Test
     fun `opening an archived DM does not follow`() = runTest {
-        serverArchived.value = mapOf(groupHex to 1_000L)
+        archived.value = setOf(group)
         coEvery { metadataDataSource.getChatType(group) } returns ChatType.TIP_DM
         startFollowing()
 
@@ -251,12 +255,29 @@ class ArchiveFollowTest {
     }
 
     @Test
-    fun `a chat archived only on this device does not follow`() = runTest {
-        // Not in the server's archive: the stream already carries it.
+    fun `archiving the open group follows before the server answers`() = runTest {
         startFollowing()
-
         stateHolder.update { it.copy(activeChat = group) }
         runCurrent()
+        assertFalse(following)
+
+        // The write is queued and unanswered: the server does not hold the group as archived yet.
+        archived.value = setOf(group)
+        runCurrent()
+
+        assertTrue(following)
+    }
+
+    @Test
+    fun `unarchiving the open group stops following once the grace runs out`() = runTest {
+        archived.value = setOf(group)
+        startFollowing()
+        stateHolder.update { it.copy(activeChat = group) }
+        runCurrent()
+        assertTrue(following)
+
+        archived.value = emptySet()
+        advanceTimeBy(EventStreamDelegate.FOLLOW_OFF_GRACE + 1.milliseconds)
 
         assertFalse(following)
     }
@@ -277,11 +298,9 @@ class ArchiveFollowTest {
 
     // region Catch-up on follow
 
-    private fun TestScope.openArchivedGroupHolding(cursor: Long, serverArchived: Boolean = true) {
-        if (serverArchived) {
-            this@ArchiveFollowTest.serverArchived.value = mapOf(groupHex to 1_000L)
-            coEvery { metadataDataSource.archivedAt(group) } returns 1_000L
-        }
+    private fun TestScope.openArchivedGroupHolding(cursor: Long) {
+        archived.value = setOf(group)
+        coEvery { metadataDataSource.archivedAt(group) } returns 1_000L
         coEvery { metadataDataSource.getLatestEventSequence(group) } returns cursor
         openStream()
         startFollowing()
@@ -304,7 +323,7 @@ class ArchiveFollowTest {
     fun `an archived group opened after the follow is confirmed fetches no catch-up`() = runTest {
         // Confirmed on the Archived screen: the stream has carried the group since, and its
         // opening page seats the cursor at head, so nothing is left for a delta to fetch.
-        serverArchived.value = mapOf(groupHex to 1_000L)
+        archived.value = setOf(group)
         coEvery { metadataDataSource.archivedAt(group) } returns 1_000L
         coEvery { metadataDataSource.getLatestEventSequence(group) } returns 42L
         openStream()
@@ -335,6 +354,23 @@ class ArchiveFollowTest {
     @Test
     fun `an open archived group with no cursor yet fetches no catch-up`() = runTest {
         openArchivedGroupHolding(cursor = 0L)
+
+        acks.emit(true)
+        runCurrent()
+
+        verify(exactly = 0) { messagingController.getDelta(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a confirmed follow fetches no catch-up for a group the server has not archived yet`() = runTest {
+        // Followed for an archive write still waiting: the server kept streaming the group.
+        archived.value = setOf(group)
+        coEvery { metadataDataSource.getLatestEventSequence(group) } returns 42L
+        openStream()
+        startFollowing()
+        stateHolder.update { it.copy(activeChat = group) }
+        runCurrent()
+        assertTrue(following)
 
         acks.emit(true)
         runCurrent()

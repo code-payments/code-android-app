@@ -25,6 +25,7 @@ import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.shared.chat.reactions.ReactionState
 import com.flipcash.services.models.GetDeltaError
 import com.flipcash.shared.chat.ActiveTypist
+import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.EventSequenceTracker
 import com.flipcash.shared.chat.EventStreamOperations
 import com.flipcash.shared.chat.LiveCashArrival
@@ -122,6 +123,7 @@ class EventStreamDelegate @Inject constructor(
     private val paymentRequestUpdates: PaymentRequestUpdateSink = PaymentRequestUpdateSink.None,
     private val liveCash: LiveCashSink = LiveCashSink.None,
     private val photoArrivals: PhotoArrivalSink = PhotoArrivalSink.None,
+    private val archiveStore: ChatArchiveStore = ChatArchiveStore.None,
 ) : EventStreamOperations {
 
 
@@ -437,8 +439,8 @@ class EventStreamDelegate @Inject constructor(
     }
 
     /**
-     * Follows the archive while the Archived screen or a server-archived group's conversation is
-     * on screen, and stops once neither is. Runs until cancelled.
+     * Follows the archive while the Archived screen or an archived group's conversation is on
+     * screen, and stops once neither is. Runs until cancelled.
      *
      * Each follow is answered by [Event.ArchivedGroupsStale] when its ack lands, again after
      * every reconnect that re-follows, or once after [FOLLOW_ACK_TIMEOUT] when nothing answers.
@@ -457,14 +459,17 @@ class EventStreamDelegate @Inject constructor(
             }
     }
 
-    /** Whether the open chat is a group the server holds as archived. */
+    /**
+     * Whether the open chat is an archived group, as this device has it: a write the server has
+     * not answered counts, so archiving the open group follows before the answer lands.
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun viewingArchivedGroup(): Flow<Boolean> =
         combine(
             stateHolder.state.map { it.activeChat }.distinctUntilChanged(),
-            metadataDataSource.observeArchived(),
+            archiveStore.observeArchived(),
         ) { chatId, archived ->
-            chatId?.takeIf { metadataDataSource.chatIdHex(it) in archived }
+            chatId?.takeIf { it in archived }
         }
             .distinctUntilChanged()
             .mapLatest { chatId -> chatId != null && metadataDataSource.getChatType(chatId) == ChatType.GROUP }
