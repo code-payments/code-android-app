@@ -21,6 +21,8 @@ import com.flipcash.shared.chat.internal.RealChatArchiveStore
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
@@ -28,6 +30,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -279,6 +282,141 @@ class RealChatArchiveStoreTest {
         collecting.cancel()
         assertTrue(seen.isEmpty())
         assertFalse(store.isArchived(a))
+    }
+
+    // endregion
+
+    // region Send order
+
+    private val c = ChatId("55667788")
+
+    /** [id]'s archive call completes [out] when it goes, and answers once [answer] completes. */
+    private fun holdArchive(id: ChatId, out: CompletableDeferred<Unit>, answer: CompletableDeferred<Unit>) {
+        coEvery { chatController.archiveChat(id) } coAnswers {
+            out.complete(Unit)
+            answer.await()
+            Result.success(archived(2))
+        }
+    }
+
+    private fun archiveGoes(id: ChatId, out: CompletableDeferred<Unit>) {
+        coEvery { chatController.archiveChat(id) } coAnswers {
+            out.complete(Unit)
+            Result.success(archived(2))
+        }
+    }
+
+    /** Sends one write on [c] that gets [result] back, before the write under test. */
+    private suspend fun firstSendGets(result: Result<ViewerState>) {
+        seed(c, viewerState = inbox(1))
+        coEvery { chatController.archiveChat(c) } returns result
+        store.archive(c)
+    }
+
+    /** Asserts [b]'s write waits for [a]'s send to be answered. */
+    private suspend fun CoroutineScope.assertSecondWriteWaits() {
+        seed(a, viewerState = inbox(1))
+        seed(b, viewerState = inbox(1))
+        val aOut = CompletableDeferred<Unit>()
+        val aAnswer = CompletableDeferred<Unit>()
+        val bOut = CompletableDeferred<Unit>()
+        holdArchive(a, aOut, aAnswer)
+        archiveGoes(b, bOut)
+
+        val first = launch { store.archive(a) }
+        withTimeout(5_000) { aOut.await() }
+        val second = launch { store.archive(b) }
+
+        assertNull(withTimeoutOrNull(500) { bOut.await() }, "b goes only once a is answered")
+        aAnswer.complete(Unit)
+        withTimeout(5_000) { bOut.await() }
+        first.join()
+        second.join()
+    }
+
+    @Test
+    fun `until a send is answered, the next write waits for it`() = runBlocking {
+        assertSecondWriteWaits()
+    }
+
+    @Test
+    fun `a transport failure is no answer, so writes still go one at a time`() = runBlocking {
+        firstSendGets(Result.failure(ArchiveChatError.Other(java.io.IOException("offline"))))
+
+        assertSecondWriteWaits()
+    }
+
+    @Test
+    fun `once a send is answered, writes on different chats go at once`() = runBlocking {
+        firstSendGets(Result.success(archived(2)))
+        seed(a, viewerState = inbox(1))
+        seed(b, viewerState = inbox(1))
+        val aOut = CompletableDeferred<Unit>()
+        val aAnswer = CompletableDeferred<Unit>()
+        val bOut = CompletableDeferred<Unit>()
+        holdArchive(a, aOut, aAnswer)
+        archiveGoes(b, bOut)
+
+        val first = launch { store.archive(a) }
+        withTimeout(5_000) { aOut.await() }
+        val second = launch { store.archive(b) }
+
+        withTimeout(5_000) { bOut.await() }
+        assertFalse(aAnswer.isCompleted, "b went while a was still out")
+        second.join()
+        aAnswer.complete(Unit)
+        first.join()
+    }
+
+    @Test
+    fun `a chat's next write waits for its send already out`() = runBlocking {
+        firstSendGets(Result.success(archived(2)))
+        seed(a, viewerState = inbox(1))
+        val aOut = CompletableDeferred<Unit>()
+        val aAnswer = CompletableDeferred<Unit>()
+        val unarchiveOut = CompletableDeferred<Unit>()
+        holdArchive(a, aOut, aAnswer)
+        coEvery { chatController.unarchiveChat(a) } coAnswers {
+            unarchiveOut.complete(Unit)
+            Result.success(UnarchivedChat(viewerState = inbox(3), chat = null))
+        }
+
+        val archiving = launch { store.archive(a) }
+        withTimeout(5_000) { aOut.await() }
+        val unarchiving = launch { store.unarchive(a) }
+
+        assertNull(withTimeoutOrNull(500) { unarchiveOut.await() }, "the unarchive goes once the archive is answered")
+        aAnswer.complete(Unit)
+        withTimeout(5_000) { unarchiveOut.await() }
+        archiving.join()
+        unarchiving.join()
+        assertFalse(store.isArchived(a))
+    }
+
+    @Test
+    fun `a flush does not send a write a tap replaced after the pass began`() = runBlocking {
+        firstSendGets(Result.success(archived(2)))
+        marker.uploaded = true
+        seed(a, viewerState = inbox(1))
+        seed(b, viewerState = inbox(1))
+        archiveDataSource.putPending(hex(a), archived = true, at = 1)
+        archiveDataSource.putPending(hex(b), archived = true, at = 2)
+        val aOut = CompletableDeferred<Unit>()
+        val aAnswer = CompletableDeferred<Unit>()
+        holdArchive(a, aOut, aAnswer)
+        coEvery { chatController.archiveChat(b) } returns Result.success(archived(2))
+        coEvery { chatController.unarchiveChat(b) } returns
+            Result.success(UnarchivedChat(viewerState = inbox(3), chat = null))
+
+        val flushing = launch { store.flush() }
+        withTimeout(5_000) { aOut.await() }
+        // The pass read b's archive before this unarchive replaced it and was answered.
+        withTimeout(5_000) { store.unarchive(b) }
+        aAnswer.complete(Unit)
+        flushing.join()
+
+        coVerify(exactly = 0) { chatController.archiveChat(b) }
+        assertFalse(store.isArchived(b))
     }
 
     // endregion
