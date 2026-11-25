@@ -10,6 +10,7 @@ import com.flipcash.services.models.SocialAccountLinkRequest
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatRuleRequirement
 import com.flipcash.services.models.chat.ChatRules
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ClientMessageId
 import com.flipcash.services.models.chat.IdempotencyKey
@@ -339,6 +340,11 @@ internal fun ChatType.asProtoChatType(): ChatModel.ChatType {
         ChatType.TIP_DM -> ChatModel.ChatType.DM
         ChatType.GROUP -> ChatModel.ChatType.GROUP
     }
+}
+
+internal fun ChatFolder.asProtoChatFolder(): ChatModel.ChatFolder = when (this) {
+    ChatFolder.INBOX -> ChatModel.ChatFolder.INBOX
+    ChatFolder.ARCHIVED -> ChatModel.ChatFolder.ARCHIVED
 }
 
 internal fun Long.asMessageId(): MessagingModel.MessageId {

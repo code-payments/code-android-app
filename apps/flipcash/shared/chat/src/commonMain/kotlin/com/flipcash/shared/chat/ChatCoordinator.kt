@@ -115,6 +115,12 @@ interface EventStreamOperations {
 
     /** Emits the current reaction summary for a specific message, or `null` if none. */
     fun observeReactions(chatId: ChatId, messageId: Long): Flow<ReactionSummary?>
+
+    /**
+     * Whether the Archived screen is on screen. While it is, or while a group the server holds as
+     * archived is open, the event stream also carries archived groups.
+     */
+    fun setArchiveVisible(visible: Boolean)
 }
 
 /**

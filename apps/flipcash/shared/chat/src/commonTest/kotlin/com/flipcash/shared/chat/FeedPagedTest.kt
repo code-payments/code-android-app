@@ -111,7 +111,8 @@ class FeedPagedTest {
         // Explicit rather than relaxed: `Result` is a value class, so a relaxed mock hands the
         // mediator an Object it cannot cast, and the paging boundary call blows up.
         val chatController = mockk<ChatController>(relaxed = true).also {
-            coEvery { it.getGroupChatFeed(any()) } returns
+            // Every folder: a complete pass also pages the archived groups before its prune.
+            coEvery { it.getGroupChatFeed(any(), any()) } returns
                 Result.success(ChatFeedPage(chats = emptyList(), pagingToken = null, hasMore = false))
         }
 

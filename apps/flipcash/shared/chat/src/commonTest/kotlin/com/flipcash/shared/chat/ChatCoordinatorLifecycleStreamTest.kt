@@ -100,7 +100,7 @@ class ChatCoordinatorLifecycleStreamTest {
         every { eventStreamingController.streamFailures } returns emptyFlow()
 
         val chatController = mockk<ChatController>(relaxed = true)
-        coEvery { chatController.getDmChatFeed(any(), any()) } returns
+        coEvery { chatController.getDmChatFeed(any(), any(), any()) } returns
             Result.failure(RuntimeException("not needed"))
 
         val metadataDataSource = mockk<ChatMetadataDataSource>(relaxed = true)

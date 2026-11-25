@@ -13,6 +13,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
 class ChatArchiveDaoTest {
@@ -35,44 +36,53 @@ class ChatArchiveDaoTest {
     }
 
     @Test
-    fun `insert then find returns the id`() = runTest {
-        dao.insertIfAbsent(ChatArchiveEntity("aa", archivedAt = 1_000L))
-        assertEquals("aa", dao.find("aa"))
-    }
-
-    @Test
-    fun `find is null for a chat that was never archived`() = runTest {
-        assertNull(dao.find("zz"))
-    }
-
-    @Test
-    fun `archiving twice keeps the first timestamp`() = runTest {
-        dao.insertIfAbsent(ChatArchiveEntity("aa", archivedAt = 1_000L))
-        dao.insertIfAbsent(ChatArchiveEntity("aa", archivedAt = 9_000L))
-        assertEquals(1_000L, dao.archivedAt("aa"))
-    }
-
-    @Test
-    fun `delete removes only the named chat`() = runTest {
-        dao.insertIfAbsent(ChatArchiveEntity("aa", 1_000L))
-        dao.insertIfAbsent(ChatArchiveEntity("bb", 1_000L))
-        dao.delete("bb")
-        assertEquals("aa", dao.find("aa"))
+    fun `put then find returns the write`() = runTest {
+        dao.put(ChatArchiveEntity("aa", archivedAt = 1_000L, archived = true))
+        assertEquals(ChatArchiveEntity("aa", 1_000L, true), dao.find("aa"))
         assertNull(dao.find("bb"))
     }
 
     @Test
-    fun `deleteAll empties the table`() = runTest {
-        dao.insertIfAbsent(ChatArchiveEntity("aa", 1_000L))
-        dao.insertIfAbsent(ChatArchiveEntity("bb", 1_000L))
-        dao.deleteAll()
-        assertEquals(emptyList(), dao.observeIds().first())
+    fun `a later write on the same chat replaces the one waiting`() = runTest {
+        dao.put(ChatArchiveEntity("aa", archivedAt = 1_000L, archived = true))
+        dao.put(ChatArchiveEntity("aa", archivedAt = 2_000L, archived = false))
+        assertEquals(listOf(ChatArchiveEntity("aa", 2_000L, false)), dao.all())
     }
 
     @Test
-    fun `observeIds emits the current set and re-emits on change`() = runTest {
-        assertEquals(emptyList(), dao.observeIds().first())
-        dao.insertIfAbsent(ChatArchiveEntity("aa", 1_000L))
-        assertEquals(listOf("aa"), dao.observeIds().first())
+    fun `deleteIfUnchanged keeps a write made while the first was in flight`() = runTest {
+        val sent = ChatArchiveEntity("aa", archivedAt = 1_000L, archived = true)
+        dao.put(sent)
+        dao.put(ChatArchiveEntity("aa", archivedAt = 2_000L, archived = false))
+
+        val deleted = dao.deleteIfUnchanged(sent.chatIdHex, sent.archived, sent.archivedAt)
+
+        assertEquals(0, deleted)
+        assertEquals(ChatArchiveEntity("aa", 2_000L, false), dao.find("aa"))
+    }
+
+    @Test
+    fun `deleteIfUnchanged deletes the write it was given`() = runTest {
+        val sent = ChatArchiveEntity("aa", archivedAt = 1_000L, archived = true)
+        dao.put(sent)
+        assertEquals(1, dao.deleteIfUnchanged(sent.chatIdHex, sent.archived, sent.archivedAt))
+        assertNull(dao.find("aa"))
+    }
+
+    @Test
+    fun `observeAll emits every waiting write`() = runTest {
+        dao.put(ChatArchiveEntity("aa", archivedAt = 1_000L))
+        dao.put(ChatArchiveEntity("bb", archivedAt = 2_000L, archived = false))
+        assertEquals(setOf("aa", "bb"), dao.observeAll().first().map { it.chatIdHex }.toSet())
+    }
+
+    @Test
+    fun `delete and deleteAll`() = runTest {
+        dao.put(ChatArchiveEntity("aa", archivedAt = 1_000L))
+        dao.put(ChatArchiveEntity("bb", archivedAt = 2_000L))
+        dao.delete("aa")
+        assertEquals(listOf("bb"), dao.all().map { it.chatIdHex })
+        dao.deleteAll()
+        assertTrue(dao.all().isEmpty())
     }
 }

@@ -93,9 +93,16 @@ class ChatRowActions @Inject constructor(
         }
     }
 
-    suspend fun archive(ids: Collection<ChatId>) = ids.forEach { archiveStore.archive(it) }
+    // Each write shows as soon as the store queues it and then waits its turn to send, so the
+    // selection is started together: in sequence, each chat would leave the list one round trip
+    // after the last.
+    suspend fun archive(ids: Collection<ChatId>) = coroutineScope {
+        ids.forEach { launch { archiveStore.archive(it) } }
+    }
 
-    suspend fun unarchive(ids: Collection<ChatId>) = ids.forEach { archiveStore.unarchive(it) }
+    suspend fun unarchive(ids: Collection<ChatId>) = coroutineScope {
+        ids.forEach { launch { archiveStore.unarchive(it) } }
+    }
 }
 
 /** [ids]' chat types, by index, for the bulk mute sheet's per-chat events. */

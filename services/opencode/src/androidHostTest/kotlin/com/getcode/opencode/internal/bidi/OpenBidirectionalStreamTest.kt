@@ -8,6 +8,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.channels.ClosedSendChannelException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -305,6 +306,51 @@ class OpenBidirectionalStreamTest {
             streamRef.isActive,
             "Reference reports a live stream while the loop is still waiting to reconnect"
         )
+
+        streamRef.destroy()
+    }
+
+    @Test
+    fun `requests handed to onInitialRequestSent follow the initial request in order on every attempt`() = runTest {
+        var attemptCount = 0
+        val received = mutableListOf<MutableList<String>>()
+
+        val streamRef = BidirectionalStreamReference<String, String>(this, "test-stream")
+        streamRef.retain()
+
+        openBidirectionalStream<String, String, BidirectionalStreamReference<String, String>>(
+            streamRef = streamRef,
+            apiCall = { requestFlow ->
+                attemptCount++
+                val seen = mutableListOf<String>().also { received += it }
+                flow {
+                    requestFlow.take(4).collect { seen += it }
+                    if (attemptCount == 1) {
+                        emit("activation")
+                        throw Status.UNAVAILABLE.asRuntimeException()
+                    }
+                    awaitCancellation()
+                }
+            },
+            initialRequest = { "params" },
+            responseHandler = { _: String, _: (String) -> Unit -> },
+            onError = { },
+            reconnectOnUnavailable = true,
+            maxReconnectAttempts = 3,
+            reconnectDelayMs = 0,
+            onInitialRequestSent = { send ->
+                send("a")
+                send("b")
+                send("c")
+            },
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(2, attemptCount)
+        assertEquals(listOf("params", "a", "b", "c"), received[0])
+        // The reconnect gets its own sender, and the hook replays its requests after Params.
+        assertEquals(listOf("params", "a", "b", "c"), received[1])
 
         streamRef.destroy()
     }

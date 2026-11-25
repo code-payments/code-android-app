@@ -25,6 +25,9 @@ import javax.inject.Inject
 
 typealias EventStreamReference = BidirectionalStreamReference<RpcEventStreamingService.StreamEventsRequest, RpcEventStreamingService.StreamEventsResponse>
 
+/** Puts a FollowArchive(follow, seq) on the stream attempt it was handed out for. */
+typealias FollowArchiveSender = (follow: Boolean, seq: Long) -> Unit
+
 internal class EventStreamingService @Inject constructor(
     private val api: EventStreamingApi,
 ) {
@@ -34,6 +37,8 @@ internal class EventStreamingService @Inject constructor(
         onEvent: (ChatUpdate) -> Unit,
         onBlobUpdate: (BlobUpdate) -> Unit = {},
         onError: (Throwable) -> Unit = {},
+        onStreamStarted: (sendFollowArchive: FollowArchiveSender) -> Unit = {},
+        onFollowArchiveAck: (seq: Long) -> Unit = {},
     ): EventStreamReference {
         trace(tag = "event-stream", message = "Opening stream.")
         val streamReference = EventStreamReference(scope, "event-streaming")
@@ -46,7 +51,10 @@ internal class EventStreamingService @Inject constructor(
         }
 
         streamReference.coroutineScope.launch {
-            openStream(scope, owner, streamReference, onEvent, onBlobUpdate, onError)
+            openStream(
+                scope, owner, streamReference, onEvent, onBlobUpdate, onError,
+                onStreamStarted, onFollowArchiveAck,
+            )
         }
 
         return streamReference
@@ -59,6 +67,8 @@ internal class EventStreamingService @Inject constructor(
         onEvent: (ChatUpdate) -> Unit,
         onBlobUpdate: (BlobUpdate) -> Unit,
         onError: (Throwable) -> Unit,
+        onStreamStarted: (sendFollowArchive: FollowArchiveSender) -> Unit,
+        onFollowArchiveAck: (seq: Long) -> Unit,
     ) {
         openBidirectionalStream(
             streamRef = streamRef,
@@ -79,6 +89,21 @@ internal class EventStreamingService @Inject constructor(
             reconnectDelayMs = 1_000L,
             maxReconnectDelayMs = 30_000L,
             onError = { onError(it) },
+            // Right after Params on every attempt, so a reconnect can restore following.
+            onInitialRequestSent = { sendRequest ->
+                onStreamStarted { follow, seq ->
+                    val followArchive = RpcEventStreamingService.StreamEventsRequest.FollowArchive.newBuilder()
+                        .setFollow(follow)
+                        .setSeq(seq)
+                        .build()
+                    sendRequest(
+                        RpcEventStreamingService.StreamEventsRequest.newBuilder()
+                            .setFollowArchive(followArchive)
+                            .build()
+                    )
+                    trace(tag = "event-stream", message = "FollowArchive(follow=$follow, seq=$seq) sent")
+                }
+            },
             responseHandler = { response, sendRequest ->
                 when (response.typeCase) {
                     RpcEventStreamingService.StreamEventsResponse.TypeCase.PING -> {
@@ -133,11 +158,25 @@ internal class EventStreamingService @Inject constructor(
                         )
                     }
 
-                    else -> {
+                    RpcEventStreamingService.StreamEventsResponse.TypeCase.FOLLOW_ARCHIVE_ACK -> {
+                        trace(tag = "event-stream", message = "FollowArchiveAck(seq=${response.followArchiveAck.seq})")
+                        onFollowArchiveAck(response.followArchiveAck.seq)
+                    }
+
+                    RpcEventStreamingService.StreamEventsResponse.TypeCase.TYPE_NOT_SET -> {
                         trace(
                             tag = "event-stream",
                             message = "Received empty message.",
                             type = TraceType.Error,
+                        )
+                    }
+
+                    // A response type newer than this build. Not an error: the server added it.
+                    null -> {
+                        trace(
+                            tag = "event-stream",
+                            message = "Received unknown response type.",
+                            type = TraceType.Log,
                         )
                     }
                 }

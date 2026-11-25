@@ -1,6 +1,7 @@
 package com.flipcash.services.repository
 
 import com.flipcash.services.internal.network.services.EventStreamReference
+import com.flipcash.services.internal.network.services.FollowArchiveSender
 import com.flipcash.services.models.chat.BlobUpdate
 import com.flipcash.services.models.chat.ChatUpdate
 import com.getcode.ed25519kmp.Ed25519.KeyPair
@@ -13,5 +14,8 @@ interface EventStreamingRepository {
         onEvent: (ChatUpdate) -> Unit,
         onBlobUpdate: (BlobUpdate) -> Unit = {},
         onError: (Throwable) -> Unit = {},
+        // Once per stream attempt, right after Params, with a sender bound to that attempt.
+        onStreamStarted: (sendFollowArchive: FollowArchiveSender) -> Unit = {},
+        onFollowArchiveAck: (seq: Long) -> Unit = {},
     ): EventStreamReference
 }

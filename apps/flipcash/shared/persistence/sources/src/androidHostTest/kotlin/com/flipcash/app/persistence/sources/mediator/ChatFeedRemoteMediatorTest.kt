@@ -11,12 +11,15 @@ import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.models.chat.ChatFeedPage
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.verify
 import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -70,8 +73,26 @@ class ChatFeedRemoteMediatorTest {
     }
 
     private fun groupReturns(vararg pages: ChatFeedPage) {
-        coEvery { controller.getGroupChatFeed(any()) } returnsMany
+        coEvery { controller.getGroupChatFeed(any(), ChatFolder.INBOX) } returnsMany
             pages.map { Result.success(it) }
+    }
+
+    private fun archivedGroupsReturn(vararg pages: ChatFeedPage) {
+        coEvery { controller.getGroupChatFeed(any(), ChatFolder.ARCHIVED) } returnsMany
+            pages.map { Result.success(it) }
+    }
+
+    private fun archivedDmsReturn(vararg pages: ChatFeedPage) {
+        coEvery { controller.getDmChatFeed(ChatType.CONTACT_DM, any(), ChatFolder.ARCHIVED) } returnsMany
+            pages.map { Result.success(it) }
+    }
+
+    init {
+        // Nothing archived unless a test says otherwise; a complete pass always reads the folder.
+        archivedGroupsReturn(page(hasMore = false))
+        archivedDmsReturn(page(hasMore = false))
+        every { metadataDataSource.archiveMark() } returns 0L
+        every { metadataDataSource.archiveUnsettledSince(any()) } returns emptySet()
     }
 
     @Test
@@ -197,5 +218,139 @@ class ChatFeedRemoteMediatorTest {
 
         coVerify(exactly = 0) { metadataDataSource.getChatIdsOfType(any()) }
         coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<String>()) }
+        coVerify(exactly = 0) { controller.getGroupChatFeed(any(), ChatFolder.ARCHIVED) }
+    }
+
+    /**
+     * The pass pages the inbox, which leaves archived groups out. "02" was archived on another
+     * device while this one was offline, so nothing here marks it archived yet: only the
+     * archived read keeps its membership.
+     */
+    @Test
+    fun `a group archived elsewhere keeps its membership through a complete pass`() = runTest {
+        val inInbox = chat("01", ChatType.GROUP, 500)
+        val archived = chat("02", ChatType.GROUP, 400)
+        dmReturns(page(hasMore = false))
+        groupReturns(page(inInbox, hasMore = false))
+        archivedGroupsReturn(page(archived, hasMore = false))
+        coEvery { metadataDataSource.chatIdHex(inInbox.chatId) } returns "01"
+        coEvery { metadataDataSource.chatIdHex(archived.chatId) } returns "02"
+        coEvery { metadataDataSource.getChatIdsOfType(ChatType.GROUP) } returns listOf("01", "02", "03")
+        coEvery { metadataDataSource.removeFromChat(any<String>()) } just Runs
+
+        mediator().load(LoadType.REFRESH, state)
+
+        coVerify(exactly = 1) { metadataDataSource.removeFromChat(any<String>()) }
+        coVerify { metadataDataSource.removeFromChat("03") }
+        coVerify { metadataDataSource.upsert(listOf(archived)) }
+    }
+
+    @Test
+    fun `the archived read pages to the end before the prune`() = runTest {
+        val first = chat("02", ChatType.GROUP, 400)
+        val second = chat("03", ChatType.GROUP, 300)
+        dmReturns(page(hasMore = false))
+        groupReturns(page(hasMore = false))
+        archivedGroupsReturn(
+            ChatFeedPage(chats = listOf(first), pagingToken = listOf(1.toByte()), hasMore = true),
+            page(second, hasMore = false),
+        )
+        coEvery { metadataDataSource.chatIdHex(first.chatId) } returns "02"
+        coEvery { metadataDataSource.chatIdHex(second.chatId) } returns "03"
+        coEvery { metadataDataSource.getChatIdsOfType(ChatType.GROUP) } returns listOf("02", "03")
+
+        mediator().load(LoadType.REFRESH, state)
+
+        coVerify(exactly = 2) { controller.getGroupChatFeed(any(), ChatFolder.ARCHIVED) }
+        coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<String>()) }
+    }
+
+    @Test
+    fun `a failed archived read holds the prune back`() = runTest {
+        dmReturns(page(hasMore = false))
+        groupReturns(page(hasMore = false))
+        coEvery { controller.getGroupChatFeed(any(), ChatFolder.ARCHIVED) } returns
+            Result.failure(Throwable("unreachable"))
+        coEvery { metadataDataSource.getChatIdsOfType(ChatType.GROUP) } returns listOf("02")
+
+        val result = mediator().load(LoadType.REFRESH, state)
+
+        coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<String>()) }
+        assertEquals(true, (result as RemoteMediator.MediatorResult.Success).endOfPaginationReached)
+    }
+
+    @Test
+    fun `an archived page that claims more with no token holds the prune back`() = runTest {
+        dmReturns(page(hasMore = false))
+        groupReturns(page(hasMore = false))
+        archivedGroupsReturn(page(hasMore = true))
+        coEvery { metadataDataSource.getChatIdsOfType(ChatType.GROUP) } returns listOf("02")
+
+        mediator().load(LoadType.REFRESH, state)
+
+        coVerify(exactly = 1) { controller.getGroupChatFeed(any(), ChatFolder.ARCHIVED) }
+        coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<String>()) }
+    }
+
+    @Test
+    fun `archived DMs are read to the end on a complete pass`() = runTest {
+        val first = chat("11", ChatType.CONTACT_DM, 400)
+        val second = chat("12", ChatType.CONTACT_DM, 300)
+        dmReturns(page(hasMore = false))
+        groupReturns(page(hasMore = false))
+        archivedDmsReturn(
+            ChatFeedPage(chats = listOf(first), pagingToken = listOf(1.toByte()), hasMore = true),
+            page(second, hasMore = false),
+        )
+
+        mediator().load(LoadType.REFRESH, state)
+
+        coVerify(exactly = 2) { controller.getDmChatFeed(ChatType.CONTACT_DM, any(), ChatFolder.ARCHIVED) }
+        coVerify { metadataDataSource.upsert(listOf(first, second)) }
+    }
+
+    @Test
+    fun `a failed archived DM read holds the group prune back`() = runTest {
+        dmReturns(page(hasMore = false))
+        groupReturns(page(hasMore = false))
+        coEvery { controller.getDmChatFeed(ChatType.CONTACT_DM, any(), ChatFolder.ARCHIVED) } returns
+            Result.failure(Throwable("unreachable"))
+        coEvery { metadataDataSource.getChatIdsOfType(ChatType.GROUP) } returns listOf("02")
+
+        mediator().load(LoadType.REFRESH, state)
+
+        coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<String>()) }
+    }
+
+    /**
+     * "02" moved between the folders while the reads ran, so the inbox read passed it before the
+     * move and the archived read came after it: it is in neither. Its write being in flight, or
+     * its archive having moved since the pass began, is what keeps it.
+     */
+    @Test
+    fun `a group whose archive is unsettled keeps its membership`() = runTest {
+        dmReturns(page(hasMore = false))
+        groupReturns(page(hasMore = false))
+        every { metadataDataSource.archiveUnsettledSince(any()) } returns setOf("02")
+        coEvery { metadataDataSource.getChatIdsOfType(ChatType.GROUP) } returns listOf("02", "03")
+        coEvery { metadataDataSource.removeFromChat(any<String>()) } just Runs
+
+        mediator().load(LoadType.REFRESH, state)
+
+        coVerify(exactly = 1) { metadataDataSource.removeFromChat(any<String>()) }
+        coVerify { metadataDataSource.removeFromChat("03") }
+    }
+
+    @Test
+    fun `the prune judges moves against the mark taken when the refresh began`() = runTest {
+        dmReturns(page(hasMore = false))
+        groupReturns(page(hasMore = false))
+        // Construction reads 0; the refresh reads 7 before its first fetch.
+        every { metadataDataSource.archiveMark() } returnsMany listOf(0L, 7L)
+        coEvery { metadataDataSource.getChatIdsOfType(ChatType.GROUP) } returns emptyList()
+
+        mediator().load(LoadType.REFRESH, state)
+
+        verify { metadataDataSource.archiveUnsettledSince(7L) }
     }
 }

@@ -59,6 +59,12 @@ data class ChatMetadataEntity(
     val muteForever: Boolean = false,
     @ColumnInfo(name = "viewer_state_version", defaultValue = "0")
     val viewerStateVersion: Long = 0,
+    // When the viewer archived this chat, as the server holds it (`ViewerState.settings.archive`);
+    // null when not archived. Part of the viewer state, so it rides the same version gate as mute
+    // and is never written by the server-owned-fields rewrite. A write the user made that the
+    // server has not confirmed yet lives in `chat_archive` and wins over this on read.
+    @ColumnInfo(name = "archived_at_epoch_ms")
+    val archivedAtEpochMs: Long? = null,
     // The viewer's server-computed grants. Stored rather than left to the fetch that carried it
     // because every screen reads the viewer state back out of this row: a grant that lives only
     // in the response is already gone by the time anything draws. Defaults false, matching

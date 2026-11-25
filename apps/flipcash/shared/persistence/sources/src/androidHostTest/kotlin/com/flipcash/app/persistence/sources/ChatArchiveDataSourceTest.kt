@@ -22,9 +22,10 @@ class ChatArchiveDataSourceTest {
 
     @Test
     fun `with no database nothing is archived and writes are no-ops`() = runTest {
-        source.archive("aa", now = 1L)
-        source.unarchive("aa")
+        source.putPending("aa", archived = true, at = 1L)
+        source.dropPending("aa")
         source.clear()
         assertFalse(source.isArchived("aa"))
+        assertEquals(emptyList(), source.pending())
     }
 }

@@ -5,25 +5,30 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * A chat the viewer has archived. Presence of the row is the whole state.
+ * An archive or unarchive the user made that the server has not confirmed yet. The server's
+ * answer lives in `chat_metadata.archived_at_epoch_ms`; a row here wins over it on read until
+ * the write lands, then the row is deleted.
  *
- * Its own table rather than a `chat_metadata` column, on purpose: `chat_metadata.is_hidden` is
- * server-owned and `ChatMetadataDao.updateServerOwnedFields` rewrites it on every feed sync, so a
- * client-owned flag stored there would be reset by the next sync. A row here is never touched by
- * the metadata round-trip.
+ * [archived] says which way the write goes. Rows stored before the server held archives were the
+ * whole local archive, one row per archived chat, so the migration gives them `archived = 1`: they
+ * are archives to upload.
  *
- * A row is only ever written by the user's own archive action and removed by their unarchive, by
- * leaving the group, or by account erasure; no incoming message, mention or payment clears it.
+ * Its own table rather than a `chat_metadata` column, on purpose: `chat_metadata` is rewritten by
+ * every feed sync and viewer-state payload, and a write the server has not seen yet must survive
+ * both.
  *
- * Added by an `AutoMigration` rather than left to `fallbackToDestructiveMigration()`: an archive
- * set cannot be re-fetched until the server stores it, so a version bump that dropped the file
- * would lose it.
+ * Added by an `AutoMigration` rather than left to `fallbackToDestructiveMigration()`: a pending
+ * write cannot be re-fetched, so a version bump that dropped the file would lose it.
  */
 @Entity(tableName = "chat_archive")
 data class ChatArchiveEntity(
     @PrimaryKey
     @ColumnInfo(name = "chat_id_hex")
     val chatIdHex: String,
+    // When the user archived the chat, or for an unarchive, when they unarchived it. Also tells
+    // one write from the next on the same chat, so a confirmed write deletes only its own row.
     @ColumnInfo(name = "archived_at")
     val archivedAt: Long,
+    @ColumnInfo(name = "archived", defaultValue = "1")
+    val archived: Boolean = true,
 )

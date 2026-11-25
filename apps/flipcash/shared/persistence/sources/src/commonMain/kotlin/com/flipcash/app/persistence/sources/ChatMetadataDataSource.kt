@@ -15,6 +15,8 @@ import com.flipcash.services.models.chat.MediaItem
 import com.flipcash.services.models.chat.PinSummary
 import com.flipcash.services.models.chat.ViewerState
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
@@ -143,21 +145,117 @@ class ChatMetadataDataSource @Inject constructor(
      * delivery is unordered, so the newest state is the one with the highest version, not the one
      * that arrived last.
      */
-    suspend fun updateViewerState(chatId: ChatId, viewerState: ViewerState) {
-        db?.chatMetadataDao()?.updateViewerStateIfNewer(
-            chatIdHex = mapper.chatIdHex(chatId),
-            muteUntilEpochMs = mapper.muteUntilEpochMs(viewerState.mute),
-            muteForever = mapper.isMuteForever(viewerState.mute),
-            canEdit = viewerState.permissions.canEdit,
-            canInvite = viewerState.permissions.canInvite,
-            version = viewerState.version,
-            canSilence = viewerState.permissions.moderation.canSilence,
-            canBan = viewerState.permissions.moderation.canBan,
-            silenceUntilEpochMs = mapper.silenceUntilEpochMs(viewerState.restrictions?.silence),
-            silenceForever = mapper.isSilenceForever(viewerState.restrictions?.silence),
-            canPin = viewerState.permissions.canPin,
-        )
+    suspend fun updateViewerState(chatId: ChatId, viewerState: ViewerState): ViewerStateWrite {
+        val db = db ?: return ViewerStateWrite.Dropped
+        val dao = db.chatMetadataDao()
+        val chatIdHex = mapper.chatIdHex(chatId)
+        // Read and write in one transaction, so the archive this write replaced is the one it
+        // actually replaced. A caller acting on an unarchive acts on the write that landed, not on
+        // a stale payload the gate dropped.
+        val write = db.inTransaction {
+            val wasArchived = dao.getArchivedAt(chatIdHex) != null
+            val changed = dao.updateViewerStateIfNewer(
+                chatIdHex = chatIdHex,
+                muteUntilEpochMs = mapper.muteUntilEpochMs(viewerState.mute),
+                muteForever = mapper.isMuteForever(viewerState.mute),
+                canEdit = viewerState.permissions.canEdit,
+                canInvite = viewerState.permissions.canInvite,
+                version = viewerState.version,
+                archivedAtEpochMs = mapper.archivedAtEpochMs(viewerState.archive),
+                canSilence = viewerState.permissions.moderation.canSilence,
+                canBan = viewerState.permissions.moderation.canBan,
+                silenceUntilEpochMs = mapper.silenceUntilEpochMs(viewerState.restrictions?.silence),
+                silenceForever = mapper.isSilenceForever(viewerState.restrictions?.silence),
+                canPin = viewerState.permissions.canPin,
+            )
+            when {
+                changed == 0 -> ViewerStateWrite.Dropped
+                wasArchived && viewerState.archive == null -> ViewerStateWrite.Unarchived
+                wasArchived == (viewerState.archive != null) -> ViewerStateWrite.Applied
+                else -> ViewerStateWrite.Archived
+            }
+        }
+        // After the transaction, so a write that rolled back moved nothing.
+        if (write == ViewerStateWrite.Unarchived || write == ViewerStateWrite.Archived) {
+            noteArchiveMoved(chatIdHex)
+        }
+        return write
     }
+
+    /** What [updateViewerState] did with the state it was given. */
+    enum class ViewerStateWrite {
+        /** The stored state was as new or newer, or the chat is not stored. Nothing changed. */
+        Dropped,
+        Applied,
+        /** Applied, and it took the chat out of the archive. */
+        Unarchived,
+        /** Applied, and it put the chat in the archive. */
+        Archived,
+    }
+
+    /**
+     * Where each chat's archive last moved, against a counter that only goes up, plus the archive
+     * writes still waiting on the server. Kept in memory: it only has to outlast one feed pass,
+     * and a chat it holds by mistake is kept for one more pass rather than lost.
+     */
+    private data class ArchiveMoves(
+        val counter: Long = 0,
+        val moved: Map<String, Long> = emptyMap(),
+        val inFlight: Map<String, Int> = emptyMap(),
+    )
+
+    private val archiveMoves = MutableStateFlow(ArchiveMoves())
+
+    /** A mark to read [archiveUnsettledSince] against. Take it before the reads it guards. */
+    fun archiveMark(): Long = archiveMoves.value.counter
+
+    /**
+     * The chats, by hex, a feed pass that began at [mark] can't judge from its reads: one whose
+     * archive write is still in flight, or whose archive moved or had a write come back since.
+     * Either can put a chat in neither the inbox read nor the archived one without it being gone.
+     */
+    fun archiveUnsettledSince(mark: Long): Set<String> {
+        val moves = archiveMoves.value
+        return moves.inFlight.keys + moves.moved.filterValues { it > mark }.keys
+    }
+
+    /** An archive write for [chatId] is going to the server. Pair with [endArchiveSend]. */
+    fun beginArchiveSend(chatId: ChatId) {
+        val hex = mapper.chatIdHex(chatId)
+        archiveMoves.update { it.copy(inFlight = it.inFlight + (hex to (it.inFlight[hex] ?: 0) + 1)) }
+    }
+
+    /**
+     * The write [beginArchiveSend] opened came back, whatever the answer: the server may have
+     * moved the chat even when the answer never arrived.
+     */
+    fun endArchiveSend(chatId: ChatId) {
+        val hex = mapper.chatIdHex(chatId)
+        archiveMoves.update { moves ->
+            val left = (moves.inFlight[hex] ?: 1) - 1
+            val inFlight = if (left > 0) moves.inFlight + (hex to left) else moves.inFlight - hex
+            val counter = moves.counter + 1
+            moves.copy(counter = counter, moved = moves.moved + (hex to counter), inFlight = inFlight)
+        }
+    }
+
+    private fun noteArchiveMoved(chatIdHex: String) {
+        archiveMoves.update { moves ->
+            val counter = moves.counter + 1
+            moves.copy(counter = counter, moved = moves.moved + (chatIdHex to counter))
+        }
+    }
+
+    /** When the server says the viewer archived [chatId], or null. */
+    suspend fun archivedAt(chatId: ChatId): Long? =
+        db?.chatMetadataDao()?.getArchivedAt(mapper.chatIdHex(chatId))
+
+    /** The chats the server holds as archived, keyed by hex, with when each was archived. */
+    fun observeArchived(): Flow<Map<String, Long>> =
+        db?.chatMetadataDao()?.observeArchived()
+            ?.map { rows -> rows.associate { it.chatIdHex to it.archivedAtEpochMs } }
+            ?.distinctUntilChanged()
+            ?: flowOf(emptyMap())
 
     /** Stores the moderation grants a fresh read of [chatId] reported, ahead of any version gate. */
     suspend fun updateModerationGrants(chatId: ChatId, canSilence: Boolean, canBan: Boolean) {

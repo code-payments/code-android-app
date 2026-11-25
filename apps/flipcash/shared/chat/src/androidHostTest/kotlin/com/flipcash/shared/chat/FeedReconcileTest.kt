@@ -13,6 +13,7 @@ import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatFeedPage
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatUpdate
@@ -72,6 +73,9 @@ class FeedReconcileTest {
         coEvery { it.getDmChatFeed(ChatType.CONTACT_DM, any()) } returns
             Result.success(ChatFeedPage(listOf(dmChat), null, false))
         coEvery { it.getDmChatFeed(ChatType.TIP_DM, any()) } returns
+            Result.success(ChatFeedPage(emptyList(), null, false))
+        // The once-per-session archived read; the counts below are over the inbox alone.
+        coEvery { it.getDmChatFeed(any(), any(), ChatFolder.ARCHIVED) } returns
             Result.success(ChatFeedPage(emptyList(), null, false))
     }
     private val groupFeedDelegate = mockk<GroupFeedDelegate>(relaxed = true).also {

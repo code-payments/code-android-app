@@ -14,9 +14,11 @@ import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
 import com.flipcash.app.persistence.sources.mediator.ChatFeedRemoteMediator
+import com.flipcash.app.persistence.sources.mediator.readFolder
 import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.models.GetMessageError
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
@@ -528,15 +530,29 @@ class FeedSyncDelegate @Inject constructor(
      * required (its failure fails the whole sync, preserving prior behaviour); a TIP_DM failure is
      * tolerated so tips never break the main DM list. Each chat carries its own [ChatType].
      */
-    internal suspend fun fetchCombinedFeed(): Result<List<ChatMetadata>> = coroutineScope {
+    internal suspend fun fetchCombinedFeed(
+        folder: ChatFolder = ChatFolder.INBOX,
+    ): Result<List<ChatMetadata>> = coroutineScope {
         // Fetch both feeds concurrently — total time is the slower of the two, not their sum.
-        val contactDeferred = async { chatController.getDmChatFeed(ChatType.CONTACT_DM) }
-        val tipDeferred = async { chatController.getDmChatFeed(ChatType.TIP_DM) }
+        val contactDeferred = async { chatController.getDmChatFeed(ChatType.CONTACT_DM, folder = folder) }
+        val tipDeferred = async { chatController.getDmChatFeed(ChatType.TIP_DM, folder = folder) }
 
         // Contact feed is required (its failure fails the whole sync); a TIP_DM failure is tolerated.
         val contact = contactDeferred.await().getOrElse { return@coroutineScope Result.failure(it) }
         val tip = tipDeferred.await().getOrNull()
         Result.success(contact.chats + (tip?.chats ?: emptyList()))
+    }
+
+    /**
+     * Every archived DM, each feed read to the last page. Nothing is written. The contact feed is
+     * required and a tip feed failure is tolerated, as in [fetchCombinedFeed].
+     */
+    internal suspend fun fetchArchivedFeed(): Result<List<ChatMetadata>> = coroutineScope {
+        val contact = async { chatController.readFolder(ChatType.CONTACT_DM, ChatFolder.ARCHIVED) }
+        val tip = async { chatController.readFolder(ChatType.TIP_DM, ChatFolder.ARCHIVED) }
+        val contactChats = contact.await()
+            ?: return@coroutineScope Result.failure(IllegalStateException("Archived DM feed read failed"))
+        Result.success(contactChats + tip.await().orEmpty())
     }
 
     /** Standalone DM sync: fetch, write, then the post-write steps. See [syncFeed]. */

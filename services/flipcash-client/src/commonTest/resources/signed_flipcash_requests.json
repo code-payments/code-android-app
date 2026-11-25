@@ -152,6 +152,14 @@
             "wireDefaultOrderDiffers": false,
             "wireDefaultSignedOrderDiffers": false
         },
+        "flipcash.chat.v1.ArchiveChatRequest": {
+            "authTag": 10,
+            "unsigned": "0a050a030a0b0c",
+            "signature": "38c65e6d23c43c4d6af3b2a8a68be5ca25d48889d1c6674200d00bc300666b4235aa0fa47cc88a19a79560784aeae51676384f8b44131e159240d7f17e7db404",
+            "signed": "0a050a030a0b0c526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a4038c65e6d23c43c4d6af3b2a8a68be5ca25d48889d1c6674200d00bc300666b4235aa0fa47cc88a19a79560784aeae51676384f8b44131e159240d7f17e7db404",
+            "wireDefaultOrderDiffers": false,
+            "wireDefaultSignedOrderDiffers": false
+        },
         "flipcash.chat.v1.BanUserRequest": {
             "authTag": 10,
             "unsigned": "0a050a030a0b0c12050a030a0b0c",
@@ -234,9 +242,9 @@
         },
         "flipcash.chat.v1.GetDmChatFeedRequest": {
             "authTag": 10,
-            "unsigned": "0a0c08960112050a030a0b0c18011001",
-            "signature": "95393e5e3ec16fb2246ada98128b41b1e9abd2425d31064c795c60bad1d3fe9cd7db0362a429e1d25aecae4b11a2cf03a40907d003a138455bab9ccabd902307",
-            "signed": "0a0c08960112050a030a0b0c18011001526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a4095393e5e3ec16fb2246ada98128b41b1e9abd2425d31064c795c60bad1d3fe9cd7db0362a429e1d25aecae4b11a2cf03a40907d003a138455bab9ccabd902307",
+            "unsigned": "0a0c08960112050a030a0b0c180110011801",
+            "signature": "1ecbd3a781f5ff52b484d9fc27a38e78134c84e78a411f935a7e48e5932b82d15cb98f8f07d3821c8ed536620b3356d4731108742b3c2950285d35890193d90e",
+            "signed": "0a0c08960112050a030a0b0c180110011801526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a401ecbd3a781f5ff52b484d9fc27a38e78134c84e78a411f935a7e48e5932b82d15cb98f8f07d3821c8ed536620b3356d4731108742b3c2950285d35890193d90e",
             "wireDefaultOrderDiffers": false,
             "wireDefaultSignedOrderDiffers": false
         },
@@ -250,9 +258,9 @@
         },
         "flipcash.chat.v1.GetGroupChatFeedRequest": {
             "authTag": 10,
-            "unsigned": "0a0c08960112050a030a0b0c1801",
-            "signature": "4515c6485e07c36ed0779acf3810a806267b515e37f726366dc993dabd3693b7b587ff5e9ac19557514e547d5244e31cccc6e5174d82cb299a0516c54d0b5300",
-            "signed": "0a0c08960112050a030a0b0c1801526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a404515c6485e07c36ed0779acf3810a806267b515e37f726366dc993dabd3693b7b587ff5e9ac19557514e547d5244e31cccc6e5174d82cb299a0516c54d0b5300",
+            "unsigned": "0a0c08960112050a030a0b0c18011001",
+            "signature": "95393e5e3ec16fb2246ada98128b41b1e9abd2425d31064c795c60bad1d3fe9cd7db0362a429e1d25aecae4b11a2cf03a40907d003a138455bab9ccabd902307",
+            "signed": "0a0c08960112050a030a0b0c18011001526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a4095393e5e3ec16fb2246ada98128b41b1e9abd2425d31064c795c60bad1d3fe9cd7db0362a429e1d25aecae4b11a2cf03a40907d003a138455bab9ccabd902307",
             "wireDefaultOrderDiffers": false,
             "wireDefaultSignedOrderDiffers": false
         },
@@ -423,6 +431,14 @@
             "signed": "121c0a0576616c756512050a030a0b0c1a0576616c756522050a030a0b0c4a050a030a0b0c526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a400467149d3aaf3f67969a9cfd037970f89dcc59bccbe3c94efe4e763b277115ae028c4a6c1ea85a11e2b07bede97a9b377db2ce455692347a2e8faecd750cc301",
             "wireDefaultOrderDiffers": true,
             "wireDefaultSignedOrderDiffers": true
+        },
+        "flipcash.chat.v1.UnarchiveChatRequest": {
+            "authTag": 10,
+            "unsigned": "0a050a030a0b0c",
+            "signature": "38c65e6d23c43c4d6af3b2a8a68be5ca25d48889d1c6674200d00bc300666b4235aa0fa47cc88a19a79560784aeae51676384f8b44131e159240d7f17e7db404",
+            "signed": "0a050a030a0b0c526a0a680a220a2079b5562e8fe654f94078b112e8a98ba7901f853ae695bed7e0e3910bad04966412420a4038c65e6d23c43c4d6af3b2a8a68be5ca25d48889d1c6674200d00bc300666b4235aa0fa47cc88a19a79560784aeae51676384f8b44131e159240d7f17e7db404",
+            "wireDefaultOrderDiffers": false,
+            "wireDefaultSignedOrderDiffers": false
         },
         "flipcash.chat.v1.UnbanUserRequest": {
             "authTag": 10,

@@ -52,6 +52,7 @@ class GroupFeedDelegateTest {
     private val memberDataSource = mockk<ChatMemberDataSource>(relaxed = true)
     private val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
     private val rosterStateHolder = mockk<RosterStateHolder>(relaxed = true)
+    private val archiveStore = mockk<ChatArchiveStore>(relaxed = true)
 
     private val subject = GroupFeedDelegate(
         chatController = controller,
@@ -62,6 +63,7 @@ class GroupFeedDelegateTest {
         userManager = mockk<UserManager>(relaxed = true).also {
             every { it.accountId } returns selfId
         },
+        archiveStore = archiveStore,
     )
 
     private fun member(userId: List<Byte>) = ChatMember(
@@ -265,6 +267,27 @@ class GroupFeedDelegateTest {
         coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<ChatId>()) }
     }
 
+    // The server clears the archive with the membership; a write still queued would name a chat
+    // the user is out of. Forgotten, not unarchived: no call goes out.
+    @Test
+    fun `a successful leave forgets the chat's archive write`() = runTest {
+        coEvery { controller.leaveChat(chatId) } returns Result.success(Unit)
+
+        subject.leave(chatId)
+
+        coVerify(exactly = 1) { archiveStore.forget(chatId) }
+        coVerify(exactly = 0) { archiveStore.unarchive(any()) }
+    }
+
+    @Test
+    fun `a failed leave keeps the chat's archive write`() = runTest {
+        coEvery { controller.leaveChat(chatId) } returns Result.failure(Throwable("unreachable"))
+
+        subject.leave(chatId)
+
+        coVerify(exactly = 0) { archiveStore.forget(any()) }
+    }
+
     @Test
     fun `a failed leave puts the chat back`() = runTest {
         coEvery { controller.leaveChat(chatId) } returns Result.failure(Throwable("unreachable"))
@@ -341,6 +364,20 @@ class GroupFeedDelegateTest {
         coVerify { metadataDataSource.removeFromChat(chatId) }
     }
 
+    // A ban or kick arrives as this same change; the roster oneof has no other self-removal case.
+    @Test
+    fun `being removed clears the archive with the rest of the viewer state`() = runTest {
+        val change = RosterChange.MemberLeft(
+            userId = selfId,
+            rosterSummary = RosterSummary(memberCount = 11, version = 5),
+        )
+
+        subject.applyRosterChanges(chatId, listOf(change))
+
+        coVerify { metadataDataSource.clearViewerState(chatId) }
+        coVerify(exactly = 1) { archiveStore.forget(chatId) }
+    }
+
     @Test
     fun `someone else being removed leaves your membership alone`() = runTest {
         val change = RosterChange.MemberLeft(
@@ -352,6 +389,7 @@ class GroupFeedDelegateTest {
 
         coVerify(exactly = 0) { metadataDataSource.setMembership(any<ChatId>(), any()) }
         coVerify(exactly = 0) { metadataDataSource.removeFromChat(any<ChatId>()) }
+        coVerify(exactly = 0) { archiveStore.forget(any()) }
         coVerify { rosterStateHolder.apply(chatId, listOf(change)) }
     }
 }

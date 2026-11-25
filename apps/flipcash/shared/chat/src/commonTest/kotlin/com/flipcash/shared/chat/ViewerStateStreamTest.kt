@@ -9,6 +9,7 @@ import com.flipcash.services.controllers.ChatController
 import com.flipcash.services.controllers.ChatMessagingController
 import com.flipcash.services.controllers.EventStreamingController
 import com.flipcash.services.models.chat.ChatId
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.MetadataUpdate
 import com.flipcash.services.models.chat.MuteState
@@ -26,8 +27,10 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.advanceTimeBy
@@ -55,6 +58,7 @@ class ViewerStateStreamTest {
     private val chatUpdatesChannel = Channel<ChatUpdate>(capacity = Channel.UNLIMITED)
 
     private lateinit var metadataDataSource: ChatMetadataDataSource
+    private lateinit var messagingController: ChatMessagingController
     private lateinit var coordinator: RealChatCoordinator
     private lateinit var testDispatchers: TestDispatchers
 
@@ -68,15 +72,18 @@ class ViewerStateStreamTest {
         every { eventStreamingController.isStreamActive } returns true
 
         val chatController = mockk<ChatController>(relaxed = true)
-        coEvery { chatController.getDmChatFeed(any(), any()) } returns
+        coEvery { chatController.getDmChatFeed(any(), any(), any()) } returns
             Result.failure(RuntimeException("not needed"))
 
         testDispatchers = TestDispatchers(TestCoroutineScheduler())
 
         val stateHolder = ChatStateHolder()
         val memberDataSource = mockk<ChatMemberDataSource>(relaxed = true)
-        val messagingController = mockk<ChatMessagingController>(relaxed = true)
+        messagingController = mockk(relaxed = true)
+        every { messagingController.getDelta(any(), any(), any()) } returns emptyFlow()
         metadataDataSource = mockk(relaxed = true)
+        coEvery { metadataDataSource.updateViewerState(any(), any()) } returns
+            ChatMetadataDataSource.ViewerStateWrite.Applied
         val messageDataSource = mockk<ChatMessageDataSource>(relaxed = true)
 
         val feedDelegate = FeedSyncDelegate(
@@ -214,6 +221,65 @@ class ViewerStateStreamTest {
                 runCurrent()
 
                 coVerify(exactly = 0) { metadataDataSource.updateViewerState(any(), any()) }
+            }
+        }
+
+    /**
+     * Unarchived on another device: while archived, the stream carried none of the group's events,
+     * so the window it missed is streamed from the latest sequence held.
+     */
+    @Test
+    fun `a group unarchived elsewhere fetches the window it missed`() =
+        runTest(testDispatchers.dispatcher) {
+            tornDown {
+                triggerCollection()
+                coEvery { metadataDataSource.updateViewerState(chatId, any()) } returns
+                    ChatMetadataDataSource.ViewerStateWrite.Unarchived
+                coEvery { metadataDataSource.getChatType(chatId) } returns ChatType.GROUP
+                coEvery { metadataDataSource.getLatestEventSequence(chatId) } returns 40L
+
+                chatUpdatesChannel.send(viewerStateUpdate(ViewerState(version = 9)))
+                advanceTimeBy(1_000.milliseconds)
+                runCurrent()
+
+                verify(exactly = 1) { messagingController.getDelta(chatId, 40L, any()) }
+            }
+        }
+
+    // The trigger is the write that landed, not the payload: a stale state the gate dropped says
+    // nothing about what the stream carried.
+    @Test
+    fun `a stale unarchive the gate drops fetches nothing`() =
+        runTest(testDispatchers.dispatcher) {
+            tornDown {
+                triggerCollection()
+                coEvery { metadataDataSource.updateViewerState(chatId, any()) } returns
+                    ChatMetadataDataSource.ViewerStateWrite.Dropped
+                coEvery { metadataDataSource.getChatType(chatId) } returns ChatType.GROUP
+
+                chatUpdatesChannel.send(viewerStateUpdate(ViewerState(version = 3)))
+                advanceTimeBy(1_000.milliseconds)
+                runCurrent()
+
+                verify(exactly = 0) { messagingController.getDelta(chatId, any(), any()) }
+            }
+        }
+
+    // A DM's events reach the stream archived or not, so there is no window to fetch.
+    @Test
+    fun `a DM unarchived elsewhere fetches nothing`() =
+        runTest(testDispatchers.dispatcher) {
+            tornDown {
+                triggerCollection()
+                coEvery { metadataDataSource.updateViewerState(chatId, any()) } returns
+                    ChatMetadataDataSource.ViewerStateWrite.Unarchived
+                coEvery { metadataDataSource.getChatType(chatId) } returns ChatType.CONTACT_DM
+
+                chatUpdatesChannel.send(viewerStateUpdate(ViewerState(version = 9)))
+                advanceTimeBy(1_000.milliseconds)
+                runCurrent()
+
+                verify(exactly = 0) { messagingController.getDelta(chatId, any(), any()) }
             }
         }
 

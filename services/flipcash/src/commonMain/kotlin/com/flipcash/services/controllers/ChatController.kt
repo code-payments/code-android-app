@@ -4,7 +4,9 @@ import com.flipcash.services.models.QueryOptions
 import com.flipcash.services.models.chat.ChatFeedPage
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.UnarchivedChat
 import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
@@ -52,23 +54,27 @@ class ChatController @Inject constructor(
         return repository.getChat(owner, chatId, viewMode)
     }
 
+    /** One DM feed page of [folder]. A paging token is valid only for the folder that issued it. */
     suspend fun getDmChatFeed(
         chatType: ChatType,
         queryOptions: QueryOptions = QueryOptions(),
+        folder: ChatFolder = ChatFolder.INBOX,
     ): Result<ChatFeedPage> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
-        return repository.getDmChatFeed(owner, queryOptions, chatType)
+        return repository.getDmChatFeed(owner, queryOptions, chatType, folder)
     }
 
+    /** One group feed page of [folder]. A paging token is valid only for the folder that issued it. */
     suspend fun getGroupChatFeed(
         queryOptions: QueryOptions = QueryOptions(),
+        folder: ChatFolder = ChatFolder.INBOX,
     ): Result<ChatFeedPage> {
         val owner = userManager.accountCluster?.authority?.keyPair
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
-        return repository.getGroupChatFeed(owner, queryOptions)
+        return repository.getGroupChatFeed(owner, queryOptions, folder)
     }
 
     /**
@@ -179,6 +185,22 @@ class ChatController @Inject constructor(
             ?: return Result.failure(Throwable("No account cluster in UserManager"))
 
         return repository.unmuteChat(owner, chatId)
+    }
+
+    /** Archives [chatId] for the caller, returning the caller's new viewer state. */
+    suspend fun archiveChat(chatId: ChatId): Result<ViewerState> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.archiveChat(owner, chatId)
+    }
+
+    /** Unarchives [chatId] for the caller. See [ChatRepository.unarchiveChat]. */
+    suspend fun unarchiveChat(chatId: ChatId): Result<UnarchivedChat> {
+        val owner = userManager.accountCluster?.authority?.keyPair
+            ?: return Result.failure(Throwable("No account cluster in UserManager"))
+
+        return repository.unarchiveChat(owner, chatId)
     }
 
     /** Enters private group [chatId]'s lobby. See [ChatRepository.enterLobby]. */

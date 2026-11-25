@@ -49,7 +49,11 @@ internal fun describeStream(response: RpcEventStreamingService.StreamEventsRespo
                     .forEach { add(it.chatUpdate.toChatUpdate().describe()) }
             })
         }
-        else -> put("type", "none")
+        RpcEventStreamingService.StreamEventsResponse.TypeCase.FOLLOW_ARCHIVE_ACK -> {
+            put("type", "followArchiveAck")
+            put("seq", response.followArchiveAck.seq)
+        }
+        RpcEventStreamingService.StreamEventsResponse.TypeCase.TYPE_NOT_SET, null -> put("type", "none")
     }
 }
 

@@ -68,7 +68,7 @@ class ChatCoordinatorTeardownTest {
             Channel<ChatUpdate>(Channel.UNLIMITED).receiveAsFlow()
 
         val chatController = mockk<ChatController>(relaxed = true)
-        coEvery { chatController.getDmChatFeed(any(), any()) } returns
+        coEvery { chatController.getDmChatFeed(any(), any(), any()) } returns
             Result.failure(RuntimeException("not needed"))
 
         metadataDataSource = mockk(relaxed = true)
@@ -203,18 +203,20 @@ class ChatCoordinatorTeardownTest {
         coVerify(exactly = 1) { groupKeyEnvelopes.clear() }
     }
 
+    // The server clears the archive with the membership, so a leave sends no unarchive: it would
+    // name a chat this account is no longer in. GroupFeedDelegateTest covers the local record.
     @Test
-    fun `a successful leave unarchives the chat`() = runTest {
+    fun `a successful leave sends no unarchive`() = runTest {
         val chatId = ChatId("aabbccdd")
         coEvery { groupFeedDelegate.leave(chatId) } returns Result.success(Unit)
 
         coordinator.leave(chatId)
 
-        coVerify(exactly = 1) { archiveStore.unarchive(chatId) }
+        coVerify(exactly = 0) { archiveStore.unarchive(any()) }
     }
 
     @Test
-    fun `a failed leave keeps the archive record`() = runTest {
+    fun `a failed leave sends no unarchive`() = runTest {
         val chatId = ChatId("aabbccdd")
         coEvery { groupFeedDelegate.leave(chatId) } returns Result.failure(RuntimeException("nope"))
 

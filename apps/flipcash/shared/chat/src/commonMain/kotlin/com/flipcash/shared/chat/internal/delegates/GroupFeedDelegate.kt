@@ -4,16 +4,20 @@ import com.flipcash.app.persistence.sources.ChatFeedWriter
 import com.flipcash.app.persistence.sources.ChatMemberDataSource
 import com.flipcash.app.persistence.sources.ChatMessageDataSource
 import com.flipcash.app.persistence.sources.ChatMetadataDataSource
+import com.flipcash.app.persistence.sources.mediator.readFolder
 import com.flipcash.services.controllers.ChatController
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.InviteParameters
 import com.flipcash.services.models.chat.ChatMetadata
+import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.RosterChange
 import com.flipcash.services.models.chat.StartChatParameters
 import com.flipcash.services.user.UserManager
+import com.flipcash.shared.chat.ChatArchiveStore
 import com.flipcash.shared.chat.GroupOperations
 import com.flipcash.shared.chat.internal.RosterStateHolder
 import com.getcode.utils.TraceType
@@ -53,6 +57,7 @@ class GroupFeedDelegate @Inject constructor(
     private val userManager: UserManager,
     private val feedWriter: ChatFeedWriter =
         ChatFeedWriter(metadataDataSource, memberDataSource, messageDataSource),
+    private val archiveStore: ChatArchiveStore = ChatArchiveStore.None,
 ) : GroupOperations {
 
     sealed interface Event {
@@ -103,14 +108,20 @@ class GroupFeedDelegate @Inject constructor(
         requestCatchUp(chats)
     }
 
-    /** The network half of a group sync: the first page, or null when the fetch failed. */
-    internal suspend fun fetchGroupFeed(): List<ChatMetadata>? {
-        val page = chatController.getGroupChatFeed().getOrElse {
-            trace(tag = TAG, message = "Group feed sync failed", type = TraceType.Error)
+    /** The network half of a group sync: the first page of [folder], or null when the fetch failed. */
+    internal suspend fun fetchGroupFeed(folder: ChatFolder = ChatFolder.INBOX): List<ChatMetadata>? {
+        val page = chatController.getGroupChatFeed(folder = folder).getOrElse {
+            trace(tag = TAG, message = "Group feed sync failed ($folder)", type = TraceType.Error)
             return null
         }
         return page.chats
     }
+
+    /** Every archived group, read to the last page. Nothing is written. Null when a page failed. */
+    internal suspend fun fetchArchivedGroups(): List<ChatMetadata>? =
+        chatController.readFolder(ChatType.GROUP, ChatFolder.ARCHIVED).also {
+            if (it == null) trace(tag = TAG, message = "Archived group read failed", type = TraceType.Error)
+        }
 
     /** What follows a committed write of [chats]: transcripts to fetch or gaps to fill. */
     internal suspend fun requestCatchUp(chats: List<ChatMetadata>) {
@@ -201,7 +212,10 @@ class GroupFeedDelegate @Inject constructor(
         metadataDataSource.setMembership(chatId, isMember = false)
         return chatController.leaveChat(chatId)
             .onSuccess {
+                // Clears the server's archive with the rest of the viewer state.
                 metadataDataSource.clearViewerState(chatId)
+                // An archive write still queued would be sent for a chat the user is out of.
+                archiveStore.forget(chatId)
                 // On success only, like the viewer state: a failed leave keeps the user in the
                 // chat, which still needs its key and requests.
                 metadataDataSource.removeFromChat(chatId)
@@ -253,9 +267,11 @@ class GroupFeedDelegate @Inject constructor(
                 is RosterChange.MemberLeft -> {
                     if (change.userId != selfId) continue
                     metadataDataSource.removeFromChat(chatId)
-                    // Same reason as [leave]: the mute is gone server-side the moment you are out
-                    // of the chat, whether you left from this device or another one.
+                    // Same reason as [leave]: the mute and the archive are gone server-side the
+                    // moment you are out of the chat, whether you left from this device or another
+                    // one, or were removed. A removal arrives as this change too.
                     metadataDataSource.clearViewerState(chatId)
+                    archiveStore.forget(chatId)
                 }
 
                 // No list-level meaning: it edits neither your membership nor the member list.

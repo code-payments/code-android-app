@@ -152,8 +152,11 @@ import kotlin.jvm.Synchronized
         // mark cannot be re-fetched until the server stores it.
         AutoMigration(from = 51, to = 52), // chat_marked_unread table
         AutoMigration(from = 52, to = 53, spec = FlipcashDatabase.Migration52To53::class), // chat_messages launch-scan partial indexes
+        // chat_metadata.archived_at_epoch_ms (nullable), the server's archive; chat_archive.archived
+        // (default 1), so the local archive stored before this version becomes archives to upload.
+        AutoMigration(from = 53, to = 54, spec = FlipcashDatabase.Migration53To54::class),
     ],
-    version = 53,
+    version = 54,
 )
 @TypeConverters(TokenTypeConverters::class, ChatTypeConverters::class)
 @ConstructedBy(FlipcashDatabaseConstructor::class)
@@ -343,6 +346,17 @@ abstract class FlipcashDatabase : RoomDatabase() {
      * before the upgrade until its viewer state version moves.
      */
     class Migration50To51 : AutoMigrationSpec {
+        override fun onPostMigrate(connection: SQLiteConnection) {
+            connection.execSQL(Migration36To37.REARM_VIEWER_STATE)
+        }
+    }
+
+    /**
+     * Re-arms the viewer-state gate for the new `archived_at_epoch_ms` column, for the reason
+     * [Migration36To37] gives for `can_edit`: without it a chat archived on another device before
+     * the upgrade stays in the inbox until its viewer state version moves.
+     */
+    class Migration53To54 : AutoMigrationSpec {
         override fun onPostMigrate(connection: SQLiteConnection) {
             connection.execSQL(Migration36To37.REARM_VIEWER_STATE)
         }

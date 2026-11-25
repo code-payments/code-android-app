@@ -1,6 +1,7 @@
 package com.flipcash.app.persistence.dao
 
 import androidx.paging.PagingSource
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -10,6 +11,12 @@ import com.flipcash.app.persistence.converters.ChatRulesSerialized
 import com.flipcash.app.persistence.entities.ChatMetadataEntity
 import com.flipcash.services.models.chat.MediaItem
 import kotlinx.coroutines.flow.Flow
+
+/** A chat the server holds as archived for the viewer. */
+data class ArchivedChatRow(
+    @ColumnInfo(name = "chat_id_hex") val chatIdHex: String,
+    @ColumnInfo(name = "archived_at_epoch_ms") val archivedAtEpochMs: Long,
+)
 
 @Dao
 interface ChatMetadataDao {
@@ -148,6 +155,10 @@ interface ChatMetadataDao {
      *
      * Both mute columns are written together so a switch between the two shapes clears the other.
      *
+     * The archive rides the gate too: `ViewerState.settings.archive` is versioned with mute, so an
+     * archive and the unarchive that followed it converge the same way. Returns the rows changed,
+     * so a caller can tell an applied write from one the gate dropped.
+     *
      * The viewer's grants ride the same gate. They are part of the same server-owned state and
      * carry no version of their own, so splitting them out would let a stale payload reinstate a
      * grant the newest one had withdrawn.
@@ -166,7 +177,8 @@ interface ChatMetadataDao {
         "UPDATE chat_metadata SET mute_until_epoch_ms = :muteUntilEpochMs, " +
             "mute_forever = :muteForever, viewer_state_version = :version, " +
             "can_edit = :canEdit, can_invite = :canInvite, can_silence = :canSilence, can_ban = :canBan, can_pin = :canPin, " +
-            "silence_until_epoch_ms = :silenceUntilEpochMs, silence_forever = :silenceForever " +
+            "silence_until_epoch_ms = :silenceUntilEpochMs, silence_forever = :silenceForever, " +
+            "archived_at_epoch_ms = :archivedAtEpochMs " +
             "WHERE chat_id_hex = :chatIdHex AND (:version > viewer_state_version OR viewer_state_version = 0)"
     )
     suspend fun updateViewerStateIfNewer(
@@ -176,12 +188,22 @@ interface ChatMetadataDao {
         canEdit: Boolean,
         canInvite: Boolean,
         version: Long,
+        // No default: a caller that forgot it would unarchive the chat.
+        archivedAtEpochMs: Long?,
         canSilence: Boolean = false,
         canBan: Boolean = false,
         silenceUntilEpochMs: Long? = null,
         silenceForever: Boolean = false,
         canPin: Boolean = false,
-    )
+    ): Int
+
+    /** When the server says the viewer archived [chatIdHex]; null when not archived or not stored. */
+    @Query("SELECT archived_at_epoch_ms FROM chat_metadata WHERE chat_id_hex = :chatIdHex")
+    suspend fun getArchivedAt(chatIdHex: String): Long?
+
+    /** The chats the server holds as archived for the viewer, with when each was archived. */
+    @Query("SELECT chat_id_hex, archived_at_epoch_ms FROM chat_metadata WHERE archived_at_epoch_ms IS NOT NULL")
+    fun observeArchived(): Flow<List<ArchivedChatRow>>
 
     /**
      * Writes the moderation grants alone, whatever version the row holds.
@@ -203,12 +225,14 @@ interface ChatMetadataDao {
      * chat the user has left and re-entered.
      *
      * The grants go with it. A chat the user is no longer in grants nothing, and leaving one
-     * while holding an edit right would otherwise keep the affordance on screen.
+     * while holding an edit right would otherwise keep the affordance on screen. So does the
+     * archive: the server clears it when the viewer leaves or is removed.
      */
     @Query(
         "UPDATE chat_metadata SET mute_until_epoch_ms = NULL, mute_forever = 0, " +
             "viewer_state_version = 0, can_edit = 0, can_invite = 0, can_silence = 0, can_ban = 0, can_pin = 0, " +
-            "silence_until_epoch_ms = NULL, silence_forever = 0 WHERE chat_id_hex = :chatIdHex"
+            "silence_until_epoch_ms = NULL, silence_forever = 0, archived_at_epoch_ms = NULL " +
+            "WHERE chat_id_hex = :chatIdHex"
     )
     suspend fun clearViewerState(chatIdHex: String)
 
@@ -278,6 +302,7 @@ interface ChatMetadataDao {
             canEdit = entity.canEdit,
             canInvite = entity.canInvite,
             version = entity.viewerStateVersion,
+            archivedAtEpochMs = entity.archivedAtEpochMs,
             canSilence = entity.canSilence,
             canBan = entity.canBan,
             silenceUntilEpochMs = entity.silenceUntilEpochMs,

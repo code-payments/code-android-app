@@ -71,6 +71,9 @@ internal open class ArchivedChatsViewModel @Inject constructor(
         viewModelScope.launch { archiveStore.unarchive(chatId) }
     }
 
+    /** The screen came on screen or left it. The stream carries archived groups meanwhile. */
+    fun setVisible(visible: Boolean) = chatCoordinator.setArchiveVisible(visible)
+
     fun toggleRead(chatId: ChatId) {
         viewModelScope.launch { rowActions.toggleRead(chatId, ChatReadSource.SWIPE) }
     }

@@ -31,7 +31,9 @@ import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatterSample
 import com.flipcash.services.models.chat.SampledChatter
+import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatType
+import com.flipcash.services.models.chat.UnarchivedChat
 import com.flipcash.services.models.chat.EditChatParameters
 import com.flipcash.services.models.chat.IdempotencyKey
 import com.flipcash.services.models.chat.Invite
@@ -114,7 +116,8 @@ internal class InternalChatRepository(
         owner: KeyPair,
         queryOptions: QueryOptions,
         chatType: ChatType,
-    ): Result<ChatFeedPage> = service.getDmChatFeed(owner, queryOptions, chatType)
+        folder: ChatFolder,
+    ): Result<ChatFeedPage> = service.getDmChatFeed(owner, queryOptions, chatType, folder)
         .onFailure { ErrorUtils.handleError(it) }
         .map { response ->
             ChatFeedPage(
@@ -127,7 +130,8 @@ internal class InternalChatRepository(
     override suspend fun getGroupChatFeed(
         owner: KeyPair,
         queryOptions: QueryOptions,
-    ): Result<ChatFeedPage> = service.getGroupChatFeed(owner, queryOptions)
+        folder: ChatFolder,
+    ): Result<ChatFeedPage> = service.getGroupChatFeed(owner, queryOptions, folder)
         .onFailure { ErrorUtils.handleError(it) }
         .map { response ->
             ChatFeedPage(
@@ -215,6 +219,25 @@ internal class InternalChatRepository(
     ): Result<ViewerState> = service.unmuteChat(owner, chatId)
         .onFailure { ErrorUtils.handleError(it) }
         .map { it.toViewerState() }
+
+    override suspend fun archiveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<ViewerState> = service.archiveChat(owner, chatId)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { it.toViewerState() }
+
+    override suspend fun unarchiveChat(
+        owner: KeyPair,
+        chatId: ChatId,
+    ): Result<UnarchivedChat> = service.unarchiveChat(owner, chatId)
+        .onFailure { ErrorUtils.handleError(it) }
+        .map { response ->
+            UnarchivedChat(
+                viewerState = response.viewerState.toViewerState(),
+                chat = if (response.hasChat()) mapper.map(response.chat) else null,
+            )
+        }
 
     override suspend fun enterLobby(owner: KeyPair, chatId: ChatId): Result<Lobby> =
         service.enterLobby(owner, chatId)

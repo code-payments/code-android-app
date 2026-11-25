@@ -23,6 +23,7 @@ import com.flipcash.services.models.chat.ChatMember
 import com.flipcash.services.models.chat.ChatMessage
 import com.flipcash.services.models.chat.ChatMetadata
 import com.flipcash.services.models.chat.ChatMutation
+import com.flipcash.services.models.chat.ArchiveState
 import com.flipcash.services.models.chat.ChatType
 import com.flipcash.services.models.chat.ChatUpdate
 import com.flipcash.services.models.chat.HoldingsSummary
@@ -564,6 +565,16 @@ internal fun ChatModel.HoldingsSummary.toHoldingsSummary(): HoldingsSummary {
 internal fun ChatModel.ViewerState.toViewerState(): ViewerState {
     return ViewerState(
         mute = if (hasSettings() && settings.hasMute()) settings.mute.toMuteState() else null,
+        archive = if (hasSettings() && settings.hasArchive()) {
+            ArchiveState(
+                archivedAt = Instant.fromEpochSeconds(
+                    settings.archive.archivedAt.seconds,
+                    settings.archive.archivedAt.nanos,
+                ),
+            )
+        } else {
+            null
+        },
         version = version,
         permissions = if (hasPermissions()) {
             ViewerState.Permissions(
