@@ -107,7 +107,7 @@ espresso = "3.7.0"
 mockito-kotlin = "6.4.0"
 mockk = "1.14.12"
 turbine = "1.2.1"
-robolectric = "4.18"
+robolectric = "4.18.1"
 # The android-all jars Robolectric loads for each SDK level the tests run on (libs/test-utils'
 # robolectric.properties pins 36; @Config pins 32, 34 and 35; modules without test-utils on the
 # classpath fall back to Robolectric's default, 24). Gradle resolves them so tests don't download
