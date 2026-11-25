@@ -13,3 +13,8 @@ updates:
   - bmc08gt
   assignees:
   - bmc08gt
+  ignore:
+    # Each version is the exact android-all build a Robolectric release loads for one SDK level
+    # (see the robolectric-sdk* entries in libs.versions.toml). They move with Robolectric, not on
+    # their own; "newer" builds belong to other SDK levels.
+    - dependency-name: "org.robolectric:android-all-instrumented"

@@ -1,4 +1,5 @@
 import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
+import com.getcode.buildlogic.robolectric.useGradleResolvedRobolectricSdks
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.VersionCatalogsExtension
@@ -91,6 +92,9 @@ class KmpLibraryConventionPlugin : Plugin<Project> {
                     attributes.attribute(KotlinPlatformType.attribute, KotlinPlatformType.jvm)
                 }
             }
+
+            // Only the Android host tests run under Robolectric; jvmTest has no use for the jars.
+            useGradleResolvedRobolectricSdks { it.name.contains("AndroidHostTest") }
         }
     }
 }

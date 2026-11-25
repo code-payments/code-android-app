@@ -13,6 +13,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("dagger.hilt.android.plugin")
     alias(libs.plugins.google.services)
+    alias(libs.plugins.flipcash.robolectric.sdks)
     alias(libs.plugins.firebase.perf)
     alias(libs.plugins.bugsnag.gradle)
     alias(libs.plugins.secrets)
