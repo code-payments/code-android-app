@@ -42,8 +42,8 @@ import kotlin.time.Duration.Companion.milliseconds
  * what answers a follow, and that an archived group's updates still land when it is not
  * followed.
  *
- * The seq and ack bookkeeping under this is the controller's, and is covered in
- * `EventStreamingControllerTest` and `FollowArchiveSequencerTest`.
+ * The seq and ack bookkeeping under this is the controller's `FollowArchiveSequencer`, and is
+ * covered in `EventStreamingControllerTest`.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ArchiveFollowTest {

@@ -179,6 +179,23 @@ class EventStreamingControllerTest {
     }
 
     @Test
+    fun `a repeated ack for the latest seq is reported once`() = runTest {
+        stubOwner()
+        val acks = mutableListOf<Boolean>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            controller.followArchiveAcks.collect { acks += it }
+        }
+        controller.open(CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+        startAttempt()
+        controller.setFollowArchive(true) // seq 1
+
+        repository.lastOnFollowArchiveAck!!.invoke(1L)
+        repository.lastOnFollowArchiveAck!!.invoke(1L)
+
+        assertEquals(listOf(true), acks)
+    }
+
+    @Test
     fun `a reconnect starts seq over and follows again after Params`() = runTest {
         stubOwner()
         val acks = mutableListOf<Boolean>()
