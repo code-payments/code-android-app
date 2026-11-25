@@ -6,7 +6,6 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.flipcash.libs.coroutines.DispatcherProvider
 import com.flipcash.services.chat.GroupKeyEnvelopeStore
-import com.flipcash.services.models.chat.ChatFolder
 import com.flipcash.services.models.chat.ChatId
 import com.flipcash.services.user.UserManager
 import com.flipcash.shared.chat.AppForeground
@@ -486,10 +485,11 @@ class RealChatCoordinator @Inject constructor(
     /**
      * Re-reads the archived groups once the stream follows them, with a catch-up this time: the
      * stream replays nothing it did not carry, so this is how an archived group that moved while
-     * unfollowed gets its missed window.
+     * unfollowed gets its missed window. Read to the last page, so a group past the first one
+     * gets that window too.
      */
     private suspend fun readArchivedGroups() {
-        val chats = groupFeedDelegate.fetchGroupFeed(ChatFolder.ARCHIVED) ?: return
+        val chats = groupFeedDelegate.fetchArchivedGroups() ?: return
         feedDelegate.writeFeed(chats)
         groupFeedDelegate.requestCatchUp(chats)
     }
