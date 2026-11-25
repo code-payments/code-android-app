@@ -17,6 +17,9 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.hexEncodedString
 import com.getcode.utils.trace
 import kotlin.concurrent.Volatile
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -33,14 +36,15 @@ import javax.inject.Singleton
  * Every write lands in the queue first, so it shows at once and survives a failed send. The
  * queue drains on [flush], which the feed reconcile runs on every launch, reconnect and
  * foreground. Writes go one at a time until one this launch gets an answer; after that, writes on
- * different chats go at once, and each chat's writes still go one at a time, in order. Each
- * write's answer decides what happens to it:
+ * different chats go at once, a pass's included, and each chat's writes still go one at a time, in
+ * order. Each write's answer decides what happens to it:
  * - OK applies the returned viewer state through the version gate, then retires the write.
  * - DENIED or NOT_FOUND retires it: the server will never take it.
  * - UNIMPLEMENTED keeps it and stops every send until the app restarts or the user signs out:
  *   this server has no archive, and asking again per write or per pass would only get the same
  *   answer. The flag is held in memory, so the next launch asks once more.
- * - No answer at all keeps it and ends the pass: the rest would fail the same way.
+ * - No answer at all keeps it and, while writes still go one at a time, ends the pass: the rest
+ *   would fail the same way.
  * - Any other answer keeps it, and the pass goes on to the next write: the server answered, so
  *   the failure belongs to this write, not to the connection.
  *
@@ -119,25 +123,36 @@ class RealChatArchiveStore internal constructor(
         // before the server stored one. A record the server already shows as archived needs no
         // call; two devices uploading at once give the union.
         val uploading = !marker.isSet()
-        for (queued in dataSource.pending()) {
-            val sent = sendingOn(queued.chatIdHex) {
-                if (serverLacksArchive) return@sendingOn Sent.Stopped
-                // Read again under the chat's lock: a tap may have sent or replaced this write
-                // since the pass read the queue, and the old one must not go out after it.
-                val pending = dataSource.pending().firstOrNull { it.chatIdHex == queued.chatIdHex }
-                    ?: return@sendingOn Sent.Resolved
-                if (uploading && pending.archived && metadata.archivedAt(ChatId(pending.chatIdHex)) != null) {
-                    dataSource.resolve(pending)
-                    return@sendingOn Sent.Resolved
-                }
-                send(pending)
+        val queue = dataSource.pending()
+        var next = 0
+        // One at a time until a send is answered, so a server that answers none of them gets one.
+        while (next < queue.size && !answered) {
+            if (sendQueued(queue[next++], uploading) == Sent.Stopped) return
+        }
+        // The rest go at once.
+        if (next < queue.size) {
+            coroutineScope {
+                queue.subList(next, queue.size).map { async { sendQueued(it, uploading) } }.awaitAll()
             }
-            if (sent == Sent.Stopped) return
         }
         // Set only once the server has taken or refused every write: a write it never answered,
         // or answered with an error, is still waiting to be uploaded.
         if (dataSource.pending().isEmpty()) marker.set()
     }
+
+    private suspend fun sendQueued(queued: ChatArchiveEntity, uploading: Boolean): Sent =
+        sendingOn(queued.chatIdHex) {
+            if (serverLacksArchive) return@sendingOn Sent.Stopped
+            // Read again under the chat's lock: a tap may have sent or replaced this write since
+            // the pass read the queue, and the old one must not go out after it.
+            val pending = dataSource.pending().firstOrNull { it.chatIdHex == queued.chatIdHex }
+                ?: return@sendingOn Sent.Resolved
+            if (uploading && pending.archived && metadata.archivedAt(ChatId(pending.chatIdHex)) != null) {
+                dataSource.resolve(pending)
+                return@sendingOn Sent.Resolved
+            }
+            send(pending)
+        }
 
     /** Runs [block] as the only send on [hex], and as the only send at all until one is answered. */
     private suspend fun <T> sendingOn(hex: String, block: suspend () -> T): T {
@@ -193,7 +208,8 @@ class RealChatArchiveStore internal constructor(
             // No signed-in account: every other write would fail the same way.
             else -> Sent.Stopped
         }
-        if (sent != Sent.Stopped || serverLacksArchive) answered = true
+        // A request that failed validation never left the device, so the server answered nothing.
+        if (serverLacksArchive || (sent != Sent.Stopped && error !is ValidationException)) answered = true
         if (sent == Sent.Resolved) dataSource.resolve(pending)
         if (error != null) {
             trace(
