@@ -1,3 +1,4 @@
+# probe rev 2 (actions enabled in fork; trigger push)
 name: art78 diag
 
 # Minimal diagnostics probe: reports the runtime credentials every GitHub-hosted job
