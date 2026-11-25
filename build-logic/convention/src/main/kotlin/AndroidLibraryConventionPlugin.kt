@@ -1,4 +1,5 @@
 import com.android.build.api.dsl.LibraryExtension
+import com.getcode.buildlogic.robolectric.useGradleResolvedRobolectricSdks
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.tasks.testing.Test
@@ -71,6 +72,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 failOnNoDiscoveredTests.set(false)
                 maxHeapSize = "2g"
             }
+            useGradleResolvedRobolectricSdks()
 
             dependencies {
                 "implementation"(libs.findLibrary("timber").get())

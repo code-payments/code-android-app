@@ -65,6 +65,10 @@ gradlePlugin {
             id = "flipcash.kmp.test.fixtures"
             implementationClass = "KmpTestFixturesConventionPlugin"
         }
+        register("robolectricSdks") {
+            id = "flipcash.robolectric.sdks"
+            implementationClass = "RobolectricSdksConventionPlugin"
+        }
         register("serviceBoundary") {
             id = "flipcash.service.boundary"
             implementationClass = "ServiceBoundaryConventionPlugin"

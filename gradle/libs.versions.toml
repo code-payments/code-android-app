@@ -108,6 +108,17 @@ mockito-kotlin = "6.4.0"
 mockk = "1.14.12"
 turbine = "1.2.1"
 robolectric = "4.18"
+# The android-all jars Robolectric loads for each SDK level the tests run on (libs/test-utils'
+# robolectric.properties pins 36; @Config pins 32, 34 and 35; modules without test-utils on the
+# classpath fall back to Robolectric's default, 24). Gradle resolves them so tests don't download
+# them at runtime; see RobolectricSdks.kt. Each Robolectric release names its own
+# builds in DefaultSdkProvider: bump these with it, or every test on that SDK fails with
+# "no artifacts found for DependencyJar{...}".
+robolectric-sdk24 = "7.0.0_r1-robolectric-r1-i7"
+robolectric-sdk32 = "12.1-robolectric-8229987-i7"
+robolectric-sdk34 = "14-robolectric-10818077-i7"
+robolectric-sdk35 = "15-robolectric-14663667-2-i7"
+robolectric-sdk36 = "16-robolectric-13921718-2-i7"
 slf4j-simple = "2.0.20"
 androidxUiJUnit = "1.11.4"
 mixpanel = "8.12.0"
@@ -346,6 +357,11 @@ testing-androidx-arch-core = { group = "androidx.arch.core", name = "core-testin
 testing-androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "androidxTestRules" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+robolectric-sdk24 = { module = "org.robolectric:android-all-instrumented", version.ref = "robolectric-sdk24" }
+robolectric-sdk32 = { module = "org.robolectric:android-all-instrumented", version.ref = "robolectric-sdk32" }
+robolectric-sdk34 = { module = "org.robolectric:android-all-instrumented", version.ref = "robolectric-sdk34" }
+robolectric-sdk35 = { module = "org.robolectric:android-all-instrumented", version.ref = "robolectric-sdk35" }
+robolectric-sdk36 = { module = "org.robolectric:android-all-instrumented", version.ref = "robolectric-sdk36" }
 testing-slf4j-simple = { group = "org.slf4j", name = "slf4j-simple", version.ref = "slf4j-simple" }
 testing-lifecycle = { group = "androidx.lifecycle", name = "lifecycle-runtime-testing", version.ref = "androidx-lifecycle" }
 testing-compose-uiTestManifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
@@ -394,6 +410,7 @@ grpc = ["grpc-okhttp", "grpc-kotlin", "grpc-protobuf-lite", "grpc-stub"]
 
 [plugins]
 flipcash-android-library = { id = "flipcash.android.library" }
+flipcash-robolectric-sdks = { id = "flipcash.robolectric.sdks" }
 flipcash-android-library-compose = { id = "flipcash.android.library.compose" }
 flipcash-android-feature = { id = "flipcash.android.feature" }
 flipcash-android-ed25519-shadow = { id = "flipcash.android.ed25519.shadow" }
