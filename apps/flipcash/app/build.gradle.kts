@@ -174,6 +174,19 @@ tasks.matching { it.name == "bugsnagUploadReleaseProguardMapping" }.configureEac
     buildUuid.set(bugsnagBuildId)
 }
 
+// The plugin extracts bugsnag-cli to a java.io.tmpdir temp file during configuration and
+// stores that absolute path on each CLI task. A configuration cache entry restored on another
+// machine (CI caches .gradle/configuration-cache across runs) points at a file that no longer
+// exists, and the task fails with "A problem occurred starting process '/tmp/bugsnag-cli…'".
+// Opting these tasks out keeps Gradle from storing entries for builds that run them.
+// BugsnagCliTask is internal to the plugin, hence the lookup by superclass name.
+tasks.matching { task ->
+    generateSequence<Class<*>>(task.javaClass) { it.superclass }
+        .any { it.name == "com.bugsnag.gradle.BugsnagCliTask" }
+}.configureEach {
+    notCompatibleWithConfigurationCache("bugsnag-cli path is a temp file extracted at configuration time")
+}
+
 composeCompiler {
     // Isolated Projects-safe root access (see AndroidLibraryComposeConventionPlugin).
     stabilityConfigurationFiles.add(
