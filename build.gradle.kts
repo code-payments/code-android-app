@@ -1,6 +1,8 @@
 buildscript {
     repositories {
         google()
+        // Google's Central mirror; see dependencyResolutionManagement in settings.gradle.kts.
+        maven(url = "https://maven-central.storage-download.googleapis.com/maven2/")
         mavenCentral()
         gradlePluginPortal()
         // JitPack only ever serves its own coordinate namespaces. Without this filter it
