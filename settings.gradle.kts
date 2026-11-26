@@ -5,6 +5,8 @@ pluginManagement {
     repositories {
         mavenLocal()
         google()
+        // Google's Central mirror; see dependencyResolutionManagement.
+        maven(url = "https://maven-central.storage-download.googleapis.com/maven2/")
         mavenCentral()
         gradlePluginPortal()
         maven(url = "https://jitpack.io") {
@@ -93,12 +95,12 @@ dependencyResolutionManagement {
     repositories {
         mavenLocal()
         google()
-        // Maven Central answers CI's android-all jar downloads with 429 Too Many Requests.
-        // Google's mirror of Central serves the same files; a 404 here falls through to
-        // mavenCentral().
-        maven(url = "https://maven-central.storage-download.googleapis.com/maven2/") {
-            content { includeModule("org.robolectric", "android-all-instrumented") }
-        }
+        // Maven Central answers CI downloads with 429 Too Many Requests. Google's mirror of
+        // Central serves the same files, so every Central lookup tries it first. An artifact
+        // the mirror lacks (e.g. one published minutes ago) 404s and falls through to
+        // mavenCentral(). The same mirror sits ahead of Central in pluginManagement below,
+        // the root buildscript, build-logic and buildSrc.
+        maven(url = "https://maven-central.storage-download.googleapis.com/maven2/")
         mavenCentral()
         maven(url = "https://plugins.gradle.org/m2/")
         maven(url = "https://maven.fpregistry.io/releases")
