@@ -7,8 +7,9 @@ pluginManagement {
         google()
         // Google's Central mirror; see dependencyResolutionManagement.
         maven(url = "https://maven-central.storage-download.googleapis.com/maven2/")
-        mavenCentral()
+        // Ahead of mavenCentral() so portal-only plugins (foojay) never probe Central.
         gradlePluginPortal()
+        mavenCentral()
         maven(url = "https://jitpack.io") {
             content {
                 includeGroupByRegex("com\\.github\\..*")
@@ -103,7 +104,16 @@ dependencyResolutionManagement {
         maven(url = "https://maven-central.storage-download.googleapis.com/maven2/")
         mavenCentral()
         maven(url = "https://plugins.gradle.org/m2/")
-        maven(url = "https://maven.fpregistry.io/releases")
+        // A 429 from Central fails resolution instead of falling through, so modules that only live
+        // on another repository are pinned to it with exclusiveContent and never probe Central.
+        exclusiveContent {
+            forRepository { maven(url = "https://maven.fpregistry.io/releases") }
+            filter { includeGroup("com.fingerprint.android") }
+        }
+        exclusiveContent {
+            forRepository { maven(url = "https://jitpack.io") }
+            filter { includeGroup("com.github.fingerprintjs") }
+        }
         maven(url = "https://jitpack.io") {
             content {
                 includeGroupByRegex("com\\.github\\..*")
@@ -114,11 +124,15 @@ dependencyResolutionManagement {
         maven(url = "https://central.sonatype.com/repository/maven-snapshots/")
         // Node.js for Kotlin/JS (`flipcash.kmp.js`). KGP adds this repository to the project, which
         // PREFER_SETTINGS ignores, so it is declared here.
-        ivy(url = "https://nodejs.org/dist") {
-            name = "Node.js distributions"
-            patternLayout { artifact("v[revision]/[artifact](-v[revision]-[classifier]).[ext]") }
-            metadataSources { artifact() }
-            content { includeModule("org.nodejs", "node") }
+        exclusiveContent {
+            forRepository {
+                ivy(url = "https://nodejs.org/dist") {
+                    name = "Node.js distributions"
+                    patternLayout { artifact("v[revision]/[artifact](-v[revision]-[classifier]).[ext]") }
+                    metadataSources { artifact() }
+                }
+            }
+            filter { includeModule("org.nodejs", "node") }
         }
     }
 }
